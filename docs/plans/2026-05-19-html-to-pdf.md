@@ -1,7 +1,7 @@
 # HTML → PDF in Maroto Implementation Plan
 
 Created: 2026-05-19
-Status: PENDING
+Status: COMPLETE
 Approved: Yes
 Iterations: 0
 Worktree: No
@@ -121,9 +121,9 @@ Not applicable — Maroto is a library, not a service.
 - [x] Task 8: DOM-to-Maroto-AST translator (block elements)
 - [x] Task 9: Inline element translation into RichText runs
 - [x] Task 10: Table/list translation
-- [ ] Task 11: Public API (pkg/html + Maroto.AddHTML) + documented subset + examples
+- [x] Task 11: Public API (pkg/html + Maroto.AddHTML) + documented subset + examples
 
-**Total Tasks:** 11 | **Completed:** 10 | **Remaining:** 1
+**Total Tasks:** 11 | **Completed:** 11 | **Remaining:** 0
 
 ## Implementation Tasks
 
