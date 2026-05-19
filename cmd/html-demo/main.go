@@ -26,20 +26,43 @@ const body = `
   <style>
     h1 { color: #1a3e72; font-size: 22pt }
     h2 { color: #1a3e72; font-size: 14pt }
+    h3 { color: #1a3e72; font-size: 11pt }
     .muted   { color: #6a6a6a }
     .accent  { color: #c0392b }
     .small   { font-size: 9pt }
+    .parties { display: flex; gap: 6mm }
+    .meta    { display: flex; flex-direction: column; row-gap: 1mm }
+    .totals  { display: flex; justify-content: space-between }
+    .totals-left  { /* default flex behavior, takes proportional space */ }
   </style>
 </head>
 <body>
   <h1>Invoice #2026-0042</h1>
   <p class="muted">Issued 19 May 2026 — Payment due within 30 days</p>
 
-  <h2>Bill to</h2>
-  <p><b>Acme Corporation</b><br>
-  123 Industrial Way<br>
-  Springfield, IL 62701<br>
-  <span class="muted">accounts@acme.example</span></p>
+  <div class="parties">
+    <div>
+      <h3>Bill to</h3>
+      <p><b>Acme Corporation</b><br>
+      123 Industrial Way<br>
+      Springfield, IL 62701<br>
+      <span class="muted">accounts@acme.example</span></p>
+    </div>
+    <div>
+      <h3>Ship to</h3>
+      <p><b>Acme Warehouse #4</b><br>
+      890 Logistics Blvd<br>
+      Springfield, IL 62702<br>
+      <span class="muted">receiving@acme.example</span></p>
+    </div>
+    <div>
+      <h3>Payment</h3>
+      <p>Net 30 days<br>
+      <b>First National Bank</b><br>
+      Account 0123-4567<br>
+      <span class="muted">SWIFT FNBKUS33</span></p>
+    </div>
+  </div>
 
   <h2>Summary</h2>
   <p>Thank you for your <i>continued</i> business this quarter. Below is the itemised
@@ -64,6 +87,11 @@ const body = `
       <tr><td colspan="3"><b>Amount due</b></td><td><b class="accent">$540.00</b></td></tr>
     </tbody>
   </table>
+
+  <div class="totals">
+    <div style="flex:0 0 50%"><b>Amount due (final)</b></div>
+    <div style="flex:0 0 25%" class="accent"><b>$540.00 USD</b></div>
+  </div>
 
   <h2>Payment instructions</h2>
   <ol>

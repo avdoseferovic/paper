@@ -46,7 +46,9 @@ rows, err := html.FromString(htmlString)
 
 **Background:** `background-color`
 
-**Layout:** `display: block|inline|inline-block|none`, `width`, `height`
+**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`
+
+**Flex:** `flex-direction`, `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
 
 **Length units:** `px` (1px = 0.264583mm), `pt` (1pt = 0.352778mm), `mm`, `cm`, `em` (relative to parent font-size), `rem`.
 
@@ -72,7 +74,7 @@ The translator does not yet flow text around inline images. v1 renders inline `<
 ### Out of scope (will not be supported in v1)
 
 - JavaScript (the parser is HTML-only; no JS engine)
-- CSS `flexbox`, `grid`, `float`, `position`, `transform`
+- CSS `grid`, `float`, `position`, `transform` (basic `flex` is supported — see [CSS Flex](#css-flex))
 - `@media`, `@keyframes`, `@font-face`
 - Pseudo-elements (`::before`, `::after`), pseudo-classes (`:hover`, `:nth-child`)
 - External stylesheets (`<link rel="stylesheet" href="…">`)
@@ -90,6 +92,80 @@ html.FromString(input,
         log.Printf("unsupported: %s=%s", prop, val)
     }),
 )
+```
+
+## CSS Flex
+
+Basic flexbox layout is supported, with some limitations driven by Maroto's grid model.
+
+```html
+<div style="display:flex; gap:6mm">
+  <div style="flex:1">Left</div>
+  <div style="flex:2">Middle</div>
+  <div style="flex:1">Right</div>
+</div>
+```
+
+### Supported properties
+
+| Property                      | Notes                                                                 |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `display: flex`               | Switches the container to flex layout                                 |
+| `display: inline-flex`        | Treated as `display: flex`                                            |
+| `flex-direction: row`         | Default — children render as columns of a single row                  |
+| `flex-direction: column`      | Children stack as separate rows                                       |
+| `flex-direction: row-reverse` | Accepted but **does not** reverse order (limitation)                  |
+| `flex-direction: column-reverse` | Accepted but **does not** reverse order (limitation)              |
+| `flex: <grow> <shrink> <basis>` | Shorthand. Also accepts `auto`, `none`, `initial`, single number    |
+| `flex-grow`                   | Proportional growth weight                                            |
+| `flex-shrink`                 | Parsed but no independent effect (quantizer prevents overflow)        |
+| `flex-basis: <length>`        | Used as item weight                                                   |
+| `flex-basis: <percent>`       | Converted to fraction of grid (e.g. `25%` → 3 cols at gridSize=12)    |
+| `flex-basis: auto`            | Item participates as a default grow item                              |
+| `justify-content`             | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`   |
+| `align-items`                 | Accepted but cross-axis alignment is limited (see below)              |
+| `gap`, `column-gap`           | Reserves integer spacer cols between items                            |
+| `row-gap`                     | Reserves spacer rows between items in `flex-direction:column`         |
+
+### Grid quantization
+
+Maroto's grid is **12 columns wide** by default (configurable via `config.WithMaxGridSize(n)`). Flex item sizes are quantized to integer col widths using Hamilton's largest-remainder method (provably the fairest integer split). This means:
+
+- `flex:1 1 1` over 3 items → `[4,4,4]`
+- `flex:1 1 1 1` over 4 items → `[3,3,3,3]`
+- `flex:1 1 1 1 1` over 5 items → `[3,3,2,2,2]` (Hamilton redistributes the remainder)
+
+`flex-basis:25%` at gridSize=12 → 3 cols. At gridSize=20 → 5 cols.
+
+### Gap approximation
+
+`gap`/`column-gap` is measured in mm but Maroto needs integer cols. The translator converts using `mm_per_col = contentWidth / gridSize`, defaulting to 170mm/12 ≈ 14.17mm/col at A4 with 20mm L+R margins. For other page sizes, pass `html.WithContentWidth(mm)`. Gap is clamped to ≤ gridSize/2 cols.
+
+### Limitations (intentional)
+
+- **`flex-wrap`** — not supported. Flex items always stay on a single row.
+- **`order`** — items render in DOM order regardless.
+- **`align-self`** — per-item cross-axis override not supported (use container-level `align-items`).
+- **`align-content`** — N/A without wrap.
+- **`flex-shrink`** — parsed but no independent effect. Hamilton's quantizer always sums exactly to the grid total, so overflow is impossible.
+- **`flex-direction: *-reverse`** — accepted as valid CSS but children render in source order.
+- **`space-between` with no slack** — silently degrades to `flex-start` when item widths sum to the grid. Workaround: use non-equal flex weights, or ensure `gap` reserves spacer cols.
+- **`align-items: center`/`flex-end`** — best-effort within Maroto's row model. Cross-axis alignment in PDF is bounded by the row's auto-height behaviour.
+
+### Configurable grid + content width
+
+When constructing the maroto document with a custom grid:
+
+```go
+cfg := config.NewBuilder().WithMaxGridSize(20).Build()
+m := maroto.New(cfg)
+m.AddHTML(htmlStr) // flex quantization automatically uses gridSize=20
+```
+
+For non-A4 page sizes, pass content width when using `html.FromString` directly:
+
+```go
+rows, _ := html.FromString(input, html.WithGridSize(20), html.WithContentWidth(250.0))
 ```
 
 ## How it works

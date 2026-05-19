@@ -113,6 +113,49 @@ func TestTranslate_Flex(t *testing.T) {
 	})
 }
 
+// TestTranslate_FlexDemoSections asserts that the html-demo's flex sections
+// produce the expected structural shape (1 row with N cols). Catches regressions
+// where flex dispatch silently fails and content gets flattened back to stacked rows.
+func TestTranslate_FlexDemoSections(t *testing.T) {
+	t.Parallel()
+
+	t.Run("3-col parties section produces 1 row with 3 cols", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><head><style>.parties{display:flex;gap:6mm}</style></head>
+			<body><div class="parties">
+				<div><h3>Bill to</h3><p>Acme</p></div>
+				<div><h3>Ship to</h3><p>Warehouse</p></div>
+				<div><h3>Payment</h3><p>Net 30</p></div>
+			</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		// 3 content cols + up to 2 gap spacers = 3..5 cols. Must be ≥ 3.
+		assert.GreaterOrEqual(t, len(cols), 3)
+	})
+
+	t.Run("space-between totals strip produces visible between-spacer", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><head><style>.totals{display:flex;justify-content:space-between}</style></head>
+			<body><div class="totals">
+				<div style="flex:0 0 50%"><b>Amount due</b></div>
+				<div style="flex:0 0 25%"><b>$540.00</b></div>
+			</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		// items 6 + 3 = 9 cols, slack 3 → between-spacer of 3 cols. Total 3 cols.
+		require.Len(t, cols, 3)
+		sum := 0
+		for _, c := range cols {
+			sum += c.GetSize()
+		}
+		assert.Equal(t, 12, sum)
+	})
+}
+
 func TestTranslate_List(t *testing.T) {
 	t.Parallel()
 
