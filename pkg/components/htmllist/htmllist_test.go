@@ -103,6 +103,8 @@ func TestMarkerFormat(t *testing.T) {
 		{htmllist.Bullet, 0, "•"},
 		{htmllist.Decimal, 0, "1."},
 		{htmllist.Decimal, 9, "10."},
+		{htmllist.DecimalCircle, 0, "1"},
+		{htmllist.DecimalCircle, 9, "10"},
 		{htmllist.LowerAlpha, 0, "a."},
 		{htmllist.UpperAlpha, 0, "A."},
 		{htmllist.LowerRoman, 0, "i."},
@@ -119,3 +121,59 @@ func TestMarkerFormat(t *testing.T) {
 
 // Verify HTMLList implements core.Component at compile time.
 var _ core.Component = (*htmllist.HTMLList)(nil)
+
+// shapeProviderFake embeds mocks.Provider and adds a recording DrawFilledCircle.
+type shapeProviderFake struct {
+	*mocks.Provider
+	drawCalls int
+}
+
+func (s *shapeProviderFake) DrawFilledCircle(_ *entity.Cell, _ *props.Color) {
+	s.drawCalls++
+}
+
+func TestHTMLList_Render_DecimalCircle_CallsDrawFilledCircle(t *testing.T) {
+	t.Parallel()
+	mockProv := mocks.NewProvider(t)
+	mockProv.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+	mockProv.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"),
+		mock.AnythingOfType("*props.Text"), mock.AnythingOfType("float64")).Return(1).Maybe()
+	mockProv.EXPECT().AddText(mock.AnythingOfType("string"), mock.AnythingOfType("*entity.Cell"),
+		mock.AnythingOfType("*props.Text")).Maybe()
+
+	provider := &shapeProviderFake{Provider: mockProv}
+
+	items := []htmllist.Item{{Content: nil}, {Content: nil}}
+	l := htmllist.New(items, htmllist.Prop{Style: htmllist.DecimalCircle})
+	l.SetConfig(defaultConfig())
+
+	cell := &entity.Cell{Width: 100, Height: 200}
+	l.Render(provider, cell)
+
+	assert.Equal(t, 2, provider.drawCalls, "DrawFilledCircle should be called once per list item")
+}
+
+func TestHTMLList_Render_DecimalCircle_FallsBackToTextWhenNoShapeProvider(t *testing.T) {
+	t.Parallel()
+	provider := mocks.NewProvider(t)
+	provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+	provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"),
+		mock.AnythingOfType("*props.Text"), mock.AnythingOfType("float64")).Return(1).Maybe()
+	provider.EXPECT().AddText(mock.AnythingOfType("string"), mock.AnythingOfType("*entity.Cell"),
+		mock.AnythingOfType("*props.Text")).Maybe()
+
+	items := []htmllist.Item{{Content: nil}}
+	l := htmllist.New(items, htmllist.Prop{Style: htmllist.DecimalCircle})
+	l.SetConfig(defaultConfig())
+
+	cell := &entity.Cell{Width: 100, Height: 200}
+	assert.NotPanics(t, func() { l.Render(provider, cell) })
+}
+
+func TestHTMLList_GetStructure_DecimalCircle_ExposesMarkerStyle(t *testing.T) {
+	t.Parallel()
+	items := []htmllist.Item{{Content: nil}}
+	l := htmllist.New(items, htmllist.Prop{Style: htmllist.DecimalCircle})
+	str := l.GetStructure().GetData()
+	assert.Equal(t, "decimal-circle", str.Details["marker_style"])
+}

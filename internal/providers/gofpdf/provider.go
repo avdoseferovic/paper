@@ -23,6 +23,9 @@ var ErrCannotReadImageOptions = errors.New("could not read image options, maybe 
 // compile-time assertion: *provider satisfies core.RichTextProvider.
 var _ core.RichTextProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.ShapeProvider.
+var _ core.ShapeProvider = (*provider)(nil)
+
 type provider struct {
 	fpdf       gofpdfwrapper.Fpdf
 	font       core.Font
@@ -74,6 +77,30 @@ func (g *provider) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *pr
 		return
 	}
 	g.richText.AddRichText(runs, cell, prop)
+}
+
+// DrawFilledCircle draws a filled circle inscribed inside the cell with the
+// given fill color (defaulting to black). The circle is centered horizontally
+// and vertically with a radius half of the cell's smaller dimension.
+func (g *provider) DrawFilledCircle(cell *entity.Cell, fill *props.Color) {
+	if cell == nil || cell.Width <= 0 || cell.Height <= 0 {
+		return
+	}
+	color := fill
+	if color == nil {
+		color = &props.BlackColor
+	}
+	origR, origG, origB := g.fpdf.GetFillColor()
+	defer g.fpdf.SetFillColor(origR, origG, origB)
+
+	g.fpdf.SetFillColor(color.Red, color.Green, color.Blue)
+	radius := cell.Width / 2
+	if cell.Height/2 < radius {
+		radius = cell.Height / 2
+	}
+	cx := cell.X + cell.Width/2
+	cy := cell.Y + cell.Height/2
+	g.fpdf.Circle(cx, cy, radius, "F")
 }
 
 func (g *provider) AddText(text string, cell *entity.Cell, prop *props.Text) {

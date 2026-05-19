@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"strings"
+
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/htmllist"
 	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
@@ -24,6 +26,9 @@ func buildList(n *dom.Node) *htmllist.HTMLList {
 	style := htmllist.Bullet
 	if n.Tag() == "ol" {
 		style = listStyleFromType(n.Attr("type"))
+		if hasClass(n, "circle-numbers") {
+			style = htmllist.DecimalCircle
+		}
 	}
 
 	var items []htmllist.Item
@@ -37,6 +42,16 @@ func buildList(n *dom.Node) *htmllist.HTMLList {
 		return nil
 	}
 	return htmllist.New(items, htmllist.Prop{Style: style})
+}
+
+// hasClass reports whether the node's class attribute contains the given class name.
+func hasClass(n *dom.Node, name string) bool {
+	for _, c := range strings.Fields(n.Attr("class")) {
+		if c == name {
+			return true
+		}
+	}
+	return false
 }
 
 func buildItem(li *dom.Node) htmllist.Item {

@@ -10,6 +10,9 @@ func FormatMarker(style StyleType, idx int) string {
 	switch style {
 	case Decimal:
 		return fmt.Sprintf("%d.", idx+1)
+	case DecimalCircle:
+		// Circle markers render the bare number (no trailing period) centred in a disc.
+		return fmt.Sprintf("%d", idx+1)
 	case LowerAlpha:
 		return toAlpha(idx, false) + "."
 	case UpperAlpha:

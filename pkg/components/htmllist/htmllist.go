@@ -12,12 +12,13 @@ import (
 type StyleType string
 
 const (
-	Bullet     StyleType = "bullet"
-	Decimal    StyleType = "decimal"
-	LowerAlpha StyleType = "lower-alpha"
-	UpperAlpha StyleType = "upper-alpha"
-	LowerRoman StyleType = "lower-roman"
-	UpperRoman StyleType = "upper-roman"
+	Bullet        StyleType = "bullet"
+	Decimal       StyleType = "decimal"
+	DecimalCircle StyleType = "decimal-circle"
+	LowerAlpha    StyleType = "lower-alpha"
+	UpperAlpha    StyleType = "upper-alpha"
+	LowerRoman    StyleType = "lower-roman"
+	UpperRoman    StyleType = "upper-roman"
 )
 
 // Prop holds list-level configuration.
@@ -26,6 +27,13 @@ type Prop struct {
 	Indent        float64 // mm per nesting level
 	MarkerPadding float64 // mm gap between marker and content
 	GutterWidth   float64 // 0 = measure at render time
+
+	// MarkerBackground is the fill color used for circle markers (DecimalCircle).
+	// Default: dark navy (#1a3e72) when nil.
+	MarkerBackground *props.Color
+	// MarkerTextColor is the text color used for the number inside circle markers.
+	// Default: white when nil.
+	MarkerTextColor *props.Color
 }
 
 // Item is a single list entry.
@@ -74,11 +82,13 @@ func (l *HTMLList) SetConfig(config *entity.Config) {
 
 // GetStructure returns the component node for snapshots/debugging.
 func (l *HTMLList) GetStructure() *node.Node[core.Structure] {
+	style := l.prop.Style
 	str := core.Structure{
 		Type: "htmllist",
 		Details: map[string]any{
-			"style": string(l.prop.Style),
-			"items": len(l.items),
+			"style":        string(style),
+			"items":        len(l.items),
+			"marker_style": string(style),
 		},
 	}
 	return node.New(str)
@@ -107,8 +117,7 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 	for i, item := range l.items {
 		marker := FormatMarker(l.prop.Style, i)
 		markerCell := &entity.Cell{X: cell.X, Y: y, Width: gutter, Height: itemH}
-		markerProp := l.markerTextProp()
-		provider.AddText(marker, markerCell, markerProp)
+		l.renderMarker(provider, marker, markerCell)
 
 		if item.Content != nil {
 			contentCell := &entity.Cell{X: cell.X + gutter, Y: y, Width: contentWidth, Height: itemH}
@@ -128,6 +137,47 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 			y += subH
 		}
 	}
+}
+
+// renderMarker draws a single list marker — either as text (default) or as a
+// filled circle with the index centred inside (DecimalCircle style).
+func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *entity.Cell) {
+	if l.prop.Style != DecimalCircle {
+		provider.AddText(label, cell, l.markerTextProp())
+		return
+	}
+	// Circle marker: best-effort via ShapeProvider; fallback to text-only.
+	sp, ok := provider.(core.ShapeProvider)
+	if !ok {
+		provider.AddText(label, cell, l.markerTextProp())
+		return
+	}
+	// Inscribe the circle in a square sized by the shorter side of the marker cell.
+	diameter := cell.Width
+	if cell.Height < diameter {
+		diameter = cell.Height
+	}
+	circleCell := &entity.Cell{
+		X:      cell.X + (cell.Width-diameter)/2,
+		Y:      cell.Y + (cell.Height-diameter)/2,
+		Width:  diameter,
+		Height: diameter,
+	}
+	bg := l.prop.MarkerBackground
+	if bg == nil {
+		bg = &props.Color{Red: 26, Green: 62, Blue: 114} // #1a3e72
+	}
+	sp.DrawFilledCircle(circleCell, bg)
+
+	// Number rendered as centred text inside the circle.
+	tp := l.markerTextProp()
+	tp.Align = "center"
+	if l.prop.MarkerTextColor != nil {
+		tp.Color = l.prop.MarkerTextColor
+	} else {
+		tp.Color = &props.Color{Red: 255, Green: 255, Blue: 255}
+	}
+	provider.AddText(label, circleCell, tp)
 }
 
 // gutterWidth returns the computed or configured gutter.
