@@ -8,13 +8,14 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/components/table"
 	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
 // tableRows converts a <table> element into one Maroto row containing a Table component.
-func tableRows(n *dom.Node) []core.Row {
-	cells := buildTableMatrix(n)
+func (tr *translator) tableRows(n *dom.Node) []core.Row {
+	cells := tr.buildTableMatrix(n)
 	if len(cells) == 0 {
 		return nil
 	}
@@ -26,14 +27,15 @@ func tableRows(n *dom.Node) []core.Row {
 	return []core.Row{row.New().Add(c)}
 }
 
-func buildTableMatrix(n *dom.Node) [][]table.Cell {
+func (tr *translator) buildTableMatrix(n *dom.Node) [][]table.Cell {
+	tableStyle := computeNodeStyle(tr.sheet, n, nil)
 	var matrix [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {
 		case "thead", "tbody", "tfoot":
-			matrix = append(matrix, collectRows(child)...)
+			matrix = append(matrix, tr.collectRows(child, tableStyle)...)
 		case "tr":
-			if rowCells := buildRow(child); rowCells != nil {
+			if rowCells := tr.buildRow(child, tableStyle); rowCells != nil {
 				matrix = append(matrix, rowCells)
 			}
 		}
@@ -41,11 +43,11 @@ func buildTableMatrix(n *dom.Node) [][]table.Cell {
 	return matrix
 }
 
-func collectRows(parent *dom.Node) [][]table.Cell {
+func (tr *translator) collectRows(parent *dom.Node, tableStyle *css.ComputedStyle) [][]table.Cell {
 	var rows [][]table.Cell
 	for _, c := range parent.Children() {
 		if c.Tag() == "tr" {
-			if cells := buildRow(c); cells != nil {
+			if cells := tr.buildRow(c, tableStyle); cells != nil {
 				rows = append(rows, cells)
 			}
 		}
@@ -53,31 +55,73 @@ func collectRows(parent *dom.Node) [][]table.Cell {
 	return rows
 }
 
-func buildRow(trNode *dom.Node) []table.Cell {
+// buildRow builds the cells for a <tr>, propagating the row's computed style as a
+// fallback for background-color and color when individual cells have no own style.
+func (tr *translator) buildRow(trNode *dom.Node, parentStyle *css.ComputedStyle) []table.Cell {
+	rowStyle := computeNodeStyle(tr.sheet, trNode, parentStyle)
 	var cells []table.Cell
 	for _, c := range trNode.Children() {
 		tag := c.Tag()
 		if tag != "td" && tag != "th" {
 			continue
 		}
-		cells = append(cells, buildCell(c))
+		cells = append(cells, tr.buildCell(c, rowStyle))
 	}
 	return cells
 }
 
-func buildCell(td *dom.Node) table.Cell {
+// buildCell builds a single table.Cell, using rowStyle as a background/color fallback.
+func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table.Cell {
 	colspan := atoiOr(td.Attr("colspan"), 1)
 	rowspan := atoiOr(td.Attr("rowspan"), 1)
+
+	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
 	runs := inlineRuns(td)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
+
+	// Propagate row-level color to runs that have no own color.
+	effectiveColor := cellStyle.Color
+	if effectiveColor == nil {
+		effectiveColor = rowStyle.Color
+	}
+	if effectiveColor != nil {
+		for i := range runs {
+			if runs[i].Color == nil {
+				runs[i].Color = &props.Color{
+					Red:   effectiveColor.R,
+					Green: effectiveColor.G,
+					Blue:  effectiveColor.B,
+				}
+			}
+		}
+	}
+
 	content := richtext.New(runs)
+
+	// Build cell Style: prefer cell's own background, fall back to row background.
+	var cellProp *props.Cell
+	effectiveBg := cellStyle.BackgroundColor
+	if effectiveBg == nil {
+		effectiveBg = rowStyle.BackgroundColor
+	}
+	if effectiveBg != nil {
+		cellProp = &props.Cell{
+			BackgroundColor: &props.Color{
+				Red:   effectiveBg.R,
+				Green: effectiveBg.G,
+				Blue:  effectiveBg.B,
+			},
+		}
+	}
+
 	return table.Cell{
 		Content: content,
 		Colspan: colspan,
 		Rowspan: rowspan,
+		Style:   cellProp,
 	}
 }
 

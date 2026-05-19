@@ -5,6 +5,7 @@ import (
 
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
+	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
 // computeNodeStyle resolves the ComputedStyle for a node by:
@@ -26,6 +27,61 @@ func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle)
 		}
 	}
 	return s
+}
+
+// blockCellStyle converts a ComputedStyle's background and border fields into a
+// Maroto props.Cell. Returns nil if no decorative styling is set.
+func blockCellStyle(style *css.ComputedStyle) *props.Cell {
+	if style == nil || (style.BackgroundColor == nil && style.BorderTopWidth == 0 &&
+		style.BorderRightWidth == 0 && style.BorderBottomWidth == 0 && style.BorderLeftWidth == 0) {
+		return nil
+	}
+	cell := &props.Cell{}
+	if style.BackgroundColor != nil {
+		cell.BackgroundColor = &props.Color{
+			Red: style.BackgroundColor.R, Green: style.BackgroundColor.G, Blue: style.BackgroundColor.B,
+		}
+	}
+	if c := style.BorderTopColor; c != nil {
+		cell.BorderTopColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderRightColor; c != nil {
+		cell.BorderRightColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderBottomColor; c != nil {
+		cell.BorderBottomColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderLeftColor; c != nil {
+		cell.BorderLeftColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	cell.BorderTopThickness = style.BorderTopWidth
+	cell.BorderRightThickness = style.BorderRightWidth
+	cell.BorderBottomThickness = style.BorderBottomWidth
+	cell.BorderLeftThickness = style.BorderLeftWidth
+	return cell
+}
+
+// applyInlineStyleToRuns applies CSS-computed font size and color to every run
+// whose own field is unset (run-level styling wins over block-level).
+func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
+	if style == nil {
+		return
+	}
+	for i := range runs {
+		if style.FontSize > 0 && runs[i].Size == 0 {
+			// FontSize is in mm; props.RichRun expects pt — convert.
+			runs[i].Size = style.FontSize / 0.352778
+		}
+		if style.Color != nil && runs[i].Color == nil {
+			runs[i].Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
+		}
+	}
+}
+
+// isDisplayNone checks for the display:none inline-style override.
+func isDisplayNone(n *dom.Node) bool {
+	return strings.Contains(n.InlineStyle(), "display:none") ||
+		strings.Contains(n.InlineStyle(), "display: none")
 }
 
 // parseInlineStyle parses a CSS declaration block (e.g. "color:red; font-size:12pt")

@@ -10,7 +10,6 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
@@ -98,7 +97,7 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	case "hr":
 		return []core.Row{hrRow()}
 	case "table":
-		return tableRows(n)
+		return tr.tableRows(n)
 	case "ul", "ol":
 		return listRows(n)
 	case "br":
@@ -147,55 +146,6 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	return r
 }
 
-// applyInlineStyleToRuns applies CSS-computed font size and color to every run
-// whose own field is unset (run-level styling wins over block-level).
-func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
-	if style == nil {
-		return
-	}
-	for i := range runs {
-		if style.FontSize > 0 && runs[i].Size == 0 {
-			// FontSize is in mm; props.RichRun expects pt — convert.
-			runs[i].Size = style.FontSize / 0.352778
-		}
-		if style.Color != nil && runs[i].Color == nil {
-			runs[i].Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
-		}
-	}
-}
-
-// blockCellStyle converts a ComputedStyle's background and border fields
-// into a Maroto props.Cell. Returns nil if no decorative styling is set.
-func blockCellStyle(style *css.ComputedStyle) *props.Cell {
-	if style == nil || (style.BackgroundColor == nil && style.BorderTopWidth == 0 &&
-		style.BorderRightWidth == 0 && style.BorderBottomWidth == 0 && style.BorderLeftWidth == 0) {
-		return nil
-	}
-	cell := &props.Cell{}
-	if style.BackgroundColor != nil {
-		cell.BackgroundColor = &props.Color{
-			Red: style.BackgroundColor.R, Green: style.BackgroundColor.G, Blue: style.BackgroundColor.B,
-		}
-	}
-	if c := style.BorderTopColor; c != nil {
-		cell.BorderTopColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderRightColor; c != nil {
-		cell.BorderRightColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderBottomColor; c != nil {
-		cell.BorderBottomColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderLeftColor; c != nil {
-		cell.BorderLeftColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	cell.BorderTopThickness = style.BorderTopWidth
-	cell.BorderRightThickness = style.BorderRightWidth
-	cell.BorderBottomThickness = style.BorderBottomWidth
-	cell.BorderLeftThickness = style.BorderLeftWidth
-	return cell
-}
-
 // hrRow produces a thin row containing a horizontal line.
 func hrRow() core.Row {
 	l := line.New()
@@ -212,12 +162,6 @@ func wrapTextRow(text string) []core.Row {
 	rt := richtext.New([]props.RichRun{{Text: text}})
 	c := col.New().Add(rt)
 	return []core.Row{row.New().Add(c)}
-}
-
-// isDisplayNone checks for the display:none inline-style override.
-func isDisplayNone(n *dom.Node) bool {
-	return strings.Contains(n.InlineStyle(), "display:none") ||
-		strings.Contains(n.InlineStyle(), "display: none")
 }
 
 // applyBlockStyling applies block-level heading defaults to the first run.
