@@ -30,6 +30,8 @@ func expandOne(prop, val string) map[string]string {
 		return expandBorderSide("bottom", val)
 	case "border-left":
 		return expandBorderSide("left", val)
+	case "border-radius":
+		return expandBorderRadius(val)
 	case "padding":
 		return expandBox("padding", val)
 	case "margin":
@@ -93,6 +95,39 @@ func parseBorderTriple(val string) (string, string, string) {
 		colorVal = "currentColor"
 	}
 	return width, style, colorVal
+}
+
+// expandBorderRadius expands the CSS border-radius shorthand into 4 per-corner longhands.
+// Per CSS spec the value order is clockwise from top-left:
+//
+//	1 value:  all 4 corners
+//	2 values: tl+br, tr+bl
+//	3 values: tl, tr+bl, br
+//	4 values: tl, tr, br, bl
+func expandBorderRadius(val string) map[string]string {
+	parts := strings.Fields(val)
+	var tl, tr, br, bl string
+	switch len(parts) {
+	case 1:
+		tl, tr, br, bl = parts[0], parts[0], parts[0], parts[0]
+	case 2:
+		tl, br = parts[0], parts[0]
+		tr, bl = parts[1], parts[1]
+	case 3:
+		tl = parts[0]
+		tr, bl = parts[1], parts[1]
+		br = parts[2]
+	case 4:
+		tl, tr, br, bl = parts[0], parts[1], parts[2], parts[3]
+	default:
+		return map[string]string{"border-radius": val}
+	}
+	return map[string]string{
+		"border-top-left-radius":     tl,
+		"border-top-right-radius":    tr,
+		"border-bottom-right-radius": br,
+		"border-bottom-left-radius":  bl,
+	}
 }
 
 // expandBox expands a box shorthand (padding/margin) into 4 longhands.

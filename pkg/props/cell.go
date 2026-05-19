@@ -43,6 +43,55 @@ type Cell struct {
 	BorderRightThickness  float64
 	BorderBottomThickness float64
 	BorderLeftThickness   float64
+
+	// BorderRadius is the uniform corner radius in mm. When per-corner radii
+	// below are set, they override this uniform value for that corner.
+	// When any radius is set, the borderRadiusStyler owns the entire border
+	// render and per-side stroke thicknesses are averaged into a single width.
+	BorderRadius float64
+
+	// Per-corner border radius (mm). 0 = inherit from BorderRadius.
+	BorderRadiusTopLeft     float64
+	BorderRadiusTopRight    float64
+	BorderRadiusBottomLeft  float64
+	BorderRadiusBottomRight float64
+}
+
+// HasBorderRadius reports whether any uniform or per-corner radius is non-zero.
+func (c *Cell) HasBorderRadius() bool {
+	if c == nil {
+		return false
+	}
+	return c.BorderRadius > 0 ||
+		c.BorderRadiusTopLeft > 0 ||
+		c.BorderRadiusTopRight > 0 ||
+		c.BorderRadiusBottomLeft > 0 ||
+		c.BorderRadiusBottomRight > 0
+}
+
+// EffectiveRadii returns the four corner radii (top-left, top-right, bottom-right, bottom-left)
+// applying the precedence: per-corner > uniform > 0.
+func (c *Cell) EffectiveRadii() (tl, tr, br, bl float64) {
+	if c == nil {
+		return 0, 0, 0, 0
+	}
+	tl = c.BorderRadiusTopLeft
+	if tl == 0 {
+		tl = c.BorderRadius
+	}
+	tr = c.BorderRadiusTopRight
+	if tr == 0 {
+		tr = c.BorderRadius
+	}
+	br = c.BorderRadiusBottomRight
+	if br == 0 {
+		br = c.BorderRadius
+	}
+	bl = c.BorderRadiusBottomLeft
+	if bl == 0 {
+		bl = c.BorderRadius
+	}
+	return tl, tr, br, bl
 }
 
 // HasPerSideBorders reports whether any per-side border thickness is set.

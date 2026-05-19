@@ -54,6 +54,13 @@ type ComputedStyle struct {
 	// Background
 	BackgroundColor *RGBColor
 
+	// Border radius (mm). BorderRadius is the uniform fallback; per-corner overrides it.
+	BorderRadius            float64
+	BorderRadiusTopLeft     float64
+	BorderRadiusTopRight    float64
+	BorderRadiusBottomLeft  float64
+	BorderRadiusBottomRight float64
+
 	// Layout
 	Display string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
 	Width   float64
@@ -224,6 +231,16 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 		s.Width = ParseLength(val, 0)
 	case "height":
 		s.Height = ParseLength(val, 0)
+	case "border-radius":
+		s.BorderRadius = ParseLength(val, 0)
+	case "border-top-left-radius":
+		s.BorderRadiusTopLeft = ParseLength(val, 0)
+	case "border-top-right-radius":
+		s.BorderRadiusTopRight = ParseLength(val, 0)
+	case "border-bottom-left-radius":
+		s.BorderRadiusBottomLeft = ParseLength(val, 0)
+	case "border-bottom-right-radius":
+		s.BorderRadiusBottomRight = ParseLength(val, 0)
 	case "vertical-align":
 		// stored implicitly via usage context; no field needed yet
 	default:

@@ -372,3 +372,63 @@ func TestParseLength(t *testing.T) {
 		})
 	}
 }
+
+func TestBorderRadius_Apply(t *testing.T) {
+	t.Parallel()
+
+	t.Run("uniform border-radius", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("border-radius", "4mm", nil)
+		assert.InDelta(t, 4.0, s.BorderRadius, 0.01)
+	})
+
+	t.Run("border-top-left-radius", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("border-top-left-radius", "3mm", nil)
+		assert.InDelta(t, 3.0, s.BorderRadiusTopLeft, 0.01)
+		assert.Equal(t, 0.0, s.BorderRadius)
+	})
+
+	t.Run("all four per-corner longhands", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("border-top-left-radius", "1mm", nil)
+		s.Apply("border-top-right-radius", "2mm", nil)
+		s.Apply("border-bottom-right-radius", "3mm", nil)
+		s.Apply("border-bottom-left-radius", "4mm", nil)
+		assert.InDelta(t, 1.0, s.BorderRadiusTopLeft, 0.01)
+		assert.InDelta(t, 2.0, s.BorderRadiusTopRight, 0.01)
+		assert.InDelta(t, 3.0, s.BorderRadiusBottomRight, 0.01)
+		assert.InDelta(t, 4.0, s.BorderRadiusBottomLeft, 0.01)
+	})
+}
+
+func TestExpandBorderRadius(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		in   string
+		tl   string
+		tr   string
+		br   string
+		bl   string
+	}{
+		{"one value", "4mm", "4mm", "4mm", "4mm", "4mm"},
+		{"two values", "4mm 8mm", "4mm", "8mm", "4mm", "8mm"},
+		{"three values", "4mm 8mm 2mm", "4mm", "8mm", "2mm", "8mm"},
+		{"four values", "1mm 2mm 3mm 4mm", "1mm", "2mm", "3mm", "4mm"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			out := css.ExpandShorthands(map[string]string{"border-radius": tc.in})
+			assert.Equal(t, tc.tl, out["border-top-left-radius"])
+			assert.Equal(t, tc.tr, out["border-top-right-radius"])
+			assert.Equal(t, tc.br, out["border-bottom-right-radius"])
+			assert.Equal(t, tc.bl, out["border-bottom-left-radius"])
+		})
+	}
+}

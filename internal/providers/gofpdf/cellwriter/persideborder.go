@@ -30,6 +30,12 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 		p.GoToNext(width, height, config, prop)
 		return
 	}
+	// When border-radius is set, defer the entire border render to borderRadiusStyler
+	// so rounded corners and rectangular per-side lines don't fight each other.
+	if prop.HasBorderRadius() {
+		p.GoToNext(width, height, config, prop)
+		return
+	}
 
 	// Save and defer-restore draw state so we don't leak colour/thickness.
 	origLineWidth := p.fpdf.GetLineWidth()

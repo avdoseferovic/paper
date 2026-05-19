@@ -17,9 +17,14 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf) CellWriter {
 	borderThicknessStyler := NewBorderThicknessStyler(fpdf)
 	fillColorStyler := NewFillColorStyler(fpdf)
 	perSideBorder := NewPerSideBorderStyler(fpdf)
+	borderRadius := NewBorderRadiusStyler(fpdf)
 
-	// perSideBorder is first: intercepts when per-side fields are set, passes through otherwise.
-	perSideBorder.SetNext(borderThicknessStyler)
+	// Chain order:
+	//   perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → cellWriter
+	// perSideBorder runs first; it skips itself when BorderRadius is set so that
+	// borderRadius owns the entire rounded fill + stroke without overlap.
+	perSideBorder.SetNext(borderRadius)
+	borderRadius.SetNext(borderThicknessStyler)
 	borderThicknessStyler.SetNext(borderLineStyler)
 	borderLineStyler.SetNext(borderColorStyle)
 	borderColorStyle.SetNext(fillColorStyler)

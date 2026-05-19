@@ -32,8 +32,15 @@ func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle)
 // blockCellStyle converts a ComputedStyle's background and border fields into a
 // Maroto props.Cell. Returns nil if no decorative styling is set.
 func blockCellStyle(style *css.ComputedStyle) *props.Cell {
-	if style == nil || (style.BackgroundColor == nil && style.BorderTopWidth == 0 &&
-		style.BorderRightWidth == 0 && style.BorderBottomWidth == 0 && style.BorderLeftWidth == 0) {
+	if style == nil {
+		return nil
+	}
+	hasBorder := style.BorderTopWidth > 0 || style.BorderRightWidth > 0 ||
+		style.BorderBottomWidth > 0 || style.BorderLeftWidth > 0
+	hasRadius := style.BorderRadius > 0 || style.BorderRadiusTopLeft > 0 ||
+		style.BorderRadiusTopRight > 0 || style.BorderRadiusBottomLeft > 0 ||
+		style.BorderRadiusBottomRight > 0
+	if style.BackgroundColor == nil && !hasBorder && !hasRadius {
 		return nil
 	}
 	cell := &props.Cell{}
@@ -58,6 +65,11 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	cell.BorderRightThickness = style.BorderRightWidth
 	cell.BorderBottomThickness = style.BorderBottomWidth
 	cell.BorderLeftThickness = style.BorderLeftWidth
+	cell.BorderRadius = style.BorderRadius
+	cell.BorderRadiusTopLeft = style.BorderRadiusTopLeft
+	cell.BorderRadiusTopRight = style.BorderRadiusTopRight
+	cell.BorderRadiusBottomLeft = style.BorderRadiusBottomLeft
+	cell.BorderRadiusBottomRight = style.BorderRadiusBottomRight
 	return cell
 }
 
