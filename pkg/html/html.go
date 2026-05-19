@@ -20,6 +20,8 @@ type config struct {
 	unsupportedHandler func(thing, value string)
 	gridSize           int
 	contentWidthMM     float64
+	imageResolver      translate.ImageResolver
+	imageBaseDir       string
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -50,6 +52,23 @@ func WithContentWidth(mm float64) Option {
 	}
 }
 
+// WithImageResolver lets callers plug in a custom resolver for <img src=...>.
+// The default resolver only accepts data: URIs to prevent path traversal on
+// user-controlled HTML.
+func WithImageResolver(fn translate.ImageResolver) Option {
+	return func(c *config) {
+		c.imageResolver = fn
+	}
+}
+
+// WithImageBaseDir scopes <img src=...> local-file reads to a single directory.
+// Paths that escape via ".." or absolute prefix are refused.
+func WithImageBaseDir(dir string) Option {
+	return func(c *config) {
+		c.imageBaseDir = dir
+	}
+}
+
 // FromString parses an HTML string and returns the corresponding Maroto rows.
 func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
@@ -69,6 +88,14 @@ func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	}
 	if cfg.contentWidthMM > 0 {
 		tOpts = append(tOpts, translate.WithContentWidth(cfg.contentWidthMM))
+	}
+	if cfg.imageResolver != nil {
+		tOpts = append(tOpts, translate.WithImageResolver(cfg.imageResolver))
+	} else if cfg.imageBaseDir != "" {
+		tOpts = append(tOpts, translate.WithImageBaseDir(cfg.imageBaseDir))
+	}
+	if cfg.unsupportedHandler != nil {
+		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))
 	}
 	return translate.Translate(doc, tOpts...)
 }

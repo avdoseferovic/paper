@@ -37,9 +37,33 @@ func WithContentWidth(mm float64) Option {
 
 // translator threads parsed stylesheet rules through the recursive walker.
 type translator struct {
-	sheet          *stylesheet
-	gridSize       int     // 0 = use defaultGridSize (12)
-	contentWidthMM float64 // 0 = use default A4 estimate (170mm)
+	sheet              *stylesheet
+	gridSize           int     // 0 = use defaultGridSize (12)
+	contentWidthMM     float64 // 0 = use default A4 estimate (170mm)
+	imageResolver      ImageResolver
+	unsupportedHandler func(thing, value string)
+}
+
+// WithImageResolver lets callers plug in a custom <img src=…> loader.
+func WithImageResolver(fn ImageResolver) Option {
+	return func(tr *translator) {
+		tr.imageResolver = fn
+	}
+}
+
+// WithImageBaseDir scopes the default resolver to a single directory.
+// Local file reads outside this directory are refused (path-traversal safe).
+func WithImageBaseDir(dir string) Option {
+	return func(tr *translator) {
+		tr.imageResolver = baseDirResolver(dir)
+	}
+}
+
+// WithUnsupportedHandler registers a callback for unsupported tags/props.
+func WithUnsupportedHandler(fn func(thing, value string)) Option {
+	return func(tr *translator) {
+		tr.unsupportedHandler = fn
+	}
 }
 
 // Translate walks the styled DOM and emits Maroto rows.
@@ -100,6 +124,11 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 		return tr.tableRows(n)
 	case "ul", "ol":
 		return listRows(n)
+	case "img":
+		if r, ok := tr.imageRow(n); ok {
+			return []core.Row{r}
+		}
+		return altRow(n)
 	case "br":
 		return nil // top-level <br> is a no-op
 	default:
