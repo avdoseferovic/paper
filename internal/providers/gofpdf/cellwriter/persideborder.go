@@ -39,23 +39,9 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 		p.fpdf.SetDrawColor(origR, origG, origB)
 	}()
 
-	// Compute cell coordinates in page space.
-	left, top, _, _ := p.fpdf.GetMargins()
-
-	// We don't have cell X/Y here — the cellwriter chain only receives width/height.
-	// gofpdf's current pen position (GetXY) marks the cell's top-left.
-	// Use the same approach as CellFormat: cell starts at current position.
-	// For Line drawing we reconstruct corners from current pdf position.
-	// Since we can't call GetXY (not in the interface), we approximate using margins only.
-	// Actual cell position is tracked by gofpdf internally; Line coordinates are absolute.
-	// We use 0-relative offsets + page margins, matching how CellFormat positions itself.
-	// Note: the true X/Y would require GetXY which isn't in the gofpdfwrapper interface.
-	// The caller (cellWriter.Apply via CellFormat) handles real positioning. Here we
-	// draw decorative lines relative to the margin origin (a known v1 limitation for
-	// per-side borders that are not cell-position-aware).
-	// TODO(v2): add GetXY to gofpdfwrapper.Fpdf and use real cell coordinates.
-	x := left
-	y := top
+	// Snapshot the pen position at the start of Apply — gofpdf places the pen at the
+	// cell's top-left before any drawing calls, so GetXY gives the true cell origin.
+	x, y := p.fpdf.GetXY()
 
 	p.drawSide(prop.BorderTopThickness, prop.BorderTopColor, prop,
 		x, y, x+width, y)

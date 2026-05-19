@@ -39,21 +39,21 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		fpdf.AssertNumberOfCalls(t, "Line", 0)
 	})
 
-	t.Run("when only top border set, should draw one Line call", func(t *testing.T) {
+	t.Run("when only top border set, should draw one Line using GetXY cell origin", func(t *testing.T) {
 		t.Parallel()
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
+		const cellX, cellY = 15.0, 30.0
 		origLineWidth := 0.2
 		fpdf := mocks.NewFpdf(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
-		fpdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 5.0)
-		// Expect exactly one Line call (top side only)
+		fpdf.EXPECT().GetXY().Return(cellX, cellY)
+		// Expect exactly one Line call for the top side with real cell-relative coords
 		fpdf.EXPECT().SetLineWidth(1.0)
 		fpdf.EXPECT().SetDrawColor(255, 0, 0)
-		fpdf.EXPECT().Line(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"),
-			mock.AnythingOfType("float64"), mock.AnythingOfType("float64"))
+		fpdf.EXPECT().Line(cellX, cellY, cellX+w, cellY)
 		// Restore original state
 		fpdf.EXPECT().SetLineWidth(origLineWidth)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
@@ -70,7 +70,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		fpdf.AssertNumberOfCalls(t, "Line", 1)
 	})
 
-	t.Run("when all four sides set with different thicknesses, should draw four Line calls", func(t *testing.T) {
+	t.Run("when all four sides set with different thicknesses, should draw four Line calls using GetXY", func(t *testing.T) {
 		t.Parallel()
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
@@ -79,7 +79,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		fpdf := mocks.NewFpdf(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
-		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		fpdf.EXPECT().GetXY().Return(0.0, 0.0)
 		fpdf.EXPECT().SetLineWidth(mock.AnythingOfType("float64")).Maybe()
 		// SetDrawColor called once per side that has a color + once for restore
 		fpdf.EXPECT().SetDrawColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).Maybe()
