@@ -119,10 +119,15 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 			}
 			return []core.Row{r}
 		}
-		// Default: flatten children into rows.
+		// Default: collect children's rows.
 		var rows []core.Row
 		for _, c := range n.Children() {
 			rows = append(rows, tr.blockRows(c)...)
+		}
+		// When the container has background/border/padding, wrap children
+		// in a single styled blockContainer so the styling spans them all.
+		if shouldUseContainer(style) && len(rows) > 0 {
+			return []core.Row{buildContainerRow(style, rows)}
 		}
 		return rows
 	}
