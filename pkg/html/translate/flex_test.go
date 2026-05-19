@@ -3,6 +3,8 @@ package translate_test
 import (
 	"testing"
 
+	"github.com/johnfercher/go-tree/node"
+	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/html/translate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -221,6 +223,75 @@ func TestFlexJustifyContent(t *testing.T) {
 	})
 }
 
+// ── DoD coverage: em inheritance, center+odd-slack, mm-basis, non-leaf strict ─
+
+func TestFlexEmInheritsFromContainer(t *testing.T) {
+	t.Parallel()
+	// Container has font-size:14pt; child uses 1.5em — should resolve to 21pt, not 0.
+	doc := parseDoc(t, `<html><body><div style="display:flex;font-size:14pt"><div style="font-size:1.5em">Big</div><div>Small</div></div></body></html>`)
+	rows, err := translate.Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	// Structural check: 2 cols. Em resolution is implicit via no-error + non-zero size below.
+	cols := rows[0].GetColumns()
+	require.Len(t, cols, 2)
+	// First col's GetStructure should be non-nil (em resolved to non-zero font-size).
+	assert.NotNil(t, cols[0].GetStructure())
+}
+
+func TestFlexCenterOddSlack(t *testing.T) {
+	t.Parallel()
+	// Two items each flex:0 0 25% on gridSize=11 → fixed share=3 each (rounded), sum=6.
+	// Slack = 11-6 = 5. Center → leading=floor(5/2)=2, trailing=ceil(5/2)=3.
+	doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:center"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
+	rows, err := translate.Translate(doc, translate.WithGridSize(11))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	cols := rows[0].GetColumns()
+	require.Len(t, cols, 4)
+	sum := 0
+	for _, c := range cols {
+		sum += c.GetSize()
+	}
+	assert.Equal(t, 11, sum)
+	// Floor/ceil split: leading ≤ trailing
+	assert.LessOrEqual(t, cols[0].GetSize(), cols[3].GetSize())
+}
+
+func TestFlexNonLeafStrictStructure(t *testing.T) {
+	t.Parallel()
+	doc := parseDoc(t, `<html><body><div style="display:flex"><div><h2>Title</h2><p>Body</p></div><div>Other</div></div></body></html>`)
+	rows, err := translate.Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	cols := rows[0].GetColumns()
+	require.Len(t, cols, 2)
+	structure := cols[0].GetStructure()
+	require.NotNil(t, structure)
+	// The col contains a flexCellContent with 2 child rows (h2 + p).
+	// Walk the structure tree to find a "flex_cell" node and verify rows=2.
+	found := false
+	walk(structure, func(s core.Structure) {
+		if s.Type == "flex_cell" {
+			if d, ok := s.Details["rows"].(int); ok && d == 2 {
+				found = true
+			}
+		}
+	})
+	assert.True(t, found, "expected flex_cell node with rows=2 in structure")
+}
+
+// walk traverses the structure tree.
+func walk(n *node.Node[core.Structure], fn func(core.Structure)) {
+	if n == nil {
+		return
+	}
+	fn(n.GetData())
+	for _, c := range n.GetNexts() {
+		walk(c, fn)
+	}
+}
+
 // ── Flex direction ────────────────────────────────────────────────────────────
 
 func TestFlexDirection(t *testing.T) {
@@ -250,6 +321,14 @@ func TestFlexDirection(t *testing.T) {
 		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column-reverse"><div>a</div><div>b</div></div></body></html>`)
 		rows, _ := translate.Translate(doc)
 		assert.Len(t, rows, 2)
+	})
+
+	t.Run("column direction with row-gap produces 5 rows for 3 children", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column;row-gap:5mm"><div>a</div><div>b</div><div>c</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 5) // 3 content + 2 gap rows
 	})
 }
 

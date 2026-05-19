@@ -50,13 +50,13 @@ func (tr *translator) flexRow(n *dom.Node, containerStyle *css.ComputedStyle) co
 	}
 
 	sizes := computeFlexSizes(styles, available)
+	sizes = bumpZerosWithoutOverflow(sizes, available)
 
 	itemCols := make([]core.Col, len(children))
 	used := 0
 	for i, child := range children {
-		sz := max(sizes[i], 1)
-		used += sz
-		c := col.New(sz)
+		used += sizes[i]
+		c := col.New(sizes[i])
 		if comp := tr.flexItemContent(child, styles[i]); comp != nil {
 			c = c.Add(comp)
 		}

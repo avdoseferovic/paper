@@ -180,11 +180,13 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "align-items":
 		s.AlignItems = val
 	case "flex-grow":
-		if v, err := strconv.ParseFloat(val, 64); err == nil {
+		v, err := strconv.ParseFloat(val, 64)
+		if err == nil {
 			s.FlexGrow = v
 		}
 	case "flex-shrink":
-		if v, err := strconv.ParseFloat(val, 64); err == nil {
+		v, err := strconv.ParseFloat(val, 64)
+		if err == nil {
 			s.FlexShrink = v
 		}
 	case "flex-basis":

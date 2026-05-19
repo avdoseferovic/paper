@@ -81,6 +81,18 @@ func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
 		}
 	}
 
+	// Clamp percentages that collectively exceed gridSize by scaling them down.
+	if fixedTotal > gridSize {
+		scale := float64(gridSize) / float64(fixedTotal)
+		fixedTotal = 0
+		for i, s := range styles {
+			if s.FlexBasisPct > 0 {
+				sizes[i] = max(int(float64(sizes[i])*scale), 1)
+				fixedTotal += sizes[i]
+			}
+		}
+	}
+
 	remaining := max(gridSize-fixedTotal, 0)
 
 	if len(growIndices) > 0 && remaining > 0 {
@@ -132,42 +144,73 @@ func computeSlackPlan(justify string, itemCount, slack int) slackPlan {
 	}
 }
 
-// planSpaceBetween distributes slack across N-1 between-spacers.
+// planSpaceBetween distributes slack across N-1 between-spacers uniformly
+// (floor) with any remainder going to the trailing offset.
 func planSpaceBetween(itemCount, slack int) slackPlan {
 	if itemCount <= 1 || slack <= 0 {
 		return slackPlan{}
 	}
-	extras := Hamilton(equalWeights(itemCount-1), slack)
-	if len(extras) == 0 {
-		return slackPlan{}
-	}
-	between := extras[0]
-	used := between * max(0, itemCount-1)
-	return slackPlan{betweenExtra: between, trail: slack - used}
+	gaps := itemCount - 1
+	between := slack / gaps
+	remainder := slack - between*gaps
+	return slackPlan{betweenExtra: between, trail: remainder}
 }
 
-// planSpaceAround distributes slack across N+1 spacers.
+// planSpaceAround distributes slack across N+1 spacers (lead, between, trail)
+// uniformly. Any remainder is distributed lead-first to keep symmetry roughly intact.
 func planSpaceAround(itemCount, slack int) slackPlan {
 	if slack <= 0 {
 		return slackPlan{}
 	}
-	extras := Hamilton(equalWeights(itemCount+1), slack)
-	if len(extras) == 0 {
-		return slackPlan{}
+	spots := itemCount + 1
+	base := slack / spots
+	remainder := slack - base*spots
+	lead := base
+	trail := base
+	if remainder > 0 {
+		lead++
+		remainder--
 	}
-	between := 0
-	if len(extras) > 2 {
-		between = extras[1]
+	if remainder > 0 {
+		trail++
+		remainder--
 	}
-	return slackPlan{lead: extras[0], trail: extras[len(extras)-1], betweenExtra: between}
+	// Any further remainder (only when itemCount > 1) goes to between-extras.
+	between := base
+	if remainder > 0 && itemCount > 1 {
+		// Spread across N-1 between gaps; uniform distribution.
+		extra := remainder / (itemCount - 1)
+		between += extra
+	}
+	return slackPlan{lead: lead, trail: trail, betweenExtra: between}
 }
 
-func equalWeights(n int) []float64 {
-	w := make([]float64, n)
-	for i := range w {
-		w[i] = 1.0
+// bumpZerosWithoutOverflow ensures every size is at least 1 without exceeding
+// the original total. For each 0 bumped to 1, decrement the largest size by 1.
+// This preserves sum(sizes) == originalTotal so the row never overflows the grid.
+func bumpZerosWithoutOverflow(sizes []int, originalTotal int) []int {
+	out := make([]int, len(sizes))
+	copy(out, sizes)
+	for i := range out {
+		if out[i] != 0 {
+			continue
+		}
+		// Find largest size that can give up one cell (must stay ≥ 2 after donation).
+		largestIdx := -1
+		for j := range out {
+			if out[j] >= 2 && (largestIdx == -1 || out[j] > out[largestIdx]) {
+				largestIdx = j
+			}
+		}
+		if largestIdx == -1 {
+			// No size has slack; leave this position at 0 — caller may choose to drop it.
+			continue
+		}
+		out[i] = 1
+		out[largestIdx]--
 	}
-	return w
+	_ = originalTotal // signature documents the invariant; sum unchanged by construction
+	return out
 }
 
 // assembleFlexCols interleaves item cols with gap+slack spacers and applies

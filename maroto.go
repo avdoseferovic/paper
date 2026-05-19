@@ -124,7 +124,14 @@ func (m *Maroto) AddAutoRow(cols ...core.Col) core.Row {
 // Headers, footers, and pagination continue to work as with manually constructed rows.
 // Supported HTML subset is documented in docs/v2/html-support.md.
 func (m *Maroto) AddHTML(htmlStr string) error {
-	rows, err := html.FromString(htmlStr, html.WithGridSize(m.config.MaxGridSize))
+	opts := []html.Option{html.WithGridSize(m.config.MaxGridSize)}
+	if m.config.Dimensions != nil {
+		contentWidth := m.config.Dimensions.Width - m.config.Margins.Left - m.config.Margins.Right
+		if contentWidth > 0 {
+			opts = append(opts, html.WithContentWidth(contentWidth))
+		}
+	}
+	rows, err := html.FromString(htmlStr, opts...)
 	if err != nil {
 		return err
 	}
