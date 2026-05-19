@@ -18,6 +18,8 @@ func ExpandShorthands(decls map[string]string) map[string]string {
 
 func expandOne(prop, val string) map[string]string {
 	switch prop {
+	case "flex":
+		return expandFlex(val)
 	case "border":
 		return expandBorderAll(val)
 	case "border-top":
@@ -142,4 +144,41 @@ func isLengthValue(s string) bool {
 		}
 	}
 	return false
+}
+
+// isBasisToken returns true when the token is a valid flex-basis value
+// (length, percentage, or the keyword "auto").
+func isBasisToken(s string) bool {
+	return s == "auto" || isLengthValue(s)
+}
+
+// expandFlex expands the CSS flex shorthand into flex-grow, flex-shrink, flex-basis.
+// Supports: none | auto | initial | <number> | <number> <basis> | <number> <number> | <grow> <shrink> <basis>
+func expandFlex(val string) map[string]string {
+	switch val {
+	case "none":
+		return map[string]string{"flex-grow": "0", "flex-shrink": "0", "flex-basis": "auto"}
+	case "auto":
+		return map[string]string{"flex-grow": "1", "flex-shrink": "1", "flex-basis": "auto"}
+	case "initial":
+		return map[string]string{"flex-grow": "0", "flex-shrink": "1", "flex-basis": "auto"}
+	}
+
+	parts := strings.Fields(val)
+	switch len(parts) {
+	case 1:
+		// Single number: flex-grow only; shrink=1, basis=0
+		return map[string]string{"flex-grow": parts[0], "flex-shrink": "1", "flex-basis": "0"}
+	case 2:
+		if isBasisToken(parts[1]) {
+			// <grow> <basis>
+			return map[string]string{"flex-grow": parts[0], "flex-shrink": "1", "flex-basis": parts[1]}
+		}
+		// <grow> <shrink>
+		return map[string]string{"flex-grow": parts[0], "flex-shrink": parts[1], "flex-basis": "0"}
+	case 3:
+		return map[string]string{"flex-grow": parts[0], "flex-shrink": parts[1], "flex-basis": parts[2]}
+	default:
+		return map[string]string{"flex": val}
+	}
 }

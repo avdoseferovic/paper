@@ -11,6 +11,22 @@ const (
 	mmPerCm = 10.0
 )
 
+// ParsePercentage parses a CSS percentage value (e.g. "25%") and returns
+// the fractional equivalent (0.25 for "25%"). Returns (0, false) if val is
+// not a valid percentage string.
+func ParsePercentage(val string) (float64, bool) {
+	val = strings.TrimSpace(val)
+	numStr, ok := strings.CutSuffix(val, "%")
+	if !ok || numStr == "" {
+		return 0, false
+	}
+	v, err := strconv.ParseFloat(numStr, 64)
+	if err != nil {
+		return 0, false
+	}
+	return v / 100.0, true
+}
+
 // ParseLength converts a CSS length string to mm.
 // parentFontSize (mm) is used to resolve em units.
 // Returns 0 for unparseable values.

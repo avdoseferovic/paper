@@ -55,9 +55,23 @@ type ComputedStyle struct {
 	BackgroundColor *RGBColor
 
 	// Layout
-	Display string // "block" | "inline" | "inline-block" | "none" | "table" | ...
+	Display string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
 	Width   float64
 	Height  float64
+
+	// Flex container properties
+	FlexDirection  string  // "row" | "column" | "row-reverse" | "column-reverse"
+	JustifyContent string  // "flex-start" | "center" | "flex-end" | "space-between" | "space-around"
+	AlignItems     string  // "flex-start" | "center" | "flex-end" | "stretch"
+	RowGap         float64 // mm
+	ColumnGap      float64 // mm
+
+	// Flex item properties
+	FlexGrow      float64 // default 0; used as proportional weight in layout
+	FlexShrink    float64 // parsed/stored; no independent layout effect in v1 (quantizer prevents overflow)
+	FlexBasis     float64 // mm; 0 means auto unless FlexBasisAuto or FlexBasisPct set
+	FlexBasisAuto bool    // true when flex-basis:auto was explicitly set
+	FlexBasisPct  float64 // >0 when flex-basis was a percentage (0–100 scale)
 
 	unsupportedHandler func(prop, val string)
 }
@@ -153,7 +167,56 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "border-style":
 		s.BorderTopStyle, s.BorderRightStyle, s.BorderBottomStyle, s.BorderLeftStyle = val, val, val, val
 	case "display":
-		s.Display = val
+		if val == "inline-flex" {
+			s.Display = "flex"
+		} else {
+			s.Display = val
+		}
+	case "flex-direction":
+		s.FlexDirection = val
+	case "justify-content":
+		s.JustifyContent = val
+	case "align-items":
+		s.AlignItems = val
+	case "flex-grow":
+		if v, err := strconv.ParseFloat(val, 64); err == nil {
+			s.FlexGrow = v
+		}
+	case "flex-shrink":
+		if v, err := strconv.ParseFloat(val, 64); err == nil {
+			s.FlexShrink = v
+		}
+	case "flex-basis":
+		switch val {
+		case "auto":
+			s.FlexBasisAuto = true
+			s.FlexBasis = 0
+			s.FlexBasisPct = 0
+		default:
+			if pct, ok := ParsePercentage(val); ok {
+				s.FlexBasisPct = pct * 100
+				s.FlexBasis = 0
+				s.FlexBasisAuto = false
+			} else {
+				s.FlexBasis = ParseLength(val, parentFontSize)
+				s.FlexBasisAuto = false
+				s.FlexBasisPct = 0
+			}
+		}
+	case "gap":
+		parts := strings.Fields(val)
+		if len(parts) == 1 {
+			v := ParseLength(parts[0], parentFontSize)
+			s.RowGap = v
+			s.ColumnGap = v
+		} else if len(parts) >= 2 {
+			s.RowGap = ParseLength(parts[0], parentFontSize)
+			s.ColumnGap = ParseLength(parts[1], parentFontSize)
+		}
+	case "row-gap":
+		s.RowGap = ParseLength(val, parentFontSize)
+	case "column-gap":
+		s.ColumnGap = ParseLength(val, parentFontSize)
 	case "width":
 		s.Width = ParseLength(val, 0)
 	case "height":
