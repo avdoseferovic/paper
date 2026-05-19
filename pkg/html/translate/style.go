@@ -7,23 +7,23 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 )
 
-// computeNodeStyle parses the node's inline style="" attribute into a ComputedStyle.
-// The parent ComputedStyle (if any) provides font-size context for em resolution.
-//
-// v1 limitation: <style> block selectors are NOT yet matched here. Only the inline
-// style="" attribute is applied. Full cascade with <style> blocks is deferred.
-func computeNodeStyle(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+// computeNodeStyle resolves the ComputedStyle for a node by:
+//  1. Inheriting font-size from the parent (for em resolution)
+//  2. Applying matching rules from the provided <style> block stylesheet
+//  3. Applying the node's inline style="" attribute (highest precedence within source)
+func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
 	s := css.NewComputedStyle()
 	if parent != nil {
-		// Inherit font-size so em values resolve correctly.
 		s.FontSize = parent.FontSize
 	}
-	inline := n.InlineStyle()
-	if inline == "" {
-		return s
+	if sheet != nil && n.RawNode() != nil {
+		sheet.applyToNode(n.RawNode(), s, parent)
 	}
-	for prop, val := range parseInlineStyle(inline) {
-		s.Apply(prop, val, parent)
+	inline := n.InlineStyle()
+	if inline != "" {
+		for prop, val := range parseInlineStyle(inline) {
+			s.Apply(prop, val, parent)
+		}
 	}
 	return s
 }

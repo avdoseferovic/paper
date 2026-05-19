@@ -15,18 +15,24 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+// translator threads parsed stylesheet rules through the recursive walker.
+type translator struct {
+	sheet *stylesheet
+}
+
 // Translate walks the styled DOM and emits Maroto rows.
 func Translate(doc *dom.Document) ([]core.Row, error) {
 	if doc == nil {
 		return nil, nil
 	}
+	tr := &translator{sheet: parseStylesheet(doc.StyleText())}
 	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
 		return rows, nil
 	}
 	for _, child := range body.Children() {
-		rows = append(rows, blockRows(child)...)
+		rows = append(rows, tr.blockRows(child)...)
 	}
 	return rows, nil
 }
@@ -48,7 +54,7 @@ func findBody(doc *dom.Document) *dom.Node {
 }
 
 // blockRows recursively converts a node into block-level Rows.
-func blockRows(n *dom.Node) []core.Row {
+func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	if n == nil {
 		return nil
 	}
@@ -62,7 +68,7 @@ func blockRows(n *dom.Node) []core.Row {
 		// Text node at block level — wrap into a paragraph-like row.
 		return wrapTextRow(n.TextContent())
 	case "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre":
-		return []core.Row{paragraphRow(n)}
+		return []core.Row{tr.paragraphRow(n)}
 	case "hr":
 		return []core.Row{hrRow()}
 	case "table":
@@ -75,15 +81,15 @@ func blockRows(n *dom.Node) []core.Row {
 		// Container (div, section, article, header, footer, nav, etc.) — flatten children.
 		var rows []core.Row
 		for _, c := range n.Children() {
-			rows = append(rows, blockRows(c)...)
+			rows = append(rows, tr.blockRows(c)...)
 		}
 		return rows
 	}
 }
 
 // paragraphRow converts a block element with inline content into a single auto-height row.
-func paragraphRow(n *dom.Node) core.Row {
-	style := computeNodeStyle(n, nil)
+func (tr *translator) paragraphRow(n *dom.Node) core.Row {
+	style := computeNodeStyle(tr.sheet, n, nil)
 	runs := inlineRuns(n)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}

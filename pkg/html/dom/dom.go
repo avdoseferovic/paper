@@ -46,6 +46,10 @@ type Node struct {
 	preformatted bool // whitespace preserved
 }
 
+// RawNode returns the underlying golang.org/x/net/html.Node.
+// Callers needing cascadia selector matching can use this directly.
+func (n *Node) RawNode() *html.Node { return n.raw }
+
 // Tag returns the element tag name (lowercase) or "" for text nodes.
 func (n *Node) Tag() string {
 	if n.raw.Type != html.ElementNode {

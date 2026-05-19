@@ -46,3 +46,20 @@ func TestExample_FromString_GeneratesPDF(t *testing.T) {
 	assert.True(t, bytes.HasPrefix(pdfBytes, []byte("%PDF-")), "output should start with PDF magic bytes")
 	assert.Greater(t, len(pdfBytes), 1000, "PDF should be larger than 1KB")
 }
+
+func TestExample_InlineCSSReachesPDF(t *testing.T) {
+	t.Parallel()
+	htmlInput := `<p style="color:#ff0000">red text</p><p style="border:1px solid #00ff00">bordered</p>`
+
+	rows, err := html.FromString(htmlInput)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+
+	m := maroto.New()
+	require.NoError(t, m.AddHTML(htmlInput))
+	doc, err := m.Generate()
+	require.NoError(t, err)
+	pdfBytes := doc.GetBytes()
+	assert.True(t, bytes.HasPrefix(pdfBytes, []byte("%PDF-")))
+	assert.Greater(t, len(pdfBytes), 1000)
+}
