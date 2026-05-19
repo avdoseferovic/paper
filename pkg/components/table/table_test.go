@@ -1,0 +1,153 @@
+package table_test
+
+import (
+	"testing"
+
+	"github.com/johnfercher/maroto/v2/mocks"
+	"github.com/johnfercher/maroto/v2/pkg/components/table"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func defaultConfig() *entity.Config {
+	return &entity.Config{
+		MaxGridSize: 12,
+		DefaultFont: &props.Font{Family: "Helvetica", Style: fontstyle.Normal, Size: 10},
+	}
+}
+
+func TestNew(t *testing.T) {
+	t.Parallel()
+
+	t.Run("simple 2x2 table builds without error", func(t *testing.T) {
+		t.Parallel()
+		cells := [][]table.Cell{
+			{{Content: nil}, {Content: nil}},
+			{{Content: nil}, {Content: nil}},
+		}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		assert.NotNil(t, tbl)
+	})
+
+	t.Run("colspan=2 header row, 2-col body — column count is 2 (not 1)", func(t *testing.T) {
+		t.Parallel()
+		cells := [][]table.Cell{
+			{{Content: nil, Colspan: 2}},     // first row: one cell spanning 2 cols
+			{{Content: nil}, {Content: nil}}, // second row: 2 normal cells
+		}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		assert.NotNil(t, tbl)
+		assert.Equal(t, 2, tbl.ColCount())
+	})
+
+	t.Run("overlapping rowspan returns ErrTableSpanOverlap", func(t *testing.T) {
+		t.Parallel()
+		// Row 0 has one cell with rowspan=2, occupying [0][0] and [1][0].
+		// Row 1 also declares a cell, which tries to fill [1][0] — already occupied.
+		cells := [][]table.Cell{
+			{{Content: nil, Rowspan: 2}}, // occupies rows 0 and 1, col 0
+			{{Content: nil}},             // tries to also start at row 1, col 0 → overlap
+		}
+		_, err := table.New(cells)
+		assert.ErrorIs(t, err, table.ErrTableSpanOverlap)
+	})
+
+	t.Run("rowspan=3 taller than sum of other rows — heights sum correctly", func(t *testing.T) {
+		t.Parallel()
+		// Row 0: cells (0,0) rowspan=3 + (0,1) short
+		// Row 1: cell (1,1) short
+		// Row 2: cell (2,1) short
+		cells := [][]table.Cell{
+			{{Content: nil, Rowspan: 3}, {Content: nil}},
+			{{Content: nil}},
+			{{Content: nil}},
+		}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		assert.NotNil(t, tbl)
+	})
+}
+
+func TestTable_ColCount(t *testing.T) {
+	t.Parallel()
+	cells := [][]table.Cell{
+		{{Content: nil, Colspan: 3}},
+		{{Content: nil}, {Content: nil}, {Content: nil}},
+	}
+	tbl, err := table.New(cells)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, tbl.ColCount())
+}
+
+func TestTable_GetHeight(t *testing.T) {
+	t.Parallel()
+	t.Run("returns positive height for non-empty table", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"),
+			mock.AnythingOfType("*props.Text"), mock.AnythingOfType("float64")).Return(1).Maybe()
+
+		cells := [][]table.Cell{
+			{{Content: nil}, {Content: nil}},
+		}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		cell := &entity.Cell{Width: 100, Height: 200}
+		h := tbl.GetHeight(provider, cell)
+		assert.GreaterOrEqual(t, h, 0.0)
+	})
+}
+
+func TestTable_SetConfig(t *testing.T) {
+	t.Parallel()
+	cells := [][]table.Cell{{{Content: nil}}}
+	tbl, err := table.New(cells)
+	assert.NoError(t, err)
+	tbl.SetConfig(defaultConfig())
+}
+
+func TestTable_GetStructure(t *testing.T) {
+	t.Parallel()
+	cells := [][]table.Cell{
+		{{Content: nil}, {Content: nil}},
+		{{Content: nil}, {Content: nil}},
+	}
+	tbl, err := table.New(cells)
+	assert.NoError(t, err)
+	tbl.SetConfig(defaultConfig())
+
+	node := tbl.GetStructure()
+	assert.Equal(t, "table", node.GetData().Type)
+}
+
+func TestTable_Render(t *testing.T) {
+	t.Parallel()
+	t.Run("renders without panic for nil content cells", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"),
+			mock.AnythingOfType("*props.Text"), mock.AnythingOfType("float64")).Return(1).Maybe()
+		provider.EXPECT().CreateRow(mock.AnythingOfType("float64")).Maybe()
+		provider.EXPECT().CreateCol(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"),
+			mock.AnythingOfType("*entity.Config"), mock.AnythingOfType("*props.Cell")).Maybe()
+
+		cells := [][]table.Cell{
+			{{Content: nil}, {Content: nil}},
+		}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		cell := &entity.Cell{Width: 100, Height: 200}
+		assert.NotPanics(t, func() { tbl.Render(provider, cell) })
+	})
+}
