@@ -131,22 +131,27 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 }
 
 // gutterWidth returns the computed or configured gutter.
+// When the provider implements core.RichTextProvider it measures the widest marker
+// for accurate sizing; otherwise it falls back to a font-height heuristic.
 func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
 	if l.prop.GutterWidth > 0 {
 		return l.prop.GutterWidth
 	}
-	// Measure the widest marker for the item count.
-	widest := 0.0
 	tp := l.markerTextProp()
-	for i := range len(l.items) {
-		m := FormatMarker(l.prop.Style, i)
-		w := provider.GetFontHeight(&props.Font{Family: tp.Family, Style: tp.Style, Size: tp.Size})
-		// Approximate: glyph count * average char width; use font height as proxy.
-		_ = m
-		_ = w
-		_ = widest
+	if rtp, ok := provider.(core.RichTextProvider); ok {
+		widest := 0.0
+		for i := range len(l.items) {
+			m := FormatMarker(l.prop.Style, i)
+			w := rtp.MeasureString(m, tp)
+			if w > widest {
+				widest = w
+			}
+		}
+		if widest > 0 {
+			return widest + l.prop.MarkerPadding
+		}
 	}
-	// Fallback: use a reasonable default derived from font height.
+	// Fallback: heuristic based on font height (provider lacks MeasureString).
 	return l.itemRowHeight(provider, &entity.Cell{Width: 100}) + l.prop.MarkerPadding
 }
 

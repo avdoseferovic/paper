@@ -10,6 +10,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
@@ -20,11 +21,6 @@ func Translate(doc *dom.Document) ([]core.Row, error) {
 		return nil, nil
 	}
 	var rows []core.Row
-	doc.Walk(func(n *dom.Node) bool {
-		// We only handle top-level block iteration via walk; recursion handled in handleBlock.
-		return true
-	})
-	// Walk body children explicitly to maintain order and handle nesting.
 	body := findBody(doc)
 	if body == nil {
 		return rows, nil
@@ -87,14 +83,69 @@ func blockRows(n *dom.Node) []core.Row {
 
 // paragraphRow converts a block element with inline content into a single auto-height row.
 func paragraphRow(n *dom.Node) core.Row {
+	style := computeNodeStyle(n, nil)
 	runs := inlineRuns(n)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
 	applyBlockStyling(n, runs)
+	applyInlineStyleToRuns(style, runs)
 	rt := richtext.New(runs)
 	c := col.New().Add(rt)
-	return row.New().Add(c)
+	r := row.New().Add(c)
+	if cellStyle := blockCellStyle(style); cellStyle != nil {
+		r = r.WithStyle(cellStyle)
+	}
+	return r
+}
+
+// applyInlineStyleToRuns applies CSS-computed font size and color to every run
+// whose own field is unset (run-level styling wins over block-level).
+func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
+	if style == nil {
+		return
+	}
+	for i := range runs {
+		if style.FontSize > 0 && runs[i].Size == 0 {
+			// FontSize is in mm; props.RichRun expects pt — convert.
+			runs[i].Size = style.FontSize / 0.352778
+		}
+		if style.Color != nil && runs[i].Color == nil {
+			runs[i].Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
+		}
+	}
+}
+
+// blockCellStyle converts a ComputedStyle's background and border fields
+// into a Maroto props.Cell. Returns nil if no decorative styling is set.
+func blockCellStyle(style *css.ComputedStyle) *props.Cell {
+	if style == nil || (style.BackgroundColor == nil && style.BorderTopWidth == 0 &&
+		style.BorderRightWidth == 0 && style.BorderBottomWidth == 0 && style.BorderLeftWidth == 0) {
+		return nil
+	}
+	cell := &props.Cell{}
+	if style.BackgroundColor != nil {
+		cell.BackgroundColor = &props.Color{
+			Red: style.BackgroundColor.R, Green: style.BackgroundColor.G, Blue: style.BackgroundColor.B,
+		}
+	}
+	if c := style.BorderTopColor; c != nil {
+		cell.BorderTopColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderRightColor; c != nil {
+		cell.BorderRightColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderBottomColor; c != nil {
+		cell.BorderBottomColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	if c := style.BorderLeftColor; c != nil {
+		cell.BorderLeftColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	}
+	cell.BorderTopThickness = style.BorderTopWidth
+	cell.BorderRightThickness = style.BorderRightWidth
+	cell.BorderBottomThickness = style.BorderBottomWidth
+	cell.BorderLeftThickness = style.BorderLeftWidth
+	return cell
 }
 
 // hrRow produces a thin row containing a horizontal line.

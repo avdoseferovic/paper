@@ -158,8 +158,12 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	for _, lt := range lineTokens {
 		r := runs[lt.runIdx]
 		if lt.runIdx != lastRunIdx {
-			s.font.SetFont(r.Family, r.Style, r.Size)
-			lineHeight = s.font.GetHeight(r.Family, r.Style, r.Size)
+			runStyle := r.Style
+			if r.Underline {
+				runStyle = fontstyle.Type(string(runStyle) + "U")
+			}
+			s.font.SetFont(r.Family, runStyle, r.Size)
+			lineHeight = s.font.GetHeight(r.Family, runStyle, r.Size)
 			if r.Color != nil {
 				s.font.SetColor(r.Color)
 			} else {
@@ -171,19 +175,12 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		x := cell.X + prop.Left + lt.x + left
 		y := cell.Y + prop.Top + float64(lt.lineY)*lineHeight*prop.LineHeight + lineHeight + top
 
-		if prop.Align == align.Right {
-			// Simple right-align: not implemented in v1 (left is default)
-		}
+		_ = align.Right // right-align not supported in v1 multi-run paragraphs
 
-		renderText := lt.word
-		if r.Underline {
-			// gofpdf doesn't have native underline for Text(); approximation deferred to v2
-			_ = renderText
-		}
-		s.pdf.Text(x, y, renderText)
+		s.pdf.Text(x, y, lt.word)
 
 		if r.Hyperlink != nil {
-			s.pdf.LinkString(x, y-lineHeight, s.pdf.GetStringWidth(renderText), lineHeight, *r.Hyperlink)
+			s.pdf.LinkString(x, y-lineHeight, s.pdf.GetStringWidth(lt.word), lineHeight, *r.Hyperlink)
 		}
 	}
 
