@@ -14,6 +14,7 @@ import (
 
 	"github.com/johnfercher/maroto/v2/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestNewText(t *testing.T) {
@@ -451,5 +452,121 @@ func TestText_Add(t *testing.T) {
 
 		// Act
 		sut.Add("", cell, textProp)
+	})
+}
+
+func TestMeasureString(t *testing.T) {
+	t.Parallel()
+	t.Run("should set font and return string width", func(t *testing.T) {
+		t.Parallel()
+		textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().GetStringWidth("hello").Return(30.5)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		got := sut.MeasureString("hello", textProp)
+
+		assert.Equal(t, 30.5, got)
+	})
+}
+
+func TestAddTextAt(t *testing.T) {
+	t.Parallel()
+	t.Run("should set font, color and render text at absolute position", func(t *testing.T) {
+		t.Parallel()
+		color := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
+		font.EXPECT().GetColor().Return(color)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 5.0)
+		pdf.EXPECT().Text(15.0, 25.0, "hello") // x+left=10+5=15, y+top=15+10=25
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		sut.AddTextAt(10, 15, "hello", textProp)
+	})
+}
+
+func TestAddRichText(t *testing.T) {
+	t.Parallel()
+	t.Run("should restore font state after rendering", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		cell := &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}
+
+		font := mocks.NewFont(t)
+		// Capture original state
+		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		// Runs: run 0 Helvetica Bold 12, run 1 Courier Normal 10
+		font.EXPECT().SetFont(fontfamily.Helvetica, fontstyle.Bold, 12.0).Maybe()
+		font.EXPECT().SetFont(fontfamily.Courier, fontstyle.Normal, 10.0).Maybe()
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0).Maybe() // restore
+		font.EXPECT().GetHeight(fontfamily.Helvetica, fontstyle.Bold, 12.0).Return(5.0).Maybe()
+		font.EXPECT().GetHeight(fontfamily.Courier, fontstyle.Normal, 10.0).Return(4.0).Maybe()
+		font.EXPECT().SetColor(origColor).Maybe()
+		font.EXPECT().GetColor().Return(origColor).Maybe()
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
+
+		runs := []props.RichRun{
+			{Text: "hello ", Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 12},
+			{Text: "world", Family: fontfamily.Courier, Style: fontstyle.Normal, Size: 10},
+		}
+		richProp := &props.RichText{}
+		richProp.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Should not panic; font state restored via defer
+		sut.AddRichText(runs, cell, richProp)
+	})
+
+	t.Run("all method-local state — concurrent calls on separate instances do not race", func(t *testing.T) {
+		t.Parallel()
+		// Each goroutine uses its own Text instance sharing no struct-level mutable state
+		done := make(chan struct{}, 4)
+		for range 4 {
+			go func() {
+				defer func() { done <- struct{}{} }()
+				origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+				cell := &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}
+
+				font := mocks.NewFont(t)
+				font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+				font.EXPECT().GetColor().Return(origColor)
+				font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+				font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+				font.EXPECT().GetColor().Return(origColor).Maybe()
+				font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+				pdf := mocks.NewFpdf(t)
+				pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(5.0).Maybe()
+				pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+				pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
+
+				runs := []props.RichRun{{Text: "hi", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+				richProp := &props.RichText{}
+				richProp.MakeValid(nil)
+
+				sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+				sut.AddRichText(runs, cell, richProp)
+			}()
+		}
+		for range 4 {
+			<-done
+		}
 	})
 }

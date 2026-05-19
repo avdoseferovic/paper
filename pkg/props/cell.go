@@ -23,6 +23,32 @@ type Cell struct {
 	// LineStyle defines which line style will be applied to a cell.
 	// Default: Solid
 	LineStyle linestyle.Type
+
+	// Per-side padding (mm). Applied by components to shift content inward.
+	PaddingTop    float64
+	PaddingRight  float64
+	PaddingBottom float64
+	PaddingLeft   float64
+
+	// Per-side border colors (nil = no override; falls back to BorderColor).
+	BorderTopColor    *Color
+	BorderRightColor  *Color
+	BorderBottomColor *Color
+	BorderLeftColor   *Color
+
+	// Per-side border thickness (0 = no border for that side).
+	// When any of these is non-zero the PerSideBorderStyler activates and
+	// draws raw Line calls instead of CellFormat borders.
+	BorderTopThickness    float64
+	BorderRightThickness  float64
+	BorderBottomThickness float64
+	BorderLeftThickness   float64
+}
+
+// HasPerSideBorders reports whether any per-side border thickness is set.
+func (c *Cell) HasPerSideBorders() bool {
+	return c.BorderTopThickness > 0 || c.BorderRightThickness > 0 ||
+		c.BorderBottomThickness > 0 || c.BorderLeftThickness > 0
 }
 
 // ToMap adds the Cell fields to the map.

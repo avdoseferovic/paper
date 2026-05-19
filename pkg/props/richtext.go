@@ -1,0 +1,45 @@
+package props
+
+import (
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
+	"github.com/johnfercher/maroto/v2/pkg/consts/breakline"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+)
+
+// RichRun is a single styled segment within a RichText paragraph.
+// It deliberately has no image field — inline images are split into separate rows by the HTML translator.
+type RichRun struct {
+	Text          string
+	Family        string
+	Style         fontstyle.Type
+	Size          float64
+	Color         *Color
+	Underline     bool
+	Strikethrough bool
+	Hyperlink     *string
+	VerticalAlign string // "baseline" | "sub" | "super"
+}
+
+// RichText holds paragraph-level properties for a RichText component.
+type RichText struct {
+	Top               float64
+	Bottom            float64
+	Left              float64
+	Right             float64
+	Align             align.Type
+	LineHeight        float64
+	BreakLineStrategy breakline.Strategy
+}
+
+// MakeValid fills in default values for RichText paragraph props.
+func (r *RichText) MakeValid(font *Font) {
+	if r.Align == "" {
+		r.Align = align.Left
+	}
+	if r.LineHeight == 0 {
+		r.LineHeight = 1.0
+	}
+	if r.BreakLineStrategy == "" {
+		r.BreakLineStrategy = breakline.EmptySpaceStrategy
+	}
+}

@@ -20,10 +20,14 @@ import (
 
 var ErrCannotReadImageOptions = errors.New("could not read image options, maybe path/name is wrong")
 
+// compile-time assertion: *provider satisfies core.RichTextProvider.
+var _ core.RichTextProvider = (*provider)(nil)
+
 type provider struct {
 	fpdf       gofpdfwrapper.Fpdf
 	font       core.Font
 	text       core.Text
+	richText   *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
 	code       core.Code
 	image      core.Image
 	line       core.Line
@@ -35,10 +39,12 @@ type provider struct {
 
 // New is the constructor of provider for gofpdf
 func New(dep *Dependencies) core.Provider {
+	richText, _ := dep.Text.(*Text)
 	return &provider{
 		fpdf:       dep.Fpdf,
 		font:       dep.Font,
 		text:       dep.Text,
+		richText:   richText,
 		code:       dep.Code,
 		image:      dep.Image,
 		line:       dep.Line,
@@ -47,6 +53,27 @@ func New(dep *Dependencies) core.Provider {
 		cfg:        dep.Cfg,
 		cache:      dep.Cache,
 	}
+}
+
+func (g *provider) MeasureString(text string, prop *props.Text) float64 {
+	if g.richText == nil {
+		return 0
+	}
+	return g.richText.MeasureString(text, prop)
+}
+
+func (g *provider) AddTextAt(x, y float64, text string, prop *props.Text) {
+	if g.richText == nil {
+		return
+	}
+	g.richText.AddTextAt(x, y, text, prop)
+}
+
+func (g *provider) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) {
+	if g.richText == nil {
+		return
+	}
+	g.richText.AddRichText(runs, cell, prop)
 }
 
 func (g *provider) AddText(text string, cell *entity.Cell, prop *props.Text) {

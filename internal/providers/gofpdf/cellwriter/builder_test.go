@@ -28,6 +28,8 @@ func TestCellWriterBuilder_Build(t *testing.T) {
 	chain := sut.Build(nil)
 
 	// Assert
+	assert.Equal(t, "perSideBorderStyler", chain.GetName())
+	chain = chain.GetNext()
 	assert.Equal(t, "borderThicknessStyler", chain.GetName())
 	chain = chain.GetNext()
 	assert.Equal(t, "borderLineStyler", chain.GetName())
