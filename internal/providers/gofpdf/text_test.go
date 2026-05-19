@@ -465,6 +465,7 @@ func TestMeasureString(t *testing.T) {
 		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
 
 		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(30.5)
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
@@ -477,16 +478,15 @@ func TestMeasureString(t *testing.T) {
 
 func TestAddTextAt(t *testing.T) {
 	t.Parallel()
-	t.Run("should set font, color and render text at absolute position", func(t *testing.T) {
+	t.Run("should set font and render text at absolute position", func(t *testing.T) {
 		t.Parallel()
-		color := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
 
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
-		font.EXPECT().GetColor().Return(color)
 
 		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 5.0)
 		pdf.EXPECT().Text(15.0, 25.0, "hello") // x+left=10+5=15, y+top=15+10=25
 
@@ -517,6 +517,7 @@ func TestAddRichText(t *testing.T) {
 		font.EXPECT().GetColor().Return(origColor).Maybe()
 
 		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
@@ -553,6 +554,7 @@ func TestAddRichText(t *testing.T) {
 				font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
 				pdf := mocks.NewFpdf(t)
+				pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 				pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(5.0).Maybe()
 				pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 				pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()

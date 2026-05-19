@@ -105,6 +105,8 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 		x := cell.X
 		for c := range t.colCount {
 			slot := t.grid[r][c]
+			// Skip empty (-1) and spanned slots (spannedMarker) — only render at the
+			// declared cell's origin position so a colspan/rowspan cell draws once.
 			if slot < 0 {
 				x += colWidth
 				continue
@@ -259,7 +261,7 @@ func buildGrid(cells [][]Cell, rowCount, colCount int) ([][]int, error) {
 	for r, row := range cells {
 		col := 0
 		for _, cell := range row {
-			for col < colCount && occ[r][col] >= 0 {
+			for col < colCount && occ[r][col] != -1 {
 				col++
 			}
 			if col >= colCount {
@@ -276,6 +278,10 @@ func buildGrid(cells [][]Cell, rowCount, colCount int) ([][]int, error) {
 	return occ, nil
 }
 
+// spannedMarker indicates a grid slot occupied by a cell whose origin is elsewhere.
+// Distinct from empty (-1) so Render can skip rendering at non-origin slots.
+const spannedMarker = -2
+
 func markOccupied(occ [][]int, startR, startC int, cell Cell, flatIdx, rowCount, colCount int) error {
 	for dr := range cell.Rowspan {
 		if startR+dr >= rowCount {
@@ -287,12 +293,12 @@ func markOccupied(occ [][]int, startR, startC int, cell Cell, flatIdx, rowCount,
 			}
 			if dr == 0 && dc == 0 {
 				occ[startR][startC] = flatIdx
-			} else {
-				if occ[startR+dr][startC+dc] >= 0 {
-					return ErrTableSpanOverlap
-				}
-				occ[startR+dr][startC+dc] = flatIdx
+				continue
 			}
+			if occ[startR+dr][startC+dc] != -1 {
+				return ErrTableSpanOverlap
+			}
+			occ[startR+dr][startC+dc] = spannedMarker
 		}
 	}
 	return nil

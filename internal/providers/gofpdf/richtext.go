@@ -3,28 +3,33 @@ package gofpdf
 import (
 	"strings"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
 // MeasureString sets the current font and returns the string width in mm.
-// All intermediate state is method-local; no struct mutation occurs.
+// All intermediate state is method-local; no struct mutation occurs beyond the
+// font context (which callers may need to restore themselves).
 func (s *Text) MeasureString(text string, prop *props.Text) float64 {
 	s.font.SetFont(prop.Family, prop.Style, prop.Size)
-	return s.pdf.GetStringWidth(text)
+	translated := s.translateUnicode(text, prop.Family)
+	return s.pdf.GetStringWidth(translated)
 }
 
-// AddTextAt renders text at an absolute (x, y) position in mm (page-coordinate space,
-// not cell-coordinate). Baseline-positioned, matching gofpdf's Text() convention.
+// AddTextAt renders text at an absolute (x, y) position in mm.
+// Baseline-positioned, matching gofpdf's Text() convention.
 func (s *Text) AddTextAt(x, y float64, text string, prop *props.Text) {
 	s.font.SetFont(prop.Family, prop.Style, prop.Size)
-	origColor := s.font.GetColor()
-
 	left, top, _, _ := s.pdf.GetMargins()
-	s.pdf.Text(x+left, y+top, text)
-	_ = origColor // color management left to caller; AddTextAt is a low-level primitive
+	translated := s.translateUnicode(text, prop.Family)
+	s.pdf.Text(x+left, y+top, translated)
+}
+
+// resolvedRun is a RichRun with empty font fields filled in from the surrounding default.
+type resolvedRun struct {
+	props.RichRun
 }
 
 // AddRichText renders a paragraph of mixed inline runs within cell.
@@ -43,166 +48,169 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		s.font.SetColor(origColor)
 	}()
 
+	// Resolve each run's font fields against the original/default once.
+	resolved := make([]resolvedRun, len(runs))
+	for i, r := range runs {
+		rr := r
+		if rr.Family == "" {
+			rr.Family = origFamily
+		}
+		if rr.Size == 0 {
+			rr.Size = origSize
+		}
+		// rr.Style may legitimately be "" (Normal), so don't override.
+		resolved[i] = resolvedRun{RichRun: rr}
+	}
+
 	width := cell.Width - prop.Left - prop.Right
 	if width <= 0 {
 		return
 	}
 
-	// Build token list: each token carries its text word and run index.
-	type token struct {
-		word    string
-		runIdx  int
-		isBreak bool // explicit \n
-	}
-	var tokens []token
-	for i, run := range runs {
-		if strings.Contains(run.Text, "\n") {
-			parts := strings.Split(run.Text, "\n")
-			for j, part := range parts {
-				if part != "" {
-					words := strings.Fields(part)
-					for _, w := range words {
-						tokens = append(tokens, token{word: w, runIdx: i})
-					}
-				}
-				if j < len(parts)-1 {
-					tokens = append(tokens, token{isBreak: true, runIdx: i})
-				}
-			}
-		} else {
-			words := strings.Fields(run.Text)
-			for _, w := range words {
-				tokens = append(tokens, token{word: w, runIdx: i})
-			}
-		}
+	// Determine line height up front using the first run's resolved font.
+	first := resolved[0]
+	s.font.SetFont(first.Family, first.styleWithUnderline(), first.Size)
+	lineHeight := s.font.GetHeight(first.Family, first.styleWithUnderline(), first.Size)
+	lineMultiplier := prop.LineHeight
+	if lineMultiplier <= 0 {
+		lineMultiplier = 1.0
 	}
 
-	// Measure each token's width using per-run SetFont.
-	type measuredToken struct {
-		token
-		width float64
-	}
-	measured := make([]measuredToken, len(tokens))
+	// Tokenise runs into words + explicit line breaks.
+	tokens := tokeniseRuns(resolved)
+
+	// Measure each token using its run's font and unicode translation.
 	lastRunIdx := -1
-	for i, tok := range tokens {
-		if tok.isBreak {
-			measured[i] = measuredToken{token: tok, width: 0}
+	for i := range tokens {
+		if tokens[i].isBreak {
 			continue
 		}
-		if tok.runIdx != lastRunIdx {
-			r := runs[tok.runIdx]
-			s.font.SetFont(r.Family, r.Style, r.Size)
-			lastRunIdx = tok.runIdx
+		r := resolved[tokens[i].runIdx]
+		if tokens[i].runIdx != lastRunIdx {
+			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
+			lastRunIdx = tokens[i].runIdx
 		}
-		w := s.pdf.GetStringWidth(tok.word)
-		measured[i] = measuredToken{token: tok, width: w}
+		translated := s.translateUnicode(tokens[i].word, r.Family)
+		tokens[i].translated = translated
+		tokens[i].width = s.pdf.GetStringWidth(translated)
 	}
 
-	// Line-wrap: group tokens into lines.
-	type lineToken struct {
-		word   string
-		runIdx int
-		x      float64
-		lineY  int
-	}
-	var lineTokens []lineToken
+	// Line-wrap: assign each token an x and lineY.
 	curX := 0.0
 	lineY := 0
 	spaceWidth := 0.0
 	lastRunIdx = -1
-
-	for _, mt := range measured {
-		if mt.isBreak {
+	for i := range tokens {
+		t := &tokens[i]
+		if t.isBreak {
 			lineY++
 			curX = 0
 			lastRunIdx = -1
 			continue
 		}
-
-		r := runs[mt.runIdx]
-		if mt.runIdx != lastRunIdx {
-			s.font.SetFont(r.Family, r.Style, r.Size)
+		r := resolved[t.runIdx]
+		if t.runIdx != lastRunIdx {
+			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
 			spaceWidth = s.pdf.GetStringWidth(" ")
-			lastRunIdx = mt.runIdx
+			lastRunIdx = t.runIdx
 		}
 
-		needed := mt.width
+		need := t.width
 		if curX > 0 {
-			needed += spaceWidth
+			need += spaceWidth
 		}
-
-		if curX > 0 && curX+needed > width {
+		if curX > 0 && curX+need > width {
 			lineY++
 			curX = 0
 		}
 
-		lineTokens = append(lineTokens, lineToken{
-			word:   mt.word,
-			runIdx: mt.runIdx,
-			x:      curX,
-			lineY:  lineY,
-		})
-
+		t.x = curX
+		t.lineY = lineY
 		if curX == 0 {
-			curX = mt.width
+			curX = t.width
 		} else {
-			curX += spaceWidth + mt.width
+			curX += spaceWidth + t.width
 		}
 	}
 
-	// Render lines.
+	// Render.
 	left, top, _, _ := s.pdf.GetMargins()
 	lastRunIdx = -1
-	var lineHeight float64
-
-	for _, lt := range lineTokens {
-		r := runs[lt.runIdx]
-		if lt.runIdx != lastRunIdx {
-			runStyle := r.Style
-			if r.Underline {
-				runStyle = fontstyle.Type(string(runStyle) + "U")
-			}
-			s.font.SetFont(r.Family, runStyle, r.Size)
-			lineHeight = s.font.GetHeight(r.Family, runStyle, r.Size)
+	for _, t := range tokens {
+		if t.isBreak {
+			continue
+		}
+		r := resolved[t.runIdx]
+		if t.runIdx != lastRunIdx {
+			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
 			if r.Color != nil {
 				s.font.SetColor(r.Color)
 			} else {
 				s.font.SetColor(origColor)
 			}
-			lastRunIdx = lt.runIdx
+			lastRunIdx = t.runIdx
 		}
-
-		x := cell.X + prop.Left + lt.x + left
-		y := cell.Y + prop.Top + float64(lt.lineY)*lineHeight*prop.LineHeight + lineHeight + top
-
-		_ = align.Right // right-align not supported in v1 multi-run paragraphs
-
-		s.pdf.Text(x, y, lt.word)
-
+		x := cell.X + prop.Left + t.x + left
+		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
+		s.pdf.Text(x, y, t.translated)
 		if r.Hyperlink != nil {
-			s.pdf.LinkString(x, y-lineHeight, s.pdf.GetStringWidth(lt.word), lineHeight, *r.Hyperlink)
+			s.pdf.LinkString(x, y-lineHeight, t.width, lineHeight, *r.Hyperlink)
 		}
 	}
-
-	// Reset to original color (defer handles font).
-	s.font.SetColor(origColor)
 }
 
-// setFontForRun applies a run's font settings. Falls back to origFamily/Style/Size for zero values.
-func setFontForRun(f interface {
-	SetFont(string, fontstyle.Type, float64)
-}, r props.RichRun, origFamily string, origStyle fontstyle.Type, origSize float64) {
-	family := r.Family
-	if family == "" {
-		family = origFamily
+// rtToken is the per-word state used by AddRichText's three-pass layout.
+type rtToken struct {
+	word       string
+	translated string
+	runIdx     int
+	width      float64
+	x          float64
+	lineY      int
+	isBreak    bool
+}
+
+// tokeniseRuns splits the resolved run sequence into words preserving order
+// and inserting explicit isBreak tokens at every \n boundary.
+func tokeniseRuns(runs []resolvedRun) []rtToken {
+	var out []rtToken
+	for i, r := range runs {
+		if !strings.Contains(r.Text, "\n") {
+			for _, w := range strings.Fields(r.Text) {
+				out = append(out, rtToken{word: w, runIdx: i})
+			}
+			continue
+		}
+		parts := strings.Split(r.Text, "\n")
+		for j, part := range parts {
+			for _, w := range strings.Fields(part) {
+				out = append(out, rtToken{word: w, runIdx: i})
+			}
+			if j < len(parts)-1 {
+				out = append(out, rtToken{runIdx: i, isBreak: true})
+			}
+		}
 	}
-	style := r.Style
-	if style == "" {
-		style = origStyle
+	return out
+}
+
+// styleWithUnderline appends "U" to the gofpdf style string when underline is set.
+func (r resolvedRun) styleWithUnderline() fontstyle.Type {
+	if r.Underline {
+		return fontstyle.Type(string(r.Style) + "U")
 	}
-	size := r.Size
-	if size == 0 {
-		size = origSize
+	return r.Style
+}
+
+// translateUnicode applies the gofpdf Unicode translator for built-in font families
+// (Arial, Helvetica, Courier, Symbol, ZapBats) which expect Latin-1 codepoints.
+// For custom (UTF-8) fonts the text is returned unchanged.
+func (s *Text) translateUnicode(text, family string) string {
+	switch family {
+	case fontfamily.Arial, fontfamily.Helvetica, fontfamily.Symbol,
+		fontfamily.ZapBats, fontfamily.Courier:
+		return s.pdf.UnicodeTranslatorFromDescriptor("")(text)
+	default:
+		return text
 	}
-	f.SetFont(family, style, size)
 }

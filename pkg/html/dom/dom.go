@@ -176,6 +176,28 @@ func isPreformatted(n *html.Node) bool {
 }
 
 func collapseWhitespace(s string) string {
+	if s == "" {
+		return ""
+	}
+	leading := isASCIISpace(s[0])
+	trailing := isASCIISpace(s[len(s)-1])
 	fields := strings.Fields(s)
-	return strings.Join(fields, " ")
+	if len(fields) == 0 {
+		if leading || trailing {
+			return " "
+		}
+		return ""
+	}
+	result := strings.Join(fields, " ")
+	if leading {
+		result = " " + result
+	}
+	if trailing {
+		result += " "
+	}
+	return result
+}
+
+func isASCIISpace(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
 }
