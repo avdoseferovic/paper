@@ -77,6 +77,16 @@ func (m *MetricsDecorator) AddRows(rows ...core.Row) {
 	m.addRowsTime = append(m.addRowsTime, timeSpent)
 }
 
+// AddHTML decorates the AddHTML method of maroto instance.
+func (m *MetricsDecorator) AddHTML(htmlStr string) error {
+	var err error
+	timeSpent := time.GetTimeSpent(func() {
+		err = m.inner.AddHTML(htmlStr)
+	})
+	m.addRowsTime = append(m.addRowsTime, timeSpent)
+	return err
+}
+
 // AddRow decorates the AddRow method of maroto instance.
 func (m *MetricsDecorator) AddRow(rowHeight float64, cols ...core.Col) core.Row {
 	var r core.Row

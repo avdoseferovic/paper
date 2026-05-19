@@ -113,17 +113,17 @@ Not applicable — Maroto is a library, not a service.
 
 - [x] Task 1: Extend Provider interface with measurement & positioning primitives
 - [x] Task 2: Extend props.Cell with padding and per-side borders
-- [ ] Task 3: RichText component with inline run wrapping
-- [ ] Task 4: Table component with rowspan/colspan/borders
-- [ ] Task 5: HTMLList component (ul/ol with markers and nesting)
-- [ ] Task 6: HTML DOM wrapper with style extraction
-- [ ] Task 7: CSS parser + cascade + computed styles
-- [ ] Task 8: DOM-to-Maroto-AST translator (block elements)
-- [ ] Task 9: Inline element translation into RichText runs
-- [ ] Task 10: Table/list translation
+- [x] Task 3: RichText component with inline run wrapping
+- [x] Task 4: Table component with rowspan/colspan/borders
+- [x] Task 5: HTMLList component (ul/ol with markers and nesting)
+- [x] Task 6: HTML DOM wrapper with style extraction
+- [x] Task 7: CSS parser + cascade + computed styles
+- [x] Task 8: DOM-to-Maroto-AST translator (block elements)
+- [x] Task 9: Inline element translation into RichText runs
+- [x] Task 10: Table/list translation
 - [ ] Task 11: Public API (pkg/html + Maroto.AddHTML) + documented subset + examples
 
-**Total Tasks:** 11 | **Completed:** 2 | **Remaining:** 9
+**Total Tasks:** 11 | **Completed:** 10 | **Remaining:** 1
 
 ## Implementation Tasks
 

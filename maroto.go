@@ -22,6 +22,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/config"
 	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/html"
 )
 
 var (
@@ -117,6 +118,18 @@ func (m *Maroto) AddAutoRow(cols ...core.Col) core.Row {
 	r := row.New().Add(cols...)
 	m.addRow(r)
 	return r
+}
+
+// AddHTML parses an HTML string into Maroto rows and adds them to the current document.
+// Headers, footers, and pagination continue to work as with manually constructed rows.
+// Supported HTML subset is documented in docs/v2/html-support.md.
+func (m *Maroto) AddHTML(htmlStr string) error {
+	rows, err := html.FromString(htmlStr)
+	if err != nil {
+		return err
+	}
+	m.AddRows(rows...)
+	return nil
 }
 
 // FitlnCurrentPage is responsible to validating whether a line fits on

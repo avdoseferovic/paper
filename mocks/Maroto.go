@@ -555,6 +555,46 @@ func (_c *Maroto_RegisterHeader_Call) RunAndReturn(run func(...core.Row) error) 
 	return _c
 }
 
+// AddHTML provides a mock function with given fields: htmlStr
+func (_m *Maroto) AddHTML(htmlStr string) error {
+	ret := _m.Called(htmlStr)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddHTML")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(htmlStr)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// Maroto_AddHTML_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddHTML'
+type Maroto_AddHTML_Call struct {
+	*mock.Call
+}
+
+// AddHTML is a helper method to define mock.On call
+//   - htmlStr string
+func (_e *Maroto_Expecter) AddHTML(htmlStr interface{}) *Maroto_AddHTML_Call {
+	return &Maroto_AddHTML_Call{Call: _e.mock.On("AddHTML", htmlStr)}
+}
+
+func (_c *Maroto_AddHTML_Call) Run(run func(htmlStr string)) *Maroto_AddHTML_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *Maroto_AddHTML_Call) Return(_a0 error) *Maroto_AddHTML_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
 // NewMaroto creates a new instance of Maroto. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMaroto(t interface {
