@@ -80,6 +80,39 @@ func TestTranslate_Table(t *testing.T) {
 	assert.GreaterOrEqual(t, len(rows), 1)
 }
 
+func TestTranslate_Flex(t *testing.T) {
+	t.Parallel()
+
+	t.Run("class-based display:flex produces 1 row", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><head><style>.cols{display:flex}</style></head><body><div class="cols"><div>a</div><div>b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Len(t, rows[0].GetColumns(), 2)
+	})
+
+	t.Run("class-based display:none via stylesheet hides element", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><head><style>.hidden{display:none}</style></head><body><div class="hidden"><p>invisible</p></div><p>visible</p></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 1)
+	})
+
+	t.Run("WithGridSize(8) distributes flex cols over 8 not 12", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex"><div>a</div><div>b</div></div></body></html>`)
+		rows, err := translate.Translate(doc, translate.WithGridSize(8))
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 2)
+		assert.Equal(t, 4, cols[0].GetSize())
+		assert.Equal(t, 4, cols[1].GetSize())
+	})
+}
+
 func TestTranslate_List(t *testing.T) {
 	t.Parallel()
 

@@ -18,6 +18,8 @@ type Option func(*config)
 
 type config struct {
 	unsupportedHandler func(thing, value string)
+	gridSize           int
+	contentWidthMM     float64
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -25,6 +27,26 @@ type config struct {
 func WithUnsupportedHandler(fn func(thing, value string)) Option {
 	return func(c *config) {
 		c.unsupportedHandler = fn
+	}
+}
+
+// WithGridSize overrides the default 12-column grid for flex quantization.
+// Use this when the maroto document was built with config.WithMaxGridSize(n).
+func WithGridSize(n int) Option {
+	return func(c *config) {
+		if n > 0 {
+			c.gridSize = n
+		}
+	}
+}
+
+// WithContentWidth sets the page content width in mm for accurate gap-to-col
+// approximation. Default is 170mm (A4 with 20mm left+right margins).
+func WithContentWidth(mm float64) Option {
+	return func(c *config) {
+		if mm > 0 {
+			c.contentWidthMM = mm
+		}
 	}
 }
 
@@ -41,7 +63,14 @@ func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if err != nil {
 		return nil, err
 	}
-	return translate.Translate(doc)
+	var tOpts []translate.Option
+	if cfg.gridSize > 0 {
+		tOpts = append(tOpts, translate.WithGridSize(cfg.gridSize))
+	}
+	if cfg.contentWidthMM > 0 {
+		tOpts = append(tOpts, translate.WithContentWidth(cfg.contentWidthMM))
+	}
+	return translate.Translate(doc, tOpts...)
 }
 
 // FromReader parses HTML from an io.Reader and returns the corresponding rows.

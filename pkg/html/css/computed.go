@@ -77,12 +77,13 @@ type ComputedStyle struct {
 }
 
 // NewComputedStyle returns a ComputedStyle with sensible zero-value defaults.
+// Display defaults to "" (unset) — callers should treat "" the same as "block".
 func NewComputedStyle() *ComputedStyle {
 	return &ComputedStyle{
 		TextAlign:  "left",
 		FontWeight: "normal",
 		FontStyle:  "normal",
-		Display:    "none",
+		Display:    "",
 		LineHeight: 1.0,
 	}
 }

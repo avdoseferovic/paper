@@ -15,17 +15,43 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+// Option configures translator behaviour.
+type Option func(*translator)
+
+// WithGridSize overrides the default 12-column grid size used for flex quantization.
+func WithGridSize(n int) Option {
+	return func(tr *translator) {
+		if n > 0 {
+			tr.gridSize = n
+		}
+	}
+}
+
+// WithContentWidth sets the content width in mm, used for gap-to-col approximation.
+func WithContentWidth(mm float64) Option {
+	return func(tr *translator) {
+		if mm > 0 {
+			tr.contentWidthMM = mm
+		}
+	}
+}
+
 // translator threads parsed stylesheet rules through the recursive walker.
 type translator struct {
-	sheet *stylesheet
+	sheet          *stylesheet
+	gridSize       int     // 0 = use defaultGridSize (12)
+	contentWidthMM float64 // 0 = use default A4 estimate (170mm)
 }
 
 // Translate walks the styled DOM and emits Maroto rows.
-func Translate(doc *dom.Document) ([]core.Row, error) {
+func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	if doc == nil {
 		return nil, nil
 	}
 	tr := &translator{sheet: parseStylesheet(doc.StyleText())}
+	for _, opt := range opts {
+		opt(tr)
+	}
 	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
@@ -78,7 +104,20 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	case "br":
 		return nil // top-level <br> is a no-op
 	default:
-		// Container (div, section, article, header, footer, nav, etc.) — flatten children.
+		// Container (div, section, article, header, footer, nav, etc.).
+		// Compute style to detect class-based display:flex and display:none.
+		style := computeNodeStyle(tr.sheet, n, nil)
+		if style.Display == "none" {
+			return nil
+		}
+		if style.Display == "flex" {
+			r := tr.flexRow(n, style)
+			if r == nil {
+				return nil
+			}
+			return []core.Row{r}
+		}
+		// Default: flatten children into rows.
 		var rows []core.Row
 		for _, c := range n.Children() {
 			rows = append(rows, tr.blockRows(c)...)

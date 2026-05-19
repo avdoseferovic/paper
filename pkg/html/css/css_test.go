@@ -13,7 +13,7 @@ func TestComputedStyle_Defaults(t *testing.T) {
 	t.Parallel()
 	s := css.NewComputedStyle()
 	assert.Equal(t, "left", s.TextAlign)
-	assert.Equal(t, "none", s.Display)
+	assert.Equal(t, "", s.Display) // unset by default; treat as block
 	assert.Equal(t, 0.0, s.FontSize)
 }
 
