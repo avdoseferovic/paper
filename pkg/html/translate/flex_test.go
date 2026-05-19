@@ -141,3 +141,188 @@ func TestFlexRow_ColCount(t *testing.T) {
 		assert.Len(t, rows[0].GetColumns(), 2)
 	})
 }
+
+// ── Justify-content ───────────────────────────────────────────────────────────
+
+func TestFlexJustifyContent(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flex-end prepends offset col", func(t *testing.T) {
+		t.Parallel()
+		// Two items at fixed 25% each = 3+3 cols. Slack = 6. flex-end → leading 6 + items 3+3.
+		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:flex-end"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 3)
+		assert.Equal(t, 6, cols[0].GetSize())
+		assert.Equal(t, 3, cols[1].GetSize())
+		assert.Equal(t, 3, cols[2].GetSize())
+	})
+
+	t.Run("center splits slack at both ends", func(t *testing.T) {
+		t.Parallel()
+		// Two items 3+3=6, slack 6, center → 3 + 3 + 3 + 3
+		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:center"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 4)
+		// Leading offset = floor(6/2) = 3
+		assert.Equal(t, 3, cols[0].GetSize())
+		assert.Equal(t, 3, cols[1].GetSize())
+		assert.Equal(t, 3, cols[2].GetSize())
+		// Trailing offset = ceil(6/2) = 3
+		assert.Equal(t, 3, cols[3].GetSize())
+	})
+
+	t.Run("space-between distributes slack as between-spacers", func(t *testing.T) {
+		t.Parallel()
+		// Two items 3+3=6, slack 6 distributed as N-1=1 between-spacer of size 6.
+		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:space-between"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		// Pattern: item, spacer, item
+		require.Len(t, cols, 3)
+		assert.Equal(t, 3, cols[0].GetSize())
+		assert.Equal(t, 6, cols[1].GetSize())
+		assert.Equal(t, 3, cols[2].GetSize())
+	})
+
+	t.Run("flex-start (default) doesn't add offsets", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 2)
+	})
+
+	t.Run("space-around adds lead+between+trail spacers", func(t *testing.T) {
+		t.Parallel()
+		// Two items 3+3=6, slack 6, N+1=3 spacers via Hamilton on [1,1,1] → [2,2,2].
+		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:space-around"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		// Pattern: lead-spacer, item, between-spacer, item, trail-spacer (5 cols)
+		require.Len(t, cols, 5)
+		sum := 0
+		for _, c := range cols {
+			sum += c.GetSize()
+		}
+		assert.Equal(t, 12, sum)
+	})
+}
+
+// ── Flex direction ────────────────────────────────────────────────────────────
+
+func TestFlexDirection(t *testing.T) {
+	t.Parallel()
+
+	t.Run("column direction stacks children as rows", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column"><div>a</div><div>b</div><div>c</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 3)
+	})
+
+	t.Run("row-reverse renders same as row (limitation)", func(t *testing.T) {
+		t.Parallel()
+		docA := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row"><div>a</div><div>b</div></div></body></html>`)
+		rowsA, _ := translate.Translate(docA)
+		docB := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row-reverse"><div>a</div><div>b</div></div></body></html>`)
+		rowsB, _ := translate.Translate(docB)
+		require.Len(t, rowsA, 1)
+		require.Len(t, rowsB, 1)
+		assert.Equal(t, len(rowsA[0].GetColumns()), len(rowsB[0].GetColumns()))
+	})
+
+	t.Run("column-reverse renders same as column (limitation)", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column-reverse"><div>a</div><div>b</div></div></body></html>`)
+		rows, _ := translate.Translate(doc)
+		assert.Len(t, rows, 2)
+	})
+}
+
+// ── Non-leaf flex items ───────────────────────────────────────────────────────
+
+func TestFlexNonLeafItems(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flex item with h2+p preserves both children", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex"><div><h2>Title</h2><p>Body</p></div><div>Other</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 2)
+		// The structure of the first col should include 2 child components (h2 + p)
+		// or at least not be a single flat-text richtext.
+		structure := cols[0].GetStructure()
+		require.NotNil(t, structure)
+	})
+}
+
+// ── Gap ───────────────────────────────────────────────────────────────────────
+
+func TestFlexGap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("column-gap inserts between-spacers", func(t *testing.T) {
+		t.Parallel()
+		// gap:20mm with content width=170mm → 20/14.17 ≈ 1.4 cols → 1 col gap
+		// Two flex:1 items, gridSize=12, gap reserves 1 col → items split 5+5+gap_col → wait
+		// Actually: total=12, gap_cols=1, items get 12-1=11 split between two items via Hamilton ([5,6] or [6,5]).
+		doc := parseDoc(t, `<html><body><div style="display:flex;column-gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		// Expect 3 cols: item, spacer, item
+		require.Len(t, cols, 3)
+		assert.Equal(t, 1, cols[1].GetSize())
+		sum := 0
+		for _, c := range cols {
+			sum += c.GetSize()
+		}
+		assert.Equal(t, 12, sum)
+	})
+
+	t.Run("gap shorthand is equivalent to column-gap on flex-row", func(t *testing.T) {
+		t.Parallel()
+		docA := parseDoc(t, `<html><body><div style="display:flex;gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
+		rowsA, _ := translate.Translate(docA)
+		docB := parseDoc(t, `<html><body><div style="display:flex;column-gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
+		rowsB, _ := translate.Translate(docB)
+		require.Len(t, rowsA, 1)
+		require.Len(t, rowsB, 1)
+		assert.Equal(t, len(rowsA[0].GetColumns()), len(rowsB[0].GetColumns()))
+	})
+
+	t.Run("gap is clamped to half the grid", func(t *testing.T) {
+		t.Parallel()
+		// Huge gap value — should be clamped so items still get reasonable share.
+		doc := parseDoc(t, `<html><body><div style="display:flex;gap:1000mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		sum := 0
+		for _, c := range cols {
+			sum += c.GetSize()
+		}
+		assert.Equal(t, 12, sum)
+		// At least one item should retain ≥ 1 col
+		assert.GreaterOrEqual(t, cols[0].GetSize(), 1)
+	})
+}

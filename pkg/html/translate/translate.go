@@ -111,6 +111,9 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 			return nil
 		}
 		if style.Display == "flex" {
+			if isColumnDirection(style.FlexDirection) {
+				return tr.flexColumnRows(n, style)
+			}
 			r := tr.flexRow(n, style)
 			if r == nil {
 				return nil
