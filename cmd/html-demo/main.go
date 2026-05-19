@@ -14,6 +14,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/text"
 	"github.com/johnfercher/maroto/v2/pkg/config"
 	"github.com/johnfercher/maroto/v2/pkg/consts/align"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -89,7 +90,7 @@ func main() {
 		WithPageNumber(props.PageNumber{
 			Pattern: "Page {current} of {total}",
 			Place:   props.RightBottom,
-			Family:  "Helvetica",
+			Family:  fontfamily.Helvetica,
 			Size:    9,
 			Color:   &props.Color{Red: 120, Green: 120, Blue: 120},
 		}).
@@ -132,13 +133,13 @@ func buildHeader() []core.Row {
 
 	titleRow := row.New(10).Add(
 		col.New(8).Add(text.New("MAROTO INVOICE SYSTEM", props.Text{
-			Family: "Helvetica",
+			Family: fontfamily.Helvetica,
 			Style:  fontstyle.Bold,
 			Size:   14,
 			Color:  dark,
 		})),
 		col.New(4).Add(text.New("invoices@maroto.example", props.Text{
-			Family: "Helvetica",
+			Family: fontfamily.Helvetica,
 			Size:   9,
 			Align:  align.Right,
 			Color:  muted,
@@ -164,7 +165,7 @@ func buildFooter() []core.Row {
 
 	infoRow := row.New(6).Add(
 		col.New(8).Add(text.New("Maroto Invoice System — confidential", props.Text{
-			Family: "Helvetica",
+			Family: fontfamily.Helvetica,
 			Size:   8,
 			Color:  muted,
 		})),

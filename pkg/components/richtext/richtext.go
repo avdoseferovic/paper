@@ -136,18 +136,25 @@ func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 	provider.AddText(r.allText(), cell, textProp)
 }
 
-// countLines totals the visual line count across runs, splitting on explicit
-// \n line breaks (from <br>) and word-wrapping each segment by the column width.
+// countLines totals the visual line count across runs.
+//
+// IMPORTANT: a paragraph's logical lines come from BOTH inline word-wrap
+// (the column being too narrow for the text) AND explicit \n breaks (from
+// <br>). Splitting on \n produces one segment per logical break; each segment
+// is then word-wrapped independently. Empty segments between consecutive \n
+// count as blank lines. Runs are concatenated, so we accumulate the wrapped
+// lines per segment without double-counting the line breaks themselves.
 func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colWidth float64) int {
 	total := 0
 	for _, run := range r.runs {
-		text := run.Text
-		if text == "" {
+		if run.Text == "" {
 			continue
 		}
-		segments := strings.Split(text, "\n")
+		segments := strings.Split(run.Text, "\n")
 		for i, seg := range segments {
 			if seg == "" {
+				// Blank segment only counts as a line when sandwiched between
+				// \n breaks (i.e. not the trailing empty segment from "A\n").
 				if i < len(segments)-1 {
 					total++
 				}
@@ -155,8 +162,6 @@ func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colW
 			}
 			total += provider.GetLinesQuantity(seg, fontProp, colWidth)
 		}
-		// Each explicit \n adds an extra line break beyond the wrap count.
-		total += strings.Count(text, "\n")
 	}
 	return total
 }

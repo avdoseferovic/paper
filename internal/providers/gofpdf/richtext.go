@@ -208,9 +208,10 @@ func (r resolvedRun) styleWithUnderline() fontstyle.Type {
 
 // translateUnicode applies the gofpdf Unicode translator for built-in font families
 // (Arial, Helvetica, Courier, Symbol, ZapBats) which expect Latin-1 codepoints.
-// For custom (UTF-8) fonts the text is returned unchanged.
+// Comparison is case-insensitive because callers commonly use "Helvetica" while
+// the fontfamily constants are lowercase. For custom (UTF-8) fonts text passes through.
 func (s *Text) translateUnicode(text, family string) string {
-	switch family {
+	switch strings.ToLower(family) {
 	case fontfamily.Arial, fontfamily.Helvetica, fontfamily.Symbol,
 		fontfamily.ZapBats, fontfamily.Courier:
 		return s.pdf.UnicodeTranslatorFromDescriptor("")(text)
