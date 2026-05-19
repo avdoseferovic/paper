@@ -124,13 +124,17 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 			curX = 0
 		}
 
-		t.x = curX
-		t.lineY = lineY
+		// Position this token: first on the line at x=0, otherwise after the
+		// running x cursor plus a space gap. The gap MUST be added here so
+		// adjacent words in the same run actually separate visually.
 		if curX == 0 {
+			t.x = 0
 			curX = t.width
 		} else {
-			curX += spaceWidth + t.width
+			t.x = curX + spaceWidth
+			curX = t.x + t.width
 		}
+		t.lineY = lineY
 	}
 
 	// Render.

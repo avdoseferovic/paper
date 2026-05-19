@@ -2,6 +2,8 @@
 package richtext
 
 import (
+	"strings"
+
 	"github.com/johnfercher/go-tree/node"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
@@ -91,18 +93,23 @@ func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 	// Use the first run's font (or default) to estimate line height and count.
 	// For a more precise multi-run height, we'd need RichTextProvider.MeasureString
 	// for every word — but GetHeight only receives core.Provider (not RichTextProvider).
-	// We use GetLinesQuantity on the concatenated text with the first run's style as
-	// a reasonable approximation. RichText height = lines * fontHeight.
+	// We approximate by splitting on explicit \n (from <br>) and word-wrapping each
+	// segment independently, then summing. RichText height = total lines * fontHeight.
 	fontProp := r.fontPropForFirstRun()
-	lineCount := provider.GetLinesQuantity(r.allText(), fontProp, colWidth)
 	fontHeight := provider.GetFontHeight(&props.Font{
 		Family: fontProp.Family,
 		Style:  fontProp.Style,
 		Size:   fontProp.Size,
 	})
 
-	lineHeight := fontHeight * r.prop.LineHeight
-	h := float64(lineCount)*lineHeight + r.prop.Top + r.prop.Bottom
+	totalLines := max(r.countLines(provider, fontProp, colWidth), 1)
+
+	lineMultiplier := r.prop.LineHeight
+	if lineMultiplier <= 0 {
+		lineMultiplier = 1.0
+	}
+	lineHeight := fontHeight * lineMultiplier
+	h := float64(totalLines)*lineHeight + r.prop.Top + r.prop.Bottom
 
 	r.cachedHeight = h
 	r.cachedCellWidth = cell.Width
@@ -127,6 +134,31 @@ func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 	textProp.Right = r.prop.Right
 	textProp.Align = r.prop.Align
 	provider.AddText(r.allText(), cell, textProp)
+}
+
+// countLines totals the visual line count across runs, splitting on explicit
+// \n line breaks (from <br>) and word-wrapping each segment by the column width.
+func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colWidth float64) int {
+	total := 0
+	for _, run := range r.runs {
+		text := run.Text
+		if text == "" {
+			continue
+		}
+		segments := strings.Split(text, "\n")
+		for i, seg := range segments {
+			if seg == "" {
+				if i < len(segments)-1 {
+					total++
+				}
+				continue
+			}
+			total += provider.GetLinesQuantity(seg, fontProp, colWidth)
+		}
+		// Each explicit \n adds an extra line break beyond the wrap count.
+		total += strings.Count(text, "\n")
+	}
+	return total
 }
 
 // allText concatenates all run texts for fallback/measurement purposes.
