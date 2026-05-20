@@ -23,7 +23,22 @@ func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, parent, root *css.Co
 //  1. Inheriting font-size and CSS custom properties from the parent
 //  2. Applying matching rules from the provided <style> block stylesheet
 //  3. Applying the node's inline style="" attribute (highest precedence within source)
+//
+// ctxWidth is the parent's content width in mm, used to resolve % and calc(%).
+// When 0 (or when there is no parent width), percentages in length properties
+// resolve to 0 (matching previous behaviour).
 func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+	ctxWidth := 0.0
+	if parent != nil && parent.Width > 0 {
+		ctxWidth = parent.Width
+	}
+	return computeNodeStyleCtx(sheet, n, parent, ctxWidth)
+}
+
+// computeNodeStyleCtx is computeNodeStyle with an explicit context width.
+// Callers that know the available content width (e.g. the top-level translator
+// passing contentWidthMM for direct body children) should use this variant.
+func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle, ctxWidth float64) *css.ComputedStyle {
 	s := css.NewComputedStyle()
 	if parent != nil {
 		s.FontSize = parent.FontSize
@@ -42,7 +57,7 @@ func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle)
 	inline := n.InlineStyle()
 	if inline != "" {
 		for prop, val := range parseInlineStyle(inline) {
-			s.Apply(prop, val, parent)
+			s.ApplyCtx(prop, val, parent, ctxWidth)
 		}
 	}
 	return s

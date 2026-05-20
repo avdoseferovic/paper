@@ -118,7 +118,17 @@ func (s *ComputedStyle) SetUnsupportedHandler(fn func(prop, val string)) {
 // CSS custom properties (--*) are stored on s.Vars; standard properties get
 // var(...) references resolved against s.Vars (inheriting parent's vars
 // implicitly via computeNodeStyle's pre-population).
+// Apply resolves val for prop and stores the result. Callers that know the
+// parent content width should use ApplyCtx so that calc() and % resolve
+// correctly against the context width.
 func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
+	s.ApplyCtx(prop, val, parent, 0)
+}
+
+// ApplyCtx is Apply with an explicit context width (parent content width in mm).
+// Width-relative properties (width, padding, margin, text-indent) resolve
+// percentages and calc(…%) against ctxWidth.
+func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWidth float64) {
 	parentFontSize := 0.0
 	if parent != nil {
 		parentFontSize = parent.FontSize
@@ -158,21 +168,21 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "line-height":
 		s.LineHeight = ParseLength(val, s.FontSize)
 	case "padding-top":
-		s.PaddingTop = ParseLength(val, s.FontSize)
+		s.PaddingTop = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "padding-right":
-		s.PaddingRight = ParseLength(val, s.FontSize)
+		s.PaddingRight = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "padding-bottom":
-		s.PaddingBottom = ParseLength(val, s.FontSize)
+		s.PaddingBottom = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "padding-left":
-		s.PaddingLeft = ParseLength(val, s.FontSize)
+		s.PaddingLeft = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "margin-top":
-		s.MarginTop = ParseLength(val, s.FontSize)
+		s.MarginTop = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "margin-right":
-		s.MarginRight = ParseLength(val, s.FontSize)
+		s.MarginRight = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "margin-bottom":
-		s.MarginBottom = ParseLength(val, s.FontSize)
+		s.MarginBottom = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "margin-left":
-		s.MarginLeft = ParseLength(val, s.FontSize)
+		s.MarginLeft = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "border-top-width":
 		s.BorderTopWidth = ParseLength(val, 0)
 	case "border-right-width":
@@ -259,7 +269,7 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "column-gap":
 		s.ColumnGap = ParseLength(val, parentFontSize)
 	case "width":
-		s.Width = ParseLength(val, 0)
+		s.Width = ParseLengthCtx(val, parentFontSize, ctxWidth)
 	case "height":
 		s.Height = ParseLength(val, 0)
 	case "border-radius":
@@ -277,7 +287,7 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "text-transform":
 		s.TextTransform = strings.ToLower(strings.TrimSpace(val))
 	case "text-indent":
-		s.TextIndent = ParseLength(val, s.FontSize)
+		s.TextIndent = ParseLengthCtx(val, s.FontSize, ctxWidth)
 	case "white-space":
 		s.WhiteSpace = strings.ToLower(strings.TrimSpace(val))
 	case "opacity":
