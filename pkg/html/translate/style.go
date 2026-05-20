@@ -95,6 +95,7 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 
 // applyInlineStyleToRuns applies CSS-computed font size and color to every run
 // whose own field is unset (run-level styling wins over block-level).
+// Also applies typography properties (letter-spacing, text-transform) to all runs.
 func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
 	if style == nil {
 		return
@@ -106,6 +107,12 @@ func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
 		}
 		if style.Color != nil && runs[i].Color == nil {
 			runs[i].Color = toPropsColor(style.Color, effectiveOpacity(style))
+		}
+		if style.LetterSpacing > 0 && runs[i].LetterSpacing == 0 {
+			runs[i].LetterSpacing = style.LetterSpacing
+		}
+		if style.TextTransform != "" && style.TextTransform != "none" {
+			runs[i].Text = css.ApplyTextTransform(runs[i].Text, style.TextTransform)
 		}
 	}
 }

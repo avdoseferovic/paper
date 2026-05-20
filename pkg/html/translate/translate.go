@@ -177,11 +177,13 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	// user `h2 { font-size: 12pt }` override the 20pt heading default.
 	applyInlineStyleToRuns(style, runs)
 	applyBlockStyling(n, runs)
+	// text-indent shifts the whole paragraph in v1 (true first-line indent
+	// requires renderer-side support; documented limitation).
 	rtProp := props.RichText{
 		Top:    style.PaddingTop,
 		Right:  style.PaddingRight,
 		Bottom: style.PaddingBottom,
-		Left:   style.PaddingLeft,
+		Left:   style.PaddingLeft + style.TextIndent,
 	}
 	rt := richtext.New(runs, rtProp)
 	c := col.New().Add(rt)

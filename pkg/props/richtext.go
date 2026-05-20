@@ -18,6 +18,16 @@ type RichRun struct {
 	Strikethrough bool
 	Hyperlink     *string
 	VerticalAlign string // "baseline" | "sub" | "super"
+
+	// LetterSpacing is extra character spacing in mm (0 = default).
+	LetterSpacing float64
+	// Background, when non-nil, paints a filled rectangle behind the run before
+	// drawing the text. Used by HTML <mark>, <kbd>, inline <code>.
+	Background *Color
+	// LocalAnchor, when non-empty, makes the run an internal PDF link target
+	// to the named destination (registered via id="…" on a block element).
+	// Takes precedence over Hyperlink.
+	LocalAnchor string
 }
 
 // RichText holds paragraph-level properties for a RichText component.

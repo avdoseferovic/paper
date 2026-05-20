@@ -82,6 +82,12 @@ type ComputedStyle struct {
 	// Opacity multiplies into all descendant color alpha values (0 = invisible, 1 = opaque).
 	Opacity float64
 
+	// Typography
+	LetterSpacing float64 // mm; applied via SetCharSpacing
+	TextTransform string  // "none" | "uppercase" | "lowercase" | "capitalize"
+	TextIndent    float64 // mm; first-line indent
+	WhiteSpace    string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
+
 	unsupportedHandler func(prop, val string)
 }
 
@@ -244,6 +250,14 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 		s.BorderRadiusBottomLeft = ParseLength(val, 0)
 	case "border-bottom-right-radius":
 		s.BorderRadiusBottomRight = ParseLength(val, 0)
+	case "letter-spacing":
+		s.LetterSpacing = ParseLength(val, s.FontSize)
+	case "text-transform":
+		s.TextTransform = strings.ToLower(strings.TrimSpace(val))
+	case "text-indent":
+		s.TextIndent = ParseLength(val, s.FontSize)
+	case "white-space":
+		s.WhiteSpace = strings.ToLower(strings.TrimSpace(val))
 	case "opacity":
 		v, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(val), "%"), 64)
 		if err == nil {
