@@ -10,8 +10,15 @@ import (
 // inlineRuns walks the inline children of a block element and returns the run list.
 // Inline images and <br> are flattened into the run sequence (br = "\n", img omitted).
 func inlineRuns(n *dom.Node) []props.RichRun {
+	return inlineRunsWithHandler(n, nil)
+}
+
+// inlineRunsWithHandler is the same as inlineRuns but surfaces side-channel
+// information (e.g. <abbr title="…"> tooltip text, <time datetime="…">) via
+// the given unsupportedHandler. nil handler disables side-channel reporting.
+func inlineRunsWithHandler(n *dom.Node, h func(thing, value string)) []props.RichRun {
 	var runs []props.RichRun
-	walkInline(n, runContext{}, &runs)
+	walkInline(n, runContext{handler: h}, &runs)
 	return runs
 }
 
@@ -31,6 +38,7 @@ type runContext struct {
 	monospace      bool          // pick a monospace family at render
 	background     *css.RGBColor // run-level background fill
 	familyOverride string
+	handler        func(thing, value string) // optional unsupportedHandler for side-channel data
 }
 
 func (c runContext) toStyle() fontstyle.Type {
@@ -164,6 +172,17 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 	case "abbr":
 		// Solid underline (dotted not supported by the current renderer).
 		next.underline = true
+		if title := n.Attr("title"); title != "" && ctx.handler != nil {
+			// Surface the tooltip text via the unsupported handler so callers
+			// know the title attribute is not rendered as a PDF tooltip.
+			ctx.handler("abbr.title", title)
+		}
+	case "time":
+		if dt := n.Attr("datetime"); dt != "" && ctx.handler != nil {
+			// Surface the machine-readable datetime so downstream consumers
+			// can access it (PDFs have no semantic markup for time values).
+			ctx.handler("time.datetime", dt)
+		}
 	}
 	return next
 }

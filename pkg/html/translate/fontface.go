@@ -24,9 +24,8 @@ type loadedFont struct {
 // the provider on first Render. Subsequent renders are no-ops (registration
 // is idempotent within a single document; gofpdf overwrites silently).
 type fontRegistration struct {
-	font     loadedFont
-	done     bool
-	provider core.Provider
+	font loadedFont
+	done bool
 }
 
 func (f *fontRegistration) SetConfig(*entity.Config) {}
@@ -111,7 +110,9 @@ func extractFontFace(rule *css.Rule) (fontFaceRule, bool) {
 	for _, d := range rule.Declarations {
 		switch strings.ToLower(d.Property) {
 		case "font-family":
-			out.family = strings.Trim(strings.TrimSpace(d.Value), `"'`)
+			// Lower-case the family name so case-insensitive matching against
+			// CSS `font-family: "MyFont"` declarations works predictably.
+			out.family = strings.ToLower(strings.Trim(strings.TrimSpace(d.Value), `"'`))
 		case "src":
 			if u, ok := parseFontFaceSrc(d.Value); ok {
 				out.srcURL = u

@@ -55,7 +55,7 @@ func TestExtractFontFace_ValidRule(t *testing.T) {
 	require.NotEmpty(t, sheet.Rules)
 	face, ok := extractFontFace(sheet.Rules[0])
 	require.True(t, ok)
-	assert.Equal(t, "MyFont", face.family)
+	assert.Equal(t, "myfont", face.family) // lowercased for predictable matching
 	assert.Equal(t, "./my.ttf", face.srcURL)
 }
 
@@ -92,7 +92,7 @@ func TestFontFace_EmitsFontRegistrationRow(t *testing.T) {
 	for _, r := range rows {
 		walkRowStructure(r.GetStructure(), func(s core.Structure) {
 			if s.Type == "font_registration" {
-				if name, _ := s.Details["family"].(string); name == "MyFont" {
+				if name, _ := s.Details["family"].(string); name == "myfont" {
 					foundReg = true
 				}
 			}

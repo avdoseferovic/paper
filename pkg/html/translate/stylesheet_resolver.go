@@ -48,8 +48,22 @@ func decodeCSSDataURI(uri string) ([]byte, error) {
 // stylesheetBaseDirResolver returns a resolver that only loads files inside
 // dir, rejecting any path that would escape via "../" or absolute prefix.
 // Mirrors the image baseDirResolver safety model exactly.
+//
+// Security: when dir is empty or filepath.Abs fails, the returned resolver
+// errors on every call to prevent collapsing the prefix guard to "" (which
+// would allow CWD-relative reads).
 func stylesheetBaseDirResolver(dir string) StylesheetResolver {
-	cleanBase, _ := filepath.Abs(filepath.Clean(dir))
+	if dir == "" {
+		return func(string) ([]byte, error) {
+			return nil, fmt.Errorf("html: stylesheet base dir is empty; refusing all reads")
+		}
+	}
+	cleanBase, err := filepath.Abs(filepath.Clean(dir))
+	if err != nil || cleanBase == "" {
+		return func(string) ([]byte, error) {
+			return nil, fmt.Errorf("html: stylesheet base dir %q is invalid: %v", dir, err)
+		}
+	}
 	return func(href string) ([]byte, error) {
 		if strings.HasPrefix(href, "data:") {
 			return decodeCSSDataURI(href)
@@ -57,7 +71,7 @@ func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 		if filepath.IsAbs(href) {
 			return nil, fmt.Errorf("html: absolute path %q refused outside base dir", href)
 		}
-		full, err := filepath.Abs(filepath.Join(cleanBase, href))
+		full, err := filepath.Abs(filepath.Clean(filepath.Join(cleanBase, href)))
 		if err != nil {
 			return nil, err
 		}

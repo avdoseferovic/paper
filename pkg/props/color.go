@@ -39,11 +39,15 @@ type Color struct {
 	Alpha *float64
 }
 
-// ToString returns a string representation of the Color.
+// ToString returns a string representation of the Color, including Alpha
+// when it has been set (non-nil pointer). Opaque colours use the legacy
+// RGB(...) form for backward compatibility with snapshot tests.
 func (c *Color) ToString() string {
 	if c == nil {
 		return ""
 	}
-
+	if c.Alpha != nil {
+		return fmt.Sprintf("RGBA(%d, %d, %d, %.3f)", c.Red, c.Green, c.Blue, *c.Alpha)
+	}
 	return fmt.Sprintf("RGB(%d, %d, %d)", c.Red, c.Green, c.Blue)
 }

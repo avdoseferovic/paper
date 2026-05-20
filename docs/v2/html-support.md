@@ -70,9 +70,14 @@ rows, err := html.FromString(htmlString)
 
 ### Limitations
 
-- `letter-spacing` is parsed and propagated to `RichRun.LetterSpacing` but is **not yet rendered**: the underlying gofpdf fork (`phpdave11/gofpdf`) exposes `SetWordSpacing` only, not `SetCharSpacing`. Slated for a follow-up plan.
+These features are **parsed and propagated through the translate layer** but the gofpdf renderer does not yet consume them in `AddRichText`. They are slated for a follow-up "renderer" plan (Plan B).
+
+- `letter-spacing` is propagated to `RichRun.LetterSpacing`; the `core.CharSpacingProvider` capability is declared but the gofpdf implementation is a no-op (the `phpdave11/gofpdf` fork only exposes `SetWordSpacing`).
+- `RichRun.Background` is populated for `<mark>` / `<kbd>` / `<code>` (inline) but the renderer does not paint the fill rect behind the run. The runs themselves render with the correct font/monospace family.
+- `RichRun.LocalAnchor` is populated for `<a href="#…">`; row-level click area is wired via `anchorSource` so the entire paragraph becomes clickable. Per-run hit testing (sub-paragraph regions) requires deeper renderer integration.
 - `white-space` is parsed and stored; the renderer always wraps regardless of `nowrap`. `<pre>` and `<code>` continue to preserve whitespace via DOM-level detection.
 - `text-indent` shifts the entire paragraph (whole-block) in v1; CSS first-line-only indent requires renderer-side support.
+- `calc()` with `%` works via `ParseLengthCtx` when invoked directly; `Apply()` currently calls `ParseLength` without the parent context width, so `calc(100% - 20mm)` in CSS values resolves the `%` as 0 in some property paths. Workaround: use absolute units inside `calc()`.
 
 ## Documented v1 limitations
 
@@ -94,9 +99,9 @@ Block-level `<img>` is fully supported (see [Images](#images)). The translator d
 
 - JavaScript (the parser is HTML-only; no JS engine)
 - CSS `grid`, `float`, `position`, `transform` (basic `flex` is supported — see [CSS Flex](#css-flex))
-- `@media`, `@keyframes`, `@font-face`
-- Pseudo-elements (`::before`, `::after`), pseudo-classes (`:hover`, `:nth-child`)
-- External stylesheets (`<link rel="stylesheet" href="…">`)
+- `@media`, `@keyframes`, `@import` (note: `@font-face` IS supported — see [@font-face](#font-face) section)
+- Pseudo-elements (`::before`, `::after`) and state-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`). Non-state pseudo-classes including `:nth-child`, `:first-child`, `:last-child`, `:not(...)` ARE supported via Cascadia (see the Selectors entry above).
+- (External stylesheets via `<link rel="stylesheet" href="…">` ARE supported with a configured resolver — see [Resolver options](#resolver-options-image-stylesheet-font))
 - Form elements (`<input>`, `<button>`, `<form>`)
 - `<video>`, `<audio>`, `<canvas>`, `<iframe>`
 

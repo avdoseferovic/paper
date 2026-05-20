@@ -23,6 +23,7 @@ import (
 const body = `
 <html>
 <head>
+  <link rel="stylesheet" href="extra.css">
   <style>
     h1 { color: #0f2c4a; font-size: 22pt; font-weight: bold; padding-bottom: 1mm }
     h2 { color: #0f2c4a; font-size: 11.5pt; font-weight: bold; padding: 1.8mm 3.2mm; background-color: #eef3f9; border-radius: 1.5mm }
@@ -479,6 +480,7 @@ func main() {
 		html.WithGridSize(cfg.MaxGridSize),
 		html.WithContentWidth(cfgWidth),
 		html.WithImageBaseDir("cmd/html-demo/assets"),
+		html.WithStylesheetBaseDir("cmd/html-demo/assets"),
 	)
 	if err != nil {
 		log.Fatalf("parse html: %v", err)

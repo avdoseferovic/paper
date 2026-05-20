@@ -3,6 +3,7 @@ package gofpdf
 import (
 	"bytes"
 	"errors"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -39,6 +40,19 @@ var _ core.LinkProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.LateFontProvider.
 var _ core.LateFontProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.CharSpacingProvider.
+// Note: the underlying phpdave11/gofpdf fork does not expose SetCharSpacing,
+// so WithCharSpacing is currently a no-op (documented limitation in
+// docs/v2/html-support.md). The capability interface is in place so a future
+// fork swap can light up the feature without further wiring changes.
+var _ core.CharSpacingProvider = (*provider)(nil)
+
+// WithCharSpacing runs fn without adjusting character spacing (no-op).
+// See the compile-time assertion above for context.
+func (g *provider) WithCharSpacing(_ float64, fn func()) {
+	fn()
+}
+
 // RegisterFont makes a TTF/OTF font available for subsequent text rendering.
 // Errors from gofpdf's font parser are surfaced lazily by the next text draw.
 func (g *provider) RegisterFont(family string, style fontstyle.Type, bytes []byte) {
@@ -69,9 +83,12 @@ func (g *provider) SetCursor(x, y float64) {
 }
 
 // WithAlpha runs fn with the gofpdf alpha temporarily set to a (clamped to
-// [0, 1]). Alpha is always restored to 1.0 via defer so it cannot leak into
-// subsequent native rendering, even if fn panics.
+// [0, 1], NaN treated as 1). Alpha is always restored to 1.0 via defer so it
+// cannot leak into subsequent native rendering, even if fn panics.
 func (g *provider) WithAlpha(a float64, fn func()) {
+	if math.IsNaN(a) {
+		a = 1
+	}
 	if a < 0 {
 		a = 0
 	}

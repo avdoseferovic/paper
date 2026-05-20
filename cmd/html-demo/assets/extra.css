@@ -1,0 +1,22 @@
+/* External stylesheet loaded via <link rel="stylesheet" href="extra.css">.
+ * Exercises CSS variables, calc(), and a pseudo-class selector from a file
+ * outside the inline <style> block.
+ */
+:root {
+    --ext-brand: #0f2c4a;
+    --ext-soft:  #eef3f9;
+}
+
+.external-band {
+    background-color: var(--ext-soft);
+    color: var(--ext-brand);
+    padding: 2.5mm 3mm;
+    border-radius: 1.5mm;
+    border-left: 0.8mm solid var(--ext-brand);
+    width: calc(100% - 10mm);
+}
+
+/* zebra rows via :nth-child applied from external CSS */
+.ext-zebra tr:nth-child(even) td {
+    background-color: var(--ext-soft);
+}

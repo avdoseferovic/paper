@@ -150,6 +150,56 @@ func TestInlineTag_Q_AsciiQuotes(t *testing.T) {
 	assert.Contains(t, full, `"quoted"`)
 }
 
+func TestInlineTag_Abbr_TitleSurfacedViaHandler(t *testing.T) {
+	t.Parallel()
+	var calls []string
+	doc, err := dom.Parse(`<p><abbr title="HyperText Markup Language">HTML</abbr></p>`)
+	require.NoError(t, err)
+	var p *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == "p" {
+			p = n
+		}
+		return true
+	})
+	require.NotNil(t, p)
+	_ = inlineRunsWithHandler(p, func(thing, value string) {
+		calls = append(calls, thing+":"+value)
+	})
+	found := false
+	for _, c := range calls {
+		if c == "abbr.title:HyperText Markup Language" {
+			found = true
+		}
+	}
+	assert.True(t, found, "<abbr title> should surface via unsupportedHandler")
+}
+
+func TestInlineTag_Time_DatetimeSurfacedViaHandler(t *testing.T) {
+	t.Parallel()
+	var calls []string
+	doc, err := dom.Parse(`<p><time datetime="2026-05-20">May 20</time></p>`)
+	require.NoError(t, err)
+	var p *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == "p" {
+			p = n
+		}
+		return true
+	})
+	require.NotNil(t, p)
+	_ = inlineRunsWithHandler(p, func(thing, value string) {
+		calls = append(calls, thing+":"+value)
+	})
+	found := false
+	for _, c := range calls {
+		if c == "time.datetime:2026-05-20" {
+			found = true
+		}
+	}
+	assert.True(t, found, "<time datetime> should surface via unsupportedHandler")
+}
+
 func TestInlineTag_Abbr_Underline(t *testing.T) {
 	t.Parallel()
 	runs := parseInlineRuns(t, `<p><abbr title="HyperText Markup Language">HTML</abbr></p>`)
