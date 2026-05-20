@@ -123,13 +123,13 @@ Type: Feature
 - [x] Task 4: Expanded tag coverage (inline mark/small/abbr/code/kbd/samp/var/cite/q/time + block dl/dt/dd/details/summary/hr/caption/colgroup)
 - [x] Task 5: Pseudo-class & nth selector verification + tests
 - [x] Task 6: Internal PDF anchors (id + href="#id" via gofpdf Link)
-- [ ] Task 7: CSS variables (--var declarations + var() resolution)
-- [ ] Task 8: calc() length expressions
+- [x] Task 7: CSS variables (--var declarations + var() resolution)
+- [x] Task 8: calc() length expressions
 - [ ] Task 9: External stylesheets (<link rel=stylesheet> + resolver)
 - [ ] Task 10: @font-face web font registration
 - [ ] Task 11: Demo + docs sweep
 
-**Total Tasks:** 11 | **Completed:** 6 | **Remaining:** 5
+**Total Tasks:** 11 | **Completed:** 8 | **Remaining:** 3
 
 ## Implementation Tasks
 

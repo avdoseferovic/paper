@@ -9,13 +9,21 @@ import (
 )
 
 // computeNodeStyle resolves the ComputedStyle for a node by:
-//  1. Inheriting font-size from the parent (for em resolution)
+//  1. Inheriting font-size and CSS custom properties from the parent
 //  2. Applying matching rules from the provided <style> block stylesheet
 //  3. Applying the node's inline style="" attribute (highest precedence within source)
 func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
 	s := css.NewComputedStyle()
 	if parent != nil {
 		s.FontSize = parent.FontSize
+		// Inherit CSS custom properties via shallow copy so children don't
+		// pollute parent's map.
+		if len(parent.Vars) > 0 {
+			s.Vars = make(map[string]string, len(parent.Vars))
+			for k, v := range parent.Vars {
+				s.Vars[k] = v
+			}
+		}
 	}
 	if sheet != nil && n.RawNode() != nil {
 		sheet.applyToNode(n.RawNode(), s, parent)

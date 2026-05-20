@@ -88,6 +88,11 @@ type ComputedStyle struct {
 	TextIndent    float64 // mm; first-line indent
 	WhiteSpace    string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
 
+	// CSS custom properties (--name: value). Stored as a flat map per element;
+	// cascade inheritance is handled by callers (computeNodeStyle) which copy
+	// from the parent's Vars map before applying child rules.
+	Vars map[string]string
+
 	unsupportedHandler func(prop, val string)
 }
 
@@ -110,10 +115,27 @@ func (s *ComputedStyle) SetUnsupportedHandler(fn func(prop, val string)) {
 }
 
 // Apply sets a single CSS property. Parent is used for em resolution.
+// CSS custom properties (--*) are stored on s.Vars; standard properties get
+// var(...) references resolved against s.Vars (inheriting parent's vars
+// implicitly via computeNodeStyle's pre-population).
 func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	parentFontSize := 0.0
 	if parent != nil {
 		parentFontSize = parent.FontSize
+	}
+
+	// CSS custom property declaration: store without further processing.
+	if strings.HasPrefix(prop, "--") {
+		if s.Vars == nil {
+			s.Vars = map[string]string{}
+		}
+		s.Vars[prop] = val
+		return
+	}
+
+	// Resolve any var() references in val before dispatching to handlers.
+	if strings.Contains(val, "var(") {
+		val = ResolveVars(val, s.Vars)
 	}
 
 	switch prop {

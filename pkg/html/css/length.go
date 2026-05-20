@@ -30,10 +30,18 @@ func ParsePercentage(val string) (float64, bool) {
 // ParseLength converts a CSS length string to mm.
 // parentFontSize (mm) is used to resolve em units.
 // Returns 0 for unparseable values.
+//
+// For calc() expressions, dispatches to the calc evaluator (without a width
+// context; use ParseLengthCtx for % resolution inside calc()).
 func ParseLength(value string, parentFontSize float64) float64 {
 	value = strings.TrimSpace(value)
 	if value == "" || value == "0" {
 		return 0
+	}
+	if strings.HasPrefix(value, "calc(") && strings.HasSuffix(value, ")") {
+		expr := strings.TrimSpace(value[5 : len(value)-1])
+		v, _ := evalCalc(expr, parentFontSize, 0)
+		return v
 	}
 
 	units := []struct {
