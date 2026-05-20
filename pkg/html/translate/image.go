@@ -172,20 +172,31 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 		heightMM = 10 // safe default
 	}
 
-	// Compute Percent so the image renders at exactly widthMM wide instead of
-	// filling the full cell width. props.Rect.Percent is the fraction of the
-	// cell width used by the image; we scale to the requested mm width.
+	// Pick a small col that approximates the requested mm width. The image
+	// fills the col (Percent=100, Center=true). Using a small col instead of
+	// a full-width col + tiny Percent avoids the SVG getting visually squashed.
 	cellWidth := tr.contentWidthMM
 	if cellWidth <= 0 {
 		cellWidth = 170.0
 	}
-	percent := 100.0
-	if widthMM > 0 && widthMM < cellWidth {
-		percent = (widthMM / cellWidth) * 100
+	gridSize := tr.gridSize
+	if gridSize <= 0 {
+		gridSize = defaultGridSize
+	}
+	mmPerCol := cellWidth / float64(gridSize)
+	imgCols := gridSize
+	if widthMM > 0 && mmPerCol > 0 {
+		imgCols = int(widthMM/mmPerCol + 0.5)
+		if imgCols < 1 {
+			imgCols = 1
+		}
+		if imgCols > gridSize {
+			imgCols = gridSize
+		}
 	}
 
-	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: percent, Center: true})
-	c := col.New().Add(img)
+	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: 100, Center: true})
+	c := col.New(imgCols).Add(img)
 	return row.New(heightMM).Add(c), true
 }
 

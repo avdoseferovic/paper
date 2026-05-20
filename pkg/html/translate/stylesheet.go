@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"sort"
+
 	"github.com/andybalholm/cascadia"
 	"github.com/aymerick/douceur/parser"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
@@ -13,8 +15,9 @@ type stylesheet struct {
 }
 
 type compiledRule struct {
-	matcher      cascadia.Matcher
+	matcher      cascadia.Sel
 	declarations map[string]string
+	order        int // source order (lower = earlier in stylesheet text)
 }
 
 // builtinCSS is a Maroto-shipped stylesheet prepended to every document.
@@ -52,26 +55,46 @@ func parseStylesheet(text string) *stylesheet {
 		}
 		decls = css.ExpandShorthands(decls)
 		for _, sel := range rule.Selectors {
-			m, err := cascadia.Compile(sel)
+			m, err := cascadia.Parse(sel)
 			if err != nil {
 				continue
 			}
-			ss.rules = append(ss.rules, compiledRule{matcher: m, declarations: decls})
+			ss.rules = append(ss.rules, compiledRule{
+				matcher:      m,
+				declarations: decls,
+				order:        len(ss.rules),
+			})
 		}
 	}
 	return ss
 }
 
-// applyToNode merges all matching stylesheet declarations into the ComputedStyle.
-// Rules are applied in source order (later rules override earlier ones with equal specificity).
+// applyToNode merges all matching stylesheet declarations into the ComputedStyle
+// following CSS cascade rules: lower specificity first, equal specificity by source
+// order (later wins). This ensures user-defined `h2 { color: blue }` does not
+// override built-in `.title-band { color: white }` (the class is more specific).
 func (s *stylesheet) applyToNode(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle) {
 	if s == nil || len(s.rules) == 0 {
 		return
 	}
+	matching := make([]compiledRule, 0, len(s.rules))
 	for _, rule := range s.rules {
-		if !rule.matcher.Match(n) {
-			continue
+		if rule.matcher.Match(n) {
+			matching = append(matching, rule)
 		}
+	}
+	sort.SliceStable(matching, func(i, j int) bool {
+		si := matching[i].matcher.Specificity()
+		sj := matching[j].matcher.Specificity()
+		if si.Less(sj) {
+			return true
+		}
+		if sj.Less(si) {
+			return false
+		}
+		return matching[i].order < matching[j].order
+	})
+	for _, rule := range matching {
 		for prop, val := range rule.declarations {
 			style.Apply(prop, val, parent)
 		}
