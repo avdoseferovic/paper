@@ -3,6 +3,7 @@ package translate
 import (
 	"github.com/johnfercher/go-tree/node"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
+	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
@@ -198,53 +199,32 @@ func buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row 
 	return newSplittableContainerRow(container)
 }
 
-// splittableContainerRow wraps a blockContainer as a core.Row that also
-// implements core.Splittable so maroto.addRow() can split it across pages.
+// splittableContainerRow wraps a blockContainer in a real row.Row (so it
+// renders identically to the pre-Plan-B output) and also exposes SplitAt so
+// maroto.addRow() can split it across pages.
 type splittableContainerRow struct {
-	container *blockContainer
-	config    *entity.Config
+	inner     core.Row        // row.New().Add(col.New().Add(container)) — handles Render/GetHeight
+	container *blockContainer // direct reference so SplitAt can introspect children
 }
 
 func newSplittableContainerRow(c *blockContainer) *splittableContainerRow {
-	return &splittableContainerRow{container: c}
+	inner := row.New().Add(col.New().Add(c))
+	return &splittableContainerRow{inner: inner, container: c}
 }
 
-func (s *splittableContainerRow) SetConfig(cfg *entity.Config) {
-	s.config = cfg
-	s.container.SetConfig(cfg)
-}
-
+func (s *splittableContainerRow) SetConfig(cfg *entity.Config) { s.inner.SetConfig(cfg) }
 func (s *splittableContainerRow) GetStructure() *node.Node[core.Structure] {
-	// Build row → col → container structure to match the original row.New().Add(col.New().Add(container)) layout.
-	rowNode := node.New(core.Structure{Type: "row"})
-	colNode := node.New(core.Structure{Type: "col"})
-	colNode.AddNext(s.container.GetStructure())
-	rowNode.AddNext(colNode)
-	return rowNode
+	return s.inner.GetStructure()
 }
-
 func (s *splittableContainerRow) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
-	if cell == nil {
-		return 0
-	}
-	return s.container.GetHeight(provider, cell)
+	return s.inner.GetHeight(provider, cell)
 }
-
 func (s *splittableContainerRow) Render(provider core.Provider, cell entity.Cell) {
-	cell.Height = s.container.GetHeight(provider, &cell)
-	s.container.Render(provider, &cell)
-	// Advance the gofpdf cursor so the next row renders below this one.
-	provider.CreateRow(cell.Height)
+	s.inner.Render(provider, cell)
 }
-
-func (s *splittableContainerRow) Add(_ ...core.Col) core.Row       { return s }
-func (s *splittableContainerRow) WithStyle(_ *props.Cell) core.Row { return s }
-
-// GetColumns returns a single col wrapping the blockContainer to match the
-// structure that callers (e.g. existing tests) expect.
-func (s *splittableContainerRow) GetColumns() []core.Col {
-	return []core.Col{col.New().Add(s.container)}
-}
+func (s *splittableContainerRow) Add(cols ...core.Col) core.Row    { return s.inner.Add(cols...) }
+func (s *splittableContainerRow) WithStyle(p *props.Cell) core.Row { return s.inner.WithStyle(p) }
+func (s *splittableContainerRow) GetColumns() []core.Col           { return s.inner.GetColumns() }
 
 // SplitAt implements core.Splittable. It splits the container's child rows at
 // the point where cumulative row heights would exceed remainingHeight.

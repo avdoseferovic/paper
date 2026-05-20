@@ -302,13 +302,16 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	// The container's total height should be 30mm.
 	assert.InDelta(t, 30.0, container.GetHeight(p, cell), 0.1)
 
+	cfg := &entity.Config{MaxGridSize: 12}
 	scr := newSplittableContainerRow(container)
+	scr.SetConfig(cfg)
 
 	t.Run("SplitAt remaining=25 splits after 2 rows (20mm) + partial", func(t *testing.T) {
 		first, rest, didSplit := scr.SplitAt(p, 25)
 		require.True(t, didSplit, "30mm container should split when remaining=25mm")
 		require.NotNil(t, first)
 		require.NotNil(t, rest)
+		first.SetConfig(cfg)
 		// first should contain rows that fit in 25mm
 		assert.LessOrEqual(t, first.GetHeight(p, &entity.Cell{Width: 100, Height: 100}), 25.0+0.01)
 	})
