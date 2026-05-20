@@ -120,7 +120,7 @@ Type: Feature
 - [x] Task 1: Modern color formats (147 named, hex variants, rgb/rgba/hsl/hsla)
 - [x] Task 2: Opacity & alpha pipeline (CSS opacity + props.Color.Alpha + gofpdf SetAlpha)
 - [x] Task 3: Typography properties (letter-spacing, text-transform, text-indent, white-space)
-- [ ] Task 4: Expanded tag coverage (inline mark/small/abbr/code/kbd/samp/var/cite/q/time + block dl/dt/dd/details/summary/hr/caption/colgroup)
+- [x] Task 4: Expanded tag coverage (inline mark/small/abbr/code/kbd/samp/var/cite/q/time + block dl/dt/dd/details/summary/hr/caption/colgroup)
 - [ ] Task 5: Pseudo-class & nth selector verification + tests
 - [ ] Task 6: Internal PDF anchors (id + href="#id" via gofpdf Link)
 - [ ] Task 7: CSS variables (--var declarations + var() resolution)
@@ -129,7 +129,7 @@ Type: Feature
 - [ ] Task 10: @font-face web font registration
 - [ ] Task 11: Demo + docs sweep
 
-**Total Tasks:** 11 | **Completed:** 3 | **Remaining:** 8
+**Total Tasks:** 11 | **Completed:** 4 | **Remaining:** 7
 
 ## Implementation Tasks
 

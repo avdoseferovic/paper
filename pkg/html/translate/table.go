@@ -7,6 +7,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/components/table"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
@@ -14,17 +15,40 @@ import (
 )
 
 // tableRows converts a <table> element into one Maroto row containing a Table component.
+// When a <caption> child exists, it is emitted as a centred row above the table.
+// When <colgroup>/<col> children exist, they are detected and logged as a feature
+// the v1 table builder cannot honour (explicit column widths are not supported).
 func (tr *translator) tableRows(n *dom.Node) []core.Row {
+	var out []core.Row
+	for _, c := range n.Children() {
+		switch c.Tag() {
+		case "caption":
+			out = append(out, tr.captionRow(c))
+		case "colgroup":
+			tr.unsupported("table.colgroup", "explicit column widths not supported in v1")
+		}
+	}
 	cells := tr.buildTableMatrix(n)
 	if len(cells) == 0 {
-		return nil
+		return out
 	}
 	tbl, err := table.New(cells)
 	if err != nil {
-		return nil
+		return out
 	}
 	c := col.New().Add(tbl)
-	return []core.Row{row.New().Add(c)}
+	out = append(out, row.New().Add(c))
+	return out
+}
+
+// captionRow renders a <caption> as a centred row above the table.
+func (tr *translator) captionRow(n *dom.Node) core.Row {
+	runs := inlineRuns(n)
+	if len(runs) == 0 {
+		runs = []props.RichRun{{Text: ""}}
+	}
+	rt := richtext.New(runs, props.RichText{Align: align.Center})
+	return row.New().Add(col.New().Add(rt))
 }
 
 func (tr *translator) buildTableMatrix(n *dom.Node) [][]table.Cell {

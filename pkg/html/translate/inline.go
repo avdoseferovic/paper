@@ -2,6 +2,7 @@ package translate
 
 import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
@@ -14,14 +15,22 @@ func inlineRuns(n *dom.Node) []props.RichRun {
 	return runs
 }
 
+// runContext threads inline styling state through the recursive walk.
+// Fields beyond bold/italic/underline support inline tags that change
+// font scale (<small>), background (<mark>, <kbd>), or family (<code> outside <pre>).
 type runContext struct {
-	bold      bool
-	italic    bool
-	underline bool
-	strike    bool
-	hyperlink *string
-	sub       bool
-	sup       bool
+	bold           bool
+	italic         bool
+	underline      bool
+	strike         bool
+	hyperlink      *string
+	localAnchor    string
+	sub            bool
+	sup            bool
+	sizeScale      float64       // multiplier on inherited font size (0 = inherit unchanged)
+	monospace      bool          // pick a monospace family at render
+	background     *css.RGBColor // run-level background fill
+	familyOverride string
 }
 
 func (c runContext) toStyle() fontstyle.Type {
@@ -50,6 +59,15 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 		return
 	}
 	next := mutateContext(tag, n, ctx)
+	// <q>: wrap children with ASCII quotes.
+	if tag == "q" {
+		*runs = append(*runs, props.RichRun{Text: `"`, Style: next.toStyle()})
+		for _, c := range n.Children() {
+			walkInline(c, next, runs)
+		}
+		*runs = append(*runs, props.RichRun{Text: `"`, Style: next.toStyle()})
+		return
+	}
 	for _, c := range n.Children() {
 		walkInline(c, next, runs)
 	}
@@ -60,14 +78,31 @@ func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	if text == "" {
 		return
 	}
-	*runs = append(*runs, props.RichRun{
+	run := props.RichRun{
 		Text:          text,
+		Family:        ctx.familyOverride,
 		Style:         ctx.toStyle(),
 		Underline:     ctx.underline,
 		Strikethrough: ctx.strike,
 		Hyperlink:     ctx.hyperlink,
+		LocalAnchor:   ctx.localAnchor,
 		VerticalAlign: vAlign(ctx),
-	})
+	}
+	if ctx.monospace && run.Family == "" {
+		run.Family = "courier"
+	}
+	if ctx.background != nil {
+		run.Background = &props.Color{
+			Red:   ctx.background.R,
+			Green: ctx.background.G,
+			Blue:  ctx.background.B,
+		}
+		if ctx.background.A < 1 {
+			a := ctx.background.A
+			run.Background.Alpha = &a
+		}
+	}
+	*runs = append(*runs, run)
 }
 
 // handleSelfClosing handles tags that emit a run directly without recursion.
@@ -92,7 +127,7 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 	switch tag {
 	case "b", "strong":
 		next.bold = true
-	case "i", "em":
+	case "i", "em", "var", "cite":
 		next.italic = true
 	case "u":
 		next.underline = true
@@ -104,8 +139,31 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		next.sup = true
 	case "a":
 		if href := n.Attr("href"); href != "" {
-			next.hyperlink = &href
+			if len(href) > 0 && href[0] == '#' {
+				next.localAnchor = href[1:]
+				next.hyperlink = nil
+			} else {
+				next.hyperlink = &href
+			}
 		}
+	case "mark":
+		// Yellow background highlight.
+		next.background = &css.RGBColor{R: 255, G: 255, B: 0, A: 1}
+	case "small":
+		// Render at 0.85x of the parent size (default 1.0 unchanged in v1
+		// since runContext does not carry an absolute font size; the size
+		// reduction is applied in applyInlineStyleToRuns when the parent's
+		// computed font-size is known).
+		next.sizeScale = 0.85
+	case "code", "kbd", "samp":
+		next.monospace = true
+		if tag != "samp" {
+			// Light grey background for code/kbd.
+			next.background = &css.RGBColor{R: 240, G: 240, B: 240, A: 1}
+		}
+	case "abbr":
+		// Solid underline (dotted not supported by the current renderer).
+		next.underline = true
 	}
 	return next
 }

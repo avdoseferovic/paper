@@ -32,6 +32,10 @@ h2 { padding: 2mm 0 1mm 0 }
 h3 { padding: 1mm 0 }
 th { padding: 0.8mm 1mm }
 ul, ol { margin-top: 2mm; margin-bottom: 1mm }
+dt { padding-top: 1mm }
+dd { padding-bottom: 1mm }
+summary { padding: 1mm 0 }
+caption { padding: 1mm 0; text-align: center }
 `
 
 // parseStylesheet parses CSS text from <style> blocks into compiled rules.

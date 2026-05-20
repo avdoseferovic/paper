@@ -119,11 +119,15 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	case "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre":
 		return []core.Row{tr.paragraphRow(n)}
 	case "hr":
-		return []core.Row{hrRow()}
+		return []core.Row{tr.styledHrRow(n)}
 	case "table":
 		return tr.tableRows(n)
 	case "ul", "ol":
 		return tr.listRows(n)
+	case "dl":
+		return tr.definitionListRows(n)
+	case "details":
+		return tr.detailsRows(n)
 	case "img":
 		if r, ok := tr.imageRow(n); ok {
 			return []core.Row{r}
@@ -194,11 +198,33 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	return r
 }
 
-// hrRow produces a thin row containing a horizontal line.
+// hrRow produces a thin row containing a horizontal line (default style).
 func hrRow() core.Row {
 	l := line.New()
 	c := col.New().Add(l)
 	return row.New(1).Add(c)
+}
+
+// styledHrRow honours border-top-width, border-top-style, color on the <hr>
+// element. Defaults match the original hrRow behaviour when no style is set.
+func (tr *translator) styledHrRow(n *dom.Node) core.Row {
+	style := computeNodeStyle(tr.sheet, n, nil)
+	lineProp := props.Line{}
+	if style.BorderTopWidth > 0 {
+		lineProp.Thickness = style.BorderTopWidth
+	}
+	if c := style.BorderTopColor; c != nil {
+		lineProp.Color = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	} else if style.Color != nil {
+		lineProp.Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
+	}
+	l := line.New(lineProp)
+	c := col.New().Add(l)
+	h := 1.0
+	if style.BorderTopWidth > 0 {
+		h = style.BorderTopWidth + 0.5
+	}
+	return row.New(h).Add(c)
 }
 
 // wrapTextRow handles raw text nodes at block level.
