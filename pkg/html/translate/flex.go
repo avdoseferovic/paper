@@ -3,6 +3,7 @@
 package translate
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
@@ -79,6 +80,152 @@ func (tr *translator) flexRow(n *dom.Node, containerStyle *css.ComputedStyle) co
 		r = r.Add(c)
 	}
 	return r
+}
+
+// flexRows is the new entry point. It handles flex-wrap, order, and *-reverse,
+// returning one []core.Row per visual flex line. When flex-wrap is off (default)
+// it returns exactly one row — identical to the old flexRow behavior.
+func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
+	children := flexItems(n)
+	if len(children) == 0 {
+		return nil
+	}
+
+	gridSize := tr.gridSize
+	if gridSize <= 0 {
+		gridSize = defaultGridSize
+	}
+
+	// Sort by order (CSS order property, DOM index tiebreak).
+	type orderedChild struct {
+		node     *dom.Node
+		domIndex int
+	}
+	ordered := make([]orderedChild, len(children))
+	for i, c := range children {
+		ordered[i] = orderedChild{node: c, domIndex: i}
+	}
+	styles := make([]*css.ComputedStyle, len(children))
+	for i, c := range children {
+		styles[i] = computeNodeStyle(tr.sheet, c, containerStyle)
+	}
+
+	sort.SliceStable(ordered, func(a, b int) bool {
+		oa := styles[ordered[a].domIndex].Order
+		ob := styles[ordered[b].domIndex].Order
+		if oa != ob {
+			return oa < ob
+		}
+		return ordered[a].domIndex < ordered[b].domIndex
+	})
+
+	// Apply reverse for row-reverse.
+	if containerStyle.FlexDirection == "row-reverse" {
+		for i, j := 0, len(ordered)-1; i < j; i, j = i+1, j-1 {
+			ordered[i], ordered[j] = ordered[j], ordered[i]
+		}
+	}
+
+	// Reorder parallel slices to match sorted order.
+	sortedChildren := make([]*dom.Node, len(ordered))
+	sortedStyles := make([]*css.ComputedStyle, len(ordered))
+	for i, o := range ordered {
+		sortedChildren[i] = o.node
+		sortedStyles[i] = styles[o.domIndex]
+	}
+
+	// Determine if we should wrap.
+	wrap := containerStyle.FlexWrap == "wrap" || containerStyle.FlexWrap == "wrap-reverse"
+
+	var logicalRows [][]*dom.Node
+	var logicalRowStyles [][]*css.ComputedStyle
+
+	if !wrap {
+		// Single row.
+		logicalRows = [][]*dom.Node{sortedChildren}
+		logicalRowStyles = [][]*css.ComputedStyle{sortedStyles}
+	} else {
+		// Greedy wrap: fill each row until adding the next item would exceed the grid.
+		rowChildren := []*dom.Node{}
+		rowStyles := []*css.ComputedStyle{}
+		usedPct := 0.0
+		for i, child := range sortedChildren {
+			s := sortedStyles[i]
+			pct := s.FlexBasisPct
+			if pct <= 0 {
+				pct = 100.0 / float64(gridSize) // default: equal share
+			}
+			if len(rowChildren) > 0 && usedPct+pct > 100.001 {
+				// Start a new row.
+				logicalRows = append(logicalRows, rowChildren)
+				logicalRowStyles = append(logicalRowStyles, rowStyles)
+				rowChildren = []*dom.Node{}
+				rowStyles = []*css.ComputedStyle{}
+				usedPct = 0
+			}
+			rowChildren = append(rowChildren, child)
+			rowStyles = append(rowStyles, s)
+			usedPct += pct
+		}
+		if len(rowChildren) > 0 {
+			logicalRows = append(logicalRows, rowChildren)
+			logicalRowStyles = append(logicalRowStyles, rowStyles)
+		}
+	}
+
+	// Reverse row order for wrap-reverse.
+	if containerStyle.FlexWrap == "wrap-reverse" {
+		for i, j := 0, len(logicalRows)-1; i < j; i, j = i+1, j-1 {
+			logicalRows[i], logicalRows[j] = logicalRows[j], logicalRows[i]
+			logicalRowStyles[i], logicalRowStyles[j] = logicalRowStyles[j], logicalRowStyles[i]
+		}
+	}
+
+	// Build each logical row into a core.Row.
+	var result []core.Row
+	for rowIdx, rowChildren := range logicalRows {
+		rowItemStyles := logicalRowStyles[rowIdx]
+		gapCols := tr.gapCols(containerStyle.ColumnGap, gridSize, len(rowChildren))
+		totalGap := gapCols * max(0, len(rowChildren)-1)
+		available := gridSize - totalGap
+		if available < len(rowChildren) {
+			gapCols = 0
+			totalGap = 0
+			available = gridSize
+		}
+
+		sizes := computeFlexSizes(rowItemStyles, available)
+		sizes = bumpZerosWithoutOverflow(sizes, available)
+
+		visualGap := 0.0
+		if gapCols == 0 {
+			visualGap = containerStyle.ColumnGap
+		}
+
+		itemCols := make([]core.Col, len(rowChildren))
+		used := 0
+		for i, child := range rowChildren {
+			used += sizes[i]
+			c := col.New(sizes[i])
+			if comp := tr.flexItemContent(child, rowItemStyles[i]); comp != nil {
+				if visualGap > 0 && i > 0 {
+					comp = &marginBox{child: comp, marginLeft: visualGap}
+				}
+				c = c.Add(comp)
+			}
+			itemCols[i] = c
+		}
+
+		slack := max(gridSize-used-totalGap, 0)
+		finalCols := assembleFlexCols(itemCols, gapCols, slack, containerStyle.JustifyContent)
+
+		r := row.New()
+		for _, c := range finalCols {
+			r = r.Add(c)
+		}
+		result = append(result, r)
+	}
+	return result
 }
 
 // gapCols converts a CSS gap (in mm) to integer spacer cols, clamped to half the grid.

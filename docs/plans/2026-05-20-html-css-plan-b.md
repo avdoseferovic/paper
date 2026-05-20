@@ -129,14 +129,14 @@ Type: Feature
 - [x] Task 5: CSS gradients (linear + radial) — parser + raster + cellwriter integration
 - [x] Task 6: box-shadow — parser + provider + render wrapper with multi-shadow support
 - [x] Task 7: text-shadow — per-run shadow before AddText
-- [ ] Task 8: outline + outline-offset (drawn outside cell box)
+- [x] Task 8: outline + outline-offset (drawn outside cell box)
 - [ ] Task 9: flex-wrap, order, true *-reverse ordering (quantizer multi-row + sort)
 - [ ] Task 10: align-self (per-item cross-axis alignment)
 - [ ] Task 11: page-break-{before,after,inside} markers + paginator hint
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 7 | **Remaining:** 6
+**Total Tasks:** 13 | **Completed:** 8 | **Remaining:** 5
 
 ## Implementation Tasks
 

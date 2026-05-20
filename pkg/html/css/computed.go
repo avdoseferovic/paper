@@ -72,6 +72,7 @@ type ComputedStyle struct {
 
 	// Flex container properties
 	FlexDirection  string  // "row" | "column" | "row-reverse" | "column-reverse"
+	FlexWrap       string  // "nowrap" | "wrap" | "wrap-reverse"
 	JustifyContent string  // "flex-start" | "center" | "flex-end" | "space-between" | "space-around"
 	AlignItems     string  // "flex-start" | "center" | "flex-end" | "stretch"
 	RowGap         float64 // mm
@@ -83,6 +84,7 @@ type ComputedStyle struct {
 	FlexBasis     float64 // mm; 0 means auto unless FlexBasisAuto or FlexBasisPct set
 	FlexBasisAuto bool    // true when flex-basis:auto was explicitly set
 	FlexBasisPct  float64 // >0 when flex-basis was a percentage (0–100 scale)
+	Order         int     // CSS order property; lower = earlier; 0 is default
 
 	// List marker style (for ul/ol). Supports standard CSS values plus the
 	// "decimal-circle" extension that renders numbers inside filled discs.
@@ -272,6 +274,13 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		s.FlexDirection = val
 	case "justify-content":
 		s.JustifyContent = val
+	case "flex-wrap":
+		s.FlexWrap = strings.TrimSpace(val)
+	case "order":
+		v, err := strconv.Atoi(strings.TrimSpace(val))
+		if err == nil {
+			s.Order = v
+		}
 	case "align-items":
 		s.AlignItems = val
 	case "flex-grow":

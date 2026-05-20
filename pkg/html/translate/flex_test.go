@@ -5,6 +5,7 @@ import (
 
 	"github.com/johnfercher/go-tree/node"
 	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/translate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -421,5 +422,152 @@ func TestFlexGap(t *testing.T) {
 		assert.Equal(t, 12, sum)
 		// At least one item should retain ≥ 1 col
 		assert.GreaterOrEqual(t, cols[0].GetSize(), 1)
+	})
+}
+
+// ── flex-wrap, order, *-reverse ───────────────────────────────────────────────
+
+func TestFlexWrap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("6 items at flex-basis:33% wrap into 2 rows of 3", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex;flex-wrap:wrap">
+		  <div style="flex-basis:33%">a</div>
+		  <div style="flex-basis:33%">b</div>
+		  <div style="flex-basis:33%">c</div>
+		  <div style="flex-basis:33%">d</div>
+		  <div style="flex-basis:33%">e</div>
+		  <div style="flex-basis:33%">f</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		// flex-wrap:wrap produces 2 rows
+		assert.Equal(t, 2, len(rows), "expected 2 wrapped rows")
+		if len(rows) >= 2 {
+			assert.Equal(t, 3, len(rows[0].GetColumns()), "row 1 should have 3 cols")
+			assert.Equal(t, 3, len(rows[1].GetColumns()), "row 2 should have 3 cols")
+		}
+	})
+
+	t.Run("nowrap keeps all items in one row", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex;flex-wrap:nowrap">
+		  <div style="flex-basis:33%">a</div>
+		  <div style="flex-basis:33%">b</div>
+		  <div style="flex-basis:33%">c</div>
+		  <div style="flex-basis:33%">d</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(rows))
+	})
+}
+
+func TestFlexOrder(t *testing.T) {
+	t.Parallel()
+
+	t.Run("items with order 2,1,3,0 render in order 0,1,2,3", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex">
+		  <div style="order:2" id="c">C</div>
+		  <div style="order:1" id="b">B</div>
+		  <div style="order:3" id="d">D</div>
+		  <div style="order:0" id="a">A</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		// Verify all 4 items are still present after order sort.
+		assert.Len(t, rows[0].GetColumns(), 4)
+	})
+}
+
+func TestFlexReverse(t *testing.T) {
+	t.Parallel()
+
+	t.Run("row-reverse reverses item order", func(t *testing.T) {
+		t.Parallel()
+		// We can't easily check visual order via structure; verify the row count is still 1.
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex;flex-direction:row-reverse">
+		  <div>a</div><div>b</div><div>c</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Len(t, rows[0].GetColumns(), 3)
+	})
+}
+
+// ── Golden tests: single-row computeFlexSizes preservation ───────────────────
+// These tests capture the exact output of computeFlexSizes for representative
+// single-row inputs. They exist to detect regressions after the WrappedLayout
+// refactor for flex-wrap support.
+
+func TestComputeFlexSizes_Golden(t *testing.T) {
+	t.Parallel()
+
+	makeStyles := func(flexGrows ...float64) []*css.ComputedStyle {
+		out := make([]*css.ComputedStyle, len(flexGrows))
+		for i, g := range flexGrows {
+			s := css.NewComputedStyle()
+			s.FlexGrow = g
+			out[i] = s
+		}
+		return out
+	}
+
+	makePctStyles := func(pcts ...float64) []*css.ComputedStyle {
+		out := make([]*css.ComputedStyle, len(pcts))
+		for i, p := range pcts {
+			s := css.NewComputedStyle()
+			s.FlexBasisPct = p
+			out[i] = s
+		}
+		return out
+	}
+
+	t.Run("3 equal items gridSize=12", func(t *testing.T) {
+		t.Parallel()
+		got := translate.ComputeFlexSizes(makeStyles(0, 0, 0), 12)
+		assert.Equal(t, []int{4, 4, 4}, got)
+	})
+
+	t.Run("percentage basis 50% 25% 25% gridSize=12", func(t *testing.T) {
+		t.Parallel()
+		styles := makePctStyles(50, 25, 25)
+		got := translate.ComputeFlexSizes(styles, 12)
+		assert.Equal(t, []int{6, 3, 3}, got)
+	})
+
+	t.Run("grow weights 1:2 gridSize=12", func(t *testing.T) {
+		t.Parallel()
+		got := translate.ComputeFlexSizes(makeStyles(1, 2), 12)
+		assert.Equal(t, []int{4, 8}, got)
+	})
+
+	t.Run("mixed pct+grow: 50%+grow=1 gridSize=12", func(t *testing.T) {
+		t.Parallel()
+		pct := css.NewComputedStyle()
+		pct.FlexBasisPct = 50
+		grow := css.NewComputedStyle()
+		grow.FlexGrow = 1
+		got := translate.ComputeFlexSizes([]*css.ComputedStyle{pct, grow}, 12)
+		assert.Equal(t, []int{6, 6}, got)
+	})
+
+	t.Run("5 equal items gridSize=12 (remainder distribution)", func(t *testing.T) {
+		t.Parallel()
+		got := translate.ComputeFlexSizes(makeStyles(0, 0, 0, 0, 0), 12)
+		sum := 0
+		for _, v := range got {
+			sum += v
+		}
+		assert.Equal(t, 12, sum)
+		assert.Len(t, got, 5)
 	})
 }

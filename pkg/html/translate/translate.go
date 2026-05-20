@@ -243,11 +243,11 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 			if isColumnDirection(style.FlexDirection) {
 				return tr.flexColumnRows(n, style)
 			}
-			r := tr.flexRow(n, style)
-			if r == nil {
+			rows := tr.flexRows(n, style)
+			if len(rows) == 0 {
 				return nil
 			}
-			return []core.Row{r}
+			return rows
 		}
 		// Default: collect children's rows.
 		var rows []core.Row
