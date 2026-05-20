@@ -88,13 +88,10 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 		effectiveColor = rowStyle.Color
 	}
 	if effectiveColor != nil {
+		op := effectiveOpacity(cellStyle)
 		for i := range runs {
 			if runs[i].Color == nil {
-				runs[i].Color = &props.Color{
-					Red:   effectiveColor.R,
-					Green: effectiveColor.G,
-					Blue:  effectiveColor.B,
-				}
+				runs[i].Color = toPropsColor(effectiveColor, op)
 			}
 		}
 	}
@@ -127,11 +124,7 @@ func tableCellStyle(cellStyle, rowStyle *css.ComputedStyle) *props.Cell {
 		effectiveBg = rowStyle.BackgroundColor
 	}
 	if effectiveBg != nil {
-		cellProp.BackgroundColor = &props.Color{
-			Red:   effectiveBg.R,
-			Green: effectiveBg.G,
-			Blue:  effectiveBg.B,
-		}
+		cellProp.BackgroundColor = toPropsColor(effectiveBg, effectiveOpacity(cellStyle))
 	}
 
 	if cellProp.BackgroundColor == nil &&

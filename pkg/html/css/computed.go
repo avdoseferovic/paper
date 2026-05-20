@@ -5,11 +5,6 @@ import (
 	"strings"
 )
 
-// RGBColor holds a parsed CSS color.
-type RGBColor struct {
-	R, G, B int
-}
-
 // ComputedStyle holds the resolved CSS property values for a DOM element.
 type ComputedStyle struct {
 	// Font
@@ -84,6 +79,9 @@ type ComputedStyle struct {
 	// "decimal-circle" extension that renders numbers inside filled discs.
 	ListStyleType string
 
+	// Opacity multiplies into all descendant color alpha values (0 = invisible, 1 = opaque).
+	Opacity float64
+
 	unsupportedHandler func(prop, val string)
 }
 
@@ -96,6 +94,7 @@ func NewComputedStyle() *ComputedStyle {
 		FontStyle:  "normal",
 		Display:    "",
 		LineHeight: 1.0,
+		Opacity:    1.0,
 	}
 }
 
@@ -113,9 +112,9 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 
 	switch prop {
 	case "color":
-		s.Color = parseColor(val)
+		s.Color = ParseColor(val)
 	case "background-color":
-		s.BackgroundColor = parseColor(val)
+		s.BackgroundColor = ParseColor(val)
 	case "font-family":
 		s.FontFamily = strings.Trim(val, `'"`)
 	case "font-size":
@@ -163,15 +162,15 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 	case "border-left-style":
 		s.BorderLeftStyle = val
 	case "border-top-color":
-		s.BorderTopColor = parseColor(val)
+		s.BorderTopColor = ParseColor(val)
 	case "border-right-color":
-		s.BorderRightColor = parseColor(val)
+		s.BorderRightColor = ParseColor(val)
 	case "border-bottom-color":
-		s.BorderBottomColor = parseColor(val)
+		s.BorderBottomColor = ParseColor(val)
 	case "border-left-color":
-		s.BorderLeftColor = parseColor(val)
+		s.BorderLeftColor = ParseColor(val)
 	case "border-color":
-		c := parseColor(val)
+		c := ParseColor(val)
 		s.BorderTopColor, s.BorderRightColor, s.BorderBottomColor, s.BorderLeftColor = c, c, c, c
 	case "border-width":
 		w := ParseLength(val, 0)
@@ -245,6 +244,20 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 		s.BorderRadiusBottomLeft = ParseLength(val, 0)
 	case "border-bottom-right-radius":
 		s.BorderRadiusBottomRight = ParseLength(val, 0)
+	case "opacity":
+		v, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(val), "%"), 64)
+		if err == nil {
+			if strings.HasSuffix(strings.TrimSpace(val), "%") {
+				v /= 100.0
+			}
+			if v < 0 {
+				v = 0
+			}
+			if v > 1 {
+				v = 1
+			}
+			s.Opacity = v
+		}
 	case "list-style-type":
 		s.ListStyleType = strings.TrimSpace(val)
 	case "vertical-align":
@@ -263,46 +276,4 @@ func normFontWeight(val string) string {
 	default:
 		return "normal"
 	}
-}
-
-// parseColor parses common CSS color formats: #rgb, #rrggbb, named colors.
-func parseColor(val string) *RGBColor {
-	val = strings.TrimSpace(val)
-	if strings.HasPrefix(val, "#") {
-		hex := val[1:]
-		if len(hex) == 3 {
-			hex = string([]byte{hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]})
-		}
-		if len(hex) == 6 {
-			r, _ := strconv.ParseInt(hex[0:2], 16, 32)
-			g, _ := strconv.ParseInt(hex[2:4], 16, 32)
-			b, _ := strconv.ParseInt(hex[4:6], 16, 32)
-			return &RGBColor{R: int(r), G: int(g), B: int(b)}
-		}
-	}
-	if c, ok := namedColors[val]; ok {
-		return &c
-	}
-	return nil
-}
-
-// namedColors maps common CSS color names to RGB values.
-var namedColors = map[string]RGBColor{
-	"black":   {0, 0, 0},
-	"white":   {255, 255, 255},
-	"red":     {255, 0, 0},
-	"green":   {0, 128, 0},
-	"blue":    {0, 0, 255},
-	"yellow":  {255, 255, 0},
-	"orange":  {255, 165, 0},
-	"gray":    {128, 128, 128},
-	"grey":    {128, 128, 128},
-	"silver":  {192, 192, 192},
-	"navy":    {0, 0, 128},
-	"maroon":  {128, 0, 0},
-	"purple":  {128, 0, 128},
-	"teal":    {0, 128, 128},
-	"fuchsia": {255, 0, 255},
-	"aqua":    {0, 255, 255},
-	"lime":    {0, 255, 0},
 }

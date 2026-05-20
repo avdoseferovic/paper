@@ -29,6 +29,37 @@ func computeNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle)
 	return s
 }
 
+// toPropsColor converts an RGBColor into a props.Color, multiplying any explicit
+// per-color alpha by the parent's CSS opacity. Alpha is left nil (== opaque) when
+// the resulting effective alpha is >= 1.0 so existing render paths short-circuit.
+func toPropsColor(c *css.RGBColor, opacity float64) *props.Color {
+	if c == nil {
+		return nil
+	}
+	out := &props.Color{Red: c.R, Green: c.G, Blue: c.B}
+	a := c.A * opacity
+	if a < 1 {
+		out.Alpha = &a
+	}
+	return out
+}
+
+// effectiveOpacity returns the cascade opacity multiplier; 1.0 when unset so
+// callers can unconditionally multiply. NewComputedStyle initialises Opacity
+// to 1.0, so an Opacity of 0 means the CSS opacity:0 was explicitly applied.
+func effectiveOpacity(style *css.ComputedStyle) float64 {
+	if style == nil {
+		return 1.0
+	}
+	if style.Opacity < 0 {
+		return 0
+	}
+	if style.Opacity > 1 {
+		return 1
+	}
+	return style.Opacity
+}
+
 // blockCellStyle converts a ComputedStyle's background and border fields into a
 // Maroto props.Cell. Returns nil if no decorative styling is set.
 func blockCellStyle(style *css.ComputedStyle) *props.Cell {
@@ -43,24 +74,13 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if style.BackgroundColor == nil && !hasBorder && !hasRadius {
 		return nil
 	}
+	op := effectiveOpacity(style)
 	cell := &props.Cell{}
-	if style.BackgroundColor != nil {
-		cell.BackgroundColor = &props.Color{
-			Red: style.BackgroundColor.R, Green: style.BackgroundColor.G, Blue: style.BackgroundColor.B,
-		}
-	}
-	if c := style.BorderTopColor; c != nil {
-		cell.BorderTopColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderRightColor; c != nil {
-		cell.BorderRightColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderBottomColor; c != nil {
-		cell.BorderBottomColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
-	if c := style.BorderLeftColor; c != nil {
-		cell.BorderLeftColor = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	}
+	cell.BackgroundColor = toPropsColor(style.BackgroundColor, op)
+	cell.BorderTopColor = toPropsColor(style.BorderTopColor, op)
+	cell.BorderRightColor = toPropsColor(style.BorderRightColor, op)
+	cell.BorderBottomColor = toPropsColor(style.BorderBottomColor, op)
+	cell.BorderLeftColor = toPropsColor(style.BorderLeftColor, op)
 	cell.BorderTopThickness = style.BorderTopWidth
 	cell.BorderRightThickness = style.BorderRightWidth
 	cell.BorderBottomThickness = style.BorderBottomWidth
@@ -85,7 +105,7 @@ func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
 			runs[i].Size = style.FontSize / 0.352778
 		}
 		if style.Color != nil && runs[i].Color == nil {
-			runs[i].Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
+			runs[i].Color = toPropsColor(style.Color, effectiveOpacity(style))
 		}
 	}
 }

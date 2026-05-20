@@ -34,6 +34,10 @@ func (b *BorderColorStyler) Apply(width, height float64, config *entity.Config, 
 	}
 
 	b.fpdf.SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
+	if a := prop.BorderColor.Alpha; a != nil && *a < 1 {
+		b.fpdf.SetAlpha(clampAlpha(*a), "Normal")
+		defer b.fpdf.SetAlpha(1, "Normal")
+	}
 	b.GoToNext(width, height, config, prop)
 	b.fpdf.SetDrawColor(b.defaultColor.Red, b.defaultColor.Green, b.defaultColor.Blue)
 }

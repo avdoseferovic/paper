@@ -79,7 +79,15 @@ func (b *borderRadiusStyler) Apply(width, height float64, config *entity.Config,
 
 	b.tracePath(x, y, width, height, tl, tr, br, bl)
 	style := drawStyle(hasFill, hasStroke)
-	b.fpdf.DrawPath(style)
+	// If fill or stroke has alpha < 1, wrap DrawPath in SetAlpha; restore on
+	// return. Fill alpha takes precedence when both are translucent.
+	if a := effectiveAlpha(prop); a < 1 {
+		b.fpdf.SetAlpha(clampAlpha(a), "Normal")
+		b.fpdf.DrawPath(style)
+		b.fpdf.SetAlpha(1, "Normal")
+	} else {
+		b.fpdf.DrawPath(style)
+	}
 
 	b.passCleared(width, height, config, prop)
 }

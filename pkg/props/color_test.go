@@ -64,6 +64,21 @@ func TestBlueColor(t *testing.T) {
 	assert.Equal(t, 255, blue.Blue)
 }
 
+func TestColor_Alpha_NilMeansOpaque(t *testing.T) {
+	t.Parallel()
+	// Existing struct literals (96 in codebase) have nil Alpha — must stay safe.
+	c := props.Color{Red: 255, Green: 0, Blue: 0}
+	assert.Nil(t, c.Alpha, "Alpha should default to nil (opaque)")
+}
+
+func TestColor_Alpha_Pointer(t *testing.T) {
+	t.Parallel()
+	a := 0.5
+	c := props.Color{Red: 0, Green: 0, Blue: 255, Alpha: &a}
+	assert.NotNil(t, c.Alpha)
+	assert.InDelta(t, 0.5, *c.Alpha, 0.001)
+}
+
 func TestColor_ToString(t *testing.T) {
 	t.Parallel()
 	t.Run("when prop is nil, should return empty", func(t *testing.T) {

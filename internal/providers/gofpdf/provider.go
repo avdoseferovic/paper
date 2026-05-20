@@ -29,6 +29,9 @@ var _ core.ShapeProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.PositionProvider.
 var _ core.PositionProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.AlphaProvider.
+var _ core.AlphaProvider = (*provider)(nil)
+
 // SetCursor resets the gofpdf pen position. x and y are margin-relative
 // (entity.Cell convention: X=0 means left content edge, not page edge).
 // We add the page margins so the resulting absolute position matches where
@@ -37,6 +40,21 @@ var _ core.PositionProvider = (*provider)(nil)
 func (g *provider) SetCursor(x, y float64) {
 	left, top, _, _ := g.fpdf.GetMargins()
 	g.fpdf.SetXY(x+left, y+top)
+}
+
+// WithAlpha runs fn with the gofpdf alpha temporarily set to a (clamped to
+// [0, 1]). Alpha is always restored to 1.0 via defer so it cannot leak into
+// subsequent native rendering, even if fn panics.
+func (g *provider) WithAlpha(a float64, fn func()) {
+	if a < 0 {
+		a = 0
+	}
+	if a > 1 {
+		a = 1
+	}
+	g.fpdf.SetAlpha(a, "Normal")
+	defer g.fpdf.SetAlpha(1, "Normal")
+	fn()
 }
 
 type provider struct {

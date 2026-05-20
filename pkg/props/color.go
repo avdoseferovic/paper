@@ -18,6 +18,16 @@ var (
 // Color represents a color in the RGB (Red, Green, Blue) space,
 // is possible mix values, when all values are 0 the result color is black
 // when all values are 255 the result color is white.
+//
+// Alpha controls translucency on render paths that honor it (gofpdf SetAlpha
+// via core.AlphaProvider). It is a pointer so existing zero-value literals
+// (Color{Red,Green,Blue}) remain opaque and byte-identical to prior output.
+// nil = opaque; non-nil values in [0, 1] activate the alpha pipeline.
+// Render paths that read this field:
+//   - cellwriter/fillcolorstyler.go (background fills)
+//   - cellwriter/bordercolorstyler.go (border strokes)
+//   - cellwriter/borderradius.go (rounded fill+stroke)
+//   - components/richtext (text color)
 type Color struct {
 	// Red is the amount of red
 	Red int
@@ -25,6 +35,8 @@ type Color struct {
 	Green int
 	// Blue is the amount of red
 	Blue int
+	// Alpha is the translucency in [0, 1]; nil = fully opaque (default).
+	Alpha *float64
 }
 
 // ToString returns a string representation of the Color.
