@@ -126,10 +126,10 @@ Type: Feature
 - [x] Task 7: CSS variables (--var declarations + var() resolution)
 - [x] Task 8: calc() length expressions
 - [x] Task 9: External stylesheets (<link rel=stylesheet> + resolver)
-- [ ] Task 10: @font-face web font registration
+- [x] Task 10: @font-face web font registration
 - [ ] Task 11: Demo + docs sweep
 
-**Total Tasks:** 11 | **Completed:** 9 | **Remaining:** 2
+**Total Tasks:** 11 | **Completed:** 10 | **Remaining:** 1
 
 ## Implementation Tasks
 

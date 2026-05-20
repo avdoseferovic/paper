@@ -13,6 +13,7 @@ import (
 	"github.com/johnfercher/maroto/v2/internal/providers/gofpdf/cellwriter"
 	"github.com/johnfercher/maroto/v2/internal/providers/gofpdf/gofpdfwrapper"
 	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -34,6 +35,15 @@ var _ core.AlphaProvider = (*provider)(nil)
 
 // compile-time assertion: *provider satisfies core.LinkProvider.
 var _ core.LinkProvider = (*provider)(nil)
+
+// compile-time assertion: *provider satisfies core.LateFontProvider.
+var _ core.LateFontProvider = (*provider)(nil)
+
+// RegisterFont makes a TTF/OTF font available for subsequent text rendering.
+// Errors from gofpdf's font parser are surfaced lazily by the next text draw.
+func (g *provider) RegisterFont(family string, style fontstyle.Type, bytes []byte) {
+	g.fpdf.AddUTF8FontFromBytes(family, string(style), bytes)
+}
 
 // AddLink reserves a new internal link target ID.
 func (g *provider) AddLink() int { return g.fpdf.AddLink() }

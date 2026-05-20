@@ -10,8 +10,11 @@ import (
 )
 
 // stylesheet holds parsed CSS rules from <style> blocks with pre-compiled selectors.
+// @font-face AtRules are collected separately on fontFaces; other AtRules
+// (@media, @keyframes, …) are dropped silently.
 type stylesheet struct {
-	rules []compiledRule
+	rules     []compiledRule
+	fontFaces []fontFaceRule
 }
 
 type compiledRule struct {
@@ -49,7 +52,17 @@ func parseStylesheet(text string) *stylesheet {
 		return ss
 	}
 	for _, rule := range sheet.Rules {
-		if rule == nil || rule.Kind != 0 { // 0 = QualifiedRule
+		if rule == nil {
+			continue
+		}
+		// AtRules: only @font-face is admitted; @media/@keyframes/… are skipped.
+		// douceur encodes Name as "@font-face" (with the @ prefix).
+		if rule.Kind != 0 {
+			if rule.Name == "@font-face" {
+				if face, ok := extractFontFace(rule); ok {
+					ss.fontFaces = append(ss.fontFaces, face)
+				}
+			}
 			continue
 		}
 		decls := make(map[string]string, len(rule.Declarations))

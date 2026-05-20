@@ -45,6 +45,7 @@ type translator struct {
 	unsupportedHandler func(thing, value string)
 	anchorReg          *anchorRegistry     // shared id→linkID map (Task 6)
 	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
+	loadedFonts        []loadedFont        // @font-face fonts (Task 10)
 }
 
 // WithStylesheetResolver registers a resolver for <link rel="stylesheet">.
@@ -114,6 +115,12 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	}
 	combined = append(combined, []byte(inlineCSS)...)
 	tr.sheet = parseStylesheet(string(combined))
+
+	// Process @font-face declarations: resolve src URLs via the stylesheet
+	// resolver and emit a fontRegistration row that registers the bytes via
+	// LateFontProvider at render time. defer/recover inside processFontFace
+	// ensures a malformed font cannot crash translation.
+	tr.registerFontFaces(resolver)
 	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
@@ -122,6 +129,9 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	// Pre-pass: collect all id values so forward references (link before
 	// target) resolve correctly at render time via the shared anchor registry.
 	tr.anchorIDs = collectAnchorIDs(body)
+	// Prepend font-face registration rows (zero-height) so any subsequent
+	// row that uses font-family: "MyFont" finds the font already registered.
+	rows = append(rows, tr.fontRegistrationRows()...)
 	for _, child := range body.Children() {
 		rows = append(rows, tr.blockRows(child)...)
 	}
