@@ -30,10 +30,13 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer)
 	borderColorStyle.SetNext(fillColorStyler)
 	fillColorStyler.SetNext(cellCreator)
 
+	shadowStyle := NewShadowStyler(fpdf)
+	shadowStyle.SetNext(perSideBorder)
+
 	if len(drawer) > 0 && drawer[0] != nil {
 		gradientStyle := NewGradientStyler(fpdf, drawer[0])
-		gradientStyle.SetNext(perSideBorder)
+		gradientStyle.SetNext(shadowStyle)
 		return gradientStyle
 	}
-	return perSideBorder
+	return shadowStyle
 }

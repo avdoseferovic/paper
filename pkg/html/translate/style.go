@@ -106,7 +106,8 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	hasRadius := style.BorderRadius > 0 || style.BorderRadiusTopLeft > 0 ||
 		style.BorderRadiusTopRight > 0 || style.BorderRadiusBottomLeft > 0 ||
 		style.BorderRadiusBottomRight > 0
-	if style.BackgroundColor == nil && style.BackgroundGradient == nil && !hasBorder && !hasRadius {
+	if style.BackgroundColor == nil && style.BackgroundGradient == nil &&
+		len(style.BoxShadow) == 0 && !hasBorder && !hasRadius {
 		return nil
 	}
 	op := effectiveOpacity(style)
@@ -132,7 +133,28 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if g := style.BackgroundGradient; g != nil {
 		cell.BackgroundGradient = cssGradientToProps(g)
 	}
+	if len(style.BoxShadow) > 0 {
+		cell.BoxShadow = cssShadowsToProps(style.BoxShadow)
+	}
 	return cell
+}
+
+// cssShadowsToProps converts css.Shadow slice to props.Shadow slice.
+func cssShadowsToProps(shadows []css.Shadow) []props.Shadow {
+	out := make([]props.Shadow, len(shadows))
+	for i, s := range shadows {
+		out[i] = props.Shadow{
+			OffsetX:    s.OffsetX,
+			OffsetY:    s.OffsetY,
+			BlurRadius: s.BlurRadius,
+			Spread:     s.Spread,
+			Inset:      s.Inset,
+		}
+		if s.Color != nil {
+			out[i].Color = &props.Color{Red: s.Color.R, Green: s.Color.G, Blue: s.Color.B}
+		}
+	}
+	return out
 }
 
 // cssGradientToProps converts a parsed css.Gradient to a props.Gradient.

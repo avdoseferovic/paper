@@ -77,8 +77,14 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		s := css.NewComputedStyle()
 		count := 0
 		s.SetUnsupportedHandler(func(_, _ string) { count++ })
-		s.Apply("box-shadow", "0 0 5px rgba(0,0,0,.2)", nil)
+		s.Apply("animation", "spin 1s linear infinite", nil) // animation is not supported
 		assert.Equal(t, 1, count)
+	})
+	t.Run("box-shadow populates BoxShadow field", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("box-shadow", "0 4mm 6mm rgba(0,0,0,0.2)", nil)
+		assert.Len(t, s.BoxShadow, 1)
 	})
 }
 
