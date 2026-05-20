@@ -172,7 +172,19 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 		heightMM = 10 // safe default
 	}
 
-	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: 100, Center: true})
+	// Compute Percent so the image renders at exactly widthMM wide instead of
+	// filling the full cell width. props.Rect.Percent is the fraction of the
+	// cell width used by the image; we scale to the requested mm width.
+	cellWidth := tr.contentWidthMM
+	if cellWidth <= 0 {
+		cellWidth = 170.0
+	}
+	percent := 100.0
+	if widthMM > 0 && widthMM < cellWidth {
+		percent = (widthMM / cellWidth) * 100
+	}
+
+	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: percent, Center: true})
 	c := col.New().Add(img)
 	return row.New(heightMM).Add(c), true
 }

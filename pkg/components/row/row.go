@@ -90,6 +90,14 @@ func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 	innerCell := cell.Copy()
 
 	if r.style != nil {
+		// Ensure the gofpdf pen is at the cell origin before CreateCol so
+		// CellFormat (and any cellwriter chain node using GetXY, e.g. the
+		// borderRadius styler) paints at the correct position. Without this
+		// the pen drifts after Ln/CellFormat and styled rows render in the
+		// wrong place after nested flex/container content.
+		if pp, ok := provider.(core.PositionProvider); ok {
+			pp.SetCursor(cell.X, cell.Y)
+		}
 		provider.CreateCol(cell.Width, cell.Height, r.config, r.style)
 	}
 

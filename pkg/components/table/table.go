@@ -119,6 +119,12 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 			w := colWidth * float64(declCell.Colspan)
 			innerCell := entity.Cell{X: x, Y: y, Width: w, Height: rowH}
 			if declCell.Style != nil {
+				// Reset the pen to the cell origin before CreateCol so CellFormat
+				// paints the styled background at the right (x, y) — otherwise the
+				// pen drifts across rows and cells when only some cells are styled.
+				if pp, ok := provider.(core.PositionProvider); ok {
+					pp.SetCursor(x, y)
+				}
 				provider.CreateCol(w, rowH, t.config, declCell.Style)
 			}
 			if declCell.Content != nil {
