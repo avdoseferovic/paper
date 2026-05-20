@@ -22,6 +22,8 @@ type config struct {
 	contentWidthMM     float64
 	imageResolver      translate.ImageResolver
 	imageBaseDir       string
+	stylesheetResolver translate.StylesheetResolver
+	stylesheetBaseDir  string
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -69,6 +71,22 @@ func WithImageBaseDir(dir string) Option {
 	}
 }
 
+// WithStylesheetResolver registers a custom resolver for <link rel="stylesheet">.
+// The default (no resolver) only accepts data: URIs.
+func WithStylesheetResolver(fn translate.StylesheetResolver) Option {
+	return func(c *config) {
+		c.stylesheetResolver = fn
+	}
+}
+
+// WithStylesheetBaseDir scopes <link href=...> local-file reads to a single
+// directory. Paths that escape via ".." or absolute prefix are refused.
+func WithStylesheetBaseDir(dir string) Option {
+	return func(c *config) {
+		c.stylesheetBaseDir = dir
+	}
+}
+
 // FromString parses an HTML string and returns the corresponding Maroto rows.
 func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
@@ -93,6 +111,11 @@ func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 		tOpts = append(tOpts, translate.WithImageResolver(cfg.imageResolver))
 	} else if cfg.imageBaseDir != "" {
 		tOpts = append(tOpts, translate.WithImageBaseDir(cfg.imageBaseDir))
+	}
+	if cfg.stylesheetResolver != nil {
+		tOpts = append(tOpts, translate.WithStylesheetResolver(cfg.stylesheetResolver))
+	} else if cfg.stylesheetBaseDir != "" {
+		tOpts = append(tOpts, translate.WithStylesheetBaseDir(cfg.stylesheetBaseDir))
 	}
 	if cfg.unsupportedHandler != nil {
 		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))

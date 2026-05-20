@@ -41,9 +41,22 @@ type translator struct {
 	gridSize           int     // 0 = use defaultGridSize (12)
 	contentWidthMM     float64 // 0 = use default A4 estimate (170mm)
 	imageResolver      ImageResolver
+	stylesheetResolver StylesheetResolver
 	unsupportedHandler func(thing, value string)
 	anchorReg          *anchorRegistry     // shared id→linkID map (Task 6)
 	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
+}
+
+// WithStylesheetResolver registers a resolver for <link rel="stylesheet">.
+// When unset, the default resolver only accepts data: URIs.
+func WithStylesheetResolver(fn StylesheetResolver) Option {
+	return func(tr *translator) { tr.stylesheetResolver = fn }
+}
+
+// WithStylesheetBaseDir scopes the default stylesheet resolver to a single
+// directory. Local-file reads outside this directory are refused.
+func WithStylesheetBaseDir(dir string) Option {
+	return func(tr *translator) { tr.stylesheetResolver = stylesheetBaseDirResolver(dir) }
 }
 
 // WithImageResolver lets callers plug in a custom <img src=…> loader.
@@ -74,12 +87,33 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 		return nil, nil
 	}
 	tr := &translator{
-		sheet:     parseStylesheet(doc.StyleText()),
 		anchorReg: newAnchorRegistry(),
 	}
 	for _, opt := range opts {
 		opt(tr)
 	}
+	// External stylesheets load BEFORE inline <style> so browser-style
+	// cascade order applies. defer/recover is inside safeLoadStylesheet so
+	// resolver bugs cannot crash Translate.
+	inlineCSS, hrefs := doc.StyleSources()
+	resolver := tr.stylesheetResolver
+	if resolver == nil {
+		resolver = safeDefaultStylesheetResolver
+	}
+	var combined []byte
+	for _, href := range hrefs {
+		data, ok := safeLoadStylesheet(resolver, href)
+		if !ok {
+			if tr.unsupportedHandler != nil {
+				tr.unsupportedHandler("link.skipped", href)
+			}
+			continue
+		}
+		combined = append(combined, data...)
+		combined = append(combined, '\n')
+	}
+	combined = append(combined, []byte(inlineCSS)...)
+	tr.sheet = parseStylesheet(string(combined))
 	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
