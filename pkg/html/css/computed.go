@@ -52,6 +52,12 @@ type ComputedStyle struct {
 	BoxShadow          []Shadow  // parsed box-shadow value (up to 4)
 	TextShadow         *Shadow   // text-shadow (first shadow only rendered)
 
+	// Outline (mm / style / color / offset) — drawn outside the cell box.
+	OutlineWidth  float64
+	OutlineStyle  string // "solid" | "dashed" | "dotted"
+	OutlineColor  *RGBColor
+	OutlineOffset float64 // mm; positive pushes outline further out
+
 	// Border radius (mm). BorderRadius is the uniform fallback; per-corner overrides it.
 	BorderRadius            float64
 	BorderRadiusTopLeft     float64
@@ -168,6 +174,16 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		} else if s.unsupportedHandler != nil {
 			s.unsupportedHandler(prop, val)
 		}
+	case "outline-width":
+		s.OutlineWidth = ParseLength(val, parentFontSize)
+	case "outline-style":
+		s.OutlineStyle = strings.TrimSpace(val)
+	case "outline-color":
+		s.OutlineColor = ParseColor(val)
+	case "outline-offset":
+		s.OutlineOffset = ParseLength(val, parentFontSize)
+	case "outline":
+		parseOutlineShorthand(val, s, parentFontSize)
 	case "background-image":
 		if strings.HasPrefix(val, "linear-gradient(") {
 			if g, err := ParseLinearGradient(val); err == nil {
@@ -352,5 +368,28 @@ func normFontWeight(val string) string {
 		return "bold"
 	default:
 		return "normal"
+	}
+}
+
+// parseOutlineShorthand parses "outline: <width> <style> <color>" in any order.
+func parseOutlineShorthand(val string, s *ComputedStyle, parentFontSize float64) {
+	styleKeywords := map[string]bool{
+		"solid": true, "dashed": true, "dotted": true,
+		"none": true, "hidden": true, "double": true,
+		"groove": true, "ridge": true, "inset": true, "outset": true,
+	}
+	for _, token := range strings.Fields(val) {
+		lower := strings.ToLower(token)
+		if styleKeywords[lower] {
+			s.OutlineStyle = lower
+			continue
+		}
+		if c := ParseColor(token); c != nil {
+			s.OutlineColor = c
+			continue
+		}
+		if l := ParseLength(token, parentFontSize); l > 0 {
+			s.OutlineWidth = l
+		}
 	}
 }

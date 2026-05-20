@@ -107,7 +107,7 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 		style.BorderRadiusTopRight > 0 || style.BorderRadiusBottomLeft > 0 ||
 		style.BorderRadiusBottomRight > 0
 	if style.BackgroundColor == nil && style.BackgroundGradient == nil &&
-		len(style.BoxShadow) == 0 && !hasBorder && !hasRadius {
+		len(style.BoxShadow) == 0 && style.OutlineWidth == 0 && !hasBorder && !hasRadius {
 		return nil
 	}
 	op := effectiveOpacity(style)
@@ -135,6 +135,14 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	}
 	if len(style.BoxShadow) > 0 {
 		cell.BoxShadow = cssShadowsToProps(style.BoxShadow)
+	}
+	if style.OutlineWidth > 0 {
+		cell.OutlineWidth = style.OutlineWidth
+		cell.OutlineStyle = cssBorderStyleToLineStyle(style.OutlineStyle)
+		if style.OutlineColor != nil {
+			cell.OutlineColor = &props.Color{Red: style.OutlineColor.R, Green: style.OutlineColor.G, Blue: style.OutlineColor.B}
+		}
+		cell.OutlineOffset = style.OutlineOffset
 	}
 	return cell
 }

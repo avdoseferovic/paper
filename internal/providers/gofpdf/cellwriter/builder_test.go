@@ -27,7 +27,7 @@ func TestCellWriterBuilder_Build(t *testing.T) {
 	// Act
 	chain := sut.Build(nil)
 
-	// Assert: shadowStyler prepended to chain; no gradient styler (nil drawer)
+	// Assert: shadow first, outline before cellWriter, no gradient styler (nil drawer)
 	assert.Equal(t, "shadowStyler", chain.GetName())
 	chain = chain.GetNext()
 	assert.Equal(t, "perSideBorderStyler", chain.GetName())
@@ -41,6 +41,8 @@ func TestCellWriterBuilder_Build(t *testing.T) {
 	assert.Equal(t, "borderColorStyler", chain.GetName())
 	chain = chain.GetNext()
 	assert.Equal(t, "fillColorStyler", chain.GetName())
+	chain = chain.GetNext()
+	assert.Equal(t, "outlineStyler", chain.GetName())
 	chain = chain.GetNext()
 	assert.Equal(t, "cellWriter", chain.GetName())
 	chain = chain.GetNext()

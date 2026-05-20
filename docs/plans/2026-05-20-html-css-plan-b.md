@@ -128,7 +128,7 @@ Type: Feature
 - [x] Task 4: Dashed/dotted styled `<hr>` via SetDashPattern
 - [x] Task 5: CSS gradients (linear + radial) — parser + raster + cellwriter integration
 - [x] Task 6: box-shadow — parser + provider + render wrapper with multi-shadow support
-- [ ] Task 7: text-shadow — per-run shadow before AddText
+- [x] Task 7: text-shadow — per-run shadow before AddText
 - [ ] Task 8: outline + outline-offset (drawn outside cell box)
 - [ ] Task 9: flex-wrap, order, true *-reverse ordering (quantizer multi-row + sort)
 - [ ] Task 10: align-self (per-item cross-axis alignment)
@@ -136,7 +136,7 @@ Type: Feature
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 6 | **Remaining:** 7
+**Total Tasks:** 13 | **Completed:** 7 | **Remaining:** 6
 
 ## Implementation Tasks
 

@@ -21,17 +21,21 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer)
 	perSideBorder := NewPerSideBorderStyler(fpdf)
 	borderRadius := NewBorderRadiusStyler(fpdf)
 
-	// Base chain (no gradient):
-	//   perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → cellWriter
+	// Chain order (first applied → last):
+	//   shadow → perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → outline → cellWriter
+	// shadow: draws behind all decorations.
+	// outline: LAST before cellWriter — draws outside the cell box after all fills.
+	outlineStyle := NewOutlineStyler(fpdf)
+	shadowStyle := NewShadowStyler(fpdf)
+
+	shadowStyle.SetNext(perSideBorder)
 	perSideBorder.SetNext(borderRadius)
 	borderRadius.SetNext(borderThicknessStyler)
 	borderThicknessStyler.SetNext(borderLineStyler)
 	borderLineStyler.SetNext(borderColorStyle)
 	borderColorStyle.SetNext(fillColorStyler)
-	fillColorStyler.SetNext(cellCreator)
-
-	shadowStyle := NewShadowStyler(fpdf)
-	shadowStyle.SetNext(perSideBorder)
+	fillColorStyler.SetNext(outlineStyle)
+	outlineStyle.SetNext(cellCreator)
 
 	if len(drawer) > 0 && drawer[0] != nil {
 		gradientStyle := NewGradientStyler(fpdf, drawer[0])

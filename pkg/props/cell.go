@@ -57,6 +57,12 @@ type Cell struct {
 	// BoxShadow holds the shadows to paint behind the cell (up to 4).
 	BoxShadow []Shadow
 
+	// Outline fields. Outline is drawn OUTSIDE the cell box (does not affect layout).
+	OutlineWidth  float64
+	OutlineStyle  linestyle.Type
+	OutlineColor  *Color
+	OutlineOffset float64 // mm; positive = further out, negative = inside border
+
 	// BorderRadius is the uniform corner radius in mm. When per-corner radii
 	// below are set, they override this uniform value for that corner.
 	// When any radius is set, the borderRadiusStyler owns the entire border
