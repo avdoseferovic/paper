@@ -1,7 +1,7 @@
 # Extend HTML + CSS Support — Modern Engine & Styling Implementation Plan
 
 Created: 2026-05-20
-Status: PENDING
+Status: COMPLETE
 Approved: Yes
 Iterations: 0
 Worktree: No
@@ -127,9 +127,9 @@ Type: Feature
 - [x] Task 8: calc() length expressions
 - [x] Task 9: External stylesheets (<link rel=stylesheet> + resolver)
 - [x] Task 10: @font-face web font registration
-- [ ] Task 11: Demo + docs sweep
+- [x] Task 11: Demo + docs sweep
 
-**Total Tasks:** 11 | **Completed:** 10 | **Remaining:** 1
+**Total Tasks:** 11 | **Completed:** 11 | **Remaining:** 0
 
 ## Implementation Tasks
 

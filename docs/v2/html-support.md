@@ -28,17 +28,23 @@ rows, err := html.FromString(htmlString)
 
 **Block:** `html, head, body, div, p, h1, h2, h3, h4, h5, h6, hr, pre, blockquote, header, footer, section, article, aside, main, nav, figure, figcaption`
 
-**Inline:** `span, a, strong, b, em, i, u, s, strike, sub, sup, br`
+**Inline:** `span, a, strong, b, em, i, u, s, strike, sub, sup, br, mark, small, abbr, code, kbd, samp, var, cite, q, time`
 
-**Tables:** `table, thead, tbody, tfoot, tr, th, td` — with `colspan` and `rowspan` attributes.
+**Tables:** `table, thead, tbody, tfoot, tr, th, td, caption` — with `colspan` and `rowspan` attributes. `colgroup`/`col` are recognised; explicit column widths are not honoured in v1 (logged via `unsupportedHandler`).
 
-**Lists:** `ul, ol, li` — `ol` supports `type="a|A|i|I"` for alpha/roman markers. Nested lists supported.
+**Lists:** `ul, ol, li, dl, dt, dd` — `ol` supports `type="a|A|i|I"` for alpha/roman markers. Nested lists supported. `<dl>`/`<dt>`/`<dd>` render as definition lists with bold term and indented definition.
+
+**Disclosure:** `details, summary` — always rendered expanded with a bold summary above the body (PDFs have no toggle).
+
+**Anchors:** `id="…"` on any element registers a PDF named destination; `<a href="#id">` produces an internal PDF link that jumps to it. Forward references (link before target) are supported via a pre-pass.
 
 **Images:** `img` — block-level `<img src="…" width="…" height="…" alt="…">` renders PNG, JPG, and SVG (rasterised via oksvg+rasterx). Inline `<img>` inside paragraphs still renders as alt text. See [Images](#images) below.
 
 ## Supported CSS properties
 
-**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height`
+**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space`
+
+**Opacity:** `opacity` (0–1 or 0%–100%), multiplies into every descendant colour's alpha during the cascade.
 
 **Box model:** `padding, padding-{top,right,bottom,left}, margin, margin-{top,right,bottom,left}`
 
@@ -52,7 +58,21 @@ rows, err := html.FromString(htmlString)
 
 **Flex:** `flex-direction`, `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
 
-**Length units:** `px` (1px = 0.264583mm), `pt` (1pt = 0.352778mm), `mm`, `cm`, `em` (relative to parent font-size), `rem`.
+**Length units:** `px` (1px = 0.264583mm), `pt` (1pt = 0.352778mm), `mm`, `cm`, `em` (relative to parent font-size), `rem`, `%` (inside `calc()` resolved against context width).
+
+**CSS variables:** `--name: value` declarations on any element, `var(--name [, fallback])` in any value. Inherited through the cascade.
+
+**`calc()` expressions:** `+`, `-`, `*`, `/`, one level of parentheses, lenient whitespace (`calc(100%-20mm)` accepted). Mixed units convert via `ParseLength` per token. `%` requires a known context width.
+
+**Colour formats:** named colours (full CSS Color Level 4, ~147 entries), `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Alpha tracked through to gofpdf's `SetAlpha`.
+
+**Selectors:** Cascadia provides full CSS selector support: tag, class, id, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
+
+### Limitations
+
+- `letter-spacing` is parsed and propagated to `RichRun.LetterSpacing` but is **not yet rendered**: the underlying gofpdf fork (`phpdave11/gofpdf`) exposes `SetWordSpacing` only, not `SetCharSpacing`. Slated for a follow-up plan.
+- `white-space` is parsed and stored; the renderer always wraps regardless of `nowrap`. `<pre>` and `<code>` continue to preserve whitespace via DOM-level detection.
+- `text-indent` shifts the entire paragraph (whole-block) in v1; CSS first-line-only indent requires renderer-side support.
 
 ## Documented v1 limitations
 
@@ -91,6 +111,43 @@ html.FromString(input,
     }),
 )
 ```
+
+### Resolver options (image, stylesheet, font)
+
+Three resolver families share the same safety model: **by default, only `data:` URIs are accepted**. Local file reads must be explicitly opted in via a base directory or a custom resolver.
+
+| Resolver        | Default-only-data | Base dir option            | Custom callback option          |
+| --------------- | ----------------- | -------------------------- | ------------------------------- |
+| `<img src>`     | ✓                 | `WithImageBaseDir(dir)`    | `WithImageResolver(fn)`         |
+| `<link href>`   | ✓                 | `WithStylesheetBaseDir(dir)` | `WithStylesheetResolver(fn)`  |
+| `@font-face`    | ✓ (shared with `<link>`) | shared `WithStylesheetBaseDir` | shared `WithStylesheetResolver` |
+
+The base-dir resolvers use `filepath.Clean` + a prefix check to reject `..` traversal and absolute paths. Resolver errors and panics are wrapped in `defer recover()` and logged via `unsupportedHandler` — they never crash the caller.
+
+### @font-face
+
+Web fonts are loaded at translate time and registered with the gofpdf provider via the new `core.LateFontProvider` capability:
+
+```css
+@font-face {
+    font-family: "MyFont";
+    src: url("./assets/MyFont.ttf") format("truetype");
+}
+p { font-family: "MyFont" }
+```
+
+- Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped (gofpdf can't decode them) and logged via `unsupportedHandler`.
+- Failures (resolver refused, malformed font bytes) log via `unsupportedHandler` and fall back to default fonts — never a panic.
+
+### Internal anchors
+
+```html
+<h2 id="summary">Summary</h2>
+…
+<a href="#summary">jump</a>
+```
+
+`id="…"` reserves a PDF named destination during a pre-pass walk of the DOM; `<a href="#id">` makes the link's bounding box clickable. Forward references (link before target) work correctly thanks to the pre-pass.
 
 ## CSS Flex
 

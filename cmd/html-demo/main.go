@@ -346,6 +346,75 @@ func main() {
 
     <p class="gap-lg"></p>
 
+    <h2 id="modern-features">Modern HTML + CSS</h2>
+    <p>The features below were added in the engine + styling extension and are
+       all parsed by maroto's pure-Go pipeline — no browser, no JS.</p>
+
+    <h3>Modern colours and opacity</h3>
+    <p>
+      <span style="background-color: rgba(255, 0, 0, 0.3); padding: 0.5mm 2mm">rgba</span>
+      <span style="background-color: hsl(210, 80%, 90%); padding: 0.5mm 2mm">hsl</span>
+      <span style="background-color: #00ff8080; padding: 0.5mm 2mm">#rrggbbaa</span>
+      <span style="background-color: tomato; color: white; padding: 0.5mm 2mm">tomato</span>
+      <span style="background-color: rebeccapurple; color: white; padding: 0.5mm 2mm">rebeccapurple</span>
+    </p>
+
+    <h3>Typography polish</h3>
+    <p style="text-transform: uppercase; letter-spacing: 0.4pt">letter-spaced uppercase</p>
+    <p style="text-transform: capitalize">capitalized words for headings or labels</p>
+    <p style="text-indent: 8mm">Text-indent shifts the leading edge of a
+       paragraph (whole-paragraph in v1, first-line indent is deferred).</p>
+
+    <h3>Expanded tag coverage</h3>
+    <p>Highlight a <mark>marked phrase</mark>, press <kbd>Ctrl+Shift+P</kbd>,
+       call <code>doSomething()</code>, refer to <abbr title="HyperText Markup Language">HTML</abbr>,
+       quote <q>like this</q>, cite <cite>The Pragmatic Programmer</cite>,
+       use a variable <var>x</var>, show <samp>sample output</samp>, and
+       a <small>smaller aside</small>.</p>
+
+    <dl>
+      <dt>Definition list</dt><dd>Pairs of term and description.</dd>
+      <dt>Details / summary</dt><dd>Always-expanded styled block.</dd>
+    </dl>
+
+    <details>
+      <summary>Accordion-style summary</summary>
+      <p>PDF has no toggle so &lt;details&gt; always renders open with a bold summary.</p>
+    </details>
+
+    <hr style="border-top: 1.5pt dashed #888">
+
+    <h3>Selectors and zebra rows</h3>
+    <style>
+      .zebra tr:nth-child(even) td { background-color: #f4f6f8 }
+      .zebra tr:first-child td { font-weight: bold }
+    </style>
+    <div class="table-wrap">
+      <table class="zebra">
+        <tr><td>Header A</td><td>Header B</td><td>Header C</td></tr>
+        <tr><td>Row 1</td><td>data</td><td>data</td></tr>
+        <tr><td>Row 2</td><td>data</td><td>data</td></tr>
+        <tr><td>Row 3</td><td>data</td><td>data</td></tr>
+        <tr><td>Row 4</td><td>data</td><td>data</td></tr>
+      </table>
+    </div>
+
+    <h3>CSS variables and calc()</h3>
+    <style>
+      :root { --brand: #0f2c4a; --brand-soft: #eef3f9 }
+      .var-demo { background-color: var(--brand-soft); color: var(--brand); padding: 2mm; border-radius: 1.5mm; width: calc(100% - 20mm) }
+    </style>
+    <div class="var-demo">
+      <p>This box's background, text colour, and width are all driven by CSS
+         variables and a calc(100% - 20mm) width.</p>
+    </div>
+
+    <h3>Internal anchors</h3>
+    <p><a href="#modern-features">Jump back to the Modern features section</a>
+       — clickable internal link backed by gofpdf's named destinations.</p>
+
+    <p class="gap-lg"></p>
+
     <h2>Best Practices</h2>
     <section class="cards">
       <div class="card card-blue">
