@@ -231,7 +231,10 @@ func (s *splittableContainerRow) GetHeight(provider core.Provider, cell *entity.
 }
 
 func (s *splittableContainerRow) Render(provider core.Provider, cell entity.Cell) {
+	cell.Height = s.container.GetHeight(provider, &cell)
 	s.container.Render(provider, &cell)
+	// Advance the gofpdf cursor so the next row renders below this one.
+	provider.CreateRow(cell.Height)
 }
 
 func (s *splittableContainerRow) Add(_ ...core.Col) core.Row       { return s }
