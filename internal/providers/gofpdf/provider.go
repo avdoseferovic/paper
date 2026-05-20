@@ -29,11 +29,14 @@ var _ core.ShapeProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.PositionProvider.
 var _ core.PositionProvider = (*provider)(nil)
 
-// SetCursor resets the gofpdf pen position. Used by composite components
-// (blockContainer, flexCellContent) to ensure cellwriter chain nodes that
-// rely on GetXY (perSideBorder, borderRadius) draw at the right origin.
+// SetCursor resets the gofpdf pen position. x and y are margin-relative
+// (entity.Cell convention: X=0 means left content edge, not page edge).
+// We add the page margins so the resulting absolute position matches where
+// all other provider methods (AddText, AddRichText, Image, Line, …) draw
+// for the same cell coordinates.
 func (g *provider) SetCursor(x, y float64) {
-	g.fpdf.SetXY(x, y)
+	left, top, _, _ := g.fpdf.GetMargins()
+	g.fpdf.SetXY(x+left, y+top)
 }
 
 type provider struct {
@@ -108,8 +111,9 @@ func (g *provider) DrawFilledCircle(cell *entity.Cell, fill *props.Color) {
 	if cell.Height/2 < radius {
 		radius = cell.Height / 2
 	}
-	cx := cell.X + cell.Width/2
-	cy := cell.Y + cell.Height/2
+	left, top, _, _ := g.fpdf.GetMargins()
+	cx := cell.X + cell.Width/2 + left
+	cy := cell.Y + cell.Height/2 + top
 	g.fpdf.Circle(cx, cy, radius, "F")
 }
 

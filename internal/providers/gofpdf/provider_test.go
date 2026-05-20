@@ -19,7 +19,9 @@ import (
 	"github.com/johnfercher/maroto/v2/internal/providers/gofpdf"
 	gpdf "github.com/phpdave11/gofpdf"
 
+	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1349,6 +1351,47 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, dimensions)
 	})
+}
+
+func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
+	t.Parallel()
+	// Arrange
+	fpdf := mocks.NewFpdf(t)
+	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
+	fpdf.EXPECT().SetXY(15.0, 27.0)
+
+	dep := &gofpdf.Dependencies{Fpdf: fpdf}
+	sut := gofpdf.New(dep)
+
+	// Act — cell coords are margin-relative; SetCursor must translate to absolute.
+	sut.(core.PositionProvider).SetCursor(10.0, 20.0)
+
+	// Assert: SetXY called with absolute coords (10+5, 20+7)
+	fpdf.AssertNumberOfCalls(t, "SetXY", 1)
+}
+
+func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
+	t.Parallel()
+	// Arrange
+	fpdf := mocks.NewFpdf(t)
+	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
+	fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
+	fpdf.EXPECT().SetFillColor(1, 2, 3)
+	// cx = cell.X + cell.Width/2 + left = 10 + 3 + 5 = 18
+	// cy = cell.Y + cell.Height/2 + top = 20 + 3 + 7 = 30
+	fpdf.EXPECT().Circle(18.0, 30.0, 3.0, "F")
+	fpdf.EXPECT().SetFillColor(0, 0, 0) // restore
+
+	dep := &gofpdf.Dependencies{Fpdf: fpdf}
+	sut := gofpdf.New(dep)
+
+	// Act
+	sut.(core.ShapeProvider).DrawFilledCircle(
+		&entity.Cell{X: 10.0, Y: 20.0, Width: 6.0, Height: 6.0},
+		&props.Color{Red: 1, Green: 2, Blue: 3},
+	)
+
+	fpdf.AssertNumberOfCalls(t, "Circle", 1)
 }
 
 /*func TestProvider_AddImageFromFile(t *testing.T) {
