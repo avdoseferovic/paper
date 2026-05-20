@@ -50,6 +50,10 @@ type Cell struct {
 	BorderBottomStyle linestyle.Type
 	BorderLeftStyle   linestyle.Type
 
+	// BackgroundGradient, when non-nil, paints a gradient behind the cell
+	// (overrides BackgroundColor when both are set).
+	BackgroundGradient *Gradient
+
 	// BorderRadius is the uniform corner radius in mm. When per-corner radii
 	// below are set, they override this uniform value for that corner.
 	// When any radius is set, the borderRadiusStyler owns the entire border

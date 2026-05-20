@@ -125,7 +125,7 @@ Type: Feature
 - [x] Task 1: Paint RichRun.Background in AddRichText (per-run filled rect behind text)
 - [x] Task 2: Per-run anchor link rectangles via Fpdf.Link + LetterSpacing via SetCharSpacing
 - [x] Task 3: calc()% inside Apply() via context-aware length resolution
-- [ ] Task 4: Dashed/dotted styled `<hr>` via SetDashPattern
+- [x] Task 4: Dashed/dotted styled `<hr>` via SetDashPattern
 - [ ] Task 5: CSS gradients (linear + radial) — parser + raster + cellwriter integration
 - [ ] Task 6: box-shadow — parser + provider + render wrapper with multi-shadow support
 - [ ] Task 7: text-shadow — per-run shadow before AddText
@@ -136,7 +136,7 @@ Type: Feature
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 3 | **Remaining:** 10
+**Total Tasks:** 13 | **Completed:** 4 | **Remaining:** 9
 
 ## Implementation Tasks
 

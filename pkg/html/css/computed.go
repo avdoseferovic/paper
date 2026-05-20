@@ -47,7 +47,8 @@ type ComputedStyle struct {
 	BorderLeftColor   *RGBColor
 
 	// Background
-	BackgroundColor *RGBColor
+	BackgroundColor    *RGBColor
+	BackgroundGradient *Gradient // set when background-image is a gradient
 
 	// Border radius (mm). BorderRadius is the uniform fallback; per-corner overrides it.
 	BorderRadius            float64
@@ -153,6 +154,22 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		s.Color = ParseColor(val)
 	case "background-color":
 		s.BackgroundColor = ParseColor(val)
+	case "background-image":
+		if strings.HasPrefix(val, "linear-gradient(") {
+			if g, err := ParseLinearGradient(val); err == nil {
+				s.BackgroundGradient = &Gradient{Kind: GradientLinear, Linear: g}
+			} else if s.unsupportedHandler != nil {
+				s.unsupportedHandler(prop, val)
+			}
+		} else if strings.HasPrefix(val, "radial-gradient(") {
+			if g, err := ParseRadialGradient(val); err == nil {
+				s.BackgroundGradient = &Gradient{Kind: GradientRadial, Radial: g}
+			} else if s.unsupportedHandler != nil {
+				s.unsupportedHandler(prop, val)
+			}
+		} else if s.unsupportedHandler != nil {
+			s.unsupportedHandler(prop, val)
+		}
 	case "font-family":
 		s.FontFamily = strings.Trim(val, `'"`)
 	case "font-size":

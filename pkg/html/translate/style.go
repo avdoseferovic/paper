@@ -106,7 +106,7 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	hasRadius := style.BorderRadius > 0 || style.BorderRadiusTopLeft > 0 ||
 		style.BorderRadiusTopRight > 0 || style.BorderRadiusBottomLeft > 0 ||
 		style.BorderRadiusBottomRight > 0
-	if style.BackgroundColor == nil && !hasBorder && !hasRadius {
+	if style.BackgroundColor == nil && style.BackgroundGradient == nil && !hasBorder && !hasRadius {
 		return nil
 	}
 	op := effectiveOpacity(style)
@@ -129,7 +129,46 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	cell.BorderRadiusTopRight = style.BorderRadiusTopRight
 	cell.BorderRadiusBottomLeft = style.BorderRadiusBottomLeft
 	cell.BorderRadiusBottomRight = style.BorderRadiusBottomRight
+	if g := style.BackgroundGradient; g != nil {
+		cell.BackgroundGradient = cssGradientToProps(g)
+	}
 	return cell
+}
+
+// cssGradientToProps converts a parsed css.Gradient to a props.Gradient.
+func cssGradientToProps(g *css.Gradient) *props.Gradient {
+	if g == nil {
+		return nil
+	}
+	pg := &props.Gradient{}
+	switch g.Kind {
+	case css.GradientLinear:
+		pg.Kind = props.GradientLinear
+		if g.Linear != nil {
+			pg.AngleDeg = g.Linear.AngleDeg
+			pg.Stops = cssStopsToProps(g.Linear.Stops)
+		}
+	case css.GradientRadial:
+		pg.Kind = props.GradientRadial
+		if g.Radial != nil {
+			pg.Circle = g.Radial.Circle
+			pg.CX = g.Radial.CX
+			pg.CY = g.Radial.CY
+			pg.Stops = cssStopsToProps(g.Radial.Stops)
+		}
+	}
+	return pg
+}
+
+func cssStopsToProps(stops []css.GradientStop) []props.GradientStop {
+	out := make([]props.GradientStop, len(stops))
+	for i, s := range stops {
+		out[i] = props.GradientStop{
+			Color:    props.Color{Red: s.Color.R, Green: s.Color.G, Blue: s.Color.B},
+			Position: s.Position,
+		}
+	}
+	return out
 }
 
 // applyInlineStyleToRuns applies CSS-computed font size and color to every run

@@ -70,8 +70,9 @@ func (b *builder) Build(cfg *entity.Config, cache cache.Cache) *Dependencies {
 	image := NewImage(fpdf, math)
 	line := NewLine(fpdf)
 	checkbox := NewCheckbox(fpdf, font)
+	gradientRenderer := NewGradientRenderer(fpdf)
 	cellWriter := cellwriter.NewBuilder().
-		Build(fpdf)
+		Build(fpdf, gradientRenderer)
 
 	return &Dependencies{
 		Fpdf:       fpdf,
