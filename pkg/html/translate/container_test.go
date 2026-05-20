@@ -305,7 +305,7 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	scr := newSplittableContainerRow(container)
 
 	t.Run("SplitAt remaining=25 splits after 2 rows (20mm) + partial", func(t *testing.T) {
-		first, rest, didSplit := scr.SplitAt(25)
+		first, rest, didSplit := scr.SplitAt(p, 25)
 		require.True(t, didSplit, "30mm container should split when remaining=25mm")
 		require.NotNil(t, first)
 		require.NotNil(t, rest)
@@ -314,13 +314,13 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	})
 
 	t.Run("SplitAt remaining=100 does not split (fits)", func(t *testing.T) {
-		_, _, didSplit := scr.SplitAt(100)
+		_, _, didSplit := scr.SplitAt(p, 100)
 		assert.False(t, didSplit, "container that fits should not split")
 	})
 
 	t.Run("SplitAt remaining=1 returns atomic push (nil first) when no row fits", func(t *testing.T) {
 		// When no rows fit (remaining < smallest row), first == nil means push whole container.
-		first, _, didSplit := scr.SplitAt(0)
+		first, _, didSplit := scr.SplitAt(p, 0)
 		assert.True(t, didSplit, "split should be signaled")
 		assert.Nil(t, first, "when nothing fits, first must be nil (push to next page)")
 	})

@@ -247,7 +247,7 @@ func (s *splittableContainerRow) GetColumns() []core.Col {
 // the point where cumulative row heights would exceed remainingHeight.
 // Returns (nil, self, true) when no child rows fit (push whole container to
 // next page). Returns (self, nil, false) when the container fits entirely.
-func (s *splittableContainerRow) SplitAt(remainingHeight float64) (first, rest core.Row, didSplit bool) {
+func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64) (first, rest core.Row, didSplit bool) {
 	if s.container == nil {
 		return nil, nil, false
 	}
@@ -255,7 +255,7 @@ func (s *splittableContainerRow) SplitAt(remainingHeight float64) (first, rest c
 	// Use a dummy cell for height measurement (width only matters for word wrap).
 	dummyCell := &entity.Cell{Width: 10000, Height: 10000}
 
-	totalHeight := s.container.GetHeight(nil, dummyCell)
+	totalHeight := s.container.GetHeight(provider, dummyCell)
 	if totalHeight <= remainingHeight {
 		return nil, nil, false // fits — no split needed
 	}
@@ -271,7 +271,7 @@ func (s *splittableContainerRow) SplitAt(remainingHeight float64) (first, rest c
 	cumHeight := 0.0
 	splitDone := false
 	for _, r := range s.container.rows {
-		rh := r.GetHeight(nil, dummyCell)
+		rh := r.GetHeight(provider, dummyCell)
 		if !splitDone && cumHeight+rh <= available+0.001 {
 			firstRows = append(firstRows, r)
 			cumHeight += rh

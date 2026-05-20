@@ -52,11 +52,15 @@ rows, err := html.FromString(htmlString)
 
 **Border-radius:** `border-radius` (1–4 values, CSS spec), `border-{top-left,top-right,bottom-left,bottom-right}-radius`. When combined with non-uniform per-side border widths, the renderer uses a single averaged stroke thickness (v1 limitation).
 
-**Background:** `background-color`
+**Background:** `background-color`, `background-image: linear-gradient(...)` / `radial-gradient(...)` (rasterised to PNG and embedded; up to 5 colour stops, angle keywords + `Ndeg`, positions, named radial centres).
+
+**Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `text-shadow` (per-run, first shadow only), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
 
 **Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`
 
-**Flex:** `flex-direction`, `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
+**Flex:** `flex-direction` (incl. `row-reverse`/`column-reverse`), `flex-wrap` (`nowrap`/`wrap`/`wrap-reverse`), `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `order`, `align-self`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
+
+**Page breaks:** `page-break-before: always`, `page-break-after: always`, `break-before`, `break-after`, `break-inside: avoid`. Hard breaks honoured at `addRow()` build phase; `blockContainer` is splittable across page boundaries with background + border repaint on each slice.
 
 **Length units:** `px` (1px = 0.264583mm), `pt` (1pt = 0.352778mm), `mm`, `cm`, `em` (relative to parent font-size), `rem`, `%` (inside `calc()` resolved against context width).
 
@@ -70,14 +74,18 @@ rows, err := html.FromString(htmlString)
 
 ### Limitations
 
-These features are **parsed and propagated through the translate layer** but the gofpdf renderer does not yet consume them in `AddRichText`. They are slated for a follow-up "renderer" plan (Plan B).
+These remain partially supported or deferred — most are visual-quality trade-offs of the pure-Go pipeline.
 
-- `letter-spacing` is propagated to `RichRun.LetterSpacing`; the `core.CharSpacingProvider` capability is declared but the gofpdf implementation is a no-op (the `phpdave11/gofpdf` fork only exposes `SetWordSpacing`).
-- `RichRun.Background` is populated for `<mark>` / `<kbd>` / `<code>` (inline) but the renderer does not paint the fill rect behind the run. The runs themselves render with the correct font/monospace family.
-- `RichRun.LocalAnchor` is populated for `<a href="#…">`; row-level click area is wired via `anchorSource` so the entire paragraph becomes clickable. Per-run hit testing (sub-paragraph regions) requires deeper renderer integration.
+- `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement (since `phpdave11/gofpdf` does not expose `SetCharSpacing`). Performance scales with character count, not word count.
+- `align-self` is parsed and stored on `ComputedStyle` but the visual cross-axis offset requires knowing the row's max child height at render time. Currently a structural no-op; full visual alignment is deferred (blocked on explicit container height support).
+- `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
 - `white-space` is parsed and stored; the renderer always wraps regardless of `nowrap`. `<pre>` and `<code>` continue to preserve whitespace via DOM-level detection.
 - `text-indent` shifts the entire paragraph (whole-block) in v1; CSS first-line-only indent requires renderer-side support.
-- `calc()` with `%` works via `ParseLengthCtx` when invoked directly; `Apply()` currently calls `ParseLength` without the parent context width, so `calc(100% - 20mm)` in CSS values resolves the `%` as 0 in some property paths. Workaround: use absolute units inside `calc()`.
+- `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
+- `text-shadow` renders only the first shadow when comma-separated multi-shadows are provided.
+- `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.
+- Conic gradients (`conic-gradient`) are not implemented. `filter: drop-shadow(...)` is not implemented.
+- Inset `box-shadow` with `border-radius`: the inset shadow does NOT clip to the rounded corners (rectangular). Round-corner inset clipping is deferred.
 
 ## Documented v1 limitations
 
@@ -85,7 +93,7 @@ These are intentional v1 limitations — most can be worked around. They are not
 
 ### Container backgrounds spanning page breaks
 
-When a `<div>` with `background-color` or `border` contains enough children to exceed the remaining page space, the entire container is pushed to the next page rather than split. Containers taller than a full page render clipped and emit a warning via the unsupported handler. Splitting backgrounds across pages is deferred to v2.
+Now **supported** via `core.Splittable` on `blockContainer`. When a styled `<div>` is too tall for the remaining page space, `maroto.addRow()` calls `SplitAt(remainingHeight)` to slice the container; the first slice renders on the current page with the original top corners rounded and a flat bottom, the second slice renders on the next page with a flat top and the original bottom corners. Background and border are repainted on each slice. Set `break-inside: avoid` on the container to push the whole thing to the next page instead.
 
 ### Inline `<img>` splits the surrounding paragraph
 

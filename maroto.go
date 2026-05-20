@@ -270,7 +270,7 @@ func (m *Maroto) addRow(r core.Row) {
 // core.Splittable. Returns true when the split was performed (caller should return).
 func (m *Maroto) addSplittableRow(sp core.Splittable, maxHeight float64) bool {
 	remaining := maxHeight - m.currentHeight - m.footerHeight
-	first, rest, didSplit := sp.SplitAt(remaining)
+	first, rest, didSplit := sp.SplitAt(m.provider, remaining)
 	if !didSplit {
 		return false
 	}

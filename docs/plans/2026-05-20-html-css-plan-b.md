@@ -1,7 +1,7 @@
 # HTML + CSS Plan B — Renderer, Effects, Flex, Pagination Implementation Plan
 
 Created: 2026-05-20
-Status: PENDING
+Status: COMPLETE
 Approved: Yes
 Iterations: 0
 Worktree: No
@@ -133,10 +133,10 @@ Type: Feature
 - [x] Task 9: flex-wrap, order, true *-reverse ordering (quantizer multi-row + sort)
 - [x] Task 10: align-self (per-item cross-axis alignment)
 - [x] Task 11: page-break-{before,after,inside} markers + paginator hint
-- [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
-- [ ] Task 13: Demo + docs sweep
+- [x] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
+- [x] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 11 | **Remaining:** 2
+**Total Tasks:** 13 | **Completed:** 13 | **Remaining:** 0
 
 ## Implementation Tasks
 

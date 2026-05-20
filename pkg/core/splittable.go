@@ -13,5 +13,5 @@ package core
 //
 // SplitAt must be side-effect free on the original row.
 type Splittable interface {
-	SplitAt(remainingHeight float64) (first, rest Row, didSplit bool)
+	SplitAt(provider Provider, remainingHeight float64) (first, rest Row, didSplit bool)
 }
