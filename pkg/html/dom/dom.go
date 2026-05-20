@@ -48,6 +48,17 @@ func (d *Document) Walk(fn func(*Node) bool) {
 	walkNode(body, fn)
 }
 
+// HTMLElement returns the <html> element wrapped as a *Node, or nil when
+// the document has no html element. Used by the cascade seed so :root and
+// html-level CSS rules apply (Document.Walk starts at body, not the root).
+func (d *Document) HTMLElement() *Node {
+	h := findTag(d.root, "html")
+	if h == nil {
+		return nil
+	}
+	return &Node{raw: h}
+}
+
 // Root returns the underlying html.Node for direct access when needed.
 func (d *Document) Root() *html.Node { return d.root }
 

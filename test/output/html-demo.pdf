@@ -2795,7 +2795,7 @@ endobj
 /Contents 8 0 R>>
 endobj
 8 0 obj
-<</Length 46724>>
+<</Length 47068>>
 stream
 0 J
 0 j
@@ -3632,6 +3632,18 @@ q 0.114 0.247 0.353 rg BT 78.87 173.88 Td (variables) Tj ET Q
 q 0.114 0.247 0.353 rg BT 122.70 173.88 Td (and) Tj ET Q
 q 0.114 0.247 0.353 rg BT 142.23 173.88 Td (calc\(\)) Tj ET Q
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 10.00 Tf ET
+0.933 0.953 0.976 rg
+60.94 172.74 m
+534.33 172.74 l
+536.67901 172.74409 538.58268 170.84042 538.58268 168.49213 c
+538.58 151.49 l
+538.58268 149.13989 536.67901 147.23622 534.33071 147.23622 c
+60.94 147.24 l
+58.59658 147.23622 56.69291 149.13989 56.69291 151.48819 c
+56.69 168.49 l
+56.69291 170.84042 58.59658 172.74409 60.94488 172.74409 c
+h
+f
 0.57 w
 0.000 G
 1.000 g
@@ -4191,28 +4203,28 @@ endobj
 endobj
 11 0 obj
 <</Type /Font
-/BaseFont /Helvetica
+/BaseFont /Helvetica-Bold
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 12 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Bold
+/BaseFont /Helvetica-Oblique
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 13 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Oblique
+/BaseFont /Courier
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 14 0 obj
 <</Type /Font
-/BaseFont /Courier
+/BaseFont /Helvetica
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
@@ -4221,10 +4233,10 @@ endobj
 <<
 /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
 /Font <<
-/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 11 0 R
-/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 12 0 R
-/F97f05bfb6ba727d84d5803987480190cb83c609d 13 0 R
-/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 14 0 R
+/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 13 0 R
+/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 14 0 R
+/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 11 0 R
+/F97f05bfb6ba727d84d5803987480190cb83c609d 12 0 R
 >>
 /XObject <<
 >>
@@ -4235,8 +4247,8 @@ endobj
 15 0 obj
 <<
 /Producer (þÿ F P D F   1 . 7)
-/CreationDate (D:20260520201242)
-/ModDate (D:20260520201242)
+/CreationDate (D:20260520201721)
+/ModDate (D:20260520201721)
 >>
 endobj
 16 0 obj
@@ -4253,22 +4265,22 @@ endobj
 xref
 0 17
 0000000000 65535 f 
-0000197676 00000 n 
-0000198180 00000 n 
+0000198020 00000 n 
+0000198524 00000 n 
 0000000009 00000 n 
 0000000384 00000 n 
 0000071940 00000 n 
 0000072279 00000 n 
 0000130142 00000 n 
 0000130345 00000 n 
-0000177120 00000 n 
-0000177199 00000 n 
-0000197781 00000 n 
-0000197878 00000 n 
-0000197980 00000 n 
-0000198085 00000 n 
-0000198492 00000 n 
-0000198606 00000 n 
+0000177464 00000 n 
+0000177543 00000 n 
+0000198125 00000 n 
+0000198227 00000 n 
+0000198332 00000 n 
+0000198427 00000 n 
+0000198836 00000 n 
+0000198950 00000 n 
 trailer
 <<
 /Size 17
@@ -4276,5 +4288,5 @@ trailer
 /Info 15 0 R
 >>
 startxref
-198704
+199048
 %%EOF

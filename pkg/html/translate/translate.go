@@ -145,29 +145,23 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	return rows, nil
 }
 
-// seedRootStyle computes the ComputedStyle of the html element (or body when
-// no html) so :root vars and inherited CSS properties propagate to the rest
-// of the cascade. Returns nil when no usable ancestor exists.
+// seedRootStyle computes the ComputedStyle of the html element so :root vars
+// and inherited CSS properties propagate to the body's descendants. Falls back
+// to body's style when no html element exists.
 func (tr *translator) seedRootStyle(doc *dom.Document) *css.ComputedStyle {
-	var html *dom.Node
-	doc.Walk(func(n *dom.Node) bool {
-		// dom.Walk starts from body; if we don't find <html>, we'll synthesise
-		// a body-rooted seed below.
-		if n.Tag() == "html" {
-			html = n
-			return false
+	if html := doc.HTMLElement(); html != nil {
+		htmlStyle := computeNodeStyle(tr.sheet, html, nil)
+		// Continue computing body's style with html as the parent so body
+		// rules and any inherited vars merge correctly.
+		if body := findBody(doc); body != nil {
+			return computeNodeStyle(tr.sheet, body, htmlStyle)
 		}
-		return true
-	})
-	if html != nil {
-		return computeNodeStyle(tr.sheet, html, nil)
+		return htmlStyle
 	}
-	// Fallback: compute body's style directly so body { --x: ... } also works.
-	body := findBody(doc)
-	if body == nil {
-		return nil
+	if body := findBody(doc); body != nil {
+		return computeNodeStyle(tr.sheet, body, nil)
 	}
-	return computeNodeStyle(tr.sheet, body, nil)
+	return nil
 }
 
 func findBody(doc *dom.Document) *dom.Node {
