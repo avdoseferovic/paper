@@ -32,6 +32,22 @@ var _ core.PositionProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.AlphaProvider.
 var _ core.AlphaProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.LinkProvider.
+var _ core.LinkProvider = (*provider)(nil)
+
+// AddLink reserves a new internal link target ID.
+func (g *provider) AddLink() int { return g.fpdf.AddLink() }
+
+// SetLink registers the target's Y position and page number for a link ID.
+func (g *provider) SetLink(linkID int, y float64, page int) {
+	g.fpdf.SetLink(linkID, y, page)
+}
+
+// Link makes a rectangular area clickable, jumping to the named link ID.
+func (g *provider) Link(x, y, w, h float64, linkID int) {
+	g.fpdf.Link(x, y, w, h, linkID)
+}
+
 // SetCursor resets the gofpdf pen position. x and y are margin-relative
 // (entity.Cell convention: X=0 means left content edge, not page edge).
 // We add the page margins so the resulting absolute position matches where

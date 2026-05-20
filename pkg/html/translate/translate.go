@@ -42,6 +42,8 @@ type translator struct {
 	contentWidthMM     float64 // 0 = use default A4 estimate (170mm)
 	imageResolver      ImageResolver
 	unsupportedHandler func(thing, value string)
+	anchorReg          *anchorRegistry     // shared id→linkID map (Task 6)
+	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
 }
 
 // WithImageResolver lets callers plug in a custom <img src=…> loader.
@@ -71,7 +73,10 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	if doc == nil {
 		return nil, nil
 	}
-	tr := &translator{sheet: parseStylesheet(doc.StyleText())}
+	tr := &translator{
+		sheet:     parseStylesheet(doc.StyleText()),
+		anchorReg: newAnchorRegistry(),
+	}
 	for _, opt := range opts {
 		opt(tr)
 	}
@@ -80,6 +85,9 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	if body == nil {
 		return rows, nil
 	}
+	// Pre-pass: collect all id values so forward references (link before
+	// target) resolve correctly at render time via the shared anchor registry.
+	tr.anchorIDs = collectAnchorIDs(body)
 	for _, child := range body.Children() {
 		rows = append(rows, tr.blockRows(child)...)
 	}
@@ -111,6 +119,18 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 		return nil
 	}
 
+	rows := tr.dispatchBlockRows(n)
+	// If the element has an id, wrap its first row in an anchorTarget so the
+	// PDF destination registers at the element's actual Y position.
+	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
+		rows[0] = wrapRowAnchorTarget(rows[0], id, tr.anchorReg)
+	}
+	return rows
+}
+
+// dispatchBlockRows is the original blockRows tag switch (split out so the
+// outer blockRows can handle anchor wrapping uniformly).
+func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	tag := n.Tag()
 	switch tag {
 	case "":
@@ -195,7 +215,25 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	if cellStyle := blockCellStyle(style); cellStyle != nil {
 		r = r.WithStyle(cellStyle)
 	}
+	// If any run carries an internal anchor, wrap the row as an anchorSource
+	// so the rendered bounding box becomes a clickable link area.
+	if anchors := anchorsFromRuns(runs); len(anchors) > 0 && tr.anchorReg != nil {
+		r = wrapRowAnchorSource(r, anchors, tr.anchorReg)
+	}
 	return r
+}
+
+// anchorsFromRuns returns the LocalAnchor values from runs in source order
+// (skipping empties). Used by paragraphRow to decide whether to wrap as an
+// anchorSource.
+func anchorsFromRuns(runs []props.RichRun) []string {
+	var out []string
+	for _, r := range runs {
+		if r.LocalAnchor != "" {
+			out = append(out, r.LocalAnchor)
+		}
+	}
+	return out
 }
 
 // hrRow produces a thin row containing a horizontal line (default style).
