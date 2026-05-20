@@ -97,8 +97,22 @@ func (l *HTMLList) GetStructure() *node.Node[core.Structure] {
 // GetHeight returns the total height of the list (items + sub-lists).
 func (l *HTMLList) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	itemH := l.itemRowHeight(provider, cell)
-	total := float64(len(l.items)) * itemH
+	// Sum per-item heights (content's wrapped height, falling back to one line
+	// when content is empty) so the list reports its true rendered height.
+	gutter := l.gutterWidth(provider)
+	contentWidth := cell.Width - gutter
+	total := 0.0
 	for _, item := range l.items {
+		if item.Content != nil {
+			contentInner := &entity.Cell{Width: contentWidth}
+			if h := item.Content.GetHeight(provider, contentInner); h > 0 {
+				total += h
+			} else {
+				total += itemH
+			}
+		} else {
+			total += itemH
+		}
 		if item.SubList != nil {
 			subCell := &entity.Cell{Width: cell.Width - l.prop.Indent, Height: cell.Height}
 			total += item.SubList.GetHeight(provider, subCell)
@@ -108,15 +122,31 @@ func (l *HTMLList) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 }
 
 // Render draws all list items into the PDF cell.
+// Each item's row height is the actual wrapped height of its content (not a
+// fixed single-line itemH) — this prevents markers from stacking when items
+// have long text that wraps to multiple lines. The marker (text or circle)
+// is always positioned at the top of its item's row, anchored to the first
+// line of content.
 func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 	gutter := l.gutterWidth(provider)
-	itemH := l.itemRowHeight(provider, cell)
+	lineH := l.itemRowHeight(provider, cell)
 	contentWidth := cell.Width - gutter
 	y := cell.Y
 
 	for i, item := range l.items {
+		// Per-item height: measure the content's actual rendered height at the
+		// available content width. Falls back to lineH for empty items.
+		itemH := lineH
+		if item.Content != nil {
+			contentInner := &entity.Cell{Width: contentWidth}
+			if h := item.Content.GetHeight(provider, contentInner); h > 0 {
+				itemH = h
+			}
+		}
+
 		marker := FormatMarker(l.prop.Style, i)
-		markerCell := &entity.Cell{X: cell.X, Y: y, Width: gutter, Height: itemH}
+		// Marker is anchored to the first line of the item, not stretched to itemH.
+		markerCell := &entity.Cell{X: cell.X, Y: y, Width: gutter, Height: lineH}
 		l.renderMarker(provider, marker, markerCell)
 
 		if item.Content != nil {
