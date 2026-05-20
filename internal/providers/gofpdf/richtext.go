@@ -93,6 +93,12 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		translated := s.translateUnicode(tokens[i].word, r.Family)
 		tokens[i].translated = translated
 		tokens[i].width = s.pdf.GetStringWidth(translated)
+		if r.LetterSpacing > 0 {
+			runeCount := len([]rune(translated))
+			if runeCount > 1 {
+				tokens[i].width += float64(runeCount-1) * r.LetterSpacing
+			}
+		}
 	}
 
 	// Line-wrap: assign each token an x and lineY.
@@ -156,9 +162,36 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		}
 		x := cell.X + prop.Left + t.x + left
 		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
-		s.pdf.Text(x, y, t.translated)
+
+		if r.Background != nil {
+			s.pdf.SetFillColor(r.Background.Red, r.Background.Green, r.Background.Blue)
+			if r.Background.Alpha != nil && *r.Background.Alpha < 1 {
+				s.pdf.SetAlpha(*r.Background.Alpha, "Normal")
+				s.pdf.Rect(x, y-lineHeight, t.width, lineHeight, "F")
+				s.pdf.SetAlpha(1, "Normal")
+			} else {
+				s.pdf.Rect(x, y-lineHeight, t.width, lineHeight, "F")
+			}
+			s.pdf.SetFillColor(255, 255, 255)
+		}
+
+		if r.LetterSpacing > 0 {
+			curX := x
+			for _, ch := range t.translated {
+				charStr := string(ch)
+				s.pdf.Text(curX, y, charStr)
+				curX += s.pdf.GetStringWidth(charStr) + r.LetterSpacing
+			}
+		} else {
+			s.pdf.Text(x, y, t.translated)
+		}
+
 		if r.Hyperlink != nil {
 			s.pdf.LinkString(x, y-lineHeight, t.width, lineHeight, *r.Hyperlink)
+		}
+		if r.LocalAnchor != "" && prop.AnchorResolver != nil {
+			linkID := prop.AnchorResolver(r.LocalAnchor)
+			s.pdf.Link(x, y-lineHeight, t.width, lineHeight, linkID)
 		}
 	}
 }

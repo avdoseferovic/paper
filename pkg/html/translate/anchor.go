@@ -110,6 +110,12 @@ func newAnchorRegistry() *anchorRegistry {
 	return &anchorRegistry{idToLP: map[string]int{}}
 }
 
+// EnsureLinkID satisfies richtext.anchorResolverIface — exported so the
+// richtext package can call it without importing translate.
+func (r *anchorRegistry) EnsureLinkID(name string, lp core.LinkProvider) (int, bool) {
+	return r.ensureLinkID(name, lp)
+}
+
 // ensureLinkID returns the linkID for name, registering one via lp on first
 // access. Thread-safe.
 func (r *anchorRegistry) ensureLinkID(name string, lp core.LinkProvider) (int, bool) {

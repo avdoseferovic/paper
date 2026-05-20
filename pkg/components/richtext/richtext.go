@@ -12,12 +12,20 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+// anchorResolverIface is a narrow interface satisfied by the HTML translator's
+// anchorRegistry. It is defined here to avoid an import cycle between the
+// richtext component package and the translate package.
+type anchorResolverIface interface {
+	EnsureLinkID(name string, lp core.LinkProvider) (int, bool)
+}
+
 // RichText is a paragraph component that renders inline runs with mixed styles.
 // It implements core.Component and can be placed inside Col/Row like any other component.
 type RichText struct {
-	runs   []props.RichRun
-	prop   props.RichText
-	config *entity.Config
+	runs      []props.RichRun
+	prop      props.RichText
+	config    *entity.Config
+	anchorReg anchorResolverIface // optional, set via WithAnchorRegistry
 
 	// memoised height — keyed by (cellWidth, configKey)
 	cachedHeight    float64
@@ -32,6 +40,13 @@ func New(runs []props.RichRun, ps ...props.RichText) *RichText {
 		prop = ps[0]
 	}
 	return &RichText{runs: runs, prop: prop}
+}
+
+// WithAnchorRegistry attaches an anchor registry so that runs with LocalAnchor
+// produce precise per-run PDF link rectangles at render time.
+func (r *RichText) WithAnchorRegistry(reg anchorResolverIface) *RichText {
+	r.anchorReg = reg
+	return r
 }
 
 // NewCol wraps a RichText in a Col of the given grid size.
@@ -122,7 +137,17 @@ func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 // AddText with the first run's style.
 func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 	if rtp, ok := provider.(core.RichTextProvider); ok {
-		rtp.AddRichText(r.runsWithDefaultFont(), cell, &r.prop)
+		prop := r.prop
+		if r.anchorReg != nil {
+			if lp, ok := provider.(core.LinkProvider); ok {
+				reg := r.anchorReg
+				prop.AnchorResolver = func(name string) int {
+					id, _ := reg.EnsureLinkID(name, lp)
+					return id
+				}
+			}
+		}
+		rtp.AddRichText(r.runsWithDefaultFont(), cell, &prop)
 		return
 	}
 
@@ -166,7 +191,7 @@ func (r *RichText) runsWithDefaultFont() []props.RichRun {
 // lines per segment without double-counting the line breaks themselves.
 func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colWidth float64) int {
 	total := 0
-	for _, segment := range strings.Split(r.allText(), "\n") {
+	for segment := range strings.SplitSeq(r.allText(), "\n") {
 		if segment == "" {
 			continue
 		}

@@ -39,6 +39,12 @@ type RichText struct {
 	Align             align.Type
 	LineHeight        float64
 	BreakLineStrategy breakline.Strategy
+
+	// AnchorResolver, when non-nil, is called with a LocalAnchor name to
+	// obtain the PDF link ID for per-run internal anchor rectangles. It is set
+	// at render time by richtext.RichText.Render when the provider implements
+	// core.LinkProvider and the component was built with an anchor registry.
+	AnchorResolver func(name string) int
 }
 
 // MakeValid fills in default values for RichText paragraph props.

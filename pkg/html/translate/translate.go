@@ -287,30 +287,15 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 		Left:   style.PaddingLeft + style.TextIndent,
 	}
 	rt := richtext.New(runs, rtProp)
+	if tr.anchorReg != nil {
+		rt.WithAnchorRegistry(tr.anchorReg)
+	}
 	c := col.New().Add(rt)
 	r := row.New().Add(c)
 	if cellStyle := blockCellStyle(style); cellStyle != nil {
 		r = r.WithStyle(cellStyle)
 	}
-	// If any run carries an internal anchor, wrap the row as an anchorSource
-	// so the rendered bounding box becomes a clickable link area.
-	if anchors := anchorsFromRuns(runs); len(anchors) > 0 && tr.anchorReg != nil {
-		r = wrapRowAnchorSource(r, anchors, tr.anchorReg)
-	}
 	return r
-}
-
-// anchorsFromRuns returns the LocalAnchor values from runs in source order
-// (skipping empties). Used by paragraphRow to decide whether to wrap as an
-// anchorSource.
-func anchorsFromRuns(runs []props.RichRun) []string {
-	var out []string
-	for _, r := range runs {
-		if r.LocalAnchor != "" {
-			out = append(out, r.LocalAnchor)
-		}
-	}
-	return out
 }
 
 // hrRow produces a thin row containing a horizontal line (default style).

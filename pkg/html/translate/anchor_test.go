@@ -58,54 +58,47 @@ func TestAnchor_CollectAnchorIDs_Forward(t *testing.T) {
 func TestAnchor_TranslatorStructure_BothEnds(t *testing.T) {
 	t.Parallel()
 	// End-to-end: <p><a href="#s1">jump</a></p>…<h2 id="s1">Title</h2>
-	// produces a structure containing BOTH an anchor_source and an
-	// anchor_target node referencing "s1".
+	// Per-run internal links are handled at render time via AnchorResolver,
+	// so no anchor_source wrapper appears in the structure tree.
+	// The anchor_target (from id="s1" on the heading) must still appear.
 	doc, err := dom.Parse(`<p><a href="#s1">jump</a></p><h2 id="s1">Title</h2>`)
 	require.NoError(t, err)
 	rows, err := Translate(doc)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(rows), 2)
 
-	var sources, targets []string
+	var targets []string
 	for _, r := range rows {
 		walkRowStructure(r.GetStructure(), func(s core.Structure) {
-			switch s.Type {
-			case "anchor_source":
-				if v, ok := s.Details["anchors"].([]string); ok && len(v) > 0 {
-					sources = append(sources, v[0])
-				}
-			case "anchor_target":
+			if s.Type == "anchor_target" {
 				if v, ok := s.Details["name"].(string); ok {
 					targets = append(targets, v)
 				}
 			}
 		})
 	}
-	assert.Contains(t, sources, "s1", "expected anchor_source for \"s1\"")
 	assert.Contains(t, targets, "s1", "expected anchor_target for \"s1\"")
 }
 
 func TestAnchor_ForwardReference_StructurePresent(t *testing.T) {
 	t.Parallel()
-	// Link appears BEFORE target in source order — both must still register.
+	// Link appears BEFORE target in source order.
+	// Per-run links are produced at render time (no anchor_source in structure).
+	// The anchor_target must still appear so the destination can be set.
 	doc, err := dom.Parse(`<p><a href="#later">jump</a></p><h2 id="later">Target</h2>`)
 	require.NoError(t, err)
 	rows, err := Translate(doc)
 	require.NoError(t, err)
 
-	var foundSource, foundTarget bool
+	var foundTarget bool
 	for _, r := range rows {
 		walkRowStructure(r.GetStructure(), func(s core.Structure) {
-			if s.Type == "anchor_source" {
-				foundSource = true
-			}
 			if s.Type == "anchor_target" {
 				foundTarget = true
 			}
 		})
 	}
-	assert.True(t, foundSource, "anchor_source must exist (forward reference)")
-	assert.True(t, foundTarget, "anchor_target must exist (forward reference)")
+	assert.True(t, foundTarget, "anchor_target must exist for the destination heading")
 }
 
 func walkRowStructure(n *node.Node[core.Structure], fn func(core.Structure)) {
