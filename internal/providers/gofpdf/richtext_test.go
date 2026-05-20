@@ -9,6 +9,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -113,6 +114,70 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 		if textCallCount != 2 {
 			t.Errorf("expected 2 Text calls for 2-rune word with LetterSpacing, got %d", textCallCount)
 		}
+	})
+}
+
+func TestAddRichText_TextShadow(t *testing.T) {
+	t.Parallel()
+
+	t.Run("run with TextShadow draws shadow text before normal text", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+		font.EXPECT().GetColor().Return(origColor).Maybe()
+		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+		textCallOrder := []string{}
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().SetTextColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
+			Run(func(r, g, b int) { textCallOrder = append(textCallOrder, "setcolor") }).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+			Run(func(x, y float64, s string) { textCallOrder = append(textCallOrder, "text") }).Maybe()
+
+		shadowColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		runs := []props.RichRun{{
+			Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10,
+			TextShadow: &props.Shadow{OffsetX: 2, OffsetY: 2, Color: shadowColor},
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+
+		// Order must be: setcolor(shadow), text(shadow), setcolor(restore), text(normal)
+		if assert.GreaterOrEqual(t, len(textCallOrder), 4, "expected setcolor,text,setcolor,text: %v", textCallOrder) {
+			assert.Equal(t, "setcolor", textCallOrder[0])
+			assert.Equal(t, "text", textCallOrder[1])
+			assert.Equal(t, "setcolor", textCallOrder[2])
+			assert.Equal(t, "text", textCallOrder[3])
+		}
+	})
+
+	t.Run("run without TextShadow does not set extra text color", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+		textColorCalls := 0
+		pdf.EXPECT().SetTextColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
+			Run(func(r, g, b int) { textColorCalls++ }).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
+
+		runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+		assert.Zero(t, textColorCalls)
 	})
 }
 

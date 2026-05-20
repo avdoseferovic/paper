@@ -28,6 +28,10 @@ type RichRun struct {
 	// to the named destination (registered via id="…" on a block element).
 	// Takes precedence over Hyperlink.
 	LocalAnchor string
+
+	// TextShadow, when non-nil, draws a shadow behind the run text. Only the
+	// first shadow is rendered (CSS multi-shadow on text is a known limitation).
+	TextShadow *Shadow
 }
 
 // RichText holds paragraph-level properties for a RichText component.

@@ -175,6 +175,18 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 			s.pdf.SetFillColor(255, 255, 255)
 		}
 
+		if r.TextShadow != nil && r.TextShadow.Color != nil {
+			sc := r.TextShadow.Color
+			s.pdf.SetTextColor(sc.Red, sc.Green, sc.Blue)
+			s.pdf.Text(x+r.TextShadow.OffsetX, y+r.TextShadow.OffsetY, t.translated)
+			// Restore run colour before drawing normal text.
+			if r.Color != nil {
+				s.pdf.SetTextColor(r.Color.Red, r.Color.Green, r.Color.Blue)
+			} else {
+				s.pdf.SetTextColor(origColor.Red, origColor.Green, origColor.Blue)
+			}
+		}
+
 		if r.LetterSpacing > 0 {
 			curX := x
 			for _, ch := range t.translated {

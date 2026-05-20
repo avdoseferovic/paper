@@ -50,6 +50,7 @@ type ComputedStyle struct {
 	BackgroundColor    *RGBColor
 	BackgroundGradient *Gradient // set when background-image is a gradient
 	BoxShadow          []Shadow  // parsed box-shadow value (up to 4)
+	TextShadow         *Shadow   // text-shadow (first shadow only rendered)
 
 	// Border radius (mm). BorderRadius is the uniform fallback; per-corner overrides it.
 	BorderRadius            float64
@@ -158,6 +159,12 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 	case "box-shadow":
 		if shadows, err := ParseShadow(val); err == nil {
 			s.BoxShadow = shadows
+		} else if s.unsupportedHandler != nil {
+			s.unsupportedHandler(prop, val)
+		}
+	case "text-shadow":
+		if shadows, err := ParseShadow(val); err == nil && len(shadows) > 0 {
+			s.TextShadow = &shadows[0]
 		} else if s.unsupportedHandler != nil {
 			s.unsupportedHandler(prop, val)
 		}

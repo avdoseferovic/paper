@@ -214,7 +214,28 @@ func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
 		if style.TextTransform != "" && style.TextTransform != "none" {
 			runs[i].Text = css.ApplyTextTransform(runs[i].Text, style.TextTransform)
 		}
+		if style.TextShadow != nil && runs[i].TextShadow == nil {
+			runs[i].TextShadow = cssShadowToProps(style.TextShadow)
+		}
 	}
+}
+
+// cssShadowToProps converts a single css.Shadow to a *props.Shadow.
+func cssShadowToProps(s *css.Shadow) *props.Shadow {
+	if s == nil {
+		return nil
+	}
+	ps := &props.Shadow{
+		OffsetX:    s.OffsetX,
+		OffsetY:    s.OffsetY,
+		BlurRadius: s.BlurRadius,
+		Spread:     s.Spread,
+		Inset:      s.Inset,
+	}
+	if s.Color != nil {
+		ps.Color = &props.Color{Red: s.Color.R, Green: s.Color.G, Blue: s.Color.B}
+	}
+	return ps
 }
 
 // isDisplayNone checks for the display:none inline-style override.
