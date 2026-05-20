@@ -163,6 +163,9 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 }
 
 // paragraphRow converts a block element with inline content into a single auto-height row.
+// When the computed style sets CSS padding (e.g. .title-band has padding: 3mm 5mm),
+// the padding is passed through as the richtext's Top/Right/Bottom/Left offsets so
+// the text is inset from the styled background's edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	style := computeNodeStyle(tr.sheet, n, nil)
 	runs := inlineRuns(n)
@@ -174,7 +177,13 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	// user `h2 { font-size: 12pt }` override the 20pt heading default.
 	applyInlineStyleToRuns(style, runs)
 	applyBlockStyling(n, runs)
-	rt := richtext.New(runs)
+	rtProp := props.RichText{
+		Top:    style.PaddingTop,
+		Right:  style.PaddingRight,
+		Bottom: style.PaddingBottom,
+		Left:   style.PaddingLeft,
+	}
+	rt := richtext.New(runs, rtProp)
 	c := col.New().Add(rt)
 	r := row.New().Add(c)
 	if cellStyle := blockCellStyle(style); cellStyle != nil {
