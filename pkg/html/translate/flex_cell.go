@@ -47,11 +47,18 @@ func (f *flexCellContent) GetHeight(provider core.Provider, cell *entity.Cell) f
 }
 
 // Render draws each row sequentially, advancing the Y cursor.
+// Before each sub-row the gofpdf pen is reset to the sub-row's origin so
+// cellwriter chain nodes that rely on GetXY (perSideBorder, borderRadius)
+// draw at the right position even after CellFormat/Ln has drifted the pen.
 func (f *flexCellContent) Render(provider core.Provider, cell *entity.Cell) {
+	pp, _ := provider.(core.PositionProvider)
 	innerCell := cell.Copy()
 	for _, r := range f.rows {
 		h := r.GetHeight(provider, &innerCell)
 		innerCell.Height = h
+		if pp != nil {
+			pp.SetCursor(innerCell.X, innerCell.Y)
+		}
 		r.Render(provider, innerCell)
 		innerCell.Y += h
 	}

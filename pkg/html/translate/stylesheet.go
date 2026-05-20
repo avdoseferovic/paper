@@ -17,13 +17,24 @@ type compiledRule struct {
 	declarations map[string]string
 }
 
+// builtinCSS is a Maroto-shipped stylesheet prepended to every document.
+// Its rules apply before user-supplied <style> blocks so users may override
+// any built-in class. Inline style="" still has the highest precedence.
+const builtinCSS = `
+.title-band {
+  background-color: #1a3e72;
+  color: #ffffff;
+  padding: 3mm 5mm;
+  border-radius: 2mm;
+}
+`
+
 // parseStylesheet parses CSS text from <style> blocks into compiled rules.
-// Invalid selectors are skipped silently. Empty text returns an empty stylesheet.
+// Invalid selectors are skipped silently. The built-in Maroto stylesheet is
+// always prepended so its rules are applied first (and overridable by user CSS).
 func parseStylesheet(text string) *stylesheet {
 	ss := &stylesheet{}
-	if text == "" {
-		return ss
-	}
+	text = builtinCSS + "\n" + text
 	sheet, err := parser.Parse(text)
 	if err != nil || sheet == nil {
 		return ss

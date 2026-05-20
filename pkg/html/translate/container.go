@@ -68,14 +68,18 @@ func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) fl
 }
 
 // Render paints the background+border once, then renders each child row offset by padding.
+// The pen is reset before painting the background AND before each child row so cellwriter
+// chain nodes that rely on GetXY draw at the right position.
 func (b *blockContainer) Render(provider core.Provider, cell *entity.Cell) {
 	height := b.GetHeight(provider, cell)
 	if cell.Height < height {
-		// The outer row was sized to our GetHeight, so cell.Height should match.
-		// Use the larger of the two so we paint the full visible area.
 		height = cell.Height
 	}
+	pp, _ := provider.(core.PositionProvider)
 	if b.style != nil {
+		if pp != nil {
+			pp.SetCursor(cell.X, cell.Y)
+		}
 		provider.CreateCol(cell.Width, height, b.config, b.style)
 	}
 	innerCell := cell.Copy()
@@ -88,6 +92,9 @@ func (b *blockContainer) Render(provider core.Provider, cell *entity.Cell) {
 	for _, r := range b.rows {
 		h := r.GetHeight(provider, &innerCell)
 		innerCell.Height = h
+		if pp != nil {
+			pp.SetCursor(innerCell.X, innerCell.Y)
+		}
 		r.Render(provider, innerCell)
 		innerCell.Y += h
 	}

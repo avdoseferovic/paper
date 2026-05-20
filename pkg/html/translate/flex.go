@@ -180,6 +180,18 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 		}
 		return richtext.New([]props.RichRun{{Text: text}})
 	}
+	// When this flex item has its own background/border/padding, wrap the
+	// children in a styled blockContainer so the styling spans them all.
+	if shouldUseContainer(style) {
+		return &blockContainer{
+			rows:          subRows,
+			style:         blockCellStyle(style),
+			paddingTop:    style.PaddingTop,
+			paddingRight:  style.PaddingRight,
+			paddingBottom: style.PaddingBottom,
+			paddingLeft:   style.PaddingLeft,
+		}
+	}
 	return newFlexCellContent(subRows)
 }
 

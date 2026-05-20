@@ -16,3 +16,12 @@ type ShapeProvider interface {
 	// dimensions determine the circle's position and diameter.
 	DrawFilledCircle(cell *entity.Cell, fill *props.Color)
 }
+
+// PositionProvider lets composite components (blockContainer, flexCellContent)
+// reset the underlying pen to a known X/Y before invoking a sub-component's
+// Render. Without this, cellwriter chain nodes that use GetXY() as the cell
+// origin (perSideBorder, borderRadius) draw at the wrong position when the
+// pen has drifted due to prior CellFormat/Ln calls.
+type PositionProvider interface {
+	SetCursor(x, y float64)
+}

@@ -26,6 +26,16 @@ var _ core.RichTextProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.ShapeProvider.
 var _ core.ShapeProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.PositionProvider.
+var _ core.PositionProvider = (*provider)(nil)
+
+// SetCursor resets the gofpdf pen position. Used by composite components
+// (blockContainer, flexCellContent) to ensure cellwriter chain nodes that
+// rely on GetXY (perSideBorder, borderRadius) draw at the right origin.
+func (g *provider) SetCursor(x, y float64) {
+	g.fpdf.SetXY(x, y)
+}
+
 type provider struct {
 	fpdf       gofpdfwrapper.Fpdf
 	font       core.Font

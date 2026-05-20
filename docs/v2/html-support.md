@@ -34,7 +34,7 @@ rows, err := html.FromString(htmlString)
 
 **Lists:** `ul, ol, li` — `ol` supports `type="a|A|i|I"` for alpha/roman markers. Nested lists supported.
 
-**Images:** `img` — inline `<img>` renders as alt text in v1; block-level full-row rendering deferred to v2.
+**Images:** `img` — block-level `<img src="…" width="…" height="…" alt="…">` renders PNG, JPG, and SVG (rasterised via oksvg+rasterx). Inline `<img>` inside paragraphs still renders as alt text. See [Images](#images) below.
 
 ## Supported CSS properties
 
@@ -43,6 +43,8 @@ rows, err := html.FromString(htmlString)
 **Box model:** `padding, padding-{top,right,bottom,left}, margin, margin-{top,right,bottom,left}`
 
 **Borders:** `border, border-{top,right,bottom,left}, border-color, border-width, border-style`
+
+**Border-radius:** `border-radius` (1–4 values, CSS spec), `border-{top-left,top-right,bottom-left,bottom-right}-radius`. When combined with non-uniform per-side border widths, the renderer uses a single averaged stroke thickness (v1 limitation).
 
 **Background:** `background-color`
 
@@ -56,20 +58,17 @@ rows, err := html.FromString(htmlString)
 
 These are intentional v1 limitations — most can be worked around. They are not bugs.
 
-### Container backgrounds/borders do not span children
+### Container backgrounds spanning page breaks
 
-```html
-<div style="border: 1px solid black">
-  <p>A</p>
-  <p>B</p>
-</div>
-```
-
-The `<div>` border is approximated by rendering it per contained row, not as a single rectangle around both. Each `<p>` gets its own bordered row. For a true single-rectangle container, wrap content in a `<table>` instead (table grid borders are supported natively).
+When a `<div>` with `background-color` or `border` contains enough children to exceed the remaining page space, the entire container is pushed to the next page rather than split. Containers taller than a full page render clipped and emit a warning via the unsupported handler. Splitting backgrounds across pages is deferred to v2.
 
 ### Inline `<img>` splits the surrounding paragraph
 
-The translator does not yet flow text around inline images. v1 renders inline `<img>` as its `alt` text inline; full image-in-paragraph splitting is deferred to v2.
+Block-level `<img>` is fully supported (see [Images](#images)). The translator does not yet flow text around an inline `<img>` inside a paragraph; v1 renders the inline form as alt text. Image-in-paragraph flow is deferred to v2.
+
+### Rounded outer corners on `<table>`
+
+`border-radius` applies to `<div>` containers and table cells, but the outer corners of `<table>` itself are not clipped. Wrap a `<table>` in a `<div style="border-radius:…; padding:…">` for a rounded outer look.
 
 ### Out of scope (will not be supported in v1)
 
@@ -78,7 +77,6 @@ The translator does not yet flow text around inline images. v1 renders inline `<
 - `@media`, `@keyframes`, `@font-face`
 - Pseudo-elements (`::before`, `::after`), pseudo-classes (`:hover`, `:nth-child`)
 - External stylesheets (`<link rel="stylesheet" href="…">`)
-- SVG (raster `<img>` only — PNG/JPG via `WithImageResolver` if you need it)
 - Form elements (`<input>`, `<button>`, `<form>`)
 - `<video>`, `<audio>`, `<canvas>`, `<iframe>`
 
@@ -183,3 +181,74 @@ PDF
 ```
 
 The conversion is purely additive — your existing Maroto code continues to work unchanged.
+
+## Images
+
+Block-level `<img src="…" width="…" height="…" alt="…">` produces a row containing the image. PNG and JPG are passed through directly; SVG sources are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
+
+```html
+<img src="logo.svg" width="20mm" height="20mm" alt="company logo">
+```
+
+### Safe-by-default resolver
+
+The default resolver only accepts `data:` URIs (`data:image/png;base64,…`, `data:image/svg+xml;base64,…`). Local-file reads are refused to prevent path traversal attacks on user-controlled HTML.
+
+To load local files, scope the resolver explicitly:
+
+```go
+rows, _ := html.FromString(input,
+    html.WithImageBaseDir("./assets"), // <img src="…"> resolves inside ./assets only
+)
+m.AddRows(rows...)
+```
+
+The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `..` traversal and absolute paths.
+
+For custom loading (HTTP, CDN, database), pass a `WithImageResolver`:
+
+```go
+rows, _ := html.FromString(input,
+    html.WithImageResolver(func(src string) ([]byte, string, error) {
+        bytes, err := fetchFromCDN(src)
+        return bytes, "png", err
+    }),
+)
+```
+
+### Supported `<img>` units
+
+`width` and `height` accept `px`, `pt`, `mm`, `cm`. Bare numbers (`width="20"`) are treated as pixels. `em` and `%` are not supported at image resolution because the translator has no font context at that point.
+
+If only one of width/height is given for an SVG, the intrinsic aspect ratio from the `viewBox` fills the other.
+
+### Image failure handling
+
+When a resolver returns an error, the SVG parser rejects the input, or the PNG encoder fails, the translator falls back to the `<img>`'s `alt` attribute rendered as text. Register `WithUnsupportedHandler` to log these failures for diagnostics.
+
+## Built-in CSS classes
+
+Maroto ships a small built-in stylesheet that applies before any user `<style>` block. The cascade precedence is **built-in < user CSS < inline `style=""`** — user styles always win.
+
+### `.title-band`
+
+A heading band with a dark navy background, white text, padding, and rounded corners:
+
+```html
+<h2 class="title-band">SUMMARY</h2>
+```
+
+To override the colors or padding, declare your own `.title-band` rule in your `<style>` block.
+
+### `.circle-numbers`
+
+Render an ordered list with each marker as a filled circle containing the number:
+
+```html
+<ol class="circle-numbers">
+  <li>Wire transfer to Account 0123-4567</li>
+  <li>Reference your invoice number in the memo</li>
+</ol>
+```
+
+Marker colors default to navy fill with white text. Configure per-list via `htmllist.Prop.MarkerBackground` / `MarkerTextColor` when constructing the list programmatically.

@@ -51,6 +51,47 @@ func TestBlockContainer_PlainDivStillFlattens(t *testing.T) {
 	assert.Len(t, rows, 2)
 }
 
+func TestBuiltinCSS_TitleBand(t *testing.T) {
+	t.Parallel()
+
+	t.Run(".title-band resolves without user <style>", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><h2 class="title-band">SUMMARY</h2></body></html>`)
+		h2 := findNode(doc, "h2")
+		require.NotNil(t, h2)
+		s := computeNodeStyle(tr.sheet, h2, nil)
+		require.NotNil(t, s.BackgroundColor)
+		// #1a3e72 → R=26, G=62, B=114
+		assert.Equal(t, 26, s.BackgroundColor.R)
+		assert.Equal(t, 62, s.BackgroundColor.G)
+		assert.Equal(t, 114, s.BackgroundColor.B)
+	})
+
+	t.Run("user CSS overrides built-in .title-band", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><head><style>.title-band{background-color:#ff0000}</style></head>
+			<body><h2 class="title-band">SUMMARY</h2></body></html>`)
+		h2 := findNode(doc, "h2")
+		require.NotNil(t, h2)
+		s := computeNodeStyle(tr.sheet, h2, nil)
+		require.NotNil(t, s.BackgroundColor)
+		assert.Equal(t, 255, s.BackgroundColor.R)
+		assert.Equal(t, 0, s.BackgroundColor.G)
+	})
+
+	t.Run("inline style wins over both", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><head><style>.title-band{background-color:#ff0000}</style></head>
+			<body><h2 class="title-band" style="background-color:#00ff00">SUMMARY</h2></body></html>`)
+		h2 := findNode(doc, "h2")
+		require.NotNil(t, h2)
+		s := computeNodeStyle(tr.sheet, h2, nil)
+		require.NotNil(t, s.BackgroundColor)
+		assert.Equal(t, 0, s.BackgroundColor.R)
+		assert.Equal(t, 255, s.BackgroundColor.G)
+	})
+}
+
 func TestShouldUseContainer(t *testing.T) {
 	t.Parallel()
 

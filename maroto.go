@@ -122,6 +122,8 @@ func (m *Maroto) AddAutoRow(cols ...core.Col) core.Row {
 
 // AddHTML parses an HTML string into Maroto rows and adds them to the current document.
 // Headers, footers, and pagination continue to work as with manually constructed rows.
+// For advanced options (e.g. html.WithImageBaseDir for safe <img> loading), call
+// html.FromString directly and append the returned rows via m.AddRows(rows...).
 // Supported HTML subset is documented in docs/v2/html-support.md.
 func (m *Maroto) AddHTML(htmlStr string) error {
 	opts := []html.Option{html.WithGridSize(m.config.MaxGridSize)}
