@@ -132,11 +132,11 @@ Type: Feature
 - [x] Task 8: outline + outline-offset (drawn outside cell box)
 - [x] Task 9: flex-wrap, order, true *-reverse ordering (quantizer multi-row + sort)
 - [x] Task 10: align-self (per-item cross-axis alignment)
-- [ ] Task 11: page-break-{before,after,inside} markers + paginator hint
+- [x] Task 11: page-break-{before,after,inside} markers + paginator hint
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 10 | **Remaining:** 3
+**Total Tasks:** 13 | **Completed:** 11 | **Remaining:** 2
 
 ## Implementation Tasks
 

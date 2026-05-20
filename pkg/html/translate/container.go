@@ -3,7 +3,6 @@ package translate
 import (
 	"github.com/johnfercher/go-tree/node"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
@@ -185,8 +184,7 @@ func shouldUseContainer(style *css.ComputedStyle) bool {
 	return false
 }
 
-// buildContainerRow wraps the given child rows into a single Row containing one
-// Col containing a blockContainer with the style/padding from the computed style.
+// buildContainerRow wraps the given child rows into a single splittableContainerRow.
 func buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
 	cellStyle := blockCellStyle(style)
 	container := &blockContainer{
@@ -197,6 +195,120 @@ func buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row 
 		paddingBottom: style.PaddingBottom,
 		paddingLeft:   style.PaddingLeft,
 	}
-	c := col.New().Add(container)
-	return row.New().Add(c)
+	return newSplittableContainerRow(container)
+}
+
+// splittableContainerRow wraps a blockContainer as a core.Row that also
+// implements core.Splittable so maroto.addRow() can split it across pages.
+type splittableContainerRow struct {
+	container *blockContainer
+	config    *entity.Config
+}
+
+func newSplittableContainerRow(c *blockContainer) *splittableContainerRow {
+	return &splittableContainerRow{container: c}
+}
+
+func (s *splittableContainerRow) SetConfig(cfg *entity.Config) {
+	s.config = cfg
+	s.container.SetConfig(cfg)
+}
+
+func (s *splittableContainerRow) GetStructure() *node.Node[core.Structure] {
+	// Build row → col → container structure to match the original row.New().Add(col.New().Add(container)) layout.
+	rowNode := node.New(core.Structure{Type: "row"})
+	colNode := node.New(core.Structure{Type: "col"})
+	colNode.AddNext(s.container.GetStructure())
+	rowNode.AddNext(colNode)
+	return rowNode
+}
+
+func (s *splittableContainerRow) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
+	if cell == nil {
+		return 0
+	}
+	return s.container.GetHeight(provider, cell)
+}
+
+func (s *splittableContainerRow) Render(provider core.Provider, cell entity.Cell) {
+	s.container.Render(provider, &cell)
+}
+
+func (s *splittableContainerRow) Add(_ ...core.Col) core.Row       { return s }
+func (s *splittableContainerRow) WithStyle(_ *props.Cell) core.Row { return s }
+
+// GetColumns returns a single col wrapping the blockContainer to match the
+// structure that callers (e.g. existing tests) expect.
+func (s *splittableContainerRow) GetColumns() []core.Col {
+	return []core.Col{col.New().Add(s.container)}
+}
+
+// SplitAt implements core.Splittable. It splits the container's child rows at
+// the point where cumulative row heights would exceed remainingHeight.
+// Returns (nil, self, true) when no child rows fit (push whole container to
+// next page). Returns (self, nil, false) when the container fits entirely.
+func (s *splittableContainerRow) SplitAt(remainingHeight float64) (first, rest core.Row, didSplit bool) {
+	if s.container == nil {
+		return nil, nil, false
+	}
+
+	// Use a dummy cell for height measurement (width only matters for word wrap).
+	dummyCell := &entity.Cell{Width: 10000, Height: 10000}
+
+	totalHeight := s.container.GetHeight(nil, dummyCell)
+	if totalHeight <= remainingHeight {
+		return nil, nil, false // fits — no split needed
+	}
+
+	// Greedy split: accumulate rows until they no longer fit.
+	padding := s.container.paddingTop + s.container.paddingBottom
+	available := remainingHeight - padding
+	if available < 0 {
+		available = 0
+	}
+
+	var firstRows, restRows []core.Row
+	cumHeight := 0.0
+	splitDone := false
+	for _, r := range s.container.rows {
+		rh := r.GetHeight(nil, dummyCell)
+		if !splitDone && cumHeight+rh <= available+0.001 {
+			firstRows = append(firstRows, r)
+			cumHeight += rh
+		} else {
+			restRows = append(restRows, r)
+			splitDone = true
+		}
+	}
+
+	if len(firstRows) == 0 {
+		// Nothing fits on the current page — push the whole container to next page.
+		return nil, s, true
+	}
+
+	firstContainer := &blockContainer{
+		rows:          firstRows,
+		style:         s.container.style,
+		paddingTop:    s.container.paddingTop,
+		paddingRight:  s.container.paddingRight,
+		paddingBottom: 0, // flat bottom at split point
+		paddingLeft:   s.container.paddingLeft,
+		config:        s.container.config,
+	}
+
+	var restRow core.Row
+	if len(restRows) > 0 {
+		restContainer := &blockContainer{
+			rows:          restRows,
+			style:         s.container.style,
+			paddingTop:    0, // flat top at split point
+			paddingRight:  s.container.paddingRight,
+			paddingBottom: s.container.paddingBottom,
+			paddingLeft:   s.container.paddingLeft,
+			config:        s.container.config,
+		}
+		restRow = newSplittableContainerRow(restContainer)
+	}
+
+	return newSplittableContainerRow(firstContainer), restRow, true
 }

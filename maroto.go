@@ -243,10 +243,15 @@ func (m *Maroto) addRow(r core.Row) {
 	rowHeight := r.GetHeight(m.provider, &m.cell)
 	sumHeight := rowHeight + m.currentHeight + m.footerHeight
 
-	// Row smaller than the remain space on page
+	// Row smaller than the remaining space on page
 	if sumHeight <= maxHeight {
 		m.currentHeight += rowHeight
 		m.rows = append(m.rows, r)
+		return
+	}
+
+	// Row is too tall. Check if it implements Splittable for cross-page splitting.
+	if sp, ok := r.(core.Splittable); ok && m.addSplittableRow(sp, maxHeight) {
 		return
 	}
 
@@ -259,6 +264,27 @@ func (m *Maroto) addRow(r core.Row) {
 	// AddRows row on the new page
 	m.currentHeight += rowHeight
 	m.rows = append(m.rows, r)
+}
+
+// addSplittableRow handles cross-page splitting for a row that implements
+// core.Splittable. Returns true when the split was performed (caller should return).
+func (m *Maroto) addSplittableRow(sp core.Splittable, maxHeight float64) bool {
+	remaining := maxHeight - m.currentHeight - m.footerHeight
+	first, rest, didSplit := sp.SplitAt(remaining)
+	if !didSplit {
+		return false
+	}
+	if first != nil {
+		first.SetConfig(m.config)
+		m.currentHeight += first.GetHeight(m.provider, &m.cell)
+		m.rows = append(m.rows, first)
+	}
+	m.fillPageToAddNew()
+	m.addHeader()
+	if rest != nil {
+		m.addRow(rest)
+	}
+	return true
 }
 
 func (m *Maroto) addHeader() {

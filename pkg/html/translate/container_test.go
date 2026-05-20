@@ -281,3 +281,52 @@ func (p *cursorProvider) SetProtection(protection *entity.Protection) {}
 func (p *cursorProvider) SetCompression(compression bool) {}
 
 func (p *cursorProvider) SetMetadata(metadata *entity.Metadata) {}
+
+// ── Splittable container ──────────────────────────────────────────────────────
+
+func TestSplittableContainerRow_SplitAt(t *testing.T) {
+	t.Parallel()
+	p := &cursorProvider{}
+
+	// Build a container with 3 fixed-height rows: each 10mm.
+	// Total height = 3 * 10mm = 30mm (plus any padding).
+	rowA := buildFixedHeightRow(10)
+	rowB := buildFixedHeightRow(10)
+	rowC := buildFixedHeightRow(10)
+
+	container := &blockContainer{
+		rows: []core.Row{rowA, rowB, rowC},
+	}
+	cell := &entity.Cell{Width: 100, Height: 100}
+
+	// The container's total height should be 30mm.
+	assert.InDelta(t, 30.0, container.GetHeight(p, cell), 0.1)
+
+	scr := newSplittableContainerRow(container)
+
+	t.Run("SplitAt remaining=25 splits after 2 rows (20mm) + partial", func(t *testing.T) {
+		first, rest, didSplit := scr.SplitAt(25)
+		require.True(t, didSplit, "30mm container should split when remaining=25mm")
+		require.NotNil(t, first)
+		require.NotNil(t, rest)
+		// first should contain rows that fit in 25mm
+		assert.LessOrEqual(t, first.GetHeight(p, &entity.Cell{Width: 100, Height: 100}), 25.0+0.01)
+	})
+
+	t.Run("SplitAt remaining=100 does not split (fits)", func(t *testing.T) {
+		_, _, didSplit := scr.SplitAt(100)
+		assert.False(t, didSplit, "container that fits should not split")
+	})
+
+	t.Run("SplitAt remaining=1 returns atomic push (nil first) when no row fits", func(t *testing.T) {
+		// When no rows fit (remaining < smallest row), first == nil means push whole container.
+		first, _, didSplit := scr.SplitAt(0)
+		assert.True(t, didSplit, "split should be signaled")
+		assert.Nil(t, first, "when nothing fits, first must be nil (push to next page)")
+	})
+}
+
+// buildFixedHeightRow creates a Row with a fixed pixel height for test purposes.
+func buildFixedHeightRow(heightMM float64) core.Row {
+	return row.New(heightMM).Add(col.New())
+}
