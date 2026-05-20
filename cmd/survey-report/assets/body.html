@@ -1,0 +1,420 @@
+<html>
+<head>
+<style>
+  :root {
+    --ink: #1c2533;
+    --ink-soft: #4a5566;
+    --muted: #6e7785;
+    --rule: #d6dce4;
+    --rule-soft: #edf0f4;
+    --brand: #163a5f;
+    --brand-soft: #e7eef6;
+    --accent: #b03a2e;
+    --ok: #2e7d4f;
+    --warn: #b78018;
+    --bg-card: #f7f9fc;
+  }
+
+  body { color: var(--ink); font-size: 8.5pt; line-height: 1.3 }
+  h1 { color: var(--brand); font-size: 18pt; font-weight: bold; padding-bottom: 0.5mm }
+  h2 { color: #fff; background-color: var(--brand); font-size: 9.5pt; font-weight: bold;
+       padding: 1.6mm 3mm; border-radius: 1mm; margin-top: 1mm; letter-spacing: 0.3pt; text-transform: uppercase }
+  h3 { color: var(--brand); font-size: 9pt; font-weight: bold; padding-bottom: 0.6mm;
+       border-bottom: 0.3mm solid var(--rule); margin-bottom: 0.8mm }
+  h4 { color: var(--ink); font-size: 8.5pt; font-weight: bold }
+  p  { font-size: 8.5pt; color: var(--ink-soft); line-height: 1.35 }
+  a  { color: var(--brand) }
+
+  .muted { color: var(--muted); font-size: 7.5pt }
+  .small { font-size: 7.5pt }
+  .gap { color: #fff; font-size: 3pt; line-height: 1 }
+  .gap-md { color: #fff; font-size: 6pt; line-height: 1 }
+  .gap-lg { color: #fff; font-size: 10pt; line-height: 1 }
+
+  /* Top banner */
+  .banner { background-image: linear-gradient(to right, #163a5f, #2a6fa9);
+            color: #fff; padding: 4mm 5mm; border-radius: 1.5mm; margin-bottom: 1.5mm }
+  .banner h1 { color: #fff; font-size: 16pt }
+  .banner .tag { color: #fff; font-size: 7pt; letter-spacing: 1pt; opacity: 0.85 }
+  .banner .doc-no { color: #fff; font-size: 7.5pt; opacity: 0.85 }
+  .banner-row { display: flex; gap: 4mm }
+  .banner-left { flex: 5 }
+  .banner-right { flex: 3 }
+  .banner-right p { color: #fff; font-size: 7.5pt; opacity: 0.9; line-height: 1.3 }
+
+  /* Patient demographics card */
+  .patient-card { background-color: var(--brand-soft); border: 0.25mm solid #c7d5e6;
+                  border-radius: 1.5mm; padding: 3mm 3.5mm }
+  .patient-card h3 { border-bottom: none; padding-bottom: 0; color: var(--brand); font-size: 8pt;
+                     letter-spacing: 0.4pt; text-transform: uppercase }
+  .demo-grid { display: flex; gap: 3mm }
+  .demo-col { flex: 1 }
+  .demo-col h4 { color: var(--muted); font-size: 7pt; letter-spacing: 0.4pt;
+                 text-transform: uppercase; font-weight: bold }
+  .demo-col p { color: var(--ink); font-size: 9pt; font-weight: bold; line-height: 1.2 }
+  .demo-col .small { color: var(--ink-soft); font-weight: normal; font-size: 7.5pt }
+
+  /* Section utility */
+  .section { margin-top: 1.5mm }
+  .callout { background-color: #fef6ec; border-left: 1mm solid var(--warn);
+             padding: 2.4mm 3mm; border-top-right-radius: 1mm; border-bottom-right-radius: 1mm }
+  .callout-ok   { background-color: #ebf4ee; border-left: 1mm solid var(--ok);
+                  padding: 2.4mm 3mm; border-top-right-radius: 1mm; border-bottom-right-radius: 1mm }
+  .callout-bad  { background-color: #fbeae5; border-left: 1mm solid var(--accent);
+                  padding: 2.4mm 3mm; border-top-right-radius: 1mm; border-bottom-right-radius: 1mm }
+
+  /* Two-column shells */
+  .two-col { display: flex; gap: 4mm }
+  .col-a { flex: 1 }
+  .col-b { flex: 1 }
+
+  /* Pills + Q/A blocks */
+  .pill-yes { background-color: var(--accent); color: #fff; padding: 0.6mm 1.8mm;
+              border-radius: 1mm; font-size: 7pt; font-weight: bold }
+  .pill-no  { background-color: #cdd5e0; color: #283041; padding: 0.6mm 1.8mm;
+              border-radius: 1mm; font-size: 7pt; font-weight: bold }
+  .pill-mild { background-color: #fff4e1; color: #8a5a18; padding: 0.6mm 1.8mm;
+               border-radius: 1mm; font-size: 7pt; font-weight: bold }
+
+  .qa { background-color: var(--bg-card); border: 0.2mm solid var(--rule);
+        border-radius: 1mm; padding: 2.2mm 2.8mm; margin-bottom: 1.2mm }
+  .qa .question { color: var(--ink); font-weight: bold; font-size: 8pt }
+  .qa .answer { color: var(--ink-soft); font-size: 8pt }
+  .qa .meta { color: var(--muted); font-size: 7pt; letter-spacing: 0.3pt; text-transform: uppercase }
+
+  /* Tables */
+  .table-wrap { background-color: #fff; padding: 1mm; border: 0.25mm solid var(--rule);
+                border-radius: 1.5mm; margin-top: 0.6mm }
+  th, td { padding: 1.5mm 2mm; font-size: 7.8pt }
+  th { font-size: 7pt; color: #fff; background-color: var(--brand); font-weight: bold;
+       letter-spacing: 0.4pt; text-transform: uppercase }
+  .num { color: var(--ink); font-weight: bold }
+  .flag-high { color: var(--accent); font-weight: bold }
+  .flag-low  { color: #2a6fa9; font-weight: bold }
+  .flag-ok   { color: var(--ok); font-weight: bold }
+
+  /* Imaging blocks */
+  .imaging { display: flex; gap: 4mm; margin-top: 0.8mm }
+  .scan-card { flex: 1; background-color: var(--bg-card); border: 0.2mm solid var(--rule);
+               border-radius: 1.5mm; padding: 2.5mm }
+  .scan-meta { color: var(--muted); font-size: 6.5pt; letter-spacing: 0.5pt;
+               text-transform: uppercase }
+  .scan-card h4 { color: var(--brand); font-size: 8.5pt; padding-bottom: 0.6mm }
+  .scan-card p { color: var(--ink-soft); font-size: 7.5pt; line-height: 1.3 }
+
+  /* KPI strip */
+  .kpis { display: flex; gap: 2.5mm }
+  .kpi { flex: 1; background-color: #fff; border: 0.25mm solid var(--rule);
+         border-radius: 1.5mm; padding: 2.2mm 2.5mm; box-shadow: 0 0.6mm 1.4mm rgba(0,0,0,0.06) }
+  .kpi h4 { color: var(--muted); font-size: 6.5pt; letter-spacing: 0.5pt;
+            text-transform: uppercase; font-weight: bold }
+  .kpi p { color: var(--ink); font-size: 12pt; font-weight: bold; line-height: 1 }
+  .kpi .delta-ok { color: var(--ok); font-size: 7pt; font-weight: bold }
+  .kpi .delta-bad { color: var(--accent); font-size: 7pt; font-weight: bold }
+  .kpi .delta-flat { color: var(--muted); font-size: 7pt; font-weight: bold }
+
+  /* Risk pill cloud */
+  .risk-cloud { display: flex; flex-wrap: wrap; gap: 1.4mm }
+  .risk-low   { background-color: #e6f1ea; color: #1e5a36; border: 0.2mm solid #b8d4c1;
+                border-radius: 2mm; padding: 0.9mm 2.2mm; font-size: 7pt; font-weight: bold }
+  .risk-med   { background-color: #fdf2dc; color: #7b5612; border: 0.2mm solid #e7c989;
+                border-radius: 2mm; padding: 0.9mm 2.2mm; font-size: 7pt; font-weight: bold }
+  .risk-high  { background-color: #fce5e0; color: #8a2a1f; border: 0.2mm solid #e9b5ad;
+                border-radius: 2mm; padding: 0.9mm 2.2mm; font-size: 7pt; font-weight: bold }
+
+  /* Signature block */
+  .sig { display: flex; gap: 6mm; margin-top: 1.5mm }
+  .sig-left { flex: 2 }
+  .sig-right { flex: 1; outline: 0.3mm dashed #b8c1cc; outline-offset: 0.5mm;
+               background-color: #fcfdfe; padding: 2.5mm 3mm; border-radius: 1mm }
+  .sig-right h4 { color: var(--muted); font-size: 7pt; letter-spacing: 0.4pt; text-transform: uppercase }
+  .sig-right p { color: var(--ink); font-size: 8pt; font-weight: bold; line-height: 1.25 }
+
+  /* Footnote */
+  .disclaimer { background-color: #2a2f39; color: #d3d8df; padding: 2.2mm 3mm;
+                border-radius: 1mm; margin-top: 2mm }
+  .disclaimer p { color: #d3d8df; font-size: 6.8pt; line-height: 1.35 }
+</style>
+</head>
+<body>
+  <main>
+    <!-- ── Banner ─────────────────────────────────────────────────────────── -->
+    <div class="banner">
+      <div class="banner-row">
+        <div class="banner-left">
+          <p class="tag">MAROTO MEDICAL CENTER · CARDIOLOGY DEPARTMENT</p>
+          <h1>Anamnesis &amp; Initial Assessment Report</h1>
+          <p class="doc-no">Document ref: ANAM-2026-04812 · Encounter: 2026-05-20 09:14 · 7 of 9 pages</p>
+        </div>
+        <div class="banner-right">
+          <p><b>Maroto Medical Center</b><br>112 Harbor Bay Road<br>San Francisco, CA 94107<br>+1 415 555 0118 · records@maroto.example</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Patient demographics ───────────────────────────────────────────── -->
+    <div class="patient-card">
+      <h3>Patient demographics</h3>
+      <div class="gap"></div>
+      <div class="demo-grid">
+        <div class="demo-col">
+          <h4>Patient name</h4>
+          <p>Reyes, Marcus J.</p>
+          <p class="small">Preferred: "Marc"</p>
+        </div>
+        <div class="demo-col">
+          <h4>MRN</h4>
+          <p>MR-04812-26</p>
+          <p class="small">Maroto Health ID</p>
+        </div>
+        <div class="demo-col">
+          <h4>Date of birth · Age</h4>
+          <p>1972-08-14 · 53 y</p>
+          <p class="small">Sex: Male</p>
+        </div>
+        <div class="demo-col">
+          <h4>Insurance</h4>
+          <p>BlueCare Premier</p>
+          <p class="small">Policy #BC-77821-3</p>
+        </div>
+        <div class="demo-col">
+          <h4>Referring clinician</h4>
+          <p>Dr. A. Patel, GP</p>
+          <p class="small">Bayview Family Clinic</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-md"></div>
+
+    <!-- ── Vitals KPI strip ───────────────────────────────────────────────── -->
+    <div class="kpis">
+      <div class="kpi"><h4>Blood pressure</h4><p>138 / 88</p><span class="delta-bad">↑ stage 1 hypertension</span></div>
+      <div class="kpi"><h4>Heart rate</h4><p>82 bpm</p><span class="delta-flat">within normal range</span></div>
+      <div class="kpi"><h4>BMI</h4><p>28.7</p><span class="delta-bad">overweight</span></div>
+      <div class="kpi"><h4>SpO₂</h4><p>97%</p><span class="delta-ok">normal</span></div>
+      <div class="kpi"><h4>Temperature</h4><p>36.8°C</p><span class="delta-ok">afebrile</span></div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Chief complaint ────────────────────────────────────────────────── -->
+    <h2>Chief complaint &amp; history of present illness</h2>
+    <div class="callout">
+      <p><b>Chief complaint:</b> Episodic central chest pressure with mild shortness of breath, worse on exertion. Onset approximately 6 weeks ago, increasing in frequency over the past 10 days.</p>
+    </div>
+    <div class="gap-md"></div>
+    <p>Patient describes a substernal pressure-like sensation, non-radiating, lasting 5–10 minutes, reproducibly triggered by climbing two flights of stairs or carrying groceries. Pain resolves with rest within 10 minutes. No associated diaphoresis, nausea, or palpitations. No syncope. Sleep is undisturbed. No recent infections or fevers.</p>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Anamnesis questionnaire — risk factors ─────────────────────────── -->
+    <h2>Risk factor screening (modified WHO ROSE questionnaire)</h2>
+    <div class="two-col">
+      <div class="col-a">
+        <div class="qa">
+          <p class="meta">Q1 · Coronary symptoms</p>
+          <p class="question">Have you ever had pain or discomfort in your chest?</p>
+          <p class="answer"><span class="pill-yes">YES</span> Patient confirms pressure-like episodes on exertion, see HPI above.</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q2 · Severity</p>
+          <p class="question">Does it ever make you stop walking?</p>
+          <p class="answer"><span class="pill-yes">YES</span> "I have to slow down and lean on something for a minute."</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q3 · Relief</p>
+          <p class="question">Does the pain go away when you stand still?</p>
+          <p class="answer"><span class="pill-yes">YES</span> Resolves within 5–10 minutes of rest.</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q4 · Location</p>
+          <p class="question">Where do you feel the discomfort?</p>
+          <p class="answer">Substernal · non-radiating · no jaw / arm involvement.</p>
+        </div>
+      </div>
+      <div class="col-b">
+        <div class="qa">
+          <p class="meta">Q5 · Smoking</p>
+          <p class="question">Do you currently smoke tobacco?</p>
+          <p class="answer"><span class="pill-no">NO</span> Quit 8 years ago. Prior 15 pack-year history (15 cigs/day × 22 years).</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q6 · Diabetes</p>
+          <p class="question">Have you been told you have diabetes?</p>
+          <p class="answer"><span class="pill-mild">PRE-DIABETIC</span> HbA1c 6.1% in 2025. Not on metformin.</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q7 · Hypertension</p>
+          <p class="question">Are you being treated for high blood pressure?</p>
+          <p class="answer"><span class="pill-yes">YES</span> Lisinopril 10 mg daily since 2023.</p>
+        </div>
+        <div class="qa">
+          <p class="meta">Q8 · Family history</p>
+          <p class="question">First-degree relative with early cardiac disease?</p>
+          <p class="answer"><span class="pill-yes">YES</span> Father MI at age 54. Brother CABG at age 58.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Risk factor cloud ──────────────────────────────────────────────── -->
+    <h2>Composite risk profile</h2>
+    <div class="risk-cloud">
+      <div class="risk-high">Family history CAD</div>
+      <div class="risk-high">Hypertension</div>
+      <div class="risk-med">Pre-diabetes</div>
+      <div class="risk-med">Former smoker</div>
+      <div class="risk-med">BMI 28.7</div>
+      <div class="risk-low">No CKD</div>
+      <div class="risk-low">No prior MI</div>
+      <div class="risk-low">No arrhythmia</div>
+      <div class="risk-low">Active lifestyle (3×/wk walk)</div>
+      <div class="risk-low">No EtOH abuse</div>
+    </div>
+
+    <div class="gap-md"></div>
+    <p class="muted">Framingham 10-year CVD risk estimate: <b>17.4%</b> (high). ASCVD pooled cohort risk: <b>15.8%</b>. Recommend statin initiation per ACC/AHA 2018 guidelines.</p>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Medications &amp; allergies ────────────────────────────────────── -->
+    <h2>Current medications &amp; allergies</h2>
+    <div class="two-col">
+      <div class="col-a">
+        <h3>Active medications</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Drug</th><th>Dose</th><th>Freq</th><th>Since</th></tr></thead>
+            <tbody>
+              <tr><td>Lisinopril</td><td>10 mg</td><td>QD</td><td>2023-02</td></tr>
+              <tr><td>Atorvastatin</td><td>20 mg</td><td>QHS</td><td>2024-09</td></tr>
+              <tr><td>Aspirin (low-dose)</td><td>81 mg</td><td>QD</td><td>2024-12</td></tr>
+              <tr><td>Vitamin D₃</td><td>1000 IU</td><td>QD</td><td>2022-01</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-b">
+        <h3>Allergies &amp; intolerances</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Agent</th><th>Reaction</th><th>Severity</th></tr></thead>
+            <tbody>
+              <tr><td>Penicillin</td><td>Urticaria</td><td><span class="flag-high">Severe</span></td></tr>
+              <tr><td>Shellfish</td><td>Lip swelling</td><td><span class="flag-low">Mild</span></td></tr>
+              <tr><td>Latex</td><td>Contact rash</td><td><span class="flag-low">Mild</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Imaging studies ────────────────────────────────────────────────── -->
+    <h2>Imaging &amp; diagnostic studies</h2>
+    <div class="imaging">
+      <div class="scan-card">
+        <p class="scan-meta">PA chest X-ray · acquired 2026-05-20 09:38</p>
+        <h4>Cardiothoracic ratio 0.51 — borderline</h4>
+        <img src="chest-xray.png" width="100" />
+        <p class="small">Mild cardiomegaly, no consolidation, lung fields clear. No pleural effusion. Mediastinum not widened.</p>
+      </div>
+      <div class="scan-card">
+        <p class="scan-meta">12-lead ECG · resting · 25 mm/s</p>
+        <h4>NSR 78 bpm · borderline LVH</h4>
+        <img src="ecg-strip.png" width="100" />
+        <p class="small">Normal sinus rhythm. Mild voltage criteria for left ventricular hypertrophy. No ST elevation, no Q waves.</p>
+      </div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Vitals trend chart ─────────────────────────────────────────────── -->
+    <h2>Home vitals trend — last 7 days</h2>
+    <div class="scan-card">
+      <p class="scan-meta">Source: patient-recorded · validated cuff (Omron HEM-7156T)</p>
+      <img src="vitals-chart.png" width="160" />
+      <p class="small"><span style="color:#c02f2f;font-weight:bold">●</span> Systolic BP (mmHg, scale 110–145) &nbsp;
+         <span style="color:#346ec4;font-weight:bold">●</span> Heart rate (bpm, scale 60–95)</p>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Laboratory results ─────────────────────────────────────────────── -->
+    <h2>Laboratory results (drawn 2026-05-20)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Analyte</th><th>Result</th><th>Unit</th><th>Reference range</th><th>Flag</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Total cholesterol</td><td class="num">224</td><td>mg/dL</td><td>&lt; 200</td><td><span class="flag-high">HIGH</span></td></tr>
+          <tr style="background-color:#f6f8fb"><td>LDL cholesterol</td><td class="num">148</td><td>mg/dL</td><td>&lt; 100</td><td><span class="flag-high">HIGH</span></td></tr>
+          <tr><td>HDL cholesterol</td><td class="num">38</td><td>mg/dL</td><td>&gt; 40</td><td><span class="flag-low">LOW</span></td></tr>
+          <tr style="background-color:#f6f8fb"><td>Triglycerides</td><td class="num">192</td><td>mg/dL</td><td>&lt; 150</td><td><span class="flag-high">HIGH</span></td></tr>
+          <tr><td>HbA1c</td><td class="num">6.1</td><td>%</td><td>&lt; 5.7</td><td><span class="flag-high">HIGH</span></td></tr>
+          <tr style="background-color:#f6f8fb"><td>Fasting glucose</td><td class="num">108</td><td>mg/dL</td><td>70–99</td><td><span class="flag-high">HIGH</span></td></tr>
+          <tr><td>Creatinine</td><td class="num">0.94</td><td>mg/dL</td><td>0.7–1.3</td><td><span class="flag-ok">OK</span></td></tr>
+          <tr style="background-color:#f6f8fb"><td>eGFR</td><td class="num">92</td><td>mL/min</td><td>&gt; 60</td><td><span class="flag-ok">OK</span></td></tr>
+          <tr><td>hs-Troponin I</td><td class="num">8</td><td>ng/L</td><td>&lt; 19</td><td><span class="flag-ok">OK</span></td></tr>
+          <tr style="background-color:#f6f8fb"><td>BNP</td><td class="num">42</td><td>pg/mL</td><td>&lt; 100</td><td><span class="flag-ok">OK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Assessment ─────────────────────────────────────────────────────── -->
+    <h2>Assessment &amp; impression</h2>
+    <div class="callout-bad">
+      <p><b>Primary:</b> Probable stable angina pectoris (exertional class II). Multifactorial cardiovascular risk profile dominated by family history, dyslipidemia, and uncontrolled hypertension.</p>
+    </div>
+    <div class="gap-md"></div>
+    <div class="callout">
+      <p><b>Secondary considerations:</b> Pre-diabetes mellitus (HbA1c 6.1%); overweight (BMI 28.7); borderline LVH on ECG; mild cardiomegaly on CXR — likely chronic hypertensive remodelling.</p>
+    </div>
+    <div class="gap-md"></div>
+    <div class="callout-ok">
+      <p><b>Reassuring findings:</b> Negative high-sensitivity troponin and BNP — acute coronary syndrome not currently active. Renal function preserved.</p>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Plan ───────────────────────────────────────────────────────────── -->
+    <h2>Recommended plan</h2>
+    <ol>
+      <li><b>Confirm ischemia.</b> Schedule exercise stress test with myocardial perfusion imaging within 14 days. If positive or equivocal, proceed to coronary CT angiography.</li>
+      <li><b>Optimize antihypertensive therapy.</b> Increase lisinopril to 20 mg QD; recheck BP in 4 weeks. Add amlodipine 5 mg if SBP &gt; 135 at follow-up.</li>
+      <li><b>Intensify lipid therapy.</b> Atorvastatin 40 mg QHS. Repeat full lipid panel in 8 weeks. Discuss PCSK9 inhibitor if LDL &gt; 100 at recheck.</li>
+      <li><b>Lifestyle counselling.</b> Mediterranean diet referral to nutrition. Goal: 5% body weight loss over 6 months. Continue 30-min walks 5×/week.</li>
+      <li><b>Pre-diabetes management.</b> Recheck HbA1c in 3 months. Refer to diabetes prevention program.</li>
+      <li><b>Patient safety net.</b> Provide chest-pain action card with symptom thresholds for ER presentation. Sublingual nitroglycerin 0.4 mg SL PRN, max ×3 with 5-min interval.</li>
+      <li><b>Follow-up cardiology visit.</b> In 6 weeks (post stress test &amp; lipid recheck).</li>
+    </ol>
+
+    <div class="gap-lg"></div>
+
+    <!-- ── Signature block ────────────────────────────────────────────────── -->
+    <div class="sig">
+      <div class="sig-left">
+        <h3>Clinician statement</h3>
+        <p>I have personally reviewed the history, examined the patient, and discussed the assessment and recommended plan. Patient demonstrated understanding (teach-back verified) and consented to the proposed investigations.</p>
+        <div class="gap-md"></div>
+        <p class="muted">Report prepared automatically from the Maroto Anamnesis questionnaire and finalised by the attending clinician at 2026-05-20 11:02 PT. Document checksum: 6f9e83…b4c1.</p>
+      </div>
+      <div class="sig-right">
+        <h4>Attending physician</h4>
+        <p>Dr. Helena Costa, MD<br>Board-certified Cardiologist<br>NPI 1235647890<br>License #MD-CA-082114</p>
+      </div>
+    </div>
+
+    <!-- ── Disclaimer ─────────────────────────────────────────────────────── -->
+    <div class="disclaimer">
+      <p><b>Confidential medical record.</b> This document contains protected health information subject to applicable privacy laws (HIPAA, GDPR). Unauthorised disclosure, copying or distribution is prohibited. If received in error, please destroy and notify records@maroto.example. Findings reflect a single point-in-time clinical encounter; treatment decisions remain the responsibility of the patient's clinical team.</p>
+    </div>
+  </main>
+</body>
+</html>
