@@ -22,9 +22,18 @@ func NewOutlineStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
 }
 
 func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
+	needOutline := prop != nil && prop.OutlineWidth > 0
+
+	// Capture the cell origin BEFORE the downstream chain moves the cursor
+	// (cellWriter's CellFormat advances X to the cell's right edge).
+	var x, y float64
+	if needOutline {
+		x, y = o.fpdf.GetXY()
+	}
+
 	o.GoToNext(width, height, config, prop)
 
-	if prop == nil || prop.OutlineWidth <= 0 {
+	if !needOutline {
 		return
 	}
 
@@ -35,9 +44,6 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 		o.fpdf.SetLineWidth(origWidth)
 		o.fpdf.SetDrawColor(origR, origG, origB)
 	}()
-
-	// Capture the cell origin from the cursor (GetXY after all prior nodes ran).
-	x, y := o.fpdf.GetXY()
 
 	o.fpdf.SetLineWidth(prop.OutlineWidth)
 	if prop.OutlineColor != nil {
