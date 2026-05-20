@@ -169,8 +169,11 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
-	applyBlockStyling(n, runs)
+	// User CSS first, then heading-default fallback. applyBlockStyling only
+	// sets runs[i].Size when it's still 0, so applying inline CSS first lets a
+	// user `h2 { font-size: 12pt }` override the 20pt heading default.
 	applyInlineStyleToRuns(style, runs)
+	applyBlockStyling(n, runs)
 	rt := richtext.New(runs)
 	c := col.New().Add(rt)
 	r := row.New().Add(c)

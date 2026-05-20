@@ -11,11 +11,12 @@ import (
 )
 
 type Row struct {
-	height     float64
-	autoHeight bool
-	cols       []core.Col
-	style      *props.Cell
-	config     *entity.Config
+	height          float64
+	cachedCellWidth float64 // width the cached height was computed for; 0 = explicit row height
+	autoHeight      bool
+	cols            []core.Col
+	style           *props.Cell
+	config          *entity.Config
 }
 
 // New is responsible to create a core.Row.
@@ -57,10 +58,19 @@ func (r *Row) GetColumns() []core.Col {
 }
 
 // GetHeight returns the height of a core.Row.
+// For auto-height rows, the computed height is cached per cell.Width: the same
+// row queried at different widths (e.g. inside a half-width flex column vs.
+// at the full content width) returns wrap-aware results without staling the
+// cache. Explicit-height rows (height passed to New()) ignore the cache.
 func (r *Row) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
-	if r.height == 0 {
-		r.height = r.getBiggestCol(provider, cell)
+	if !r.autoHeight {
+		return r.height
 	}
+	if r.height > 0 && r.cachedCellWidth == cell.Width {
+		return r.height
+	}
+	r.height = r.getBiggestCol(provider, cell)
+	r.cachedCellWidth = cell.Width
 	return r.height
 }
 
@@ -123,9 +133,11 @@ func (r *Row) WithStyle(style *props.Cell) core.Row {
 	return r
 }
 
-// resetHeight resets the line height to 0
+// resetHeight resets the cached row height so the next GetHeight call
+// recomputes from the latest col contents.
 func (r *Row) resetHeight() {
 	r.height = 0
+	r.cachedCellWidth = 0
 }
 
 // Returns the height of the row content
