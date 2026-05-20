@@ -503,6 +503,36 @@ func TestFlexReverse(t *testing.T) {
 	})
 }
 
+// ── align-self per-item alignment ────────────────────────────────────────────
+
+func TestFlexAlignSelf(t *testing.T) {
+	t.Parallel()
+
+	t.Run("align-self flex-end produces one row with correct col count", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex">
+		  <div style="align-self:flex-end">child</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Len(t, rows[0].GetColumns(), 1)
+	})
+
+	t.Run("align-self auto falls back to container align-items", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body>
+		<div style="display:flex;align-items:center">
+		  <div style="align-self:auto">child</div>
+		</div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Len(t, rows[0].GetColumns(), 1)
+	})
+}
+
 // ── Golden tests: single-row computeFlexSizes preservation ───────────────────
 // These tests capture the exact output of computeFlexSizes for representative
 // single-row inputs. They exist to detect regressions after the WrappedLayout

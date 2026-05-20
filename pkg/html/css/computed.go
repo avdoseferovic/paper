@@ -71,12 +71,15 @@ type ComputedStyle struct {
 	Height  float64
 
 	// Flex container properties
-	FlexDirection  string  // "row" | "column" | "row-reverse" | "column-reverse"
-	FlexWrap       string  // "nowrap" | "wrap" | "wrap-reverse"
-	JustifyContent string  // "flex-start" | "center" | "flex-end" | "space-between" | "space-around"
-	AlignItems     string  // "flex-start" | "center" | "flex-end" | "stretch"
-	RowGap         float64 // mm
-	ColumnGap      float64 // mm
+	FlexDirection  string // "row" | "column" | "row-reverse" | "column-reverse"
+	FlexWrap       string // "nowrap" | "wrap" | "wrap-reverse"
+	JustifyContent string // "flex-start" | "center" | "flex-end" | "space-between" | "space-around"
+	AlignItems     string // "flex-start" | "center" | "flex-end" | "stretch"
+
+	// Flex item properties (cross-axis)
+	AlignSelf string  // "auto" | "flex-start" | "flex-end" | "center" | "stretch"
+	RowGap    float64 // mm
+	ColumnGap float64 // mm
 
 	// Flex item properties
 	FlexGrow      float64 // default 0; used as proportional weight in layout
@@ -274,6 +277,8 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		s.FlexDirection = val
 	case "justify-content":
 		s.JustifyContent = val
+	case "align-self":
+		s.AlignSelf = strings.TrimSpace(val)
 	case "flex-wrap":
 		s.FlexWrap = strings.TrimSpace(val)
 	case "order":
