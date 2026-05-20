@@ -226,6 +226,13 @@ func (m *Maroto) addRows(rows ...core.Row) {
 }
 
 func (m *Maroto) addRow(r core.Row) {
+	// PageBreaker rows signal a hard page break; they are not placed on any page.
+	if pb, ok := r.(core.PageBreaker); ok && pb.IsPageBreak() {
+		m.fillPageToAddNew()
+		m.addHeader()
+		return
+	}
+
 	if len(r.GetColumns()) == 0 {
 		r.Add(col.New())
 	}

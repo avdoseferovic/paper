@@ -131,12 +131,12 @@ Type: Feature
 - [x] Task 7: text-shadow — per-run shadow before AddText
 - [x] Task 8: outline + outline-offset (drawn outside cell box)
 - [x] Task 9: flex-wrap, order, true *-reverse ordering (quantizer multi-row + sort)
-- [ ] Task 10: align-self (per-item cross-axis alignment)
+- [x] Task 10: align-self (per-item cross-axis alignment)
 - [ ] Task 11: page-break-{before,after,inside} markers + paginator hint
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 9 | **Remaining:** 4
+**Total Tasks:** 13 | **Completed:** 10 | **Remaining:** 3
 
 ## Implementation Tasks
 

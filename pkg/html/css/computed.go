@@ -102,6 +102,11 @@ type ComputedStyle struct {
 	TextIndent    float64 // mm; first-line indent
 	WhiteSpace    string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
 
+	// Page break hints.
+	PageBreakBefore string // "always" | "avoid" | "auto"
+	PageBreakAfter  string // "always" | "avoid" | "auto"
+	BreakInside     string // "avoid" | "auto"
+
 	// CSS custom properties (--name: value). Stored as a flat map per element;
 	// cascade inheritance is handled by callers (computeNodeStyle) which copy
 	// from the parent's Vars map before applying child rules.
@@ -365,6 +370,12 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 			}
 			s.Opacity = v
 		}
+	case "page-break-before", "break-before":
+		s.PageBreakBefore = strings.TrimSpace(val)
+	case "page-break-after", "break-after":
+		s.PageBreakAfter = strings.TrimSpace(val)
+	case "page-break-inside", "break-inside":
+		s.BreakInside = strings.TrimSpace(val)
 	case "list-style-type":
 		s.ListStyleType = strings.TrimSpace(val)
 	case "vertical-align":

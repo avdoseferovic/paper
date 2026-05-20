@@ -195,6 +195,16 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
 		rows[0] = wrapRowAnchorTarget(rows[0], id, tr.anchorReg)
 	}
+	// Prepend/append page-break markers when CSS requests them.
+	if n.Tag() != "" {
+		style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+		if style.PageBreakBefore == "always" {
+			rows = append([]core.Row{NewPageBreakRow()}, rows...)
+		}
+		if style.PageBreakAfter == "always" {
+			rows = append(rows, NewPageBreakRow())
+		}
+	}
 	return rows
 }
 
