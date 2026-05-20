@@ -12,7 +12,7 @@ import (
 
 // listRows converts <ul>/<ol> into a single row containing an HTMLList component.
 func (tr *translator) listRows(n *dom.Node) []core.Row {
-	style := computeNodeStyle(tr.sheet, n, nil)
+	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	list := tr.buildList(n)
 	if list == nil {
 		return nil
@@ -36,7 +36,7 @@ func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 	if n.Tag() == "ol" {
 		style = listStyleFromType(n.Attr("type"))
 	}
-	cssStyle := computeNodeStyle(tr.sheet, n, nil)
+	cssStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	if s, ok := listStyleFromCSS(cssStyle.ListStyleType); ok {
 		style = s
 	}

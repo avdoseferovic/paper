@@ -8,6 +8,17 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+// computeNodeStyleRooted is computeNodeStyle with an explicit root style seed.
+// When parent is nil and root is non-nil, root is used as the inheritance
+// source so :root / html-level CSS variables propagate into body descendants.
+func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, parent, root *css.ComputedStyle) *css.ComputedStyle {
+	effectiveParent := parent
+	if effectiveParent == nil {
+		effectiveParent = root
+	}
+	return computeNodeStyle(sheet, n, effectiveParent)
+}
+
 // computeNodeStyle resolves the ComputedStyle for a node by:
 //  1. Inheriting font-size and CSS custom properties from the parent
 //  2. Applying matching rules from the provided <style> block stylesheet

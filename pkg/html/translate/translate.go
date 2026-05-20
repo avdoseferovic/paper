@@ -10,6 +10,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
@@ -46,6 +47,7 @@ type translator struct {
 	anchorReg          *anchorRegistry     // shared id→linkID map (Task 6)
 	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
 	loadedFonts        []loadedFont        // @font-face fonts (Task 10)
+	rootStyle          *css.ComputedStyle  // seed for body-level cascade (:root vars)
 }
 
 // WithStylesheetResolver registers a resolver for <link rel="stylesheet">.
@@ -132,10 +134,40 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	// Prepend font-face registration rows (zero-height) so any subsequent
 	// row that uses font-family: "MyFont" finds the font already registered.
 	rows = append(rows, tr.fontRegistrationRows()...)
+	// Seed the cascade so :root and html-level rules (CSS variables, etc)
+	// propagate into body's descendants. Without this, `:root { --x: red }`
+	// is parsed but never inherited because computeNodeStyle is called with
+	// parent=nil for top-level body children.
+	tr.rootStyle = tr.seedRootStyle(doc)
 	for _, child := range body.Children() {
 		rows = append(rows, tr.blockRows(child)...)
 	}
 	return rows, nil
+}
+
+// seedRootStyle computes the ComputedStyle of the html element (or body when
+// no html) so :root vars and inherited CSS properties propagate to the rest
+// of the cascade. Returns nil when no usable ancestor exists.
+func (tr *translator) seedRootStyle(doc *dom.Document) *css.ComputedStyle {
+	var html *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		// dom.Walk starts from body; if we don't find <html>, we'll synthesise
+		// a body-rooted seed below.
+		if n.Tag() == "html" {
+			html = n
+			return false
+		}
+		return true
+	})
+	if html != nil {
+		return computeNodeStyle(tr.sheet, html, nil)
+	}
+	// Fallback: compute body's style directly so body { --x: ... } also works.
+	body := findBody(doc)
+	if body == nil {
+		return nil
+	}
+	return computeNodeStyle(tr.sheet, body, nil)
 }
 
 func findBody(doc *dom.Document) *dom.Node {
@@ -176,6 +208,13 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 // outer blockRows can handle anchor wrapping uniformly).
 func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	tag := n.Tag()
+	// Drop metadata tags that may appear in the body — their text content
+	// (CSS source, script source, meta values) must not render as visible
+	// document text. <style>/<link> CSS is already extracted via StyleSources.
+	switch tag {
+	case "style", "link", "script", "meta", "head", "title":
+		return nil
+	}
 	switch tag {
 	case "":
 		// Text node at block level — wrap into a paragraph-like row.
@@ -202,7 +241,7 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	default:
 		// Container (div, section, article, header, footer, nav, etc.).
 		// Compute style to detect class-based display:flex and display:none.
-		style := computeNodeStyle(tr.sheet, n, nil)
+		style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 		if style.Display == "none" {
 			return nil
 		}
@@ -235,7 +274,7 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 // Top/Right/Bottom/Left offsets so the text is inset from the styled background's
 // edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
-	style := computeNodeStyle(tr.sheet, n, nil)
+	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	runs := inlineRunsWithHandler(n, tr.unsupportedHandler)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
@@ -290,7 +329,7 @@ func hrRow() core.Row {
 // styledHrRow honours border-top-width, border-top-style, color on the <hr>
 // element. Defaults match the original hrRow behaviour when no style is set.
 func (tr *translator) styledHrRow(n *dom.Node) core.Row {
-	style := computeNodeStyle(tr.sheet, n, nil)
+	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	lineProp := props.Line{}
 	if style.BorderTopWidth > 0 {
 		lineProp.Thickness = style.BorderTopWidth

@@ -52,7 +52,7 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 }
 
 func (tr *translator) buildTableMatrix(n *dom.Node) [][]table.Cell {
-	tableStyle := computeNodeStyle(tr.sheet, n, nil)
+	tableStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	var matrix [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {
