@@ -24,6 +24,10 @@ type compiledRule struct {
 // Its rules apply before user-supplied <style> blocks so users may override
 // any built-in class. Inline style="" still has the highest precedence.
 const builtinCSS = `
+p { padding: 1mm 0 }
+h1 { padding: 3mm 0 1mm 0 }
+h2 { padding: 2mm 0 1mm 0 }
+h3 { padding: 1mm 0 }
 .title-band {
   background-color: #1a3e72;
   color: #ffffff;

@@ -213,26 +213,36 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 // gutterWidth returns the computed or configured gutter.
 // When the provider implements core.RichTextProvider it measures the widest marker
 // for accurate sizing; otherwise it falls back to a font-height heuristic.
+// For DecimalCircle markers the gutter is enlarged to at least 1.6 × line-height
+// so the inscribed circle is readable (otherwise a 2-char "10" measurement
+// produces a circle smaller than the digit it contains).
 func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
 	if l.prop.GutterWidth > 0 {
 		return l.prop.GutterWidth
 	}
 	tp := l.markerTextProp()
+	lineH := l.itemRowHeight(provider, &entity.Cell{Width: 100})
+	textWidth := 0.0
 	if rtp, ok := provider.(core.RichTextProvider); ok {
-		widest := 0.0
 		for i := range len(l.items) {
 			m := FormatMarker(l.prop.Style, i)
 			w := rtp.MeasureString(m, tp)
-			if w > widest {
-				widest = w
+			if w > textWidth {
+				textWidth = w
 			}
 		}
-		if widest > 0 {
-			return widest + l.prop.MarkerPadding
-		}
 	}
-	// Fallback: heuristic based on font height (provider lacks MeasureString).
-	return l.itemRowHeight(provider, &entity.Cell{Width: 100}) + l.prop.MarkerPadding
+	if l.prop.Style == DecimalCircle {
+		minGutter := lineH * 1.6
+		if textWidth+l.prop.MarkerPadding < minGutter {
+			return minGutter
+		}
+		return textWidth + l.prop.MarkerPadding
+	}
+	if textWidth > 0 {
+		return textWidth + l.prop.MarkerPadding
+	}
+	return lineH + l.prop.MarkerPadding
 }
 
 // itemRowHeight returns the height of one item row.
