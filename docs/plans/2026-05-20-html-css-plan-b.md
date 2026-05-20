@@ -123,8 +123,8 @@ Type: Feature
 **MANDATORY: Update this checklist as tasks complete. Change `[ ]` to `[x]`.**
 
 - [x] Task 1: Paint RichRun.Background in AddRichText (per-run filled rect behind text)
-- [ ] Task 2: Per-run anchor link rectangles via Fpdf.Link + LetterSpacing via SetCharSpacing
-- [ ] Task 3: calc()% inside Apply() via context-aware length resolution
+- [x] Task 2: Per-run anchor link rectangles via Fpdf.Link + LetterSpacing via SetCharSpacing
+- [x] Task 3: calc()% inside Apply() via context-aware length resolution
 - [ ] Task 4: Dashed/dotted styled `<hr>` via SetDashPattern
 - [ ] Task 5: CSS gradients (linear + radial) — parser + raster + cellwriter integration
 - [ ] Task 6: box-shadow — parser + provider + render wrapper with multi-shadow support
@@ -136,7 +136,7 @@ Type: Feature
 - [ ] Task 12: Splittable blockContainer (split across page breaks, repaint bg+border)
 - [ ] Task 13: Demo + docs sweep
 
-**Total Tasks:** 13 | **Completed:** 1 | **Remaining:** 12
+**Total Tasks:** 13 | **Completed:** 3 | **Remaining:** 10
 
 ## Implementation Tasks
 

@@ -318,6 +318,7 @@ func (tr *translator) styledHrRow(n *dom.Node) core.Row {
 	} else if style.Color != nil {
 		lineProp.Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
 	}
+	lineProp.Style = cssBorderStyleToLineStyle(style.BorderTopStyle)
 	l := line.New(lineProp)
 	c := col.New().Add(l)
 	h := 1.0

@@ -44,6 +44,12 @@ type Cell struct {
 	BorderBottomThickness float64
 	BorderLeftThickness   float64
 
+	// Per-side border line style ("solid", "dashed", "dotted"). Empty = solid.
+	BorderTopStyle    linestyle.Type
+	BorderRightStyle  linestyle.Type
+	BorderBottomStyle linestyle.Type
+	BorderLeftStyle   linestyle.Type
+
 	// BorderRadius is the uniform corner radius in mm. When per-corner radii
 	// below are set, they override this uniform value for that corner.
 	// When any radius is set, the borderRadiusStyler owns the entire border

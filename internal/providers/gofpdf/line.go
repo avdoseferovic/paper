@@ -43,9 +43,7 @@ func (l *Line) renderVertical(cell *entity.Cell, prop *props.Line) {
 	}
 	l.pdf.SetLineWidth(prop.Thickness)
 
-	if prop.Style != linestyle.Solid {
-		l.pdf.SetDashPattern([]float64{1, 1}, 0)
-	}
+	setDashPattern(l.pdf, prop.Style)
 
 	l.pdf.Line(left+cell.X+position, top+cell.Y+space, left+cell.X+position, top+cell.Y+cell.Height-space)
 
@@ -53,10 +51,7 @@ func (l *Line) renderVertical(cell *entity.Cell, prop *props.Line) {
 		l.pdf.SetDrawColor(l.defaultColor.Red, l.defaultColor.Green, l.defaultColor.Blue)
 	}
 	l.pdf.SetLineWidth(l.defaultThickness)
-
-	if prop.Style != linestyle.Solid {
-		l.pdf.SetDashPattern([]float64{1, 0}, 0)
-	}
+	resetDashPattern(l.pdf, prop.Style)
 }
 
 func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
@@ -72,9 +67,7 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 	}
 	l.pdf.SetLineWidth(prop.Thickness)
 
-	if prop.Style != linestyle.Solid {
-		l.pdf.SetDashPattern([]float64{1, 1}, 0)
-	}
+	setDashPattern(l.pdf, prop.Style)
 
 	l.pdf.Line(left+cell.X+space, top+cell.Y+position, left+cell.X+cell.Width-space, top+cell.Y+position)
 
@@ -82,8 +75,25 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 		l.pdf.SetDrawColor(l.defaultColor.Red, l.defaultColor.Green, l.defaultColor.Blue)
 	}
 	l.pdf.SetLineWidth(l.defaultThickness)
+	resetDashPattern(l.pdf, prop.Style)
+}
 
-	if prop.Style != linestyle.Solid {
-		l.pdf.SetDashPattern([]float64{1, 0}, 0)
+// setDashPattern applies the gofpdf dash pattern for the given line style.
+// Solid is a no-op; Dashed uses [1,1]; Dotted uses [0.4,0.4].
+func setDashPattern(pdf gofpdfwrapper.Fpdf, style linestyle.Type) {
+	switch style {
+	case linestyle.Solid:
+		// no dash pattern needed
+	case linestyle.Dashed:
+		pdf.SetDashPattern([]float64{1, 1}, 0)
+	case linestyle.Dotted:
+		pdf.SetDashPattern([]float64{0.4, 0.4}, 0)
+	}
+}
+
+// resetDashPattern restores the solid (no-dash) pattern after a non-solid line.
+func resetDashPattern(pdf gofpdfwrapper.Fpdf, style linestyle.Type) {
+	if style != linestyle.Solid {
+		pdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestNewLine(t *testing.T) {
@@ -260,6 +261,28 @@ func TestLine_Add(t *testing.T) {
 		sut := gofpdf.NewLine(fpdf)
 
 		// Act
+		sut.Add(cell, prop)
+	})
+	t.Run("when orientation is horizontal and style is dotted, should use [0.4,0.4] dash pattern", func(t *testing.T) {
+		t.Parallel()
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 10}
+		prop := &props.Line{
+			Orientation:   orientation.Horizontal,
+			Style:         linestyle.Dotted,
+			Thickness:     0.5,
+			SizePercent:   100,
+			OffsetPercent: 50,
+		}
+
+		fpdf := mocks.NewFpdf(t)
+		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		fpdf.EXPECT().SetLineWidth(0.5)
+		fpdf.EXPECT().SetDashPattern([]float64{0.4, 0.4}, 0.0)
+		fpdf.EXPECT().Line(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"))
+		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
+
+		sut := gofpdf.NewLine(fpdf)
 		sut.Add(cell, prop)
 	})
 }

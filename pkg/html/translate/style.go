@@ -3,6 +3,7 @@ package translate
 import (
 	"strings"
 
+	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -119,6 +120,10 @@ func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	cell.BorderRightThickness = style.BorderRightWidth
 	cell.BorderBottomThickness = style.BorderBottomWidth
 	cell.BorderLeftThickness = style.BorderLeftWidth
+	cell.BorderTopStyle = cssBorderStyleToLineStyle(style.BorderTopStyle)
+	cell.BorderRightStyle = cssBorderStyleToLineStyle(style.BorderRightStyle)
+	cell.BorderBottomStyle = cssBorderStyleToLineStyle(style.BorderBottomStyle)
+	cell.BorderLeftStyle = cssBorderStyleToLineStyle(style.BorderLeftStyle)
 	cell.BorderRadius = style.BorderRadius
 	cell.BorderRadiusTopLeft = style.BorderRadiusTopLeft
 	cell.BorderRadiusTopRight = style.BorderRadiusTopRight
@@ -178,4 +183,17 @@ func parseInlineStyle(decl string) map[string]string {
 		raw[prop] = val
 	}
 	return css.ExpandShorthands(raw)
+}
+
+// cssBorderStyleToLineStyle maps a CSS border-style string to a linestyle.Type.
+// Unmapped or empty values default to linestyle.Solid.
+func cssBorderStyleToLineStyle(s string) linestyle.Type {
+	switch s {
+	case "dashed":
+		return linestyle.Dashed
+	case "dotted":
+		return linestyle.Dotted
+	default:
+		return linestyle.Solid
+	}
 }

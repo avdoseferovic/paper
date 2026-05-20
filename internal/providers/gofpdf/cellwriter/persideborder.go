@@ -3,6 +3,7 @@ package cellwriter
 import (
 	"github.com/johnfercher/maroto/v2/internal/providers/gofpdf/gofpdfwrapper"
 	"github.com/johnfercher/maroto/v2/pkg/consts/border"
+	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
@@ -49,14 +50,10 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 	// cell's top-left before any drawing calls, so GetXY gives the true cell origin.
 	x, y := p.fpdf.GetXY()
 
-	p.drawSide(prop.BorderTopThickness, prop.BorderTopColor, prop,
-		x, y, x+width, y)
-	p.drawSide(prop.BorderRightThickness, prop.BorderRightColor, prop,
-		x+width, y, x+width, y+height)
-	p.drawSide(prop.BorderBottomThickness, prop.BorderBottomColor, prop,
-		x, y+height, x+width, y+height)
-	p.drawSide(prop.BorderLeftThickness, prop.BorderLeftColor, prop,
-		x, y, x, y+height)
+	p.drawSide(prop.BorderTopThickness, prop.BorderTopColor, prop.BorderTopStyle, prop, x, y, x+width, y)
+	p.drawSide(prop.BorderRightThickness, prop.BorderRightColor, prop.BorderRightStyle, prop, x+width, y, x+width, y+height)
+	p.drawSide(prop.BorderBottomThickness, prop.BorderBottomColor, prop.BorderBottomStyle, prop, x, y+height, x+width, y+height)
+	p.drawSide(prop.BorderLeftThickness, prop.BorderLeftColor, prop.BorderLeftStyle, prop, x, y, x, y+height)
 
 	// Clear BorderType so downstream CellFormat doesn't also draw borders.
 	modified := *prop
@@ -64,7 +61,7 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 	p.GoToNext(width, height, config, &modified)
 }
 
-func (p *perSideBorderStyler) drawSide(thickness float64, color *props.Color, prop *props.Cell, x1, y1, x2, y2 float64) {
+func (p *perSideBorderStyler) drawSide(thickness float64, color *props.Color, style linestyle.Type, prop *props.Cell, x1, y1, x2, y2 float64) {
 	if thickness <= 0 {
 		return
 	}
@@ -77,5 +74,16 @@ func (p *perSideBorderStyler) drawSide(thickness float64, color *props.Color, pr
 		p.fpdf.SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
 	}
 
+	switch style {
+	case linestyle.Dashed:
+		p.fpdf.SetDashPattern([]float64{1, 1}, 0)
+	case linestyle.Dotted:
+		p.fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
+	}
+
 	p.fpdf.Line(x1, y1, x2, y2)
+
+	if style != linestyle.Solid && style != "" {
+		p.fpdf.SetDashPattern([]float64{1, 0}, 0)
+	}
 }
