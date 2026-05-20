@@ -1,8 +1,6 @@
 package translate
 
 import (
-	"strings"
-
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/htmllist"
 	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
@@ -13,22 +11,34 @@ import (
 )
 
 // listRows converts <ul>/<ol> into a single row containing an HTMLList component.
-func listRows(n *dom.Node) []core.Row {
-	list := buildList(n)
+func (tr *translator) listRows(n *dom.Node) []core.Row {
+	style := computeNodeStyle(tr.sheet, n, nil)
+	list := tr.buildList(n)
 	if list == nil {
 		return nil
 	}
-	c := col.New().Add(list)
+	var component core.Component = list
+	if style.MarginTop > 0 || style.MarginRight > 0 || style.MarginBottom > 0 || style.MarginLeft > 0 {
+		component = &marginBox{
+			child:        component,
+			marginTop:    style.MarginTop,
+			marginRight:  style.MarginRight,
+			marginBottom: style.MarginBottom,
+			marginLeft:   style.MarginLeft,
+		}
+	}
+	c := col.New().Add(component)
 	return []core.Row{row.New().Add(c)}
 }
 
-func buildList(n *dom.Node) *htmllist.HTMLList {
+func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 	style := htmllist.Bullet
 	if n.Tag() == "ol" {
 		style = listStyleFromType(n.Attr("type"))
-		if hasClass(n, "circle-numbers") {
-			style = htmllist.DecimalCircle
-		}
+	}
+	cssStyle := computeNodeStyle(tr.sheet, n, nil)
+	if s, ok := listStyleFromCSS(cssStyle.ListStyleType); ok {
+		style = s
 	}
 
 	var items []htmllist.Item
@@ -36,7 +46,7 @@ func buildList(n *dom.Node) *htmllist.HTMLList {
 		if child.Tag() != "li" {
 			continue
 		}
-		items = append(items, buildItem(child))
+		items = append(items, tr.buildItem(child))
 	}
 	if len(items) == 0 {
 		return nil
@@ -44,17 +54,33 @@ func buildList(n *dom.Node) *htmllist.HTMLList {
 	return htmllist.New(items, htmllist.Prop{Style: style})
 }
 
-// hasClass reports whether the node's class attribute contains the given class name.
-func hasClass(n *dom.Node, name string) bool {
-	for _, c := range strings.Fields(n.Attr("class")) {
-		if c == name {
-			return true
-		}
+// listStyleFromCSS maps a CSS list-style-type value to an htmllist.StyleType.
+// Returns ok=false when the value is empty or unrecognised so the caller keeps
+// its existing default (bullet for ul, decimal/type-attr for ol).
+func listStyleFromCSS(val string) (htmllist.StyleType, bool) {
+	switch val {
+	case "":
+		return "", false
+	case "disc", "circle", "square":
+		return htmllist.Bullet, true
+	case "decimal":
+		return htmllist.Decimal, true
+	case "decimal-circle":
+		return htmllist.DecimalCircle, true
+	case "lower-alpha", "lower-latin":
+		return htmllist.LowerAlpha, true
+	case "upper-alpha", "upper-latin":
+		return htmllist.UpperAlpha, true
+	case "lower-roman":
+		return htmllist.LowerRoman, true
+	case "upper-roman":
+		return htmllist.UpperRoman, true
+	default:
+		return "", false
 	}
-	return false
 }
 
-func buildItem(li *dom.Node) htmllist.Item {
+func (tr *translator) buildItem(li *dom.Node) htmllist.Item {
 	item := htmllist.Item{}
 
 	// Recursively check for nested ul/ol; collect inline content into runs.
@@ -62,7 +88,7 @@ func buildItem(li *dom.Node) htmllist.Item {
 	for _, c := range li.Children() {
 		switch c.Tag() {
 		case "ul", "ol":
-			item.SubList = buildList(c)
+			item.SubList = tr.buildList(c)
 		default:
 			// Use inline walker on each child to flatten its text and styling.
 			walkInline(c, runContext{}, &runs)

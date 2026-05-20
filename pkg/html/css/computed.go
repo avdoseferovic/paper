@@ -80,6 +80,10 @@ type ComputedStyle struct {
 	FlexBasisAuto bool    // true when flex-basis:auto was explicitly set
 	FlexBasisPct  float64 // >0 when flex-basis was a percentage (0–100 scale)
 
+	// List marker style (for ul/ol). Supports standard CSS values plus the
+	// "decimal-circle" extension that renders numbers inside filled discs.
+	ListStyleType string
+
 	unsupportedHandler func(prop, val string)
 }
 
@@ -241,6 +245,8 @@ func (s *ComputedStyle) Apply(prop, val string, parent *ComputedStyle) {
 		s.BorderRadiusBottomLeft = ParseLength(val, 0)
 	case "border-bottom-right-radius":
 		s.BorderRadiusBottomRight = ParseLength(val, 0)
+	case "list-style-type":
+		s.ListStyleType = strings.TrimSpace(val)
 	case "vertical-align":
 		// stored implicitly via usage context; no field needed yet
 	default:

@@ -3,6 +3,7 @@ package htmllist
 
 import (
 	"github.com/johnfercher/go-tree/node"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -182,10 +183,13 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 		provider.AddText(label, cell, l.markerTextProp())
 		return
 	}
-	// Inscribe the circle in a square sized by the shorter side of the marker cell.
+	// Draw the circle slightly larger than the text line box. The marker cell's
+	// gutter is intentionally wider than a line, so this keeps the disc readable
+	// without stealing horizontal space from the list item.
 	diameter := cell.Width
-	if cell.Height < diameter {
-		diameter = cell.Height
+	lineDiameter := cell.Height * 1.28
+	if lineDiameter < diameter {
+		diameter = lineDiameter
 	}
 	circleCell := &entity.Cell{
 		X:      cell.X + (cell.Width-diameter)/2,
@@ -200,8 +204,17 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 	sp.DrawFilledCircle(circleCell, bg)
 
 	// Number rendered as centred text inside the circle.
-	tp := l.markerTextProp()
+	tp := l.circleMarkerTextProp()
 	tp.Align = "center"
+	fontH := provider.GetFontHeight(&props.Font{
+		Family: tp.Family,
+		Style:  tp.Style,
+		Size:   tp.Size,
+	})
+	tp.Top = (circleCell.Height - fontH) / 2
+	if tp.Top < 0 {
+		tp.Top = 0
+	}
 	if l.prop.MarkerTextColor != nil {
 		tp.Color = l.prop.MarkerTextColor
 	} else {
@@ -257,6 +270,16 @@ func (l *HTMLList) markerTextProp() *props.Text {
 	tp := &props.Text{}
 	if l.config != nil {
 		tp.MakeValid(l.config.DefaultFont)
+	}
+	return tp
+}
+
+func (l *HTMLList) circleMarkerTextProp() *props.Text {
+	tp := l.markerTextProp()
+	tp.Style = fontstyle.Bold
+	tp.Size *= 0.72
+	if tp.Size <= 0 {
+		tp.Size = 7
 	}
 	return tp
 }

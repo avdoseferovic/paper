@@ -11,7 +11,7 @@ import (
 )
 
 // TestStyledRowRendersWithoutPanic confirms the full translate→render pipeline
-// for a .title-band heading (which exercises SetCursor+borderRadius) produces
+// for a styled h2 heading (which exercises SetCursor+borderRadius) produces
 // a valid non-empty PDF with no panic. This is the integration smoke test for
 // the margin-relative coordinate fix: prior to the fix, SetCursor/DrawFilledCircle
 // sent the pen to (0,0) instead of (marginLeft, marginTop), producing misaligned
@@ -29,11 +29,12 @@ func TestStyledRowRendersWithoutPanic(t *testing.T) {
 
 	m := maroto.New(cfg)
 	err := m.AddHTML(`<html><head><style>
-		h2 { color: #1a3e72; font-size: 12pt }
+		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm; font-size: 12pt }
+		.numbered { list-style-type: decimal-circle }
 	</style></head><body>
-		<h2 class="title-band">SUMMARY</h2>
+		<h2>SUMMARY</h2>
 		<p>Content below the band.</p>
-		<ol class="circle-numbers"><li>Item one</li><li>Item two</li></ol>
+		<ol class="numbered"><li>Item one</li><li>Item two</li></ol>
 	</body></html>`)
 	require.NoError(t, err)
 
@@ -58,9 +59,11 @@ func TestStyledRowWithImageBaseDir(t *testing.T) {
 
 	m := maroto.New(cfg)
 	// No image resolver — img falls back to alt text path (no panic expected).
-	rows, err := html.FromString(`<html><body>
+	rows, err := html.FromString(`<html><head><style>
+		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm }
+	</style></head><body>
 		<img src="nonexistent.svg" width="14mm" height="14mm" alt="logo">
-		<h2 class="title-band">INVOICE</h2>
+		<h2>INVOICE</h2>
 		<p>Body text.</p>
 	</body></html>`)
 	require.NoError(t, err)

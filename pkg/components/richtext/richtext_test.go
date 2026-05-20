@@ -11,6 +11,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func defaultConfig() *entity.Config {
@@ -123,6 +124,32 @@ func TestRichText_GetHeight(t *testing.T) {
 		h2 := sut.GetHeight(provider, cell)
 		assert.Equal(t, h1, h2)
 	})
+
+	t.Run("counts mixed inline runs as one paragraph instead of one line per run", func(t *testing.T) {
+		t.Parallel()
+		runs := []props.RichRun{
+			{Text: "This paragraph combines "},
+			{Text: "bold", Style: fontstyle.Bold},
+			{Text: ", "},
+			{Text: "italic", Style: fontstyle.Italic},
+			{Text: ", "},
+			{Text: "subscript", VerticalAlign: "sub"},
+			{Text: ", "},
+			{Text: "superscript", VerticalAlign: "super"},
+			{Text: ", and text."},
+		}
+
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"), mock.AnythingOfType("*props.Text"),
+			mock.AnythingOfType("float64")).Return(1).Once()
+
+		cell := &entity.Cell{Width: 500, Height: 100}
+		sut := richtext.New(runs)
+		sut.SetConfig(defaultConfig())
+
+		assert.Equal(t, 5.0, sut.GetHeight(provider, cell))
+	})
 }
 
 func TestRichText_Render(t *testing.T) {
@@ -146,7 +173,37 @@ func TestRichText_Render(t *testing.T) {
 		// Should not panic
 		sut.Render(provider, cell)
 	})
+
+	t.Run("resolves empty run font fields before rich text provider render", func(t *testing.T) {
+		t.Parallel()
+		provider := &richTextProviderFake{Provider: mocks.NewProvider(t)}
+		cell := &entity.Cell{Width: 50, Height: 100}
+		sut := richtext.New([]props.RichRun{{Text: "hello"}})
+		sut.SetConfig(defaultConfig())
+
+		sut.Render(provider, cell)
+
+		require.Len(t, provider.runs, 1)
+		assert.Equal(t, "Helvetica", provider.runs[0].Family)
+		assert.Equal(t, fontstyle.Normal, provider.runs[0].Style)
+		assert.Equal(t, 10.0, provider.runs[0].Size)
+	})
 }
 
 // Verify RichText implements core.Component at compile time.
 var _ core.Component = (*richtext.RichText)(nil)
+
+type richTextProviderFake struct {
+	*mocks.Provider
+	runs []props.RichRun
+}
+
+func (f *richTextProviderFake) MeasureString(_ string, _ *props.Text) float64 {
+	return 0
+}
+
+func (f *richTextProviderFake) AddTextAt(_, _ float64, _ string, _ *props.Text) {}
+
+func (f *richTextProviderFake) AddRichText(runs []props.RichRun, _ *entity.Cell, _ *props.RichText) {
+	f.runs = runs
+}

@@ -122,7 +122,7 @@ func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 // AddText with the first run's style.
 func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 	if rtp, ok := provider.(core.RichTextProvider); ok {
-		rtp.AddRichText(r.runs, cell, &r.prop)
+		rtp.AddRichText(r.runsWithDefaultFont(), cell, &r.prop)
 		return
 	}
 
@@ -136,6 +136,26 @@ func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 	provider.AddText(r.allText(), cell, textProp)
 }
 
+func (r *RichText) runsWithDefaultFont() []props.RichRun {
+	if r.config == nil || r.config.DefaultFont == nil {
+		return r.runs
+	}
+	out := make([]props.RichRun, len(r.runs))
+	for i, run := range r.runs {
+		out[i] = run
+		if out[i].Family == "" {
+			out[i].Family = r.config.DefaultFont.Family
+		}
+		if out[i].Style == "" {
+			out[i].Style = r.config.DefaultFont.Style
+		}
+		if out[i].Size == 0 {
+			out[i].Size = r.config.DefaultFont.Size
+		}
+	}
+	return out
+}
+
 // countLines totals the visual line count across runs.
 //
 // IMPORTANT: a paragraph's logical lines come from BOTH inline word-wrap
@@ -146,22 +166,11 @@ func (r *RichText) Render(provider core.Provider, cell *entity.Cell) {
 // lines per segment without double-counting the line breaks themselves.
 func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colWidth float64) int {
 	total := 0
-	for _, run := range r.runs {
-		if run.Text == "" {
+	for _, segment := range strings.Split(r.allText(), "\n") {
+		if segment == "" {
 			continue
 		}
-		segments := strings.Split(run.Text, "\n")
-		for i, seg := range segments {
-			if seg == "" {
-				// Blank segment only counts as a line when sandwiched between
-				// \n breaks (i.e. not the trailing empty segment from "A\n").
-				if i < len(segments)-1 {
-					total++
-				}
-				continue
-			}
-			total += provider.GetLinesQuantity(seg, fontProp, colWidth)
-		}
+		total += provider.GetLinesQuantity(segment, fontProp, colWidth)
 	}
 	return total
 }

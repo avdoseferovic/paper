@@ -117,7 +117,7 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 				continue
 			}
 			w := colWidth * float64(declCell.Colspan)
-			innerCell := entity.Cell{X: x, Y: y, Width: w, Height: rowH}
+			innerCell := paddedTableCell(x, y, w, rowH, declCell.Style)
 			if declCell.Style != nil {
 				// Reset the pen to the cell origin before CreateCol so CellFormat
 				// paints the styled background at the right (x, y) — otherwise the
@@ -157,8 +157,8 @@ func (t *Table) passOne(provider core.Provider, cell *entity.Cell, colWidth floa
 			if c.Rowspan > 1 || c.Content == nil {
 				continue
 			}
-			inner := &entity.Cell{Width: colWidth * float64(c.Colspan), Height: cell.Height}
-			if h := c.Content.GetHeight(provider, inner); h > heights[r] {
+			inner := paddedTableCell(0, 0, colWidth*float64(c.Colspan), cell.Height, c.Style)
+			if h := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style); h > heights[r] {
 				heights[r] = h
 			}
 		}
@@ -176,8 +176,8 @@ func (t *Table) passTwo(provider core.Provider, cell *entity.Cell, colWidth floa
 			if c.Rowspan <= 1 || c.Content == nil {
 				continue
 			}
-			inner := &entity.Cell{Width: colWidth * float64(c.Colspan), Height: cell.Height}
-			needed := c.Content.GetHeight(provider, inner)
+			inner := paddedTableCell(0, 0, colWidth*float64(c.Colspan), cell.Height, c.Style)
+			needed := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style)
 			spanEnd := min(r+c.Rowspan, t.rowCount)
 			sum := 0.0
 			for i := r; i < spanEnd; i++ {
@@ -199,6 +199,31 @@ func (t *Table) passTwo(provider core.Provider, cell *entity.Cell, colWidth floa
 			}
 		}
 	}
+}
+
+func paddedTableCell(x, y, width, height float64, style *props.Cell) entity.Cell {
+	inner := entity.Cell{X: x, Y: y, Width: width, Height: height}
+	if style == nil {
+		return inner
+	}
+	inner.X += style.PaddingLeft
+	inner.Y += style.PaddingTop
+	inner.Width -= style.PaddingLeft + style.PaddingRight
+	inner.Height -= style.PaddingTop + style.PaddingBottom
+	if inner.Width < 0 {
+		inner.Width = 0
+	}
+	if inner.Height < 0 {
+		inner.Height = 0
+	}
+	return inner
+}
+
+func verticalPadding(style *props.Cell) float64 {
+	if style == nil {
+		return 0
+	}
+	return style.PaddingTop + style.PaddingBottom
 }
 
 func (t *Table) defaultRowHeight(provider core.Provider) float64 {

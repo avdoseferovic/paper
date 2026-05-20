@@ -388,6 +388,24 @@ func TestFlexGap(t *testing.T) {
 		assert.Equal(t, len(rowsA[0].GetColumns()), len(rowsB[0].GetColumns()))
 	})
 
+	t.Run("small positive gap uses item margin instead of consuming grid columns", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex;gap:6mm"><div style="flex:1">a</div><div style="flex:1">b</div><div style="flex:1">c</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 3)
+		sum := 0
+		for _, c := range cols {
+			sum += c.GetSize()
+		}
+		assert.Equal(t, 12, sum)
+		assert.Equal(t, 4, cols[0].GetSize())
+		assert.Equal(t, 4, cols[1].GetSize())
+		assert.Equal(t, 4, cols[2].GetSize())
+	})
+
 	t.Run("gap is clamped to half the grid", func(t *testing.T) {
 		t.Parallel()
 		// Huge gap value — should be clamped so items still get reasonable share.

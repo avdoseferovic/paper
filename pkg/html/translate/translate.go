@@ -123,7 +123,7 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	case "table":
 		return tr.tableRows(n)
 	case "ul", "ol":
-		return listRows(n)
+		return tr.listRows(n)
 	case "img":
 		if r, ok := tr.imageRow(n); ok {
 			return []core.Row{r}
@@ -163,9 +163,9 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 }
 
 // paragraphRow converts a block element with inline content into a single auto-height row.
-// When the computed style sets CSS padding (e.g. .title-band has padding: 3mm 5mm),
-// the padding is passed through as the richtext's Top/Right/Bottom/Left offsets so
-// the text is inset from the styled background's edges instead of butting against them.
+// When the computed style sets CSS padding, it is passed through as the richtext's
+// Top/Right/Bottom/Left offsets so the text is inset from the styled background's
+// edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	style := computeNodeStyle(tr.sheet, n, nil)
 	runs := inlineRuns(n)

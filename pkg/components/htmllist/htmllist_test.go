@@ -11,6 +11,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func defaultConfig() *entity.Config {
@@ -125,11 +126,14 @@ var _ core.Component = (*htmllist.HTMLList)(nil)
 // shapeProviderFake embeds mocks.Provider and adds a recording DrawFilledCircle.
 type shapeProviderFake struct {
 	*mocks.Provider
-	drawCalls int
+	drawCalls  int
+	lastCircle *entity.Cell
 }
 
-func (s *shapeProviderFake) DrawFilledCircle(_ *entity.Cell, _ *props.Color) {
+func (s *shapeProviderFake) DrawFilledCircle(cell *entity.Cell, _ *props.Color) {
 	s.drawCalls++
+	copied := cell.Copy()
+	s.lastCircle = &copied
 }
 
 func TestHTMLList_Render_DecimalCircle_CallsDrawFilledCircle(t *testing.T) {
@@ -151,6 +155,26 @@ func TestHTMLList_Render_DecimalCircle_CallsDrawFilledCircle(t *testing.T) {
 	l.Render(provider, cell)
 
 	assert.Equal(t, 2, provider.drawCalls, "DrawFilledCircle should be called once per list item")
+}
+
+func TestHTMLList_Render_DecimalCircle_UsesReadableMarkerBounds(t *testing.T) {
+	t.Parallel()
+	mockProv := mocks.NewProvider(t)
+	mockProv.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+	mockProv.EXPECT().AddText("1", mock.AnythingOfType("*entity.Cell"),
+		mock.MatchedBy(func(tp *props.Text) bool {
+			return tp.Size > 7.1 && tp.Size < 7.3 && tp.Top > 0
+		})).Return()
+
+	provider := &shapeProviderFake{Provider: mockProv}
+
+	l := htmllist.New([]htmllist.Item{{Content: nil}}, htmllist.Prop{Style: htmllist.DecimalCircle})
+	l.SetConfig(defaultConfig())
+	l.Render(provider, &entity.Cell{Width: 100, Height: 200})
+
+	require.NotNil(t, provider.lastCircle)
+	assert.InDelta(t, 6.4, provider.lastCircle.Width, 0.001)
+	assert.Equal(t, provider.lastCircle.Width, provider.lastCircle.Height)
 }
 
 func TestHTMLList_Render_DecimalCircle_FallsBackToTextWhenNoShapeProvider(t *testing.T) {

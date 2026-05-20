@@ -104,6 +104,30 @@ func TestTable_GetHeight(t *testing.T) {
 		h := tbl.GetHeight(provider, cell)
 		assert.GreaterOrEqual(t, h, 0.0)
 	})
+
+	t.Run("includes vertical padding in content height", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		component := mocks.NewComponent(t)
+		component.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 100 && cell.Height == 194
+		})).Return(10.0)
+
+		cells := [][]table.Cell{{
+			{
+				Content: component,
+				Style:   &props.Cell{PaddingTop: 2, PaddingBottom: 4},
+			},
+		}}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		h := tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200})
+		assert.Equal(t, 16.0, h)
+	})
 }
 
 func TestTable_SetConfig(t *testing.T) {
@@ -149,5 +173,39 @@ func TestTable_Render(t *testing.T) {
 
 		cell := &entity.Cell{Width: 100, Height: 200}
 		assert.NotPanics(t, func() { tbl.Render(provider, cell) })
+	})
+
+	t.Run("renders cell content inside padding", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		component := mocks.NewComponent(t)
+		component.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 92 && cell.Height == 194
+		})).Return(10.0)
+		component.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 5 && cell.Y == 2 && cell.Width == 92 && cell.Height == 10
+		})).Return()
+		provider.EXPECT().CreateCol(100.0, 16.0, mock.AnythingOfType("*entity.Config"),
+			mock.AnythingOfType("*props.Cell")).Return()
+		provider.EXPECT().CreateRow(16.0).Return()
+
+		cells := [][]table.Cell{{
+			{
+				Content: component,
+				Style: &props.Cell{
+					PaddingTop:    2,
+					PaddingRight:  3,
+					PaddingBottom: 4,
+					PaddingLeft:   5,
+				},
+			},
+		}}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
 	})
 }

@@ -3,7 +3,14 @@ package translate
 import (
 	"testing"
 
+	"github.com/johnfercher/go-tree/node"
+	"github.com/johnfercher/maroto/v2/pkg/components/col"
+	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
+	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,26 +58,50 @@ func TestBlockContainer_PlainDivStillFlattens(t *testing.T) {
 	assert.Len(t, rows, 2)
 }
 
-func TestBuiltinCSS_TitleBand(t *testing.T) {
+func TestBlockContainer_RenderRestoresCursorForParentRowAdvance(t *testing.T) {
 	t.Parallel()
 
-	t.Run(".title-band resolves without user <style>", func(t *testing.T) {
-		t.Parallel()
-		tr, doc := parseTranslator(t, `<html><body><h2 class="title-band">SUMMARY</h2></body></html>`)
-		h2 := findNode(doc, "h2")
-		require.NotNil(t, h2)
-		s := computeNodeStyle(tr.sheet, h2, nil)
-		require.NotNil(t, s.BackgroundColor)
-		// #1a3e72 → R=26, G=62, B=114
-		assert.Equal(t, 26, s.BackgroundColor.R)
-		assert.Equal(t, 62, s.BackgroundColor.G)
-		assert.Equal(t, 114, s.BackgroundColor.B)
-	})
+	provider := &cursorProvider{}
+	cfg := &entity.Config{MaxGridSize: 12}
+	rows := []core.Row{
+		row.New(5).Add(col.New(12)),
+		row.New(7).Add(col.New(12)),
+	}
+	container := &blockContainer{rows: rows}
+	container.SetConfig(cfg)
 
-	t.Run("user CSS overrides built-in .title-band", func(t *testing.T) {
+	cell := &entity.Cell{X: 10, Y: 20, Width: 100, Height: 12}
+	container.Render(provider, cell)
+
+	assert.Equal(t, 10.0, provider.x)
+	assert.Equal(t, 20.0, provider.y)
+}
+
+func TestFlexCellContent_RenderRestoresCursorForParentRowAdvance(t *testing.T) {
+	t.Parallel()
+
+	provider := &cursorProvider{}
+	cfg := &entity.Config{MaxGridSize: 12}
+	content := newFlexCellContent([]core.Row{
+		row.New(5).Add(col.New(12)),
+		row.New(7).Add(col.New(12)),
+	})
+	content.SetConfig(cfg)
+
+	cell := &entity.Cell{X: 10, Y: 20, Width: 100, Height: 12}
+	content.Render(provider, cell)
+
+	assert.Equal(t, 10.0, provider.x)
+	assert.Equal(t, 20.0, provider.y)
+}
+
+func TestCSSCascade_ClassAndInline(t *testing.T) {
+	t.Parallel()
+
+	t.Run("user class rule applies background-color", func(t *testing.T) {
 		t.Parallel()
-		tr, doc := parseTranslator(t, `<html><head><style>.title-band{background-color:#ff0000}</style></head>
-			<body><h2 class="title-band">SUMMARY</h2></body></html>`)
+		tr, doc := parseTranslator(t, `<html><head><style>.band{background-color:#ff0000}</style></head>
+			<body><h2 class="band">SUMMARY</h2></body></html>`)
 		h2 := findNode(doc, "h2")
 		require.NotNil(t, h2)
 		s := computeNodeStyle(tr.sheet, h2, nil)
@@ -79,10 +110,10 @@ func TestBuiltinCSS_TitleBand(t *testing.T) {
 		assert.Equal(t, 0, s.BackgroundColor.G)
 	})
 
-	t.Run("inline style wins over both", func(t *testing.T) {
+	t.Run("inline style wins over class rule", func(t *testing.T) {
 		t.Parallel()
-		tr, doc := parseTranslator(t, `<html><head><style>.title-band{background-color:#ff0000}</style></head>
-			<body><h2 class="title-band" style="background-color:#00ff00">SUMMARY</h2></body></html>`)
+		tr, doc := parseTranslator(t, `<html><head><style>.band{background-color:#ff0000}</style></head>
+			<body><h2 class="band" style="background-color:#00ff00">SUMMARY</h2></body></html>`)
 		h2 := findNode(doc, "h2")
 		require.NotNil(t, h2)
 		s := computeNodeStyle(tr.sheet, h2, nil)
@@ -90,6 +121,50 @@ func TestBuiltinCSS_TitleBand(t *testing.T) {
 		assert.Equal(t, 0, s.BackgroundColor.R)
 		assert.Equal(t, 255, s.BackgroundColor.G)
 	})
+
+	t.Run("class selector wins over tag selector", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><head><style>h2{background-color:#ff0000}.band{background-color:#0000ff}</style></head>
+			<body><h2 class="band">SUMMARY</h2></body></html>`)
+		h2 := findNode(doc, "h2")
+		require.NotNil(t, h2)
+		s := computeNodeStyle(tr.sheet, h2, nil)
+		require.NotNil(t, s.BackgroundColor)
+		assert.Equal(t, 0, s.BackgroundColor.R)
+		assert.Equal(t, 255, s.BackgroundColor.B)
+	})
+}
+
+func TestBuiltinCSS_ListMargins(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><h2>PAYMENT</h2><ol><li>One</li></ol></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+
+	structure := rows[1].GetStructure()
+	found := false
+	walkStructure(structure, func(s core.Structure) {
+		if s.Type == "margin_box" {
+			found = true
+			assert.Equal(t, 2.0, s.Details["margin_top"])
+			assert.Equal(t, 1.0, s.Details["margin_bottom"])
+		}
+	})
+	assert.True(t, found, "expected built-in ol margin to wrap list content")
+}
+
+func walkStructure(n *node.Node[core.Structure], fn func(core.Structure)) {
+	if n == nil {
+		return
+	}
+	fn(n.GetData())
+	for _, child := range n.GetNexts() {
+		walkStructure(child, fn)
+	}
 }
 
 func TestShouldUseContainer(t *testing.T) {
@@ -140,3 +215,69 @@ func TestShouldUseContainer(t *testing.T) {
 		assert.False(t, shouldUseContainer(s))
 	})
 }
+
+type cursorProvider struct {
+	x float64
+	y float64
+}
+
+func (p *cursorProvider) SetCursor(x, y float64) {
+	p.x = x
+	p.y = y
+}
+
+func (p *cursorProvider) CreateRow(height float64) {
+	p.y += height
+}
+
+func (p *cursorProvider) CreateCol(width, height float64, config *entity.Config, prop *props.Cell) {}
+
+func (p *cursorProvider) AddLine(cell *entity.Cell, prop *props.Line) {}
+
+func (p *cursorProvider) AddText(text string, cell *entity.Cell, prop *props.Text) {}
+
+func (p *cursorProvider) AddCheckbox(label string, cell *entity.Cell, prop *props.Checkbox) {}
+
+func (p *cursorProvider) GetFontHeight(prop *props.Font) float64 { return 1 }
+
+func (p *cursorProvider) GetLinesQuantity(text string, textProp *props.Text, colWidth float64) int {
+	return 1
+}
+
+func (p *cursorProvider) AddMatrixCode(code string, cell *entity.Cell, prop *props.Rect) {}
+
+func (p *cursorProvider) AddQrCode(code string, cell *entity.Cell, rect *props.Rect) {}
+
+func (p *cursorProvider) AddBarCode(code string, cell *entity.Cell, prop *props.Barcode) {}
+
+func (p *cursorProvider) GetDimensionsByMatrixCode(code string) (*entity.Dimensions, error) {
+	return nil, nil
+}
+
+func (p *cursorProvider) GetDimensionsByImageByte(bytes []byte, extension extension.Type) (*entity.Dimensions, error) {
+	return nil, nil
+}
+
+func (p *cursorProvider) GetDimensionsByImage(file string) (*entity.Dimensions, error) {
+	return nil, nil
+}
+
+func (p *cursorProvider) GetDimensionsByQrCode(code string) (*entity.Dimensions, error) {
+	return nil, nil
+}
+
+func (p *cursorProvider) AddImageFromFile(value string, cell *entity.Cell, prop *props.Rect) {}
+
+func (p *cursorProvider) AddImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
+}
+
+func (p *cursorProvider) AddBackgroundImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
+}
+
+func (p *cursorProvider) GenerateBytes() ([]byte, error) { return nil, nil }
+
+func (p *cursorProvider) SetProtection(protection *entity.Protection) {}
+
+func (p *cursorProvider) SetCompression(compression bool) {}
+
+func (p *cursorProvider) SetMetadata(metadata *entity.Metadata) {}

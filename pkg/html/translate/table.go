@@ -101,21 +101,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	content := richtext.New(runs)
 
-	// Build cell Style: prefer cell's own background, fall back to row background.
-	var cellProp *props.Cell
-	effectiveBg := cellStyle.BackgroundColor
-	if effectiveBg == nil {
-		effectiveBg = rowStyle.BackgroundColor
-	}
-	if effectiveBg != nil {
-		cellProp = &props.Cell{
-			BackgroundColor: &props.Color{
-				Red:   effectiveBg.R,
-				Green: effectiveBg.G,
-				Blue:  effectiveBg.B,
-			},
-		}
-	}
+	cellProp := tableCellStyle(cellStyle, rowStyle)
 
 	return table.Cell{
 		Content: content,
@@ -123,6 +109,37 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 		Rowspan: rowspan,
 		Style:   cellProp,
 	}
+}
+
+func tableCellStyle(cellStyle, rowStyle *css.ComputedStyle) *props.Cell {
+	if cellStyle == nil {
+		return nil
+	}
+	cellProp := &props.Cell{
+		PaddingTop:    cellStyle.PaddingTop,
+		PaddingRight:  cellStyle.PaddingRight,
+		PaddingBottom: cellStyle.PaddingBottom,
+		PaddingLeft:   cellStyle.PaddingLeft,
+	}
+
+	effectiveBg := cellStyle.BackgroundColor
+	if effectiveBg == nil && rowStyle != nil {
+		effectiveBg = rowStyle.BackgroundColor
+	}
+	if effectiveBg != nil {
+		cellProp.BackgroundColor = &props.Color{
+			Red:   effectiveBg.R,
+			Green: effectiveBg.G,
+			Blue:  effectiveBg.B,
+		}
+	}
+
+	if cellProp.BackgroundColor == nil &&
+		cellProp.PaddingTop == 0 && cellProp.PaddingRight == 0 &&
+		cellProp.PaddingBottom == 0 && cellProp.PaddingLeft == 0 {
+		return nil
+	}
+	return cellProp
 }
 
 func atoiOr(s string, def int) int {

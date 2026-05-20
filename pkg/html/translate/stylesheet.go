@@ -22,18 +22,16 @@ type compiledRule struct {
 
 // builtinCSS is a Maroto-shipped stylesheet prepended to every document.
 // Its rules apply before user-supplied <style> blocks so users may override
-// any built-in class. Inline style="" still has the highest precedence.
+// any built-in default. Inline style="" still has the highest precedence.
+// Only tag-level defaults live here — opinionated presentational classes
+// belong in the consumer's own stylesheet.
 const builtinCSS = `
 p { padding: 1mm 0 }
 h1 { padding: 3mm 0 1mm 0 }
 h2 { padding: 2mm 0 1mm 0 }
 h3 { padding: 1mm 0 }
-.title-band {
-  background-color: #1a3e72;
-  color: #ffffff;
-  padding: 3mm 5mm;
-  border-radius: 2mm;
-}
+th { padding: 0.8mm 1mm }
+ul, ol { margin-top: 2mm; margin-bottom: 1mm }
 `
 
 // parseStylesheet parses CSS text from <style> blocks into compiled rules.
@@ -75,8 +73,8 @@ func parseStylesheet(text string) *stylesheet {
 
 // applyToNode merges all matching stylesheet declarations into the ComputedStyle
 // following CSS cascade rules: lower specificity first, equal specificity by source
-// order (later wins). This ensures user-defined `h2 { color: blue }` does not
-// override built-in `.title-band { color: white }` (the class is more specific).
+// order (later wins). A class selector therefore wins over a tag selector even if
+// the tag rule appears later in the stylesheet text.
 func (s *stylesheet) applyToNode(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle) {
 	if s == nil || len(s.rules) == 0 {
 		return

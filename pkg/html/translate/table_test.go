@@ -72,7 +72,7 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 0, cells[0].Style.BackgroundColor.Green)
 	})
 
-	t.Run("tr without background produces nil cell Style", func(t *testing.T) {
+	t.Run("tr without background produces nil td Style", func(t *testing.T) {
 		t.Parallel()
 		tr, doc := parseTranslator(t, `<html><body><table>
 			<tr><td>Cell</td></tr>
@@ -85,8 +85,48 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		cells := tr.buildRow(trNode, rowStyle)
 
 		require.Len(t, cells, 1)
-		// No row or cell background → Style should be nil (no spurious allocation)
 		assert.Nil(t, cells[0].Style)
+	})
+
+	t.Run("cell padding is carried into table cell style", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><th style="padding:2mm 3mm 4mm 5mm">Item</th></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Style)
+		assert.Equal(t, 2.0, cells[0].Style.PaddingTop)
+		assert.Equal(t, 3.0, cells[0].Style.PaddingRight)
+		assert.Equal(t, 4.0, cells[0].Style.PaddingBottom)
+		assert.Equal(t, 5.0, cells[0].Style.PaddingLeft)
+	})
+
+	t.Run("built-in table header padding applies when css omits padding", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><th>Item</th><td>Value</td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 2)
+		require.NotNil(t, cells[0].Style)
+		assert.Equal(t, 0.8, cells[0].Style.PaddingTop)
+		assert.Equal(t, 1.0, cells[0].Style.PaddingRight)
+		assert.Equal(t, 0.8, cells[0].Style.PaddingBottom)
+		assert.Equal(t, 1.0, cells[0].Style.PaddingLeft)
+		assert.Nil(t, cells[1].Style)
 	})
 }
 

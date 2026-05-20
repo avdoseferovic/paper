@@ -62,4 +62,7 @@ func (f *flexCellContent) Render(provider core.Provider, cell *entity.Cell) {
 		r.Render(provider, innerCell)
 		innerCell.Y += h
 	}
+	if pp != nil {
+		pp.SetCursor(cell.X, cell.Y)
+	}
 }

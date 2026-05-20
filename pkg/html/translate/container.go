@@ -23,6 +23,68 @@ type blockContainer struct {
 	cachedHeight  float64
 }
 
+type marginBox struct {
+	child        core.Component
+	marginTop    float64
+	marginRight  float64
+	marginBottom float64
+	marginLeft   float64
+}
+
+func (m *marginBox) SetConfig(config *entity.Config) {
+	if m.child != nil {
+		m.child.SetConfig(config)
+	}
+}
+
+func (m *marginBox) GetStructure() *node.Node[core.Structure] {
+	str := core.Structure{
+		Type: "margin_box",
+		Details: map[string]any{
+			"margin_top":    m.marginTop,
+			"margin_right":  m.marginRight,
+			"margin_bottom": m.marginBottom,
+			"margin_left":   m.marginLeft,
+		},
+	}
+	n := node.New(str)
+	if m.child != nil {
+		n.AddNext(m.child.GetStructure())
+	}
+	return n
+}
+
+func (m *marginBox) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
+	if m.child == nil {
+		return m.marginTop + m.marginBottom
+	}
+	inner := m.innerCell(cell)
+	return m.child.GetHeight(provider, &inner) + m.marginTop + m.marginBottom
+}
+
+func (m *marginBox) Render(provider core.Provider, cell *entity.Cell) {
+	if m.child == nil {
+		return
+	}
+	inner := m.innerCell(cell)
+	m.child.Render(provider, &inner)
+}
+
+func (m *marginBox) innerCell(cell *entity.Cell) entity.Cell {
+	inner := cell.Copy()
+	inner.X += m.marginLeft
+	inner.Y += m.marginTop
+	inner.Width -= m.marginLeft + m.marginRight
+	inner.Height -= m.marginTop + m.marginBottom
+	if inner.Width < 0 {
+		inner.Width = 0
+	}
+	if inner.Height < 0 {
+		inner.Height = 0
+	}
+	return inner
+}
+
 // SetConfig propagates the config to every child row.
 func (b *blockContainer) SetConfig(config *entity.Config) {
 	b.config = config
@@ -97,6 +159,9 @@ func (b *blockContainer) Render(provider core.Provider, cell *entity.Cell) {
 		}
 		r.Render(provider, innerCell)
 		innerCell.Y += h
+	}
+	if pp != nil {
+		pp.SetCursor(cell.X, cell.Y)
 	}
 }
 

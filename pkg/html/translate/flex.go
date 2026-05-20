@@ -52,12 +52,20 @@ func (tr *translator) flexRow(n *dom.Node, containerStyle *css.ComputedStyle) co
 	sizes := computeFlexSizes(styles, available)
 	sizes = bumpZerosWithoutOverflow(sizes, available)
 
+	visualGap := 0.0
+	if gapCols == 0 {
+		visualGap = containerStyle.ColumnGap
+	}
+
 	itemCols := make([]core.Col, len(children))
 	used := 0
 	for i, child := range children {
 		used += sizes[i]
 		c := col.New(sizes[i])
 		if comp := tr.flexItemContent(child, styles[i]); comp != nil {
+			if visualGap > 0 && i > 0 {
+				comp = &marginBox{child: comp, marginLeft: visualGap}
+			}
 			c = c.Add(comp)
 		}
 		itemCols[i] = c
@@ -163,7 +171,19 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 		}
 		applyBlockStyling(n, runs)
 		applyInlineStyleToRuns(style, runs)
-		return richtext.New(runs, props.RichText{})
+		rt := richtext.New(runs, props.RichText{})
+		if shouldUseContainer(style) {
+			r := row.New().Add(col.New().Add(rt))
+			return &blockContainer{
+				rows:          []core.Row{r},
+				style:         blockCellStyle(style),
+				paddingTop:    style.PaddingTop,
+				paddingRight:  style.PaddingRight,
+				paddingBottom: style.PaddingBottom,
+				paddingLeft:   style.PaddingLeft,
+			}
+		}
+		return rt
 	}
 
 	var subRows []core.Row
