@@ -3,10 +3,10 @@ package image_test
 import (
 	"os"
 
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/image"
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/image"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
 )
 
 // ExampleNewFromBytes demonstrates how to create an image component reading bytes.

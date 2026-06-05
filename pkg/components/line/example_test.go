@@ -1,9 +1,9 @@
 package line_test
 
 import (
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/line"
 )
 
 // ExampleNew demonstrates how create a line component.

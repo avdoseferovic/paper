@@ -23,8 +23,8 @@
 - Page orientation is separate: combine this with `WithOrientation(orientation.Horizontal)` to get landscape A4, for example.
 
 ## GoDoc
-* [builder : WithPageSize](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithPageSize)
-* [pagesize : Type](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/consts/pagesize)
+* [builder : WithPageSize](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithPageSize)
+* [pagesize : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/consts/pagesize)
 
 ## Code Example
 [filename](../../assets/examples/custompage/v2/main.go ':include :type=code')
@@ -37,4 +37,4 @@
 [filename](../../assets/text/custompagev2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/custompage.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/custompage.json  ':include :type=code')

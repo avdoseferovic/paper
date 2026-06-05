@@ -3,10 +3,10 @@
 package mocks
 
 import (
-	cache "github.com/johnfercher/paper/v2/internal/cache"
-	entity "github.com/johnfercher/paper/v2/pkg/core/entity"
+	cache "github.com/avdoseferovic/paper/v2/internal/cache"
+	entity "github.com/avdoseferovic/paper/v2/pkg/core/entity"
 
-	gofpdf "github.com/johnfercher/paper/v2/internal/providers/paper"
+	gofpdf "github.com/avdoseferovic/paper/v2/internal/providers/paper"
 
 	mock "github.com/stretchr/testify/mock"
 )

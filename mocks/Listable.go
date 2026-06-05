@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	core "github.com/johnfercher/paper/v2/pkg/core"
+	core "github.com/avdoseferovic/paper/v2/pkg/core"
 
 	mock "github.com/stretchr/testify/mock"
 )

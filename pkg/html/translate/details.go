@@ -1,13 +1,13 @@
 package translate
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/richtext"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/html/dom"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/richtext"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // detailsRows treats <details> as always expanded: <summary> renders as a bold

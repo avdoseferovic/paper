@@ -13,9 +13,9 @@ Paper provides two complementary ways to combine PDF documents:
 - For documents generated entirely within paper, using `AddPages` to compose sections before `Generate` is simpler and avoids a second merge step.
 
 ## GoDoc
-* [merge : Bytes](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/merge#Bytes)
-* [interface : Document](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/core#Document)
-* [pdf : Merge](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/core#Pdf.Merge)
+* [merge : Bytes](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/merge#Bytes)
+* [interface : Document](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/core#Document)
+* [pdf : Merge](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/core#Pdf.Merge)
 
 ## Code Example
 [filename](../../assets/examples/mergepdf/v2/main.go  ':include :type=code')
@@ -29,4 +29,4 @@ Paper provides two complementary ways to combine PDF documents:
 [filename](../../assets/text/mergepdfv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/mergepdf.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/mergepdf.json  ':include :type=code')

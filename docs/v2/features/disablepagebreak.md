@@ -10,7 +10,7 @@ By default, paper automatically inserts a new physical page whenever a row would
 - Re-enable the default behaviour by passing `false` or by omitting the call.
 
 ## GoDoc
-* [builder : WithDisableAutoPageBreak](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithDisableAutoPageBreak)
+* [builder : WithDisableAutoPageBreak](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithDisableAutoPageBreak)
 
 ## Code Example
 [filename](../../assets/examples/disablepagebreak/v2/main.go ':include :type=code')
@@ -23,4 +23,4 @@ By default, paper automatically inserts a new physical page whenever a row would
 [filename](../../assets/text/disablepagebreakv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/disablepagebreak.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/disablepagebreak.json  ':include :type=code')

@@ -1,15 +1,15 @@
 package paper
 
 import (
-	gofpdf "github.com/johnfercher/paper/v2/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/v2/internal/paperpdf"
 
-	"github.com/johnfercher/paper/v2/internal/cache"
-	"github.com/johnfercher/paper/v2/internal/code"
-	"github.com/johnfercher/paper/v2/internal/math"
-	"github.com/johnfercher/paper/v2/internal/providers/paper/cellwriter"
-	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/internal/cache"
+	"github.com/avdoseferovic/paper/v2/internal/code"
+	"github.com/avdoseferovic/paper/v2/internal/math"
+	"github.com/avdoseferovic/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
 )
 
 // Dependencies is the dependencies provider for gofpdf.

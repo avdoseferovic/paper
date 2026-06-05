@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	fontstyle "github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	fontstyle "github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -10,11 +10,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/johnfercher/go-tree/node"
+	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
-	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
 )
 
 var (

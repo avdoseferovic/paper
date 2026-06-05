@@ -21,8 +21,8 @@ Flags can be combined with `|`: `protection.Print | protection.Copy` restricts b
 - PDF protection is not a strong security guarantee — determined users with the right tools can bypass it. Use it as a deterrent, not a security boundary.
 
 ## GoDoc
-* [builder : WithProtection](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithProtection)
-* [protection : Type](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/consts/protection)
+* [builder : WithProtection](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithProtection)
+* [protection : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/consts/protection)
 
 ## Code Example
 [filename](../../assets/examples/protection/v2/main.go ':include :type=code')
@@ -35,4 +35,4 @@ Flags can be combined with `|`: `protection.Print | protection.Copy` restricts b
 [filename](../../assets/text/protectionv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/protection.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/protection.json  ':include :type=code')

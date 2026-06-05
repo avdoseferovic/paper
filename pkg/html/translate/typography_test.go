@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/html/css"
-	"github.com/johnfercher/paper/v2/pkg/html/dom"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/html/css"
+	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 func runsFromHTML(t *testing.T, htmlStr string) []props.RichRun {

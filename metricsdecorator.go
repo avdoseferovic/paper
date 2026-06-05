@@ -1,11 +1,11 @@
 package paper
 
 import (
-	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/paper/v2/internal/time"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/v2/internal/time"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 )
 
 type MetricsDecorator struct {

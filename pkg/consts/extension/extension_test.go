@@ -3,7 +3,7 @@ package extension_test
 import (
 	"testing"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
 	"github.com/stretchr/testify/assert"
 )
 

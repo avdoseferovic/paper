@@ -5,22 +5,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/johnfercher/paper/v2/internal/fixture"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/internal/fixture"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/consts/generation"
-	"github.com/johnfercher/paper/v2/pkg/consts/protection"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
-	"github.com/johnfercher/paper/v2/pkg/consts/pagesize"
-	"github.com/johnfercher/paper/v2/pkg/consts/provider"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/pagesize"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 func TestNewBuilder(t *testing.T) {

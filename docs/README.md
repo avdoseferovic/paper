@@ -1,13 +1,13 @@
 # Paper V2
 
-[![GoDoc](https://godoc.org/github.com/johnfercher/paper?status.svg)](https://pkg.go.dev/github.com/johnfercher/paper/v2)
+[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper/v2)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
-[![Go Report Card](https://goreportcard.com/badge/github.com/johnfercher/paper)](https://goreportcard.com/report/github.com/johnfercher/paper)
-[![CI](https://github.com/johnfercher/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/goci.yml)
-[![Lint](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/johnfercher/paper)](https://codecov.io/gh/johnfercher/paper)
-[![Visits Badge](https://badges.pufler.dev/visits/johnfercher/paper)](https://badges.pufler.dev)
-[![Stars Badge](https://img.shields.io/github/stars/johnfercher/paper.svg?style=social&label=Stars)](https://github.com/johnfercher/paper/stargazers)
+[![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
+[![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
+[![Lint](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/avdoseferovic/paper)](https://codecov.io/gh/avdoseferovic/paper)
+[![Visits Badge](https://badges.pufler.dev/visits/avdoseferovic/paper)](https://badges.pufler.dev)
+[![Stars Badge](https://img.shields.io/github/stars/avdoseferovic/paper.svg?style=social&label=Stars)](https://github.com/avdoseferovic/paper/stargazers)
 
 ### News :new:
 
@@ -16,7 +16,7 @@
 * Installation with`go get`:
 
 ```bash
-go get github.com/johnfercher/paper/v2@v2.4.0
+go get github.com/avdoseferovic/paper/v2@v2.4.0
 ```
 
 The public API was completely redesigned with the aim of enhancing the
@@ -27,7 +27,7 @@ library in various aspects. The main objectives of`v2.0.0`are:
 3. [Add built-in metrics](README.md?id=built-in-metrics);
 4. [Improve execution time](README.md?id=execution-time-improvement);
 5. Allow recursive Row/Col; **(on roadmap)**
-6. Allow generation based on [serialized data](https://github.com/johnfercher/paper/discussions/390).
+6. Allow generation based on [serialized data](https://github.com/avdoseferovic/paper/discussions/390).
 
 ## HTML to PDF
 
@@ -108,7 +108,7 @@ feature within paper, such as (Row, Col, Text, QRCode, Image, etc). With the new
 improved, enabling paper to reach a whole new level in this fresh new step.
 
 ### New Interfaces
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/pkg/core/core.go ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/pkg/core/core.go ':include :type=code')
 
 ## Unit Testing
 In paper`v2`, it is possible to write unit tests by analyzing the **components tree**. To facilitate the
@@ -139,5 +139,5 @@ The pages are merged using Paper's in-repo PDF merger. For a complete example, p
 [this link](v2/features/parallelism?id=parallelism).
 
 
-[old_paper_interface]: https://github.com/johnfercher/paper/blob/master/pkg/core/core.go
-[old_row_issue]: https://github.com/johnfercher/paper/issues/55
+[old_paper_interface]: https://github.com/avdoseferovic/paper/blob/master/pkg/core/core.go
+[old_row_issue]: https://github.com/avdoseferovic/paper/issues/55

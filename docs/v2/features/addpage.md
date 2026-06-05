@@ -5,9 +5,9 @@
 This is useful when you want to control pagination explicitly: for example, forcing a chapter to always start on a new page, or composing a document from independently generated sections.
 
 ## GoDoc
-* [constructor : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/page#New)
-* [interface : Page](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/core#Page)
-* [props : Page](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Page)
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/page#New)
+* [interface : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/core#Page)
+* [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Page)
 
 ## Code Example
 [filename](../../assets/examples/addpage/v2/main.go  ':include :type=code')
@@ -21,4 +21,4 @@ This is useful when you want to control pagination explicitly: for example, forc
 [filename](../../assets/text/addpagev2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/addpage.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/addpage.json  ':include :type=code')

@@ -1,6 +1,6 @@
 package core
 
-import "github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+import "github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
 
 // LateFontProvider is a narrow optional capability interface for providers
 // that can register a font from raw TTF/OTF bytes AFTER initialization.

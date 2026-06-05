@@ -3,9 +3,9 @@
 package core
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // Provider is the abstraction of a document creator provider.

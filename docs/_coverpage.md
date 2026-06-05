@@ -9,7 +9,7 @@
 * Testable
 * **At least 2x faster than V1**
 
-[Github](https://github.com/johnfercher/paper)
+[Github](https://github.com/avdoseferovic/paper)
 [See](README.md)
 
 ![](assets/images/background.svg)

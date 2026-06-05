@@ -1,7 +1,7 @@
 package fixture
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
 )
 
 type TestFont struct {

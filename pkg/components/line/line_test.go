@@ -3,11 +3,11 @@ package line_test
 import (
 	"testing"
 
-	"github.com/johnfercher/paper/v2/internal/fixture"
-	"github.com/johnfercher/paper/v2/mocks"
-	"github.com/johnfercher/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/v2/internal/fixture"
+	"github.com/avdoseferovic/paper/v2/mocks"
+	"github.com/avdoseferovic/paper/v2/pkg/test"
 
-	"github.com/johnfercher/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/v2/pkg/components/line"
 )
 
 func TestNew(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/paper/v2/internal/fixture"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/internal/fixture"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 func TestWhiteColor(t *testing.T) {

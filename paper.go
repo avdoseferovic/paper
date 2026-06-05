@@ -6,25 +6,25 @@ import (
 	"io"
 	"math"
 
+	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
 	"github.com/f-amaral/go-async/pool"
-	"github.com/johnfercher/paper/v2/pkg/consts/generation"
 
-	"github.com/johnfercher/paper/v2/internal/cache"
+	"github.com/avdoseferovic/paper/v2/internal/cache"
 
-	paperprovider "github.com/johnfercher/paper/v2/internal/providers/paper"
+	paperprovider "github.com/avdoseferovic/paper/v2/internal/providers/paper"
 
-	"github.com/johnfercher/paper/v2/pkg/merge"
+	"github.com/avdoseferovic/paper/v2/pkg/merge"
 
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/go-tree/node"
+	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/page"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/html"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/page"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/html"
 )
 
 var (

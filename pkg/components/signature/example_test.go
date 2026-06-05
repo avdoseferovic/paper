@@ -1,9 +1,9 @@
 package signature_test
 
 import (
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
 )
 
 // ExampleNew demonstrates how to create a signature component.

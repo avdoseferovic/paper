@@ -1,8 +1,8 @@
 package props
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
 )
 
 // Line represents properties from a Line inside a cell.

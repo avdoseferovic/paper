@@ -4,8 +4,8 @@ import (
 	"sort"
 
 	"github.com/andybalholm/cascadia"
+	"github.com/avdoseferovic/paper/v2/pkg/html/css"
 	"github.com/aymerick/douceur/parser"
-	"github.com/johnfercher/paper/v2/pkg/html/css"
 	"golang.org/x/net/html"
 )
 

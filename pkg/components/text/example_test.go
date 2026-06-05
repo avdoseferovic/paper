@@ -1,9 +1,9 @@
 package text_test
 
 import (
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
 )
 
 // ExampleNew demonstrates how to create a text component.

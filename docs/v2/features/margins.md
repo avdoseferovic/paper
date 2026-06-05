@@ -9,10 +9,10 @@
 - Setting a margin to `0` renders content flush to the physical page edge — some printers clip this area.
 
 ## GoDoc
-* [builder : WithBottomMargin](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithBottomMargin)
-* [builder : WithLeftMargin](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithLeftMargin)
-* [builder : WithRightMargin](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithRightMargin)
-* [builder : WithTopMargin](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithTopMargin)
+* [builder : WithBottomMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithBottomMargin)
+* [builder : WithLeftMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithLeftMargin)
+* [builder : WithRightMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithRightMargin)
+* [builder : WithTopMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithTopMargin)
 
 ## Code Example
 [filename](../../assets/examples/margins/v2/main.go ':include :type=code')
@@ -26,4 +26,4 @@
 [filename](../../assets/text/marginsv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/margins.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/margins.json  ':include :type=code')

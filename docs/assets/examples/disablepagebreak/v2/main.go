@@ -4,14 +4,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
 
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
 
-	"github.com/johnfercher/paper/v2/pkg/components/page"
-	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/components/page"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
 )
 
 func main() {

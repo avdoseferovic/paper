@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/barcode"
 
-	"github.com/johnfercher/paper/v2/internal/cache"
-	"github.com/johnfercher/paper/v2/internal/merror"
-	"github.com/johnfercher/paper/v2/internal/providers/paper/cellwriter"
-	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/internal/cache"
+	"github.com/avdoseferovic/paper/v2/internal/merror"
+	"github.com/avdoseferovic/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 var ErrCannotReadImageOptions = errors.New("could not read image options, maybe path/name is wrong")

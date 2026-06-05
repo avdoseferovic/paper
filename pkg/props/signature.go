@@ -1,9 +1,9 @@
 package props
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
 )
 
 // Signature represents properties from a signature.

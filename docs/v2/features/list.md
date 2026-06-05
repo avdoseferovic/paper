@@ -20,9 +20,9 @@ Both functions return `([]core.Row, error)`. Errors: `ErrEmptyArray` (empty slic
 - Both value and pointer variants exist because Go generics cannot automatically dereference pointers; use `BuildFromPointer` when your slice is `[]*T`.
 
 ## GoDoc
-* [interface : Listable](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/list#Listable)
-* [list : Build](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/list#Build)
-* [list : BuildFromPointer](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/list#BuildFromPointer)
+* [interface : Listable](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/list#Listable)
+* [list : Build](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/list#Build)
+* [list : BuildFromPointer](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/list#BuildFromPointer)
 
 ## Code Example
 [filename](../../assets/examples/list/v2/main.go ':include :type=code')
@@ -35,4 +35,4 @@ Both functions return `([]core.Row, error)`. Errors: `ErrEmptyArray` (empty slic
 [filename](../../assets/text/listv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/list.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/list.json  ':include :type=code')

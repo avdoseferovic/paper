@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/paper/v2/internal/math"
+	"github.com/avdoseferovic/paper/v2/internal/math"
 	"github.com/stretchr/testify/assert"
 )
 

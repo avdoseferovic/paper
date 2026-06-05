@@ -3,19 +3,19 @@ package main
 import (
 	"log"
 
-	"github.com/johnfercher/paper/v2"
+	"github.com/avdoseferovic/paper/v2"
 
-	"github.com/johnfercher/paper/v2/pkg/components/code"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/image"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/image"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
 
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 func main() {

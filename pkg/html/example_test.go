@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/html"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

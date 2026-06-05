@@ -3,7 +3,7 @@ package time
 import (
 	"time"
 
-	"github.com/johnfercher/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/v2/pkg/metrics"
 )
 
 // GetTimeSpent returns a metrics.Time with the time spent in the closure.

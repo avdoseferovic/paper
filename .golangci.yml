@@ -37,7 +37,7 @@ linters:
       line-length: 140
     wrapcheck:
       ignore-package-globs:
-        - github.com/johnfercher/paper/*
+        - github.com/avdoseferovic/paper/*
     testifylint:
       enable-all: true
       disable:

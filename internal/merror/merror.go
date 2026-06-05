@@ -1,9 +1,9 @@
 package merror
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // DefaultErrorText is the default error text properties.

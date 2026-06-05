@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // GradientProvider is an optional capability interface for providers that can

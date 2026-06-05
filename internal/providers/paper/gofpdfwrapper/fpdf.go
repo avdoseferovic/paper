@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	gofpdf "github.com/johnfercher/paper/v2/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/v2/internal/paperpdf"
 )
 
 // Fpdf defines the interface used for various methods. It is implemented by the

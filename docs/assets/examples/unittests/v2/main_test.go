@@ -3,16 +3,16 @@ package main_test
 import (
 	"testing"
 
-	"github.com/johnfercher/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/v2/pkg/components/line"
 
-	"github.com/johnfercher/paper/v2"
+	"github.com/avdoseferovic/paper/v2"
 
-	"github.com/johnfercher/paper/v2/pkg/components/code"
-	"github.com/johnfercher/paper/v2/pkg/components/image"
-	"github.com/johnfercher/paper/v2/pkg/components/signature"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/image"
+	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/test"
 )
 
 func TestMaroto_GetStructure(t *testing.T) {

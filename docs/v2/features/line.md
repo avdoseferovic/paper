@@ -23,11 +23,11 @@ For auto-row usage, the row height equals the line's `Thickness` value.
 - Vertical lines are drawn from top to bottom within the cell; `OffsetPercent` controls horizontal position.
 
 ## GoDoc
-* [constructor : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/line#New)
-* [constructor : NewCol](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/line#NewCol)
-* [constructor : NewRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/line#NewRow)
-* [props : Line](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Line)
-* [component : Line](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/line#Line)
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/line#New)
+* [constructor : NewCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/line#NewCol)
+* [constructor : NewRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/line#NewRow)
+* [props : Line](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Line)
+* [component : Line](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/line#Line)
 
 ## Code Example
 [filename](../../assets/examples/line/v2/main.go ':include :type=code')
@@ -40,4 +40,4 @@ For auto-row usage, the row height equals the line's `Thickness` value.
 [filename](../../assets/text/linegridv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/line.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/line.json  ':include :type=code')

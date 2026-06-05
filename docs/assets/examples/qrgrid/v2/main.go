@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
 
-	"github.com/johnfercher/paper/v2"
+	"github.com/avdoseferovic/paper/v2"
 
-	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
 
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 func main() {
@@ -40,71 +40,71 @@ func GetPaper() core.Paper {
 	m := paper.NewMetricsDecorator(mrt)
 
 	m.AddRow(40,
-		code.NewQrCol(2, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(2, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 50,
 		}),
-		code.NewQrCol(4, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(4, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 75,
 		}),
-		code.NewQrCol(6, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(6, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 100,
 		}),
 	)
 
 	m.AddRow(40,
-		code.NewQrCol(2, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(2, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 50,
 		}),
-		code.NewQrCol(4, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(4, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 75,
 		}),
-		code.NewQrCol(6, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(6, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 100,
 		}),
 	)
 
 	m.AddRow(40,
-		code.NewQrCol(6, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(6, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 50,
 		}),
-		code.NewQrCol(4, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(4, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 75,
 		}),
-		code.NewQrCol(2, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(2, "https://github.com/avdoseferovic/paper", props.Rect{
 			Percent: 100,
 		}),
 	)
 
 	m.AddRow(40,
-		code.NewQrCol(6, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(6, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 50,
 		}),
-		code.NewQrCol(4, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(4, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 75,
 		}),
-		code.NewQrCol(2, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(2, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:  true,
 			Percent: 100,
 		}),
 	)
 
 	m.AddAutoRow(
-		code.NewQrCol(6, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(6, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:             true,
 			Percent:            30,
 			JustReferenceWidth: true,
 		}),
-		code.NewQrCol(4, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(4, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:             true,
 			Percent:            75,
 			JustReferenceWidth: true,
 		}),
-		code.NewQrCol(2, "https://github.com/johnfercher/paper", props.Rect{
+		code.NewQrCol(2, "https://github.com/avdoseferovic/paper", props.Rect{
 			Center:             true,
 			Percent:            100,
 			JustReferenceWidth: true,

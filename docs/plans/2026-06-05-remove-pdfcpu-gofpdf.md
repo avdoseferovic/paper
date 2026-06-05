@@ -161,7 +161,7 @@ Type: Feature
 **Key Decisions / Notes:**
 
 - Copy the full root GoFPDF runtime package first (`*.go`, embedded font data, font maps, and root runtime assets), excluding upstream tests, reference PDFs, contrib packages, examples, and docs. Only prune after targeted rendering tests prove fonts, images, SVG/basic helpers, templates, custom fonts, gradients, and image registration still work.
-- Keep copied package imports on the current module path during this task so Task 2 can compile before the module rename. Task 4 performs the global module path change to `github.com/johnfercher/paper/v2`.
+- Keep copied package imports on the current module path during this task so Task 2 can compile before the module rename. Task 4 performs the global module path change to `github.com/avdoseferovic/paper/v2`.
 - Preserve the wrapper API shape so provider code changes stay mostly mechanical.
 - Rename provider constants from `provider.Gofpdf`/`"gofpdf"` to `provider.Paper`/`"paper"`. Do not keep a `provider.Gofpdf` alias; the final guard should be able to reject it.
 - Keep behavior for metadata, protection, compression, pages, images, gradients, alpha, links, rich text, line styles, fonts, and cell styling.
@@ -245,7 +245,7 @@ Type: Feature
 - Modify: `metricsdecorator.go`
 - Modify: `pkg/core/core.go`
 - Modify: `pkg/test/test.go`, `pkg/test/config.go`, `.maroto.yml` -> `.paper.yml`
-- Modify: all Go imports from `github.com/johnfercher/maroto/v2` to `github.com/johnfercher/paper/v2`
+- Modify: all Go imports from `github.com/johnfercher/maroto/v2` to `github.com/avdoseferovic/paper/v2`
 - Modify: package declarations in root tests from `maroto_test` to `paper_test`
 - Move/Modify: `test/maroto/**` -> `test/paper/**`
 - Modify: `.mockery.yaml`
@@ -255,7 +255,7 @@ Type: Feature
 
 **Key Decisions / Notes:**
 
-- Assumption for approval: module path becomes `github.com/johnfercher/paper/v2`. If the owner path should instead be `github.com/avdoseferovic/paper/v2`, change this task before implementation.
+- Assumption for approval: module path becomes `github.com/avdoseferovic/paper/v2`. If the owner path should instead be `github.com/avdoseferovic/paper/v2`, change this task before implementation.
 - Rename `type Maroto` to `type Paper` and `core.Maroto` to `core.Paper`.
 - Keep `New`, `FromHTML`, `FromHTMLReader`, and `NewMetricsDecorator` as the main constructor API, returning `core.Paper`.
 - Do not keep old `Maroto` type/interface/package aliases in active code; final guards should reject `core.Maroto`, `*maroto.Maroto`, `package maroto`, and the old module import path.
@@ -264,7 +264,7 @@ Type: Feature
 
 **Definition of Done:**
 
-- [x] `go.mod` module path is `github.com/johnfercher/paper/v2`.
+- [x] `go.mod` module path is `github.com/avdoseferovic/paper/v2`.
 - [x] Root package declaration is `package paper`.
 - [x] `paper.New()` returns a `core.Paper`.
 - [x] Root concrete type is `*paper.Paper`; tests no longer expect `*maroto.Maroto`.
@@ -355,7 +355,7 @@ Type: Feature
 
 ### Truths
 
-- Users import `github.com/johnfercher/paper/v2`, call `paper.New()`, and generate valid PDF bytes.
+- Users import `github.com/avdoseferovic/paper/v2`, call `paper.New()`, and generate valid PDF bytes.
 - `go.mod`, `go.sum`, and Go source contain no `github.com/pdfcpu/pdfcpu` or `github.com/phpdave11/gofpdf` dependency/import.
 - Sequential, concurrent, and sequential-low-memory generation modes still produce valid PDF bytes for multi-page documents.
 - `merge.Bytes` and `core.Pdf.Merge` still merge Paper-generated PDFs and wrap invalid input errors with the existing sentinels.
@@ -384,7 +384,7 @@ Type: Feature
 
 ## Open Questions
 
-- Approval of this plan also confirms the assumed new module path `github.com/johnfercher/paper/v2`. If the intended path is `github.com/avdoseferovic/paper/v2` or another owner, update Task 4 before implementation.
+- Approval of this plan also confirms the assumed new module path `github.com/avdoseferovic/paper/v2`. If the intended path is `github.com/avdoseferovic/paper/v2` or another owner, update Task 4 before implementation.
 - The merge replacement intentionally targets Paper-generated and standard unencrypted xref-table PDFs, not the full pdfcpu feature set. Protected chunked generation remains successful through sequential fallback rather than encrypted chunk merge support.
 
 ### Deferred Ideas

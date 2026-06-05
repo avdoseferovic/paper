@@ -3,10 +3,10 @@ package translate
 import (
 	"strings"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/paper/v2/pkg/html/css"
-	"github.com/johnfercher/paper/v2/pkg/html/dom"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/v2/pkg/html/css"
+	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // computeNodeStyleRooted is computeNodeStyle with an explicit root style seed.

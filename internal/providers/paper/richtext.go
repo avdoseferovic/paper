@@ -4,11 +4,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 const richTextWhiteSpacePre = "pre"

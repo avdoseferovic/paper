@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/paper/v2/internal/fixture"
+	"github.com/avdoseferovic/paper/v2/internal/fixture"
 )
 
 const (

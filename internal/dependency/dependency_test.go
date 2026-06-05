@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestGoModulesExcludeRemovedPDFDependencies(t *testing.T) {
+func TestGoModulesExcludeRemovedDependencies(t *testing.T) {
 	t.Parallel()
 
 	root := moduleRoot(t)
@@ -18,7 +18,7 @@ func TestGoModulesExcludeRemovedPDFDependencies(t *testing.T) {
 	assertMissing(t, output, forbiddenModulePaths()...)
 }
 
-func TestGoDependenciesExcludeRemovedPDFDependenciesAndLegacyModule(t *testing.T) {
+func TestGoDependenciesExcludeRemovedDependenciesAndLegacyModule(t *testing.T) {
 	t.Parallel()
 
 	root := moduleRoot(t)
@@ -26,6 +26,7 @@ func TestGoDependenciesExcludeRemovedPDFDependenciesAndLegacyModule(t *testing.T
 
 	assertMissing(t, output, forbiddenModulePaths()...)
 	assertMissing(t, output, legacyModulePath())
+	assertMissing(t, output, previousOwnerPaperModulePath())
 }
 
 func TestActiveTextExcludesRemovedDependenciesAndLegacyName(t *testing.T) {
@@ -79,6 +80,7 @@ func forbiddenModulePaths() []string {
 	return []string{
 		"github.com/" + "pdfcpu/pdfcpu",
 		"github.com/" + "phpdave11/gofpdf",
+		"github.com/" + "johnfercher/go-tree",
 	}
 }
 
@@ -86,11 +88,17 @@ func legacyModulePath() string {
 	return "github.com/johnfercher/" + legacyName() + "/v2"
 }
 
+func previousOwnerPaperModulePath() string {
+	return "github.com/" + previousOwner() + "/paper"
+}
+
 func forbiddenTextPatterns() []forbiddenPattern {
 	legacy := legacyName()
 	return []forbiddenPattern{
 		{name: "removed merge dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "pdfcpu/pdfcpu"))},
 		{name: "removed PDF backend dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "phpdave11/gofpdf"))},
+		{name: "removed tree dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "johnfercher/go-tree"))},
+		{name: "previous Paper owner path", regex: regexp.MustCompile(regexp.QuoteMeta(previousOwnerPaperModulePath()))},
 		{name: "legacy module path", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/johnfercher/" + legacy))},
 		{name: "legacy display name", regex: regexp.MustCompile(`(?i)\b` + legacy + `\b`)},
 		{name: "legacy config file", regex: regexp.MustCompile(regexp.QuoteMeta("." + legacy + ".yml"))},
@@ -101,6 +109,10 @@ func forbiddenTextPatterns() []forbiddenPattern {
 
 func legacyName() string {
 	return "mar" + "oto"
+}
+
+func previousOwner() string {
+	return "john" + "fercher"
 }
 
 func assertMissing(t *testing.T, output string, values ...string) {

@@ -21,15 +21,15 @@ Both sources expose the same set of constructors — `New`, `NewCol`, `NewRow`, 
 - When `Center` is `true`, `Left` and `Top` have no effect.
 
 ## GoDoc
-* [constructor : NewFromBytes](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromBytes)
-* [constructor : NewFromBytesCol](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromBytesCol)
-* [constructor : NewFromBytesRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromBytesRow)
-* [constructor : NewFromFile](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromFile)
-* [constructor : NewFromFileCol](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromFileCol)
-* [constructor : NewFromFileRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewFromFileRow)
-* [props : Rect](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Rect)
-* [component : BytesImage](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#BytesImage)
-* [component : FileImage](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#FileImage)
+* [constructor : NewFromBytes](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromBytes)
+* [constructor : NewFromBytesCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromBytesCol)
+* [constructor : NewFromBytesRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromBytesRow)
+* [constructor : NewFromFile](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromFile)
+* [constructor : NewFromFileCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromFileCol)
+* [constructor : NewFromFileRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#NewFromFileRow)
+* [props : Rect](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Rect)
+* [component : BytesImage](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#BytesImage)
+* [component : FileImage](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/image#FileImage)
 
 ## Code Example
 [filename](../../assets/examples/imagegrid/v2/main.go ':include :type=code')
@@ -43,4 +43,4 @@ Both sources expose the same set of constructors — `New`, `NewCol`, `NewRow`, 
 [filename](../../assets/text/imagegridv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/imagegrid.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/imagegrid.json  ':include :type=code')

@@ -1,14 +1,14 @@
 package row_test
 
 import (
-	"github.com/johnfercher/paper/v2"
-	"github.com/johnfercher/paper/v2/pkg/components/code"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/components/signature"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
-	"github.com/johnfercher/paper/v2/pkg/consts/border"
-	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/border"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // ExampleNew demonstrates how to create a Row instance.

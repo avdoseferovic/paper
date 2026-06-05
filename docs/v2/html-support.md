@@ -5,7 +5,7 @@ Paper can convert a documented subset of HTML/CSS directly into PDF documents. N
 ## Quick start
 
 ```go
-import paper "github.com/johnfercher/paper/v2"
+import paper "github.com/avdoseferovic/paper/v2"
 
 doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
 if err != nil {
@@ -27,7 +27,7 @@ doc, _ := m.Generate()
 Or build rows directly for advanced resolver options:
 
 ```go
-import "github.com/johnfercher/paper/v2/pkg/html"
+import "github.com/avdoseferovic/paper/v2/pkg/html"
 
 rows, err := html.FromString(htmlString)
 // rows is []core.Row — add to any Paper document

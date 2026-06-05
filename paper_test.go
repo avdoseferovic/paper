@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/johnfercher/paper/v2/pkg/components/code"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
 
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/page"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/consts/protection"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/page"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/test"
 
-	"github.com/johnfercher/paper/v2"
+	"github.com/avdoseferovic/paper/v2"
 
 	"github.com/stretchr/testify/assert"
 )

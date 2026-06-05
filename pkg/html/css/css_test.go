@@ -3,7 +3,7 @@ package css_test
 import (
 	"testing"
 
-	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/avdoseferovic/paper/v2/pkg/html/css"
 	"github.com/stretchr/testify/assert"
 )
 

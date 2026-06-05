@@ -1,9 +1,9 @@
 package props
 
 import (
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/breakline"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
 )
 
 // Text represents properties from a Text inside a cell.

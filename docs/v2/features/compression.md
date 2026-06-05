@@ -11,7 +11,7 @@ Compression is **disabled** by default. Pass `true` to enable it or `false` to e
 - Enable compression whenever the output PDF will be stored or transmitted and file size matters.
 
 ## GoDoc
-* [builder : WithCompression](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithCompression)
+* [builder : WithCompression](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithCompression)
 
 ## Code Example
 [filename](../../assets/examples/compression/v2/main.go ':include :type=code')
@@ -24,4 +24,4 @@ Compression is **disabled** by default. Pass `true` to enable it or `false` to e
 [filename](../../assets/text/compressionv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/compression.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/compression.json  ':include :type=code')

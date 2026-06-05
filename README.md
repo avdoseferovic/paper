@@ -1,13 +1,13 @@
 # Paper V2
 
-[![GoDoc](https://godoc.org/github.com/johnfercher/paper?status.svg)](https://pkg.go.dev/github.com/johnfercher/paper/v2)
-[![Go Report Card](https://goreportcard.com/badge/github.com/johnfercher/paper)](https://goreportcard.com/report/github.com/johnfercher/paper)
+[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
-[![CI](https://github.com/johnfercher/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/goci.yml)
-[![Lint](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/johnfercher/paper)](https://codecov.io/gh/johnfercher/paper)
-[![Visits Badge](https://badges.pufler.dev/visits/johnfercher/paper)](https://badges.pufler.dev)
-[![Stars Badge](https://img.shields.io/github/stars/johnfercher/paper.svg?style=social&label=Stars)](https://github.com/johnfercher/paper/stargazers)
+[![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
+[![Lint](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/avdoseferovic/paper)](https://codecov.io/gh/avdoseferovic/paper)
+[![Visits Badge](https://badges.pufler.dev/visits/avdoseferovic/paper)](https://badges.pufler.dev)
+[![Stars Badge](https://img.shields.io/github/stars/avdoseferovic/paper.svg?style=social&label=Stars)](https://github.com/avdoseferovic/paper/stargazers)
 
 
 A Paper way to create PDFs. Paper can convert HTML directly to PDF, or compose documents with a Bootstrap-inspired row/column API. Fast and simple.
@@ -37,11 +37,11 @@ Use `paper.New()` only when you need to mix HTML with manually composed rows, he
 * Installation with`go get`:
 
 ```bash
-go get github.com/johnfercher/paper/v2@v2.4.0
+go get github.com/avdoseferovic/paper/v2@v2.4.0
 ```
 
 * You can see the full `v2` documentation [here](https://paper.tech/#/README?id=paper-v2).
-* The `v1` still exists in [this branch](https://github.com/johnfercher/paper/tree/v1), and you can see the doc [here]([https://paper.tech/#/v1/README?id=deprecated](https://paper.tech/#/v1/README?id=deprecated)).
+* The `v1` still exists in [this branch](https://github.com/avdoseferovic/paper/tree/v1), and you can see the doc [here]([https://paper.tech/#/v1/README?id=deprecated](https://paper.tech/#/v1/README?id=deprecated)).
 
 ![result](docs/assets/images/result.png)
 
@@ -61,4 +61,4 @@ go get github.com/johnfercher/paper/v2@v2.4.0
 | `make godoc`    | Run godoc server local                            | `godoc`                                                       |
 
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/johnfercher/paper.svg?variant=adaptive)](https://starchart.cc/johnfercher/paper)
+[![Stargazers over time](https://starchart.cc/avdoseferovic/paper.svg?variant=adaptive)](https://starchart.cc/avdoseferovic/paper)

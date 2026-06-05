@@ -1,19 +1,19 @@
 package fixture
 
 import (
-	"github.com/johnfercher/go-tree/node"
+	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/border"
-	"github.com/johnfercher/paper/v2/pkg/consts/breakline"
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/border"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // TextProp is responsible to give a valid props.Text.

@@ -3,8 +3,8 @@ package paper
 import (
 	"errors"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
 )
 
 var ErrInvalidImageFormat = errors.New("invalid image format")

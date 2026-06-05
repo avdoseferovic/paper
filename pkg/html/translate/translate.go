@@ -4,16 +4,16 @@ package translate
 import (
 	"strings"
 
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/line"
-	"github.com/johnfercher/paper/v2/pkg/components/richtext"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/html/css"
-	"github.com/johnfercher/paper/v2/pkg/html/dom"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/v2/pkg/components/richtext"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/html/css"
+	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // Option configures translator behaviour.

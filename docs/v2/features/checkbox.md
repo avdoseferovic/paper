@@ -20,12 +20,12 @@ The row height for auto-row usage is `Size + Top`.
 - For forms with multiple options, place several `NewCol` checkboxes side-by-side in the same row.
 
 ## GoDoc
-* [constructor : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/checkbox#New)
-* [constructor : NewCol](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/checkbox#NewCol)
-* [constructor : NewRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/checkbox#NewRow)
-* [constructor : NewAutoRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/checkbox#NewAutoRow)
-* [props : Checkbox](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Checkbox)
-* [component : Checkbox](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/checkbox#Checkbox)
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/checkbox#New)
+* [constructor : NewCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/checkbox#NewCol)
+* [constructor : NewRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/checkbox#NewRow)
+* [constructor : NewAutoRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/checkbox#NewAutoRow)
+* [props : Checkbox](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Checkbox)
+* [component : Checkbox](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/checkbox#Checkbox)
 
 ## Code Example
 [filename](../../assets/examples/checkbox/v2/main.go ':include :type=code')
@@ -39,4 +39,4 @@ The row height for auto-row usage is `Size + Top`.
 [filename](../../assets/text/checkboxv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/checkbox.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/checkbox.json  ':include :type=code')

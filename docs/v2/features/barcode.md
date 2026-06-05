@@ -20,11 +20,11 @@ The Barcode component renders a 1-D barcode inside a cell. The default type is `
 - Use `JustReferenceWidth` (via `props.Rect`) on QR / Matrix codes; barcodes use `props.Barcode` which controls proportion directly.
 
 ## GoDoc
-* [constructor : NewBar](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/code#NewBar)
-* [constructor : NewBarCol](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/code#NewBarCol)
-* [constructor : NewBarRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/code#NewBarRow)
-* [props : Barcode](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Barcode)
-* [component : Barcode](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/code#Barcode)
+* [constructor : NewBar](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewBar)
+* [constructor : NewBarCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewBarCol)
+* [constructor : NewBarRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewBarRow)
+* [props : Barcode](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Barcode)
+* [component : Barcode](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#Barcode)
 
 ## Code Example
 [filename](../../assets/examples/barcodegrid/v2/main.go  ':include :type=code')
@@ -38,4 +38,4 @@ The Barcode component renders a 1-D barcode inside a cell. The default type is `
 [filename](../../assets/text/barcodegridv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/barcodegrid.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/barcodegrid.json  ':include :type=code')

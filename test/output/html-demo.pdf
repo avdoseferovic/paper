@@ -3,7 +3,7 @@
 <</Type /Page
 /Parent 1 0 R
 /Resources 2 0 R
-/Annots [<</Type /Annot /Subtype /Link /Rect [457.74 511.85 460.10 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [460.10 511.85 485.61 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [485.61 511.85 487.97 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [487.97 511.85 500.72 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>>]
+/Annots [<</Type /Annot /Subtype /Link /Rect [457.74 511.85 460.10 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/avdoseferovic/paper)>>>><</Type /Annot /Subtype /Link /Rect [460.10 511.85 485.61 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/avdoseferovic/paper)>>>><</Type /Annot /Subtype /Link /Rect [485.61 511.85 487.97 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/avdoseferovic/paper)>>>><</Type /Annot /Subtype /Link /Rect [487.97 511.85 500.72 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/avdoseferovic/paper)>>>>]
 /Group <</Type /Group /S /Transparency /CS /DeviceRGB>>
 /Contents 4 0 R>>
 endobj
@@ -2684,28 +2684,28 @@ endobj
 endobj
 13 0 obj
 <</Type /Font
-/BaseFont /Helvetica
+/BaseFont /Helvetica-Bold
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 14 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Bold
+/BaseFont /Helvetica-Oblique
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 15 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Oblique
+/BaseFont /Courier
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 16 0 obj
 <</Type /Font
-/BaseFont /Courier
+/BaseFont /Helvetica
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
@@ -2782,15 +2782,15 @@ endobj
 <<
 /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
 /Font <<
-/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 16 0 R
-/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 13 0 R
-/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 14 0 R
-/F97f05bfb6ba727d84d5803987480190cb83c609d 15 0 R
+/F97f05bfb6ba727d84d5803987480190cb83c609d 14 0 R
+/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 15 0 R
+/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 16 0 R
+/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 13 0 R
 >>
 /XObject <<
-/I8e56886cf8342b2dbe30abbc35642480a9268230 18 0 R
 /I9f4c546f4d401338257e4cbb94aca62d3de96d36 19 0 R
 /Ia17048ec7bd937ac0ef8ceed26822fd2ad689563 17 0 R
+/I8e56886cf8342b2dbe30abbc35642480a9268230 18 0 R
 >>
 /ExtGState <<
 /GS1 9 0 R
@@ -2805,8 +2805,8 @@ endobj
 20 0 obj
 <<
 /Producer (þÿ F P D F   1 . 7)
-/CreationDate (D:20260605164743)
-/ModDate (D:20260605164743)
+/CreationDate (D:20260605165841)
+/ModDate (D:20260605165841)
 >>
 endobj
 21 0 obj
@@ -2823,27 +2823,27 @@ endobj
 xref
 0 22
 0000000000 65535 f 
-0000119630 00000 n 
-0000129019 00000 n 
+0000119638 00000 n 
+0000129027 00000 n 
 0000000009 00000 n 
-0000000722 00000 n 
-0000063237 00000 n 
-0000063371 00000 n 
-0000113501 00000 n 
-0000114449 00000 n 
-0000119729 00000 n 
-0000119797 00000 n 
-0000119866 00000 n 
-0000119935 00000 n 
-0000120004 00000 n 
-0000120101 00000 n 
-0000120203 00000 n 
-0000120308 00000 n 
-0000120403 00000 n 
-0000120933 00000 n 
-0000126137 00000 n 
-0000129545 00000 n 
-0000129659 00000 n 
+0000000730 00000 n 
+0000063245 00000 n 
+0000063379 00000 n 
+0000113509 00000 n 
+0000114457 00000 n 
+0000119737 00000 n 
+0000119805 00000 n 
+0000119874 00000 n 
+0000119943 00000 n 
+0000120012 00000 n 
+0000120114 00000 n 
+0000120219 00000 n 
+0000120314 00000 n 
+0000120411 00000 n 
+0000120941 00000 n 
+0000126145 00000 n 
+0000129553 00000 n 
+0000129667 00000 n 
 trailer
 <<
 /Size 22
@@ -2851,5 +2851,5 @@ trailer
 /Info 20 0 R
 >>
 startxref
-129757
+129765
 %%EOF

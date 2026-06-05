@@ -10,19 +10,19 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 4. On the first run (or when you want to update the fixture), call `.Save("fixture-name")` to write the JSON file.
 
 ## GoDoc
-* [constructor : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/test#New)
-* [method : Assert](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/test#PaperTest.Assert)
-* [method : Equals](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/test#PaperTest.Equals)
-* [method : Save](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/test#PaperTest.Save)
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#New)
+* [method : Assert](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Assert)
+* [method : Equals](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Equals)
+* [method : Save](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Save)
 
 ## Configuration
-To allow unit testing of PDFs, you must create the`.paper.yml`file on the root project folder. The field`test_path`define which [folder](https://github.com/johnfercher/paper/tree/v2/test/paper)
+To allow unit testing of PDFs, you must create the`.paper.yml`file on the root project folder. The field`test_path`define which [folder](https://github.com/avdoseferovic/paper/tree/v2/test/paper)
 will keep the json files to unit test the components tree.
 
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/.paper.yml ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/.paper.yml ':include :type=code')
 
 ## Code
 [filename](../../assets/examples/unittests/v2/main_test.go ':include :type=code')
 
 ## Test file
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/example_unit_test.json ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/example_unit_test.json ':include :type=code')

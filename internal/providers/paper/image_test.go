@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	gofpdf2 "github.com/johnfercher/paper/v2/internal/providers/paper"
+	gofpdf2 "github.com/avdoseferovic/paper/v2/internal/providers/paper"
 
-	"github.com/johnfercher/paper/v2/internal/fixture"
-	"github.com/johnfercher/paper/v2/internal/math"
-	gofpdf "github.com/johnfercher/paper/v2/internal/paperpdf"
+	"github.com/avdoseferovic/paper/v2/internal/fixture"
+	"github.com/avdoseferovic/paper/v2/internal/math"
+	gofpdf "github.com/avdoseferovic/paper/v2/internal/paperpdf"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/avdoseferovic/paper/v2/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

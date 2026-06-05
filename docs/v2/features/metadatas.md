@@ -9,12 +9,12 @@ PDF metadata fields are stored in the document's information dictionary and are 
 - `WithCreationDate` accepts a `time.Time` value; paper formats it according to the PDF specification.
 
 ## GoDoc
-* [builder : WithAuthor](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithAuthor)
-* [builder : WithCreationDate](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithCreationDate)
-* [builder : WithCreator](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithCreator)
-* [builder : WithSubject](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithSubject)
-* [builder : WithTitle](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithTitle)
-* [builder : WithKeywords](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithKeywords)
+* [builder : WithAuthor](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithAuthor)
+* [builder : WithCreationDate](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithCreationDate)
+* [builder : WithCreator](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithCreator)
+* [builder : WithSubject](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithSubject)
+* [builder : WithTitle](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithTitle)
+* [builder : WithKeywords](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithKeywords)
 
 ## Code Example
 [filename](../../assets/examples/metadatas/v2/main.go ':include :type=code')
@@ -28,4 +28,4 @@ PDF metadata fields are stored in the document's information dictionary and are 
 [filename](../../assets/text/metadatasv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/metadatas.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/metadatas.json  ':include :type=code')

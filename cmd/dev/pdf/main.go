@@ -5,21 +5,21 @@ import (
 	"log"
 	"os"
 
-	"github.com/johnfercher/paper/v2"
+	"github.com/avdoseferovic/paper/v2"
 
-	"github.com/johnfercher/paper/v2/pkg/components/code"
-	"github.com/johnfercher/paper/v2/pkg/components/col"
-	"github.com/johnfercher/paper/v2/pkg/components/image"
-	"github.com/johnfercher/paper/v2/pkg/components/row"
-	"github.com/johnfercher/paper/v2/pkg/components/signature"
-	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	"github.com/avdoseferovic/paper/v2/pkg/components/col"
+	"github.com/avdoseferovic/paper/v2/pkg/components/image"
+	"github.com/avdoseferovic/paper/v2/pkg/components/row"
+	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
+	"github.com/avdoseferovic/paper/v2/pkg/components/text"
 
-	"github.com/johnfercher/paper/v2/pkg/consts/align"
-	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
+	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
 
-	"github.com/johnfercher/paper/v2/pkg/config"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 var dummyText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac condimentum sem."
@@ -147,8 +147,8 @@ func buildFooter() []core.Row {
 	return []core.Row{
 		row.New(10).Add(
 			text.NewCol(2, "Site: https://paper.io/"),
-			text.NewCol(5, "Discussions: https://github.com/johnfercher/paper/issues/257"),
-			text.NewCol(5, "Branch: https://github.com/johnfercher/paper/tree/v2"),
+			text.NewCol(5, "Discussions: https://github.com/avdoseferovic/paper/issues/257"),
+			text.NewCol(5, "Branch: https://github.com/avdoseferovic/paper/tree/v2"),
 		),
 	}
 }

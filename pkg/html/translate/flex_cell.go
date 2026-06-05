@@ -1,9 +1,9 @@
 package translate
 
 import (
-	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/paper/v2/pkg/core"
-	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 )
 
 // flexCellContent is a core.Component that stacks multiple rows vertically

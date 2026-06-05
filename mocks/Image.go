@@ -3,12 +3,12 @@
 package mocks
 
 import (
-	extension "github.com/johnfercher/paper/v2/pkg/consts/extension"
-	entity "github.com/johnfercher/paper/v2/pkg/core/entity"
+	extension "github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	entity "github.com/avdoseferovic/paper/v2/pkg/core/entity"
 
 	mock "github.com/stretchr/testify/mock"
 
-	props "github.com/johnfercher/paper/v2/pkg/props"
+	props "github.com/avdoseferovic/paper/v2/pkg/props"
 
 	uuid "github.com/google/uuid"
 )
