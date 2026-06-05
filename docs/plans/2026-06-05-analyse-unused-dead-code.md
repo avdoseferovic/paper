@@ -112,11 +112,11 @@ Type: Feature
 - [x] Task 1: Remove `/v2` from module and Go import surface
 - [x] Task 2: Remove v1/v2 docs, examples, and generated asset names
 - [x] Task 3: Remove active-source dead code and redundant examples
-- [ ] Task 4: Prune unreachable `internal/paperpdf` backend code
+- [x] Task 4: Prune unreachable `internal/paperpdf` backend code
 - [ ] Task 5: Add guardrails for unversioned paths and dead-code cleanup
 - [ ] Task 6: Tidy module metadata and run full verification
 
-**Total Tasks:** 6 | **Completed:** 3 | **Remaining:** 3
+**Total Tasks:** 6 | **Completed:** 4 | **Remaining:** 2
 
 ## Implementation Tasks
 
@@ -281,7 +281,9 @@ Type: Feature
 - Modify/Delete: `internal/paperpdf/ttfparser.go`
 - Modify: `internal/paperpdf/utf8fontfile.go`
 - Modify: `internal/paperpdf/util.go`
-- Modify: `internal/paperpdf/NOTICE`
+- Add: `internal/paperpdf/sort.go`
+- Add: `internal/paperpdf/svgbasic_types.go`
+- Check: `internal/paperpdf/NOTICE`
 - Modify: `internal/paperpdf/OWNERSHIP.md` if needed
 
 **Key Decisions / Notes:**
@@ -293,10 +295,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `deadcode -test ./...` no longer reports `internal/paperpdf` unreachable functions, or any remaining entry is documented in `OWNERSHIP.md` with a concrete reason it must stay.
-- [ ] Provider, merge, custom font, SVG image, and docs example tests still pass.
-- [ ] `internal/paperpdf/NOTICE` remains accurate.
-- [ ] No style-only rewrite is mixed into backend pruning.
+- [x] `deadcode -test ./...` no longer reports `internal/paperpdf` unreachable functions, or any remaining entry is documented in `OWNERSHIP.md` with a concrete reason it must stay.
+- [x] Provider, merge, custom font, SVG image, and docs example tests still pass.
+- [x] `internal/paperpdf/NOTICE` remains accurate.
+- [x] No style-only rewrite is mixed into backend pruning.
 
 **Verify:**
 

@@ -138,15 +138,6 @@ func (t *FpdfTpl) Serialize() ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// DeserializeTemplate creaties a template from a previously serialized
-// template
-func DeserializeTemplate(b []byte) (Template, error) {
-	tpl := new(FpdfTpl)
-	dec := gob.NewDecoder(bytes.NewBuffer(b))
-	err := dec.Decode(tpl)
-	return tpl, err
-}
-
 // childrenImages returns the next layer of children images, it doesn't dig into
 // children of children. Applies template namespace to keys to ensure
 // no collisions. See UseTemplateScaled

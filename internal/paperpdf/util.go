@@ -39,46 +39,11 @@ func sprintf(fmtStr string, args ...interface{}) string {
 	return fmt.Sprintf(fmtStr, args...)
 }
 
-// fileExist returns true if the specified normal file exists
-func fileExist(filename string) (ok bool) {
-	info, err := os.Stat(filename)
-	if err == nil {
-		if ^os.ModePerm&info.Mode() == 0 {
-			ok = true
-		}
-	}
-	return ok
-}
-
-// fileSize returns the size of the specified file; ok will be false
-// if the file does not exist or is not an ordinary file
-func fileSize(filename string) (size int64, ok bool) {
-	info, err := os.Stat(filename)
-	ok = err == nil
-	if ok {
-		size = info.Size()
-	}
-	return
-}
-
 // bufferFromReader returns a new buffer populated with the contents of the specified Reader
 func bufferFromReader(r io.Reader) (b *bytes.Buffer, err error) {
 	b = new(bytes.Buffer)
 	_, err = b.ReadFrom(r)
 	return
-}
-
-// slicesEqual returns true if the two specified float slices are equal
-func slicesEqual(a, b []float64) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // sliceCompress returns a zlib-compressed copy of the specified byte array

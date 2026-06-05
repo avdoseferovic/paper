@@ -219,30 +219,6 @@ func NewCustom(init *InitType) (f *Fpdf) {
 	return fpdfNew(init.OrientationStr, init.UnitStr, init.SizeStr, init.FontDirStr, init.Size)
 }
 
-// New returns a pointer to a new Fpdf instance. Its methods are subsequently
-// called to produce a single PDF document.
-//
-// orientationStr specifies the default page orientation. For portrait mode,
-// specify "P" or "Portrait". For landscape mode, specify "L" or "Landscape".
-// An empty string will be replaced with "P".
-//
-// unitStr specifies the unit of length used in size parameters for elements
-// other than fonts, which are always measured in points. Specify "pt" for
-// point, "mm" for millimeter, "cm" for centimeter, or "in" for inch. An empty
-// string will be replaced with "mm".
-//
-// sizeStr specifies the page size. Acceptable values are "A3", "A4", "A5",
-// "Letter", "Legal", or "Tabloid". An empty string will be replaced with "A4".
-//
-// fontDirStr specifies the file system location in which font resources will
-// be found. An empty string is replaced with ".". This argument only needs to
-// reference an actual directory if a font other than one of the core
-// fonts is used. The core fonts are "courier", "helvetica" (also called
-// "arial"), "times", and "zapfdingbats" (also called "symbol").
-func New(orientationStr, unitStr, sizeStr, fontDirStr string) (f *Fpdf) {
-	return fpdfNew(orientationStr, unitStr, sizeStr, fontDirStr, SizeType{0, 0})
-}
-
 // Ok returns true if no processing errors have occurred.
 func (f *Fpdf) Ok() bool {
 	return f.err == nil
@@ -549,13 +525,6 @@ func (f *Fpdf) SetDisplayMode(zoomStr, layoutStr string) {
 		f.err = fmt.Errorf("incorrect layout display mode: %s", layoutStr)
 		return
 	}
-}
-
-// SetDefaultCompression controls the default setting of the internal
-// compression flag. See SetCompression() for more details. Compression is on
-// by default.
-func SetDefaultCompression(compress bool) {
-	gl.noCompress = !compress
 }
 
 // SetCompression activates or deactivates page compression with zlib. When
@@ -3499,13 +3468,6 @@ func (f *Fpdf) GetPageSizeStr(sizeStr string) (size SizeType) {
 	return f.getpagesizestr(sizeStr)
 }
 
-func (f *Fpdf) _getpagesize(size SizeType) SizeType {
-	if size.Wd > size.Ht {
-		size.Wd, size.Ht = size.Ht, size.Wd
-	}
-	return size
-}
-
 func (f *Fpdf) beginpage(orientationStr string, size SizeType) {
 	if f.err != nil {
 		return
@@ -3630,14 +3592,6 @@ func (f *Fpdf) dostrikeout(x, y float64, txt string) string {
 	w := f.GetStringWidth(txt) + f.ws*float64(blankCount(txt))
 	return sprintf("%.2f %.2f %.2f %.2f re f", x*f.k,
 		(f.h-(y+4*up/1000*f.fontSize))*f.k, w*f.k, -ut/1000*f.fontSizePt)
-}
-
-func bufEqual(buf []byte, str string) bool {
-	return string(buf[0:len(str)]) == str
-}
-
-func be16(buf []byte) int {
-	return 256*int(buf[0]) + int(buf[1])
 }
 
 func (f *Fpdf) newImageInfo() *ImageInfoType {
@@ -3795,32 +3749,11 @@ func (f *Fpdf) outf(fmtStr string, args ...interface{}) {
 	f.out(sprintf(fmtStr, args...))
 }
 
-// SetDefaultCatalogSort sets the default value of the catalog sort flag that
-// will be used when initializing a new Fpdf instance. See SetCatalogSort() for
-// more details.
-func SetDefaultCatalogSort(flag bool) {
-	gl.catalogSort = flag
-}
-
 // SetCatalogSort sets a flag that will be used, if true, to consistently order
 // the document's internal resource catalogs. This method is typically only
 // used for test purposes to facilitate PDF comparison.
 func (f *Fpdf) SetCatalogSort(flag bool) {
 	f.catalogSort = flag
-}
-
-// SetDefaultCreationDate sets the default value of the document creation date
-// that will be used when initializing a new Fpdf instance. See
-// SetCreationDate() for more details.
-func SetDefaultCreationDate(tm time.Time) {
-	gl.creationDate = tm
-}
-
-// SetDefaultModificationDate sets the default value of the document modification date
-// that will be used when initializing a new Fpdf instance. See
-// SetCreationDate() for more details.
-func SetDefaultModificationDate(tm time.Time) {
-	gl.modDate = tm
 }
 
 // SetCreationDate fixes the document's internal CreationDate value. By
