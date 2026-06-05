@@ -99,11 +99,11 @@ Type: Feature
 - [x] Task 2: Replace CID width map helper with typed Go structures
 - [x] Task 3: Normalize localized error handling and `any` usage
 - [x] Task 4: Harden and modernize UTF-8 font parser internals
-- [ ] Task 5: Extract font binary helpers
+- [x] Task 5: Extract font binary helpers
 - [ ] Task 6: Simplify static initialization data
 - [ ] Task 7: Record local backend patches and run final verification
 
-**Total Tasks:** 7 | **Completed:** 4 | **Remaining:** 3
+**Total Tasks:** 7 | **Completed:** 5 | **Remaining:** 2
 
 ## Implementation Tasks
 
