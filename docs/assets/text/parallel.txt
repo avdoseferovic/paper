@@ -1,3 +1,3 @@
-V1: 7.781076886s
-V2: 2.751339293s
-V2-Parallel: 546.175704ms
+Previous recursive renderer: 7.781076886s
+Paper: 2.751339293s
+Paper parallel: 546.175704ms

@@ -110,13 +110,13 @@ Type: Feature
 **MANDATORY: Update this checklist as tasks complete. Change `[ ]` to `[x]`.**
 
 - [x] Task 1: Remove `/v2` from module and Go import surface
-- [ ] Task 2: Remove v1/v2 docs, examples, and generated asset names
+- [x] Task 2: Remove v1/v2 docs, examples, and generated asset names
 - [ ] Task 3: Remove active-source dead code and redundant examples
 - [ ] Task 4: Prune unreachable `internal/paperpdf` backend code
 - [ ] Task 5: Add guardrails for unversioned paths and dead-code cleanup
 - [ ] Task 6: Tidy module metadata and run full verification
 
-**Total Tasks:** 6 | **Completed:** 1 | **Remaining:** 5
+**Total Tasks:** 6 | **Completed:** 2 | **Remaining:** 4
 
 ## Implementation Tasks
 
@@ -190,11 +190,11 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `docs/v1` and `docs/v2` no longer exist.
-- [ ] `find docs/assets/examples -type d -name v2` returns no directories.
-- [ ] `README.md`, `docs/README.md`, docs nav, and docs snippets no longer market the project as V1/V2.
-- [ ] `make examples` paths point at unversioned example locations.
-- [ ] Versioned generated asset names are removed or renamed.
+- [x] `docs/v1` and `docs/v2` no longer exist.
+- [x] `find docs/assets/examples -type d -name v2` returns no directories.
+- [x] `README.md`, `docs/README.md`, docs nav, and docs snippets no longer market the project as V1/V2.
+- [x] `make examples` paths point at unversioned example locations.
+- [x] Versioned generated asset names are removed or renamed.
 
 **Verify:**
 

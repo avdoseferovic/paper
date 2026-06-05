@@ -1,4 +1,4 @@
-# Paper V2
+# Paper
 
 [![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper)
 [![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
@@ -36,16 +36,15 @@ _ = doc.Save("out.pdf")
 
 Use `paper.New()` only when you need to mix HTML with manually composed rows, headers, footers, or other Paper components.
 
-#### Paper `v2.4.0` is here! Try out:
+## Installation
 
-* Installation with`go get`:
+Install Paper with `go get`:
 
 ```bash
-go get github.com/avdoseferovic/paper@v2.4.0
+go get github.com/avdoseferovic/paper
 ```
 
-* You can see the full `v2` documentation [here](https://paper.tech/#/README?id=paper-v2).
-* The `v1` still exists in [this branch](https://github.com/avdoseferovic/paper/tree/v1), and you can see the doc [here]([https://paper.tech/#/v1/README?id=deprecated](https://paper.tech/#/v1/README?id=deprecated)).
+The full documentation is available at [paper.tech](https://paper.tech/#/README).
 
 ![result](docs/assets/images/result.png)
 

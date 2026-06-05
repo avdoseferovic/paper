@@ -62,12 +62,12 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	err = document.Save("docs/assets/pdf/v2.pdf")
+	err = document.Save("docs/assets/pdf/paper.pdf")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	err = document.GetReport().Save("docs/assets/text/v2.txt")
+	err = document.GetReport().Save("docs/assets/text/paper.txt")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -127,7 +127,7 @@ func buildTextsRow() []core.Row {
 func buildHeader() []core.Row {
 	r1 := row.New(30).Add(
 		col.New(12).Add(
-			text.New("Config V2", props.Text{
+			text.New("Paper Config", props.Text{
 				Top:   5,
 				Size:  15,
 				Align: align.Center,
@@ -148,7 +148,7 @@ func buildFooter() []core.Row {
 		row.New(10).Add(
 			text.NewCol(2, "Site: https://paper.io/"),
 			text.NewCol(5, "Discussions: https://github.com/avdoseferovic/paper/issues/257"),
-			text.NewCol(5, "Branch: https://github.com/avdoseferovic/paper/tree/v2"),
+			text.NewCol(5, "Repo: https://github.com/avdoseferovic/paper"),
 		),
 	}
 }

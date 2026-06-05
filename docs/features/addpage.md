@@ -1,0 +1,24 @@
+# Add Page
+
+`AddPages` lets you push complete, pre-built page objects into the document. A `page.Page` is a container for rows — it behaves just like a normal document section but is logically isolated. Rows added to a page that overflow its usable area are automatically split across additional physical pages.
+
+This is useful when you want to control pagination explicitly: for example, forcing a chapter to always start on a new page, or composing a document from independently generated sections.
+
+## GoDoc
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/page#New)
+* [interface : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core#Page)
+* [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Page)
+
+## Code Example
+[filename](../../assets/examples/addpage/main.go  ':include :type=code')
+
+## PDF Generated
+```pdf
+	assets/pdf/addpage.pdf
+```
+
+## Time Execution
+[filename](../../assets/text/addpage.txt  ':include :type=code')
+
+## Test File
+[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/addpage.json  ':include :type=code')

@@ -1,13 +1,13 @@
 ![logo](assets/images/logo.png)
 
-# Paper <small>v2.4.0</small>
+# Paper
 
 > An open-source golang lib to create PDFs. Fast and Simple.
 
 * Grid system
 * Embedded metrics
 * Testable
-* **At least 2x faster than V1**
+* Fast generation
 
 [Github](https://github.com/avdoseferovic/paper)
 [See](README.md)
