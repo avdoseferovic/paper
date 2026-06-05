@@ -122,6 +122,17 @@ func TestActiveTextExcludesRemovedDependenciesAndLegacyName(t *testing.T) {
 	}
 }
 
+func TestMaintenanceReorganizationArtifactsExist(t *testing.T) {
+	t.Parallel()
+
+	root := moduleRoot(t)
+	for _, file := range maintenanceReorganizationFiles() {
+		if _, err := os.Stat(filepath.Join(root, file)); err != nil {
+			t.Fatalf("expected maintenance reorganization artifact %s: %v", file, err)
+		}
+	}
+}
+
 type forbiddenPattern struct {
 	name  string
 	regex *regexp.Regexp
@@ -165,6 +176,25 @@ func forbiddenTextPatterns() []forbiddenPattern {
 		{name: "legacy config file", regex: regexp.MustCompile(regexp.QuoteMeta("." + legacy + ".yml"))},
 		{name: "legacy fixture path", regex: regexp.MustCompile(regexp.QuoteMeta("test/" + legacy))},
 		{name: "legacy fixture prefix", regex: regexp.MustCompile(regexp.QuoteMeta(legacy + "_"))},
+		{name: "stale provider path", regex: regexp.MustCompile(regexp.QuoteMeta("internal/providers/" + "gofpdf"))},
+		{name: "stale provider phrase", regex: regexp.MustCompile(`(?i)gofpdf ` + `provider`)},
+	}
+}
+
+func maintenanceReorganizationFiles() []string {
+	return []string{
+		"pkg/core/provider_services.go",
+		"paper_page_builder.go",
+		"internal/providers/paper/richtext_layout.go",
+		"internal/providers/paper/richtext_render.go",
+		"internal/providers/paper/provider_issues.go",
+		"pkg/html/css/computed_font.go",
+		"pkg/html/css/computed_box.go",
+		"pkg/html/css/computed_border.go",
+		"pkg/html/css/computed_flex.go",
+		"pkg/html/css/computed_effects.go",
+		"pkg/html/css/computed_typography.go",
+		"internal/paperpdf/OWNERSHIP.md",
 	}
 }
 
