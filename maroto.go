@@ -212,6 +212,10 @@ func (m *Maroto) Generate() (core.Document, error) {
 	m.fillPageToAddNew()
 	m.setConfig()
 
+	if m.config.Protection != nil {
+		return m.generate()
+	}
+
 	if m.config.GenerationMode == generation.Concurrent {
 		return m.generateConcurrently()
 	}

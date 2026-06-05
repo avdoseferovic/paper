@@ -16,6 +16,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/page"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
 	"github.com/johnfercher/maroto/v2/pkg/config"
+	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/test"
 
@@ -403,6 +404,27 @@ func TestMaroto_Generate(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
+	t.Run("when protection and concurrent mode are active, should generate protected PDF bytes", func(t *testing.T) {
+		// Arrange
+		cfg := config.NewBuilder().
+			WithConcurrentMode(7).
+			WithProtection(protection.None, "user", "owner").
+			Build()
+
+		sut := maroto.New(cfg)
+
+		// Act
+		for i := 0; i < 30; i++ {
+			sut.AddRows(text.NewRow(10, "protected concurrent"))
+		}
+
+		// Assert
+		doc, err := sut.Generate()
+		assert.Nil(t, err)
+		if assert.NotNil(t, doc) {
+			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
+		}
+	})
 	t.Run("when two pages are sent and low memory mode is active, should executed in low memory mode", func(t *testing.T) {
 		// Arrange
 		cfg := config.NewBuilder().
@@ -420,6 +442,27 @@ func TestMaroto_Generate(t *testing.T) {
 		doc, err := sut.Generate()
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
+	})
+	t.Run("when protection and sequential low memory mode are active, should generate protected PDF bytes", func(t *testing.T) {
+		// Arrange
+		cfg := config.NewBuilder().
+			WithSequentialLowMemoryMode(10).
+			WithProtection(protection.None, "user", "owner").
+			Build()
+
+		sut := maroto.New(cfg)
+
+		// Act
+		for i := 0; i < 30; i++ {
+			sut.AddRows(text.NewRow(10, "protected low memory"))
+		}
+
+		// Assert
+		doc, err := sut.Generate()
+		assert.Nil(t, err)
+		if assert.NotNil(t, doc) {
+			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
+		}
 	})
 	t.Run("when two pages are sent and sequential generation is active, should executed in sequential generation mode", func(t *testing.T) {
 		// Arrange

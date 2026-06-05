@@ -2,40 +2,30 @@
 package merge
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-
-	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
 var ErrCannotMergePDFs = errors.New("cannot merge PDFs")
 
 // Bytes merges PDFs from byte slices.
 func Bytes(pdfs ...[]byte) ([]byte, error) {
-	readers := make([]io.ReadSeeker, len(pdfs))
-	for i, pdf := range pdfs {
-		readers[i] = bytes.NewReader(pdf)
+	if len(pdfs) == 0 {
+		return nil, fmt.Errorf("%w: no PDFs provided", ErrCannotMergePDFs)
 	}
 
-	var buf bytes.Buffer
-	writer := io.Writer(&buf)
-	err := mergePdfs(readers, writer, false)
+	documents := make([]*pdfDocument, 0, len(pdfs))
+	for _, pdf := range pdfs {
+		document, err := parsePDF(pdf)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrCannotMergePDFs, err)
+		}
+		documents = append(documents, document)
+	}
+
+	merged, err := writeMergedPDF(documents)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrCannotMergePDFs, err)
 	}
-
-	return buf.Bytes(), nil
-}
-
-func mergePdfs(readers []io.ReadSeeker, writer io.Writer, dividerPage bool) error {
-	conf := api.LoadConfiguration()
-	conf.WriteXRefStream = false
-	err := api.MergeRaw(readers, writer, dividerPage, conf)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrCannotMergePDFs, err)
-	}
-
-	return nil
+	return merged, nil
 }

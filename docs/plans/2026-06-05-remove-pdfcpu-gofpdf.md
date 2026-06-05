@@ -96,11 +96,11 @@ Type: Feature
 
 - [x] Task 1: Remove backend type leaks from core interfaces
 - [x] Task 2: Internalize and rename the PDF provider backend
-- [ ] Task 3: Replace pdfcpu merge with an in-repo merger
+- [x] Task 3: Replace pdfcpu merge with an in-repo merger
 - [ ] Task 4: Rename the Go module and public API to Paper
 - [ ] Task 5: Regenerate mocks, update docs, and add final dependency guards
 
-**Total Tasks:** 5 | **Completed:** 2 | **Remaining:** 3
+**Total Tasks:** 5 | **Completed:** 3 | **Remaining:** 2
 
 ## Implementation Tasks
 
@@ -216,14 +216,14 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `pkg/merge` has no `pdfcpu` import.
-- [ ] Generated one-page PDFs merge into a valid two-page PDF with a traversable Catalog/Pages/Kids graph.
-- [ ] Every merged page's `Contents` and `Resources` references resolve in parser-level tests.
-- [ ] Merge tests cover Paper-generated PDFs containing text, images, custom fonts, gradients/backgrounds, links, and compression on/off.
-- [ ] Invalid input returns an error wrapping `merge.ErrCannotMergePDFs`.
-- [ ] Concurrent and low-memory generation still succeed and return `%PDF-` bytes.
-- [ ] Protected concurrent and protected low-memory generation fall back to sequential protected generation and still return `%PDF-` bytes.
-- [ ] `core.Pdf.Merge` still wraps failures in `core.ErrCannotMergeBytes` and updates bytes on success.
+- [x] `pkg/merge` has no `pdfcpu` import.
+- [x] Generated one-page PDFs merge into a valid two-page PDF with a traversable Catalog/Pages/Kids graph.
+- [x] Every merged page's `Contents` and `Resources` references resolve in parser-level tests.
+- [x] Merge tests cover Paper-generated PDFs containing text, images, custom fonts, gradients/backgrounds, links, and compression on/off.
+- [x] Invalid input returns an error wrapping `merge.ErrCannotMergePDFs`.
+- [x] Concurrent and low-memory generation still succeed and return `%PDF-` bytes.
+- [x] Protected concurrent and protected low-memory generation fall back to sequential protected generation and still return `%PDF-` bytes.
+- [x] `core.Pdf.Merge` still wraps failures in `core.ErrCannotMergeBytes` and updates bytes on success.
 
 **Verify:**
 
