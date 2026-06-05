@@ -31,8 +31,8 @@
 - Page number rendering does not overlap body content — it is drawn in the margin.
 
 ## GoDoc
-* [builder : WithPageNumber](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithPageNumber)
-* [props : Place](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/props#Place)
+* [builder : WithPageNumber](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithPageNumber)
+* [props : Place](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Place)
 
 ## Code Example
 [filename](../../assets/examples/pagenumber/v2/main.go ':include :type=code')
@@ -46,4 +46,4 @@
 [filename](../../assets/text/pagenumberv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/pagenumber.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/pagenumber.json  ':include :type=code')

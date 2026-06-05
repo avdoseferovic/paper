@@ -1,23 +1,23 @@
 # HTML to PDF Support
 
-Maroto can convert a documented subset of HTML/CSS directly into PDF documents. No browser, no Node, no external binary — pure Go.
+Paper can convert a documented subset of HTML/CSS directly into PDF documents. No browser, no Node, no external binary — pure Go.
 
 ## Quick start
 
 ```go
-import maroto "github.com/johnfercher/maroto/v2"
+import paper "github.com/johnfercher/paper/v2"
 
-doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
 if err != nil {
     log.Fatal(err)
 }
 _ = doc.Save("out.pdf")
 ```
 
-Use `maroto.New()` when you need to mix HTML with headers, footers, manual rows, or other Maroto components:
+Use `paper.New()` when you need to mix HTML with headers, footers, manual rows, or other Paper components:
 
 ```go
-m := maroto.New()
+m := paper.New()
 if err := m.AddHTML(`<h1>Hello</h1><p>World</p>`); err != nil {
     log.Fatal(err)
 }
@@ -27,10 +27,10 @@ doc, _ := m.Generate()
 Or build rows directly for advanced resolver options:
 
 ```go
-import "github.com/johnfercher/maroto/v2/pkg/html"
+import "github.com/johnfercher/paper/v2/pkg/html"
 
 rows, err := html.FromString(htmlString)
-// rows is []core.Row — add to any Maroto document
+// rows is []core.Row — add to any Paper document
 ```
 
 ## Supported HTML tags
@@ -79,7 +79,7 @@ rows, err := html.FromString(htmlString)
 
 **`calc()` expressions:** `+`, `-`, `*`, `/`, one level of parentheses, lenient whitespace (`calc(100%-20mm)` accepted). Mixed units convert via `ParseLength` per token. `%` requires a known context width.
 
-**Colour formats:** named colours (full CSS Color Level 4, ~147 entries), `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Alpha tracked through to gofpdf's `SetAlpha`.
+**Colour formats:** named colours (full CSS Color Level 4, ~147 entries), `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Alpha is tracked through to the internal PDF backend.
 
 **Selectors:** Cascadia provides full CSS selector support: tag, class, id, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
 
@@ -87,7 +87,7 @@ rows, err := html.FromString(htmlString)
 
 These remain partially supported or deferred — most are visual-quality trade-offs of the pure-Go pipeline.
 
-- `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement (since `phpdave11/gofpdf` does not expose `SetCharSpacing`). Performance scales with character count, not word count.
+- `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement. Performance scales with character count, not word count.
 - `text-align: justify` currently degrades to left alignment for RichText paragraphs.
 - `align-self` is parsed and stored on `ComputedStyle` but the visual cross-axis offset requires knowing the row's max child height at render time. Currently a structural no-op; full visual alignment is deferred (blocked on explicit container height support).
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
@@ -103,7 +103,7 @@ These are intentional v1 limitations — most can be worked around. They are not
 
 ### Container backgrounds spanning page breaks
 
-Now **supported** via `core.Splittable` on `blockContainer`. When a styled `<div>` is too tall for the remaining page space, `maroto.addRow()` calls `SplitAt(remainingHeight)` to slice the container; the first slice renders on the current page with the original top corners rounded and a flat bottom, the second slice renders on the next page with a flat top and the original bottom corners. Background and border are repainted on each slice. Set `break-inside: avoid` on the container to push the whole thing to the next page instead.
+Now **supported** via `core.Splittable` on `blockContainer`. When a styled `<div>` is too tall for the remaining page space, `paper.addRow()` calls `SplitAt(remainingHeight)` to slice the container; the first slice renders on the current page with the original top corners rounded and a flat bottom, the second slice renders on the next page with a flat top and the original bottom corners. Background and border are repainted on each slice. Set `break-inside: avoid` on the container to push the whole thing to the next page instead.
 
 ### Inline `<img>` splits the surrounding paragraph
 
@@ -149,7 +149,7 @@ The base-dir resolvers use `filepath.Clean` + a prefix check to reject `..` trav
 
 ### @font-face
 
-Web fonts are loaded at translate time and registered with the gofpdf provider via the new `core.LateFontProvider` capability:
+Web fonts are loaded at translate time and registered with the internal PDF provider via the `core.LateFontProvider` capability:
 
 ```css
 @font-face {
@@ -159,7 +159,7 @@ Web fonts are loaded at translate time and registered with the gofpdf provider v
 p { font-family: "MyFont" }
 ```
 
-- Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped (gofpdf can't decode them) and logged via `unsupportedHandler`.
+- Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped because the internal backend cannot decode them, and they are logged via `unsupportedHandler`.
 - Failures (resolver refused, malformed font bytes) log via `unsupportedHandler` and fall back to default fonts — never a panic.
 
 ### Internal anchors
@@ -174,7 +174,7 @@ p { font-family: "MyFont" }
 
 ## CSS Flex
 
-Basic flexbox layout is supported, with some limitations driven by Maroto's grid model.
+Basic flexbox layout is supported, with some limitations driven by Paper's grid model.
 
 ```html
 <div style="display:flex; gap:6mm">
@@ -207,7 +207,7 @@ Basic flexbox layout is supported, with some limitations driven by Maroto's grid
 
 ### Grid quantization
 
-Maroto's grid is **12 columns wide** by default (configurable via `config.WithMaxGridSize(n)`). Flex item sizes are quantized to integer col widths using Hamilton's largest-remainder method (provably the fairest integer split). This means:
+Paper's grid is **12 columns wide** by default (configurable via `config.WithMaxGridSize(n)`). Flex item sizes are quantized to integer col widths using Hamilton's largest-remainder method (provably the fairest integer split). This means:
 
 - `flex:1 1 1` over 3 items → `[4,4,4]`
 - `flex:1 1 1 1` over 4 items → `[3,3,3,3]`
@@ -217,7 +217,7 @@ Maroto's grid is **12 columns wide** by default (configurable via `config.WithMa
 
 ### Gap approximation
 
-`gap`/`column-gap` is measured in mm but Maroto needs integer cols. The translator converts using `mm_per_col = contentWidth / gridSize`, defaulting to 170mm/12 ≈ 14.17mm/col at A4 with 20mm L+R margins. For other page sizes, pass `html.WithContentWidth(mm)`. Gap is clamped to ≤ gridSize/2 cols.
+`gap`/`column-gap` is measured in mm but Paper needs integer cols. The translator converts using `mm_per_col = contentWidth / gridSize`, defaulting to 170mm/12 ≈ 14.17mm/col at A4 with 20mm L+R margins. For other page sizes, pass `html.WithContentWidth(mm)`. Gap is clamped to ≤ gridSize/2 cols.
 
 ### Limitations (intentional)
 
@@ -228,15 +228,15 @@ Maroto's grid is **12 columns wide** by default (configurable via `config.WithMa
 - **`flex-shrink`** — parsed but no independent effect. Hamilton's quantizer always sums exactly to the grid total, so overflow is impossible.
 - **`flex-direction: *-reverse`** — accepted as valid CSS but children render in source order.
 - **`space-between` with no slack** — silently degrades to `flex-start` when item widths sum to the grid. Workaround: use non-equal flex weights, or ensure `gap` reserves spacer cols.
-- **`align-items: center`/`flex-end`** — best-effort within Maroto's row model. Cross-axis alignment in PDF is bounded by the row's auto-height behaviour.
+- **`align-items: center`/`flex-end`** — best-effort within Paper's row model. Cross-axis alignment in PDF is bounded by the row's auto-height behaviour.
 
 ### Configurable grid + content width
 
-When constructing the maroto document with a custom grid:
+When constructing the paper document with a custom grid:
 
 ```go
 cfg := config.NewBuilder().WithMaxGridSize(20).Build()
-m := maroto.New(cfg)
+m := paper.New(cfg)
 m.AddHTML(htmlStr) // flex quantization automatically uses gridSize=20
 ```
 
@@ -256,11 +256,11 @@ DOM tree + extracted <style> blocks
 ComputedStyle per element (cascade + specificity + em tree-walk)
    ↓ pkg/html/translate
 []core.Row (uses RichText, Table, HTMLList components)
-   ↓ Maroto layout + pagination
+   ↓ Paper layout + pagination
 PDF
 ```
 
-The conversion is purely additive — your existing Maroto code continues to work unchanged.
+The conversion is purely additive — your existing Paper code continues to work unchanged.
 
 ## Images
 
@@ -308,7 +308,7 @@ When a resolver returns an error, the SVG parser rejects the input, or the PNG e
 
 ## Built-in CSS classes
 
-Maroto ships a small built-in stylesheet that applies before any user `<style>` block. The cascade precedence is **built-in < user CSS < inline `style=""`** — user styles always win.
+Paper ships a small built-in stylesheet that applies before any user `<style>` block. The cascade precedence is **built-in < user CSS < inline `style=""`** — user styles always win.
 
 ### `.title-band`
 

@@ -17,12 +17,12 @@ Flags can be combined with `|`: `protection.Print | protection.Copy` restricts b
 ## Usage notes
 
 - An empty string for either password disables that password. A document with only an owner password can be opened without a password but restrictions apply to regular users.
-- PDF encryption strength depends on the underlying library. maroto uses 128-bit RC4 encryption via gofpdf.
+- PDF encryption strength depends on the internal PDF backend. Paper uses 128-bit RC4 encryption for protected documents.
 - PDF protection is not a strong security guarantee — determined users with the right tools can bypass it. Use it as a deterrent, not a security boundary.
 
 ## GoDoc
-* [builder : WithProtection](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithProtection)
-* [protection : Type](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/consts/protection)
+* [builder : WithProtection](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithProtection)
+* [protection : Type](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/consts/protection)
 
 ## Code Example
 [filename](../../assets/examples/protection/v2/main.go ':include :type=code')
@@ -35,4 +35,4 @@ Flags can be combined with `|`: `protection.Print | protection.Copy` restricts b
 [filename](../../assets/text/protectionv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/protection.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/protection.json  ':include :type=code')

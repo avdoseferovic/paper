@@ -1,28 +1,28 @@
-# Maroto V2
+# Paper V2
 
-[![GoDoc](https://godoc.org/github.com/johnfercher/maroto?status.svg)](https://pkg.go.dev/github.com/johnfercher/maroto/v2)
-[![Go Report Card](https://goreportcard.com/badge/github.com/johnfercher/maroto)](https://goreportcard.com/report/github.com/johnfercher/maroto)
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)  
-[![CI](https://github.com/johnfercher/maroto/actions/workflows/goci.yml/badge.svg)](https://github.com/johnfercher/maroto/actions/workflows/goci.yml)
-[![Lint](https://github.com/johnfercher/maroto/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/johnfercher/maroto/actions/workflows/golangci-lint.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/johnfercher/maroto)](https://codecov.io/gh/johnfercher/maroto)
-[![Visits Badge](https://badges.pufler.dev/visits/johnfercher/maroto)](https://badges.pufler.dev)
-[![Stars Badge](https://img.shields.io/github/stars/johnfercher/maroto.svg?style=social&label=Stars)](https://github.com/johnfercher/maroto/stargazers)
+[![GoDoc](https://godoc.org/github.com/johnfercher/paper?status.svg)](https://pkg.go.dev/github.com/johnfercher/paper/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/johnfercher/paper)](https://goreportcard.com/report/github.com/johnfercher/paper)
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
+[![CI](https://github.com/johnfercher/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/goci.yml)
+[![Lint](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/johnfercher/paper/actions/workflows/golangci-lint.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/johnfercher/paper)](https://codecov.io/gh/johnfercher/paper)
+[![Visits Badge](https://badges.pufler.dev/visits/johnfercher/paper)](https://badges.pufler.dev)
+[![Stars Badge](https://img.shields.io/github/stars/johnfercher/paper.svg?style=social&label=Stars)](https://github.com/johnfercher/paper/stargazers)
 
 
-A Maroto way to create PDFs. Maroto can convert HTML directly to PDF, or compose documents with a Bootstrap-inspired row/column API on top of [Gofpdf](https://github.com/phpdave11/gofpdf). Fast and simple.
+A Paper way to create PDFs. Paper can convert HTML directly to PDF, or compose documents with a Bootstrap-inspired row/column API. Fast and simple.
 
-![sirmaroto](docs/assets/images/logosmall.png)
-> Maroto definition: Brazilian expression, means an astute/clever/intelligent person. 
+![Paper logo](docs/assets/images/logosmall.png)
+> Paper generates PDF documents from structured Go components and HTML.
 > [Art by **@marinabankr**](https://www.instagram.com/marinabankr/)
 
-For custom layouts, you can still write PDFs with Maroto's row/column API. A row may have many cols, and a col may have many components.
+For custom layouts, you can still write PDFs with Paper's row/column API. A row may have many cols, and a col may have many components.
 Pages are added automatically when content exceeds the useful area. You can also define headers and footers for documents that need manual composition.
 
 ## HTML to PDF
 
 ```go
-doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
 if err != nil {
     log.Fatal(err)
 }
@@ -30,18 +30,18 @@ if err != nil {
 _ = doc.Save("out.pdf")
 ```
 
-Use `maroto.New()` only when you need to mix HTML with manually composed rows, headers, footers, or other Maroto components.
+Use `paper.New()` only when you need to mix HTML with manually composed rows, headers, footers, or other Paper components.
 
-#### Maroto `v2.4.0` is here! Try out:
+#### Paper `v2.4.0` is here! Try out:
 
 * Installation with`go get`:
 
 ```bash
-go get github.com/johnfercher/maroto/v2@v2.4.0
+go get github.com/johnfercher/paper/v2@v2.4.0
 ```
 
-* You can see the full `v2` documentation [here](https://maroto.tech/#/README?id=maroto-v2).
-* The `v1` still exists in [this branch](https://github.com/johnfercher/maroto/tree/v1), and you can see the doc [here]([https://maroto.io/#/v1/README?id=deprecated](https://maroto.tech/#/v1/README?id=deprecated)).
+* You can see the full `v2` documentation [here](https://paper.tech/#/README?id=paper-v2).
+* The `v1` still exists in [this branch](https://github.com/johnfercher/paper/tree/v1), and you can see the doc [here]([https://paper.tech/#/v1/README?id=deprecated](https://paper.tech/#/v1/README?id=deprecated)).
 
 ![result](docs/assets/images/result.png)
 
@@ -53,7 +53,7 @@ go get github.com/johnfercher/maroto/v2@v2.4.0
 | `make test`     | Run unit tests                                    | `go`                                                          |
 | `make fmt`      | Format files                                      | `gofmt`, `gofumpt` and `goimports`                            |
 | `make lint`     | Check files                                       | `golangci-lint`                                               |
-| `make dod`      | (Definition of Done) Format files and check files | Same as `make build`, `make test`, `make fmt` and `make lint` | 
+| `make dod`      | (Definition of Done) Format files and check files | Same as `make build`, `make test`, `make fmt` and `make lint` |
 | `make install`  | Install all dependencies                          | `go`, `curl` and `git`                                        |
 | `make examples` | Run all examples                                  | `go`                                                          |
 | `make mocks`    | Generate mocks                                    | `go` and `mockery`                                            |
@@ -61,4 +61,4 @@ go get github.com/johnfercher/maroto/v2@v2.4.0
 | `make godoc`    | Run godoc server local                            | `godoc`                                                       |
 
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/johnfercher/maroto.svg?variant=adaptive)](https://starchart.cc/johnfercher/maroto)
+[![Stargazers over time](https://starchart.cc/johnfercher/paper.svg?variant=adaptive)](https://starchart.cc/johnfercher/paper)

@@ -5,12 +5,12 @@
 ## Usage notes
 
 - `RegisterHeader` accepts one or more `core.Row` values; they are stacked top-to-bottom in the order given.
-- Header rows consume vertical space — maroto deducts their total height from the usable area on every page so body content starts below the header.
+- Header rows consume vertical space — paper deducts their total height from the usable area on every page so body content starts below the header.
 - Call `RegisterHeader` once before generating any content; calling it again replaces the previous header.
 - Returns an error if the header rows are taller than the page's usable height.
 
 ## GoDoc
-* [maroto : RegisterHeader](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.RegisterHeader)
+* [paper : RegisterHeader](https://pkg.go.dev/github.com/johnfercher/paper/v2#Paper.RegisterHeader)
 
 ## Code Example
 [filename](../../assets/examples/header/v2/main.go ':include :type=code')
@@ -24,4 +24,4 @@
 [filename](../../assets/text/headerv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/header.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/header.json  ':include :type=code')

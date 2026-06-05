@@ -1,25 +1,25 @@
 # Basics
 
-Maroto can generate PDFs directly from HTML with `maroto.FromHTML`. Use the grid-based layout API when you need lower-level control over pages, rows, columns, headers, footers, or individual components.
+Paper can generate PDFs directly from HTML with `paper.FromHTML`. Use the grid-based layout API when you need lower-level control over pages, rows, columns, headers, footers, or individual components.
 
 ```go
-doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
 ```
 
 Every page in the manual layout API is divided into a fixed number of columns (default: 12) and an unlimited number of rows. Components such as text, images, barcodes and lines are placed inside columns, and columns are grouped into rows.
 
-The entry point is `maroto.New()`, which accepts an optional `*entity.Config` produced by `config.NewBuilder()`. Once the document is configured, content is added via `AddRow`, `AddRows`, `AddAutoRow`, or `AddPages`. Finally, `Generate()` returns a `Document` that can be saved to disk or exported as bytes.
+The entry point is `paper.New()`, which accepts an optional `*entity.Config` produced by `config.NewBuilder()`. Once the document is configured, content is added via `AddRow`, `AddRows`, `AddAutoRow`, or `AddPages`. Finally, `Generate()` returns a `Document` that can be saved to disk or exported as bytes.
 
 ## GoDoc
-* [maroto : FromHTML](https://pkg.go.dev/github.com/johnfercher/maroto/v2#FromHTML)
-* [maroto : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2#New)
-* [maroto : AddRow](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.AddRow)
-* [maroto : AddRows](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.AddRows)
-* [maroto : Generate](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.Generate)
-* [row : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/row#New)
-* [row : Add](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/row#Row.Add)
-* [col : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/col#New)
-* [col : Add](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/col#Col.Add)
+* [paper : FromHTML](https://pkg.go.dev/github.com/johnfercher/paper/v2#FromHTML)
+* [paper : New](https://pkg.go.dev/github.com/johnfercher/paper/v2#New)
+* [paper : AddRow](https://pkg.go.dev/github.com/johnfercher/paper/v2#Paper.AddRow)
+* [paper : AddRows](https://pkg.go.dev/github.com/johnfercher/paper/v2#Paper.AddRows)
+* [paper : Generate](https://pkg.go.dev/github.com/johnfercher/paper/v2#Paper.Generate)
+* [row : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/row#New)
+* [row : Add](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/row#Row.Add)
+* [col : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/col#New)
+* [col : Add](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/col#Col.Add)
 
 ### Components
 * [Barcode](v2/features/barcode?id=barcode)

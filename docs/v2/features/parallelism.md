@@ -1,6 +1,6 @@
 # Parallelism
 
-`WithConcurrentMode` enables concurrent PDF generation. maroto splits the document into chunks and processes them in parallel using a configurable number of worker goroutines, then assembles the final output in the correct order.
+`WithConcurrentMode` enables concurrent PDF generation. paper splits the document into chunks and processes them in parallel using a configurable number of worker goroutines, then assembles the final output in the correct order.
 
 ## Generation modes comparison
 
@@ -17,7 +17,7 @@
 - Incompatible with `WithSequentialLowMemoryMode`; the last one called wins.
 
 ## GoDoc
-* [builder : WithConcurrentMode](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithConcurrentMode)
+* [builder : WithConcurrentMode](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithConcurrentMode)
 
 ## Code Example
 [filename](../../assets/examples/parallelism/v2/main.go  ':include :type=code')
@@ -34,4 +34,4 @@
 [filename](../../assets/text/parallel.txt ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/parallelism.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/parallelism.json  ':include :type=code')

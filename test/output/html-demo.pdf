@@ -3,12 +3,12 @@
 <</Type /Page
 /Parent 1 0 R
 /Resources 2 0 R
-/Annots [<</Type /Annot /Subtype /Link /Rect [457.74 511.85 460.10 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/maroto)>>>><</Type /Annot /Subtype /Link /Rect [460.10 511.85 485.61 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/maroto)>>>><</Type /Annot /Subtype /Link /Rect [485.61 511.85 487.97 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/maroto)>>>><</Type /Annot /Subtype /Link /Rect [487.97 511.85 500.72 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/maroto)>>>>]
+/Annots [<</Type /Annot /Subtype /Link /Rect [457.74 511.85 460.10 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [460.10 511.85 485.61 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [485.61 511.85 487.97 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>><</Type /Annot /Subtype /Link /Rect [487.97 511.85 500.72 503.35] /Border [0 0 0] /A <</S /URI /URI (https://github.com/johnfercher/paper)>>>>]
 /Group <</Type /Group /S /Transparency /CS /DeviceRGB>>
 /Contents 4 0 R>>
 endobj
 4 0 obj
-<</Length 62413>>
+<</Length 62464>>
 stream
 0 J
 0 j
@@ -223,11 +223,11 @@ BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 7.50 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 14.00 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 14.00 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 14.00 Tf ET
-q 0.102 0.243 0.447 rg BT 56.69 785.37 Td (MAROTO HTML PDF DEMO) Tj ET Q
+q 0.102 0.243 0.447 rg BT 56.69 785.37 Td (PAPER HTML PDF DEMO) Tj ET Q
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
-q 0.471 g BT 422.42 790.37 Td (html-demo@maroto.example) Tj ET Q
+q 0.471 g BT 427.41 790.37 Td (html-demo@paper.example) Tj ET Q
 0.102 0.243 0.447 RG
 1.70 w
 80.79 770.74 m 514.49 770.74 l S
@@ -270,11 +270,11 @@ BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 22.00 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 22.00 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 22.00 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 22.00 Tf ET
-q 0.059 0.173 0.290 rg BT 72.28 706.16 Td (Maroto) Tj ET Q
-q 0.059 0.173 0.290 rg BT 145.61 706.16 Td ( ) Tj ET Q
-q 0.059 0.173 0.290 rg BT 151.73 706.16 Td (HTML) Tj ET Q
-q 0.059 0.173 0.290 rg BT 212.82 706.16 Td ( ) Tj ET Q
-q 0.059 0.173 0.290 rg BT 218.94 706.16 Td (Demo) Tj ET Q
+q 0.059 0.173 0.290 rg BT 72.28 706.16 Td (Paper) Tj ET Q
+q 0.059 0.173 0.290 rg BT 133.42 706.16 Td ( ) Tj ET Q
+q 0.059 0.173 0.290 rg BT 139.54 706.16 Td (HTML) Tj ET Q
+q 0.059 0.173 0.290 rg BT 200.63 706.16 Td ( ) Tj ET Q
+q 0.059 0.173 0.290 rg BT 206.75 706.16 Td (Demo) Tj ET Q
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
@@ -427,23 +427,24 @@ q 0.165 0.196 0.231 rg BT 440.64 729.71 Td (HTML) Tj ET Q
 q 0.165 0.196 0.231 rg BT 461.06 729.71 Td ( ) Tj ET Q
 q 0.165 0.196 0.231 rg BT 463.14 729.71 Td (into) Tj ET Q
 q 0.165 0.196 0.231 rg BT 475.23 729.71 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 477.32 729.71 Td (Maroto) Tj ET Q
-q 0.165 0.196 0.231 rg BT 500.66 729.71 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 502.74 729.71 Td (and) Tj ET Q
-q 0.165 0.196 0.231 rg BT 515.25 729.71 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 400.63 720.86 Td (get) Tj ET Q
-q 0.165 0.196 0.231 rg BT 411.05 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 413.14 720.86 Td (a) Tj ET Q
-q 0.165 0.196 0.231 rg BT 417.31 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 419.39 720.86 Td (paginated) Tj ET Q
-q 0.165 0.196 0.231 rg BT 452.33 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 454.42 720.86 Td (PDF) Tj ET Q
-q 0.165 0.196 0.231 rg BT 469.42 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 471.50 720.86 Td (with) Tj ET Q
-q 0.165 0.196 0.231 rg BT 484.84 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 486.92 720.86 Td (native) Tj ET Q
-q 0.165 0.196 0.231 rg BT 506.93 720.86 Td ( ) Tj ET Q
-q 0.165 0.196 0.231 rg BT 509.02 720.86 Td (rows,) Tj ET Q
+q 0.165 0.196 0.231 rg BT 477.32 729.71 Td (Paper) Tj ET Q
+q 0.165 0.196 0.231 rg BT 497.33 729.71 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 499.41 729.71 Td (and) Tj ET Q
+q 0.165 0.196 0.231 rg BT 511.92 729.71 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 514.01 729.71 Td (get) Tj ET Q
+q 0.165 0.196 0.231 rg BT 524.43 729.71 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 400.63 720.86 Td (a) Tj ET Q
+q 0.165 0.196 0.231 rg BT 404.80 720.86 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 406.88 720.86 Td (paginated) Tj ET Q
+q 0.165 0.196 0.231 rg BT 439.82 720.86 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 441.91 720.86 Td (PDF) Tj ET Q
+q 0.165 0.196 0.231 rg BT 456.91 720.86 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 458.99 720.86 Td (with) Tj ET Q
+q 0.165 0.196 0.231 rg BT 472.33 720.86 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 474.41 720.86 Td (native) Tj ET Q
+q 0.165 0.196 0.231 rg BT 494.42 720.86 Td ( ) Tj ET Q
+q 0.165 0.196 0.231 rg BT 496.51 720.86 Td (rows,) Tj ET Q
+q 0.165 0.196 0.231 rg BT 514.43 720.86 Td ( ) Tj ET Q
 q 0.165 0.196 0.231 rg BT 400.63 712.01 Td (tables,) Tj ET Q
 q 0.165 0.196 0.231 rg BT 422.72 712.01 Td ( ) Tj ET Q
 q 0.165 0.196 0.231 rg BT 424.81 712.01 Td (and) Tj ET Q
@@ -2531,7 +2532,7 @@ endobj
 /Contents 8 0 R>>
 endobj
 8 0 obj
-<</Length 5132>>
+<</Length 5131>>
 stream
 0 J
 0 j
@@ -2624,40 +2625,40 @@ BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 7.50 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 7.50 Tf ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 7.50 Tf ET
 BT /Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 7.50 Tf ET
-BT 65.20 728.88 Td (Maroto) Tj ET
-BT 90.19 728.88 Td ( ) Tj ET
-BT 92.28 728.88 Td (HTML) Tj ET
-BT 113.11 728.88 Td ( ) Tj ET
-BT 115.19 728.88 Td (—) Tj ET
+BT 65.20 728.88 Td (Paper) Tj ET
+BT 86.04 728.88 Td ( ) Tj ET
+BT 88.12 728.88 Td (HTML) Tj ET
+BT 108.95 728.88 Td ( ) Tj ET
+BT 111.04 728.88 Td (—) Tj ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 7.50 Tf ET
-BT 122.69 728.88 Td ( ) Tj ET
-BT 124.78 728.88 Td (Pure) Tj ET
-BT 140.62 728.88 Td ( ) Tj ET
-BT 142.70 728.88 Td (Go) Tj ET
-BT 152.71 728.88 Td ( ) Tj ET
-BT 154.79 728.88 Td (HTML.PDF) Tj ET
-BT 192.29 728.88 Td ( ) Tj ET
-BT 194.38 728.88 Td (with) Tj ET
-BT 207.71 728.88 Td ( ) Tj ET
-BT 209.80 728.88 Td (gradients,) Tj ET
-BT 242.73 728.88 Td ( ) Tj ET
-BT 244.81 728.88 Td (shadows,) Tj ET
-BT 276.49 728.88 Td ( ) Tj ET
-BT 278.58 728.88 Td (outlines,) Tj ET
-BT 306.51 728.88 Td ( ) Tj ET
-BT 308.59 728.88 Td (flex-wrap,) Tj ET
-BT 341.10 728.88 Td ( ) Tj ET
-BT 343.18 728.88 Td (order,) Tj ET
-BT 362.77 728.88 Td ( ) Tj ET
-BT 364.86 728.88 Td (page-break) Tj ET
-BT 402.79 728.88 Td ( ) Tj ET
-BT 404.88 728.88 Td (controls,) Tj ET
-BT 433.22 728.88 Td ( ) Tj ET
-BT 435.31 728.88 Td (and) Tj ET
-BT 447.82 728.88 Td ( ) Tj ET
-BT 449.90 728.88 Td (splittable) Tj ET
-BT 479.50 728.88 Td ( ) Tj ET
-BT 481.58 728.88 Td (containers.) Tj ET
+BT 118.54 728.88 Td ( ) Tj ET
+BT 120.62 728.88 Td (Pure) Tj ET
+BT 136.46 728.88 Td ( ) Tj ET
+BT 138.55 728.88 Td (Go) Tj ET
+BT 148.55 728.88 Td ( ) Tj ET
+BT 150.64 728.88 Td (HTML.PDF) Tj ET
+BT 188.14 728.88 Td ( ) Tj ET
+BT 190.22 728.88 Td (with) Tj ET
+BT 203.56 728.88 Td ( ) Tj ET
+BT 205.64 728.88 Td (gradients,) Tj ET
+BT 238.57 728.88 Td ( ) Tj ET
+BT 240.66 728.88 Td (shadows,) Tj ET
+BT 272.34 728.88 Td ( ) Tj ET
+BT 274.42 728.88 Td (outlines,) Tj ET
+BT 302.35 728.88 Td ( ) Tj ET
+BT 304.44 728.88 Td (flex-wrap,) Tj ET
+BT 336.94 728.88 Td ( ) Tj ET
+BT 339.03 728.88 Td (order,) Tj ET
+BT 358.62 728.88 Td ( ) Tj ET
+BT 360.70 728.88 Td (page-break) Tj ET
+BT 398.64 728.88 Td ( ) Tj ET
+BT 400.72 728.88 Td (controls,) Tj ET
+BT 429.07 728.88 Td ( ) Tj ET
+BT 431.15 728.88 Td (and) Tj ET
+BT 443.66 728.88 Td ( ) Tj ET
+BT 445.75 728.88 Td (splittable) Tj ET
+BT 475.34 728.88 Td ( ) Tj ET
+BT 477.43 728.88 Td (containers.) Tj ET
 BT /F0a76705d18e0494dd24cb573e53aa0a8c710ec99 9.00 Tf ET
 
 endstream
@@ -2683,28 +2684,28 @@ endobj
 endobj
 13 0 obj
 <</Type /Font
-/BaseFont /Courier
+/BaseFont /Helvetica
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 14 0 obj
 <</Type /Font
-/BaseFont /Helvetica
+/BaseFont /Helvetica-Bold
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 15 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Bold
+/BaseFont /Helvetica-Oblique
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
 endobj
 16 0 obj
 <</Type /Font
-/BaseFont /Helvetica-Oblique
+/BaseFont /Courier
 /Subtype /Type1
 /Encoding /WinAnsiEncoding
 >>
@@ -2781,15 +2782,15 @@ endobj
 <<
 /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
 /Font <<
-/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 14 0 R
-/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 15 0 R
-/F97f05bfb6ba727d84d5803987480190cb83c609d 16 0 R
-/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 13 0 R
+/Ff3d9bb94eeeff89a090f4dc5bfa51473a19690b3 16 0 R
+/F0a76705d18e0494dd24cb573e53aa0a8c710ec99 13 0 R
+/Ff5d2de5f3a71699ae4b2d83179e62d09e6fc4126 14 0 R
+/F97f05bfb6ba727d84d5803987480190cb83c609d 15 0 R
 >>
 /XObject <<
-/Ia17048ec7bd937ac0ef8ceed26822fd2ad689563 17 0 R
 /I8e56886cf8342b2dbe30abbc35642480a9268230 18 0 R
 /I9f4c546f4d401338257e4cbb94aca62d3de96d36 19 0 R
+/Ia17048ec7bd937ac0ef8ceed26822fd2ad689563 17 0 R
 >>
 /ExtGState <<
 /GS1 9 0 R
@@ -2804,8 +2805,8 @@ endobj
 20 0 obj
 <<
 /Producer (þÿ F P D F   1 . 7)
-/CreationDate (D:20260602000523)
-/ModDate (D:20260602000523)
+/CreationDate (D:20260605164743)
+/ModDate (D:20260605164743)
 >>
 endobj
 21 0 obj
@@ -2822,27 +2823,27 @@ endobj
 xref
 0 22
 0000000000 65535 f 
-0000119584 00000 n 
-0000128973 00000 n 
+0000119630 00000 n 
+0000129019 00000 n 
 0000000009 00000 n 
-0000000726 00000 n 
-0000063190 00000 n 
-0000063324 00000 n 
-0000113454 00000 n 
-0000114402 00000 n 
-0000119683 00000 n 
-0000119751 00000 n 
-0000119820 00000 n 
-0000119889 00000 n 
-0000119958 00000 n 
-0000120053 00000 n 
-0000120150 00000 n 
-0000120252 00000 n 
-0000120357 00000 n 
-0000120887 00000 n 
-0000126091 00000 n 
-0000129499 00000 n 
-0000129613 00000 n 
+0000000722 00000 n 
+0000063237 00000 n 
+0000063371 00000 n 
+0000113501 00000 n 
+0000114449 00000 n 
+0000119729 00000 n 
+0000119797 00000 n 
+0000119866 00000 n 
+0000119935 00000 n 
+0000120004 00000 n 
+0000120101 00000 n 
+0000120203 00000 n 
+0000120308 00000 n 
+0000120403 00000 n 
+0000120933 00000 n 
+0000126137 00000 n 
+0000129545 00000 n 
+0000129659 00000 n 
 trailer
 <<
 /Size 22
@@ -2850,5 +2851,5 @@ trailer
 /Info 20 0 R
 >>
 startxref
-129711
+129757
 %%EOF

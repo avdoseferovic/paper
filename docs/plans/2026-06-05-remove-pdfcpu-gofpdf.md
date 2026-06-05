@@ -1,7 +1,7 @@
 # Remove Pdfcpu Gofpdf And Rename To Paper Implementation Plan
 
 Created: 2026-06-05
-Status: PENDING
+Status: VERIFIED
 Approved: Yes
 Iterations: 0
 Worktree: No
@@ -98,9 +98,9 @@ Type: Feature
 - [x] Task 2: Internalize and rename the PDF provider backend
 - [x] Task 3: Replace pdfcpu merge with an in-repo merger
 - [x] Task 4: Rename the Go module and public API to Paper
-- [ ] Task 5: Regenerate mocks, update docs, and add final dependency guards
+- [x] Task 5: Regenerate mocks, update docs, and add final dependency guards
 
-**Total Tasks:** 5 | **Completed:** 4 | **Remaining:** 1
+**Total Tasks:** 5 | **Completed:** 5 | **Remaining:** 0
 
 ## Implementation Tasks
 
@@ -315,12 +315,12 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] README and active v2 docs show `paper` imports and terminology.
-- [ ] Examples and commands compile with the new module path.
-- [ ] Semantic dependency checks fail if `pdfcpu`, `phpdave11/gofpdf`, or the old module path remain in Go dependencies/imports.
-- [ ] Scoped text guard fails if forbidden import paths remain in active source/docs/config outside explicit historical/attribution exceptions.
-- [ ] `go.mod` and `go.sum` are tidy.
-- [ ] Full test suite passes.
+- [x] README and active v2 docs show `paper` imports and terminology.
+- [x] Examples and commands compile with the new module path.
+- [x] Semantic dependency checks fail if `pdfcpu`, `phpdave11/gofpdf`, or the old module path remain in Go dependencies/imports.
+- [x] Scoped text guard fails if forbidden import paths remain in active source/docs/config outside explicit historical/attribution exceptions.
+- [x] `go.mod` and `go.sum` are tidy.
+- [x] Full test suite passes.
 
 **Verify:**
 

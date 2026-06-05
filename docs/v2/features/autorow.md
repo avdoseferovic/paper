@@ -1,6 +1,6 @@
 # Auto Row
 
-Auto Row removes the need to hard-code row heights. When you call `m.AddAutoRow(cols...)` or use a convenience constructor such as `text.NewAutoRow(...)`, maroto measures each column's content and sets the row height to the tallest column automatically.
+Auto Row removes the need to hard-code row heights. When you call `m.AddAutoRow(cols...)` or use a convenience constructor such as `text.NewAutoRow(...)`, paper measures each column's content and sets the row height to the tallest column automatically.
 
 This is particularly useful for text blocks of unknown length, dynamic lists, or any content that varies between documents.
 
@@ -13,10 +13,10 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 - Auto rows can be mixed freely with fixed-height rows in the same document.
 
 ## GoDoc
-* [maroto : AddAutoRow](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.AddAutoRow)
-* [row : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/row#New)
-* [text : NewAutoRow](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/text#NewAutoRow)
-* [image : NewAutoFromFileRow](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/image#NewAutoFromFileRow)
+* [paper : AddAutoRow](https://pkg.go.dev/github.com/johnfercher/paper/v2#Paper.AddAutoRow)
+* [row : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/row#New)
+* [text : NewAutoRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/text#NewAutoRow)
+* [image : NewAutoFromFileRow](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/image#NewAutoFromFileRow)
 
 ## Code Example
 [filename](../../assets/examples/autorow/v2/main.go  ':include :type=code')
@@ -30,10 +30,10 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 [filename](../../assets/text/autorow.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/autorow.json  ':include :type=code')
-* [constructor : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/components/page#New) 
-* [interface : Page](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/core#Page)
-* [props : Page](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/props#Page)
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/autorow.json  ':include :type=code')
+* [constructor : New](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/components/page#New)
+* [interface : Page](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/core#Page)
+* [props : Page](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/props#Page)
 
 ## Code Example
 [filename](../../assets/examples/autorow/v2/main.go  ':include :type=code')
@@ -47,4 +47,4 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 [filename](../../assets/text/autorow.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/autorow.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/autorow.json  ':include :type=code')

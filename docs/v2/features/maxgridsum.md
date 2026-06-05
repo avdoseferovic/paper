@@ -1,6 +1,6 @@
 # Max Grid Sum
 
-`WithMaxGridSize` changes the total number of grid columns that the page width is divided into. maroto defaults to **12 columns**, following the Bootstrap-style grid convention. Increasing or decreasing this value changes the granularity of the layout.
+`WithMaxGridSize` changes the total number of grid columns that the page width is divided into. paper defaults to **12 columns**, following the Bootstrap-style grid convention. Increasing or decreasing this value changes the granularity of the layout.
 
 ## Usage notes
 
@@ -9,7 +9,7 @@
 - Change the grid size only at the document level; it cannot be changed per row.
 
 ## GoDoc
-* [builder : WithMaxGridSize](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithMaxGridSize)
+* [builder : WithMaxGridSize](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithMaxGridSize)
 
 ## Code Example
 [filename](../../assets/examples/maxgridsum/v2/main.go ':include :type=code')
@@ -23,4 +23,4 @@
 [filename](../../assets/text/maxgridsumv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/maxgridsum.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/maxgridsum.json  ':include :type=code')

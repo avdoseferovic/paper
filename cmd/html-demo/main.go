@@ -47,7 +47,7 @@ func main() {
 		log.Fatalf("generate: %v", err)
 	}
 
-	out := "/Users/avdo/paper/test/output/html-demo.pdf"
+	out := "test/output/html-demo.pdf"
 	if err := doc.Save(out); err != nil {
 		log.Fatalf("save: %v", err)
 	}
@@ -61,7 +61,7 @@ func buildHeader() []core.Row {
 	muted := &props.Color{Red: 120, Green: 120, Blue: 120}
 
 	titleRow := row.New(10).Add(
-		col.New(8).Add(text.New("MAROTO HTML PDF DEMO", props.Text{
+		col.New(8).Add(text.New("PAPER HTML PDF DEMO", props.Text{
 			Family: fontfamily.Helvetica,
 			Style:  fontstyle.Bold,
 			Size:   14,

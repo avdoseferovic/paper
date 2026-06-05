@@ -56,7 +56,7 @@ func main() {
 		log.Fatalf("generate: %v", err)
 	}
 
-	out := "/Users/avdo/paper/test/output/survey-report.pdf"
+	out := "test/output/survey-report.pdf"
 	if err := doc.Save(out); err != nil {
 		log.Fatalf("save: %v", err)
 	}
@@ -70,7 +70,7 @@ func buildHeader() []core.Row {
 	muted := &props.Color{Red: 110, Green: 119, Blue: 133}
 
 	title := row.New(7).Add(
-		col.New(7).Add(text.New("MAROTO MEDICAL CENTER", props.Text{
+		col.New(7).Add(text.New("PAPER MEDICAL CENTER", props.Text{
 			Family: fontfamily.Helvetica,
 			Style:  fontstyle.Bold,
 			Size:   9,

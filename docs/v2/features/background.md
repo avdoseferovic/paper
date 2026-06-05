@@ -6,11 +6,11 @@
 
 - The background is rendered before any rows or columns, so it never obscures content.
 - Combine with `WithOrientation` and custom margins to align the template with the layout.
-- Any image format supported by the underlying PDF library (JPEG, PNG) can be used; the extension argument tells maroto how to decode the file.
+- Any image format supported by the underlying PDF library (JPEG, PNG) can be used; the extension argument tells paper how to decode the file.
 
 ## GoDoc
-* [builder : WithBackgroundImage](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithBackgroundImage)
-* [consts : Extension](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/consts/extension#Type)
+* [builder : WithBackgroundImage](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithBackgroundImage)
+* [consts : Extension](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/consts/extension#Type)
 
 ## Code Example
 [filename](../../assets/examples/background/v2/main.go  ':include :type=code')
@@ -24,4 +24,4 @@
 [filename](../../assets/text/backgroundv2.txt  ':include :type=code')
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/background.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/background.json  ':include :type=code')

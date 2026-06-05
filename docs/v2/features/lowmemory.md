@@ -1,6 +1,6 @@
 # Low Memory
 
-`WithSequentialLowMemoryMode` switches maroto to a low-memory sequential processing strategy. Instead of holding the entire document in memory while building it, each chunk is processed and flushed to the PDF writer before the next one starts.
+`WithSequentialLowMemoryMode` switches paper to a low-memory sequential processing strategy. Instead of holding the entire document in memory while building it, each chunk is processed and flushed to the PDF writer before the next one starts.
 
 ## Generation modes comparison
 
@@ -17,7 +17,7 @@
 - Incompatible with `WithConcurrentMode`; the last mode set wins.
 
 ## GoDoc
-* [builder : WithSequentialLowMemory](https://pkg.go.dev/github.com/johnfercher/maroto/v2/pkg/config#CfgBuilder.WithSequentialLowMemoryMode)
+* [builder : WithSequentialLowMemory](https://pkg.go.dev/github.com/johnfercher/paper/v2/pkg/config#CfgBuilder.WithSequentialLowMemoryMode)
 
 ## Code Example
 [filename](../../assets/examples/lowmemory/v2/main.go  ':include :type=code')
@@ -32,4 +32,4 @@
 
 
 ## Test File
-[filename](https://raw.githubusercontent.com/johnfercher/maroto/master/test/maroto/examples/lowmemory.json  ':include :type=code')
+[filename](https://raw.githubusercontent.com/johnfercher/paper/master/test/paper/examples/lowmemory.json  ':include :type=code')

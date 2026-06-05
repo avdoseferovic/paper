@@ -62,7 +62,7 @@ be placed in one line.
 ### 6. System under test variable name
 Always name the instance being tested `sut`:
 ```go
-sut := gofpdf.NewCheckbox(fpdf, font)
+sut := pkg.NewType(...)
 ```
 
 ### 7. Mocks
@@ -75,13 +75,13 @@ sut := gofpdf.NewCheckbox(fpdf, font)
   When you have to use a `mock.Anything` warn the user that you have to. And make explicit on commits
   and pull requests.
   ```go
-  dep.EXPECT().MethodName(mock.Anythin, arg2).Return(val1, val2) // mock.Anything have to be avoided 
+  dep.EXPECT().MethodName(mock.Anythin, arg2).Return(val1, val2) // mock.Anything have to be avoided
   ```
 - Assert call count only when it's important, example: when dependency is called inside a for loop.
   ```go
   dep.AssertNumberOfCalls(t, "MethodName", 1)
   ```
-- For methods expected **not** to be called, do not set an EXPECT — testify/mock will fail 
+- For methods expected **not** to be called, do not set an EXPECT — testify/mock will fail
   automatically if an unexpected call occurs. If a dependency have zero mock definitions called
   remove this dependency and pass it as `nil` on `sut` constructor.
 
@@ -99,7 +99,7 @@ When computing expected float64 values that involve division (e.g., `80.0/100.0`
 more testing cases/subsets to make sure that the math operation is correctly tested, vary values between negative and positive values.
 
 ### 11. Concept of multiple
-- When testing a method that receives a slice/array of any type `[]int`, `[]string`, `[]any`, or a variadic argument 
+- When testing a method that receives a slice/array of any type `[]int`, `[]string`, `[]any`, or a variadic argument
 (see the reference for more info about variadic arguments) you have to create at least `3` tests:
     1. One subset passing `nil`.
     2. Other subset passing empty, like: `[]string{}`.
@@ -148,12 +148,12 @@ func Test<Type>_<Method>(t *testing.T) {
         // Arrange
         dep := mocks.New<Dep>(t)
         dep.EXPECT().<MockedMethod>(<args>).Return(<vals>)
-        
+
         sut := pkg.New<Type>(dep)
-        
+
         // Act
         result, err := sut.<Method>(<args>)
-        
+
         // Assert
         assert.Nil(t, err)
         assert.Equal(t, expected, result)
@@ -179,24 +179,24 @@ Given the file `$ARGUMENTS`:
 ## References
 
 ### Cyclomatic Complexity
-Cyclomatic complexity is a software metric used to indicate the complexity of a program. It is a quantitative 
-measure of the number of linearly independent paths through a program's source code. It was developed by 
+Cyclomatic complexity is a software metric used to indicate the complexity of a program. It is a quantitative
+measure of the number of linearly independent paths through a program's source code. It was developed by
 Thomas J. McCabe, Sr. in 1976.
 
-Cyclomatic complexity is computed using the control-flow graph of the program. The nodes of the graph 
-correspond to indivisible groups of commands of a program, and a directed edge connects two nodes if 
-the second command might be executed immediately after the first command. Cyclomatic complexity may 
+Cyclomatic complexity is computed using the control-flow graph of the program. The nodes of the graph
+correspond to indivisible groups of commands of a program, and a directed edge connects two nodes if
+the second command might be executed immediately after the first command. Cyclomatic complexity may
 also be applied to individual functions, modules, methods, or classes within a program.
 
-One testing strategy, called basis path testing by McCabe who first proposed it, is to test each 
-linearly independent path through the program. In this case, the number of test cases will equal 
+One testing strategy, called basis path testing by McCabe who first proposed it, is to test each
+linearly independent path through the program. In this case, the number of test cases will equal
 the cyclomatic complexity of the program.
 
 If you need more information, this is the original source: https://en.wikipedia.org/wiki/Cyclomatic_complexity
 
 ### Variadic Arguments (vararg)
 Variadic functions in Go allow you to pass a variable number of arguments to a function. This feature is useful
-when you don’t know beforehand how many arguments you will pass. A variadic function accepts multiple arguments 
+when you don’t know beforehand how many arguments you will pass. A variadic function accepts multiple arguments
 of the same type and can be called with any number of arguments, including none.
 
 #### Example
