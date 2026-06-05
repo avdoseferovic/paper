@@ -51,12 +51,6 @@ type translator struct {
 	rootStyle          *css.ComputedStyle  // seed for body-level cascade (:root vars)
 }
 
-// WithStylesheetResolver registers a resolver for <link rel="stylesheet">.
-// When unset, the default resolver only accepts data: URIs.
-func WithStylesheetResolver(fn StylesheetResolver) Option {
-	return func(tr *translator) { tr.stylesheetResolver = fn }
-}
-
 // WithStylesheetBaseDir scopes the default stylesheet resolver to a single
 // directory. Local-file reads outside this directory are refused.
 func WithStylesheetBaseDir(dir string) Option {
@@ -332,13 +326,6 @@ func richTextAlignFromCSS(value string) align.Type {
 	default:
 		return ""
 	}
-}
-
-// hrRow produces a thin row containing a horizontal line (default style).
-func hrRow() core.Row {
-	l := line.New()
-	c := col.New().Add(l)
-	return row.New(1).Add(c)
 }
 
 // styledHrRow honours border-top-width, border-top-style, color on the <hr>

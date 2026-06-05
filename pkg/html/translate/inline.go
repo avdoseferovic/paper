@@ -158,10 +158,8 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		// Yellow background highlight.
 		next.background = &css.RGBColor{R: 255, G: 255, B: 0, A: 1}
 	case "small":
-		// Render at 0.85x of the parent size (default 1.0 unchanged in v1
-		// since runContext does not carry an absolute font size; the size
-		// reduction is applied in applyInlineStyleToRuns when the parent's
-		// computed font-size is known).
+		// Render at 0.85x of the parent size. runContext keeps a scale; the
+		// absolute size is applied when the parent's computed font-size is known.
 		next.sizeScale = 0.85
 	case "code", "kbd", "samp":
 		next.monospace = true

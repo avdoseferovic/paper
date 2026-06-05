@@ -7,13 +7,12 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 1. Build your paper document normally.
 2. In your test, call `test.New(t)` to create the test helper.
 3. Call `.Assert(m.GetStructure()).Equals("fixture-name")` to compare the component tree against the JSON file under `test/paper/` at the module root.
-4. On the first run (or when you want to update the fixture), call `.Assert(m.GetStructure()).Save("fixture-name")` to write the JSON file.
+4. Keep expected fixtures as reviewed JSON files under `test/paper/`.
 
 ## GoDoc
 * [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#New)
 * [method : Assert](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Assert)
 * [method : Equals](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Equals)
-* [method : Save](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Save)
 
 ## Fixture Path
 The test helper stores JSON fixtures in [`test/paper/`](https://github.com/avdoseferovic/paper/tree/master/test/paper) relative to the module root.

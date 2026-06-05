@@ -22,8 +22,8 @@ type borderRadiusStyler struct {
 // per-side thicknesses on the downstream prop so subsequent stylers (fill,
 // border, cellWriter) do not redraw rectangles on top of the rounded path.
 //
-// v1 limitation: mixed per-side border widths use the averaged thickness as a
-// single stroke width. Uniform borders are unaffected.
+// Current limitation: mixed per-side border widths use the averaged thickness
+// as a single stroke width. Uniform borders are unaffected.
 func NewBorderRadiusStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
 	return &borderRadiusStyler{
 		stylerTemplate: stylerTemplate{

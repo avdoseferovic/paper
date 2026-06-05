@@ -111,12 +111,12 @@ Type: Feature
 
 - [x] Task 1: Remove `/v2` from module and Go import surface
 - [x] Task 2: Remove v1/v2 docs, examples, and generated asset names
-- [ ] Task 3: Remove active-source dead code and redundant examples
+- [x] Task 3: Remove active-source dead code and redundant examples
 - [ ] Task 4: Prune unreachable `internal/paperpdf` backend code
 - [ ] Task 5: Add guardrails for unversioned paths and dead-code cleanup
 - [ ] Task 6: Tidy module metadata and run full verification
 
-**Total Tasks:** 6 | **Completed:** 2 | **Remaining:** 4
+**Total Tasks:** 6 | **Completed:** 3 | **Remaining:** 3
 
 ## Implementation Tasks
 
@@ -238,7 +238,7 @@ Type: Feature
 
 **Key Decisions / Notes:**
 
-- Remove root `html.WithImageResolver` and `html.WithStylesheetResolver` wrappers because they are uncalled in active code; keep `html.WithImageBaseDir`, `html.WithStylesheetBaseDir`, and tested lower-level `translate.With*Resolver` support.
+- Remove root `html.WithImageResolver` and `html.WithStylesheetResolver` wrappers because they are uncalled in active code; keep `html.WithImageBaseDir`, `html.WithStylesheetBaseDir`, and tested lower-level image resolver support.
 - Remove only row-level anchor source wrappers; preserve target registration and rich text/local anchor rendering.
 - Remove `flexRow` because `flexRows` is the active dispatch path.
 - Remove `hrRow` because `styledHrRow` is the active dispatch path.
@@ -246,18 +246,19 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] Filtered deadcode output outside `internal/paperpdf`, `*_test.go`, and docs plans no longer reports active source functions.
-- [ ] Removed APIs are also removed from docs.
-- [ ] Aggregate doc-only packages no longer appear in `go list ./...`.
-- [ ] HTML anchor, flex, and hr tests still pass.
-- [ ] `pkg/test` no longer exposes a fixture-writing `Save` helper.
+- [x] Filtered deadcode output outside `internal/paperpdf`, `*_test.go`, and docs plans no longer reports active source functions.
+- [x] Removed APIs are also removed from docs.
+- [x] Aggregate doc-only packages no longer appear in `go list ./...`.
+- [x] HTML anchor, flex, and hr tests still pass.
+- [x] `pkg/test` no longer exposes a fixture-writing `Save` helper.
 
 **Verify:**
 
 - `go test ./pkg/html/... ./pkg/props ./pkg/test`
 - `go list ./... | rg 'github.com/avdoseferovic/paper/(pkg|pkg/components|pkg/consts)$'`
 - `deadcode -test ./... | rg -v 'internal/paperpdf|_test\\.go|docs/plans'`
-- `rg -n "WithImageResolver|WithStylesheetResolver|PaperTest\\.Save|\\.Save\\(\" docs README.md pkg --glob '!docs/plans/**'`
+- `rg -n "WithImageResolver|WithStylesheetResolver" docs README.md pkg/html/html.go --glob '!docs/plans/**'`
+- `rg -n "PaperTest\\.Save|\\.Assert\\([^\\n]+\\)\\.Save" docs README.md pkg/test --glob '!docs/plans/**'`
 
 ### Task 4: Prune Unreachable `internal/paperpdf` Backend Code
 

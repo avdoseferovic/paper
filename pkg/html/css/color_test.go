@@ -1,7 +1,6 @@
 package css
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -190,7 +189,3 @@ func TestParseColor_Transparent(t *testing.T) {
 	assert.Equal(t, 0, c.B)
 	assert.InDelta(t, 0.0, c.A, 0.001)
 }
-
-// --- helpers used in tests only ---
-
-func approxEqual(a, b float64) bool { return math.Abs(a-b) < 0.01 }

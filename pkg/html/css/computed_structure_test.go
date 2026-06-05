@@ -66,7 +66,7 @@ func TestComputedStyleRemainsFlatStruct(t *testing.T) {
 
 	fields := map[string]bool{}
 	for _, field := range style.Fields.List {
-		require.NotEmpty(t, field.Names, "ComputedStyle should not use embedded grouped structs in v2")
+		require.NotEmpty(t, field.Names, "ComputedStyle should not use embedded grouped structs")
 		for _, name := range field.Names {
 			fields[name.Name] = true
 		}

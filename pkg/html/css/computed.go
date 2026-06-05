@@ -82,7 +82,7 @@ type ComputedStyle struct {
 
 	// Flex item properties
 	FlexGrow      float64 // default 0; used as proportional weight in layout
-	FlexShrink    float64 // parsed/stored; no independent layout effect in v1 (quantizer prevents overflow)
+	FlexShrink    float64 // parsed/stored; no independent layout effect (quantizer prevents overflow)
 	FlexBasis     float64 // mm; 0 means auto unless FlexBasisAuto or FlexBasisPct set
 	FlexBasisAuto bool    // true when flex-basis:auto was explicitly set
 	FlexBasisPct  float64 // >0 when flex-basis was a percentage (0–100 scale)

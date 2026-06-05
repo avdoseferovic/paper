@@ -40,7 +40,7 @@ var _ core.LateFontProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.CharSpacingProvider.
 // Note: the underlying phpdave11/gofpdf fork does not expose SetCharSpacing,
 // so WithCharSpacing is currently a no-op (documented limitation in
-// docs/v2/html-support.md). The capability interface is in place so a future
+// docs/html-support.md). The capability interface is in place so a future
 // fork swap can light up the feature without further wiring changes.
 var _ core.CharSpacingProvider = (*provider)(nil)
 

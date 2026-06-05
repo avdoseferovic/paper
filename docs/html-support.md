@@ -137,13 +137,13 @@ html.FromString(input,
 
 ### Resolver options (image, stylesheet, font)
 
-Three resolver families share the same safety model: **by default, only `data:` URIs are accepted**. Local file reads must be explicitly opted in via a base directory or a custom resolver.
+Three resolver families share the same safety model: **by default, only `data:` URIs are accepted**. Local file reads must be explicitly opted in via a base directory.
 
-| Resolver        | Default-only-data | Base dir option            | Custom callback option          |
-| --------------- | ----------------- | -------------------------- | ------------------------------- |
-| `<img src>`     | ✓                 | `WithImageBaseDir(dir)`    | `WithImageResolver(fn)`         |
-| `<link href>`   | ✓                 | `WithStylesheetBaseDir(dir)` | `WithStylesheetResolver(fn)`  |
-| `@font-face`    | ✓ (shared with `<link>`) | shared `WithStylesheetBaseDir` | shared `WithStylesheetResolver` |
+| Resolver        | Default-only-data | Base dir option              |
+| --------------- | ----------------- | ---------------------------- |
+| `<img src>`     | ✓                 | `WithImageBaseDir(dir)`      |
+| `<link href>`   | ✓                 | `WithStylesheetBaseDir(dir)` |
+| `@font-face`    | ✓ (shared with `<link>`) | shared `WithStylesheetBaseDir` |
 
 The base-dir resolvers use `filepath.Clean` + a prefix check to reject `..` traversal and absolute paths. Resolver errors and panics are wrapped in `defer recover()` and logged via `unsupportedHandler` — they never crash the caller.
 
@@ -284,17 +284,6 @@ m.AddRows(rows...)
 ```
 
 The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `..` traversal and absolute paths.
-
-For custom loading (HTTP, CDN, database), pass a `WithImageResolver`:
-
-```go
-rows, _ := html.FromString(input,
-    html.WithImageResolver(func(src string) ([]byte, string, error) {
-        bytes, err := fetchFromCDN(src)
-        return bytes, "png", err
-    }),
-)
-```
 
 ### Supported `<img>` units
 

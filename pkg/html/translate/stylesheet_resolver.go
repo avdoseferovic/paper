@@ -13,9 +13,8 @@ import (
 type StylesheetResolver func(href string) ([]byte, error)
 
 // ErrStylesheetResolverRefused is returned by the default resolver when asked
-// to load a non-data: URI without an explicit WithStylesheetBaseDir or
-// WithStylesheetResolver.
-var ErrStylesheetResolverRefused = errors.New("html: default stylesheet resolver refuses local file reads; configure WithStylesheetBaseDir or WithStylesheetResolver")
+// to load a non-data: URI without an explicit WithStylesheetBaseDir.
+var ErrStylesheetResolverRefused = errors.New("html: default stylesheet resolver refuses local file reads; configure WithStylesheetBaseDir")
 
 // safeDefaultStylesheetResolver only accepts data: URIs.
 func safeDefaultStylesheetResolver(href string) ([]byte, error) {

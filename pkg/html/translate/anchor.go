@@ -29,29 +29,6 @@ func wrapRowAnchorTarget(r core.Row, name string, reg *anchorRegistry) core.Row 
 	return &combinedRow{rows: []core.Row{markerRow, r}}
 }
 
-// wrapRowAnchorSource wraps a row so its rendered bounding box becomes a
-// clickable link area pointing to the first anchor in names.
-func wrapRowAnchorSource(r core.Row, names []string, reg *anchorRegistry) core.Row {
-	src := newAnchorSource(rowComponent{r: r}, names, reg)
-	// Replace the row's col with one containing the wrapper.
-	return row.New().Add(col.New().Add(src))
-}
-
-// rowComponent adapts a core.Row to core.Component for embedding inside
-// anchorSource. SetConfig/GetStructure/GetHeight/Render delegate to the row.
-type rowComponent struct{ r core.Row }
-
-func (r rowComponent) SetConfig(c *entity.Config) { r.r.SetConfig(c) }
-func (r rowComponent) GetStructure() *node.Node[core.Structure] {
-	return r.r.GetStructure()
-}
-func (r rowComponent) GetHeight(p core.Provider, cell *entity.Cell) float64 {
-	return r.r.GetHeight(p, cell)
-}
-func (r rowComponent) Render(p core.Provider, cell *entity.Cell) {
-	r.r.Render(p, *cell)
-}
-
 // combinedRow stacks multiple rows into a single Row interface.
 type combinedRow struct {
 	rows   []core.Row
@@ -203,59 +180,5 @@ func (a *anchorTarget) Render(provider core.Provider, cell *entity.Cell) {
 	}
 	if a.child != nil {
 		a.child.Render(provider, cell)
-	}
-}
-
-// anchorSource wraps a child component and registers a clickable rectangle
-// covering the child's bounding box, jumping to the named anchor. When the
-// child contains multiple runs with different anchors, the first anchor wins
-// at the row level (limitation: per-run hit testing requires deeper renderer
-// integration — full per-run anchor rectangles are deferred).
-type anchorSource struct {
-	child   core.Component
-	anchors []string // anchor names referenced by descendant runs (in DOM order)
-	reg     *anchorRegistry
-	config  *entity.Config
-}
-
-func newAnchorSource(child core.Component, anchors []string, reg *anchorRegistry) *anchorSource {
-	return &anchorSource{child: child, anchors: anchors, reg: reg}
-}
-
-func (a *anchorSource) SetConfig(cfg *entity.Config) {
-	a.config = cfg
-	if a.child != nil {
-		a.child.SetConfig(cfg)
-	}
-}
-
-func (a *anchorSource) GetStructure() *node.Node[core.Structure] {
-	str := core.Structure{
-		Type:    "anchor_source",
-		Details: map[string]any{"anchors": a.anchors},
-	}
-	n := node.New(str)
-	if a.child != nil {
-		n.AddNext(a.child.GetStructure())
-	}
-	return n
-}
-
-func (a *anchorSource) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
-	if a.child == nil {
-		return 0
-	}
-	return a.child.GetHeight(provider, cell)
-}
-
-func (a *anchorSource) Render(provider core.Provider, cell *entity.Cell) {
-	if a.child != nil {
-		a.child.Render(provider, cell)
-	}
-	if lp, ok := provider.(core.LinkProvider); ok && len(a.anchors) > 0 {
-		// First anchor wins at the row level.
-		if id, ok := a.reg.ensureLinkID(a.anchors[0], lp); ok {
-			lp.Link(cell.X, cell.Y, cell.Width, cell.Height, id)
-		}
 	}
 }

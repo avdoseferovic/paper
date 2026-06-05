@@ -38,8 +38,8 @@ func New(cfgs ...*entity.Config) core.Paper {
 	return NewPaper(cfgs...)
 }
 
-// NewPaper creates a concrete Paper instance.
-// New is kept for v2 compatibility with its existing core.Paper return type.
+// NewPaper creates a concrete Paper instance. Use New when the public
+// core.Paper interface is enough.
 func NewPaper(cfgs ...*entity.Config) *Paper {
 	cache := cache.New()
 	cfg := getConfig(cfgs...)
@@ -124,7 +124,7 @@ func (m *Paper) AddAutoRow(cols ...core.Col) core.Row {
 // Headers, footers, and pagination continue to work as with manually constructed rows.
 // For advanced options (e.g. html.WithImageBaseDir for safe <img> loading), call
 // html.FromString directly and append the returned rows via m.AddRows(rows...).
-// Supported HTML subset is documented in docs/v2/html-support.md.
+// Supported HTML subset is documented in docs/html-support.md.
 func (m *Paper) AddHTML(htmlStr string) error {
 	opts := []html.Option{html.WithGridSize(m.config.MaxGridSize)}
 	if m.config.Dimensions != nil {

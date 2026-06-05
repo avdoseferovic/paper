@@ -16,8 +16,8 @@ import (
 
 // tableRows converts a <table> element into one Paper row containing a Table component.
 // When a <caption> child exists, it is emitted as a centred row above the table.
-// When <colgroup>/<col> children exist, they are detected and logged as a feature
-// the v1 table builder cannot honour (explicit column widths are not supported).
+// When <colgroup>/<col> children exist, they are detected and logged as a
+// feature the table renderer cannot honour yet.
 func (tr *translator) tableRows(n *dom.Node) []core.Row {
 	var out []core.Row
 	for _, c := range n.Children() {
@@ -25,7 +25,7 @@ func (tr *translator) tableRows(n *dom.Node) []core.Row {
 		case "caption":
 			out = append(out, tr.captionRow(c))
 		case "colgroup":
-			tr.unsupported("table.colgroup", "explicit column widths not supported in v1")
+			tr.unsupported("table.colgroup", "explicit column widths not supported")
 		}
 	}
 	cells := tr.buildTableMatrix(n)

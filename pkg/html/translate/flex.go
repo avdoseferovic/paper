@@ -17,74 +17,9 @@ import (
 
 const defaultGridSize = 12
 
-// flexRow converts a display:flex container node into a single core.Row
-// containing one core.Col per flex item, sized by Hamilton's method.
-// containerStyle is used as the parent for em-unit resolution in children.
-// Returns nil for empty containers. For flex-direction:column it returns nil
-// and the caller (flexColumnRows) handles vertical stacking instead.
-func (tr *translator) flexRow(n *dom.Node, containerStyle *css.ComputedStyle) core.Row {
-	children := flexItems(n)
-	if len(children) == 0 {
-		return nil
-	}
-	if isColumnDirection(containerStyle.FlexDirection) {
-		return nil
-	}
-
-	gridSize := tr.gridSize
-	if gridSize <= 0 {
-		gridSize = defaultGridSize
-	}
-
-	styles := make([]*css.ComputedStyle, len(children))
-	for i, child := range children {
-		styles[i] = computeNodeStyle(tr.sheet, child, containerStyle)
-	}
-
-	gapCols := tr.gapCols(containerStyle.ColumnGap, gridSize, len(children))
-	totalGap := gapCols * max(0, len(children)-1)
-	available := gridSize - totalGap
-	if available < len(children) {
-		gapCols = 0
-		totalGap = 0
-		available = gridSize
-	}
-
-	sizes := computeFlexSizes(styles, available)
-	sizes = bumpZerosWithoutOverflow(sizes, available)
-
-	visualGap := 0.0
-	if gapCols == 0 {
-		visualGap = containerStyle.ColumnGap
-	}
-
-	itemCols := make([]core.Col, len(children))
-	used := 0
-	for i, child := range children {
-		used += sizes[i]
-		c := col.New(sizes[i])
-		if comp := tr.flexItemContent(child, styles[i]); comp != nil {
-			if visualGap > 0 && i > 0 {
-				comp = &marginBox{child: comp, marginLeft: visualGap}
-			}
-			c = c.Add(comp)
-		}
-		itemCols[i] = c
-	}
-
-	slack := max(gridSize-used-totalGap, 0)
-	finalCols := assembleFlexCols(itemCols, gapCols, slack, containerStyle.JustifyContent)
-
-	r := row.New()
-	for _, c := range finalCols {
-		r = r.Add(c)
-	}
-	return r
-}
-
-// flexRows is the new entry point. It handles flex-wrap, order, and *-reverse,
-// returning one []core.Row per visual flex line. When flex-wrap is off (default)
-// it returns exactly one row — identical to the old flexRow behavior.
+// flexRows handles flex-wrap, order, and *-reverse, returning one []core.Row
+// per visual flex line. When flex-wrap is off (default) it returns exactly one
+// row.
 func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
 	children := flexItems(n)
 	if len(children) == 0 {

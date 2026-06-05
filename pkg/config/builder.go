@@ -76,7 +76,8 @@ func NewBuilder() Builder {
 }
 
 // NewCfgBuilder creates a concrete configuration builder.
-// NewBuilder is kept for v2 compatibility with its existing Builder return type.
+// NewBuilder keeps returning the public Builder interface, while this function
+// exposes the concrete builder for callers that need fluent methods.
 func NewCfgBuilder() *CfgBuilder {
 	defaultFontColor := props.Black()
 	return &CfgBuilder{

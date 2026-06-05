@@ -30,11 +30,6 @@ func Red() Color {
 	return RedColor
 }
 
-// Green returns an independent green Color value.
-func Green() Color {
-	return GreenColor
-}
-
 // Blue returns an independent blue Color value.
 func Blue() Color {
 	return BlueColor

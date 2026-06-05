@@ -90,19 +90,6 @@ func (m *PaperTest) Equals(file string) *PaperTest {
 	return m
 }
 
-// Save is an auxiliary method to update the file to be asserted.
-func (m *PaperTest) Save(file string) *PaperTest {
-	actual := m.buildNode(m.node)
-	actualBytes, _ := json.MarshalIndent(actual, "", "\t")
-
-	err := os.WriteFile(configSingleton.getAbsoluteFilePath(file), actualBytes, os.ModePerm)
-	if err != nil {
-		assert.Fail(m.t, err.Error())
-	}
-
-	return m
-}
-
 func (m *PaperTest) buildNode(node *node.Node[core.Structure]) *Node {
 	data := node.GetData()
 	actual := &Node{

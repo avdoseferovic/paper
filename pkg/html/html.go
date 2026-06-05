@@ -1,7 +1,7 @@
 // Package html converts HTML strings into Paper rows so they can be added to
 // a Paper document. No browser, no external binary, no JavaScript.
 //
-// Supported tags and CSS properties are documented in docs/v2/html-support.md.
+// Supported tags and CSS properties are documented in docs/html-support.md.
 package html
 
 import (
@@ -20,9 +20,7 @@ type config struct {
 	unsupportedHandler func(thing, value string)
 	gridSize           int
 	contentWidthMM     float64
-	imageResolver      translate.ImageResolver
 	imageBaseDir       string
-	stylesheetResolver translate.StylesheetResolver
 	stylesheetBaseDir  string
 }
 
@@ -54,28 +52,11 @@ func WithContentWidth(mm float64) Option {
 	}
 }
 
-// WithImageResolver lets callers plug in a custom resolver for <img src=...>.
-// The default resolver only accepts data: URIs to prevent path traversal on
-// user-controlled HTML.
-func WithImageResolver(fn translate.ImageResolver) Option {
-	return func(c *config) {
-		c.imageResolver = fn
-	}
-}
-
 // WithImageBaseDir scopes <img src=...> local-file reads to a single directory.
 // Paths that escape via ".." or absolute prefix are refused.
 func WithImageBaseDir(dir string) Option {
 	return func(c *config) {
 		c.imageBaseDir = dir
-	}
-}
-
-// WithStylesheetResolver registers a custom resolver for <link rel="stylesheet">.
-// The default (no resolver) only accepts data: URIs.
-func WithStylesheetResolver(fn translate.StylesheetResolver) Option {
-	return func(c *config) {
-		c.stylesheetResolver = fn
 	}
 }
 
@@ -107,14 +88,10 @@ func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if cfg.contentWidthMM > 0 {
 		tOpts = append(tOpts, translate.WithContentWidth(cfg.contentWidthMM))
 	}
-	if cfg.imageResolver != nil {
-		tOpts = append(tOpts, translate.WithImageResolver(cfg.imageResolver))
-	} else if cfg.imageBaseDir != "" {
+	if cfg.imageBaseDir != "" {
 		tOpts = append(tOpts, translate.WithImageBaseDir(cfg.imageBaseDir))
 	}
-	if cfg.stylesheetResolver != nil {
-		tOpts = append(tOpts, translate.WithStylesheetResolver(cfg.stylesheetResolver))
-	} else if cfg.stylesheetBaseDir != "" {
+	if cfg.stylesheetBaseDir != "" {
 		tOpts = append(tOpts, translate.WithStylesheetBaseDir(cfg.stylesheetBaseDir))
 	}
 	if cfg.unsupportedHandler != nil {
