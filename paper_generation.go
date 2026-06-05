@@ -12,8 +12,8 @@ import (
 // Generate is responsible to compute the component tree created by
 // the usage of all other Paper methods, and generate the PDF document.
 func (m *Paper) Generate() (core.Document, error) {
-	m.fillPageToAddNew()
-	m.setConfig()
+	m.pageBuilder.fillPageToAddNew()
+	m.pageBuilder.setConfig()
 
 	if m.config.Protection != nil {
 		return m.generate()
@@ -31,9 +31,9 @@ func (m *Paper) Generate() (core.Document, error) {
 }
 
 func (m *Paper) generate() (core.Document, error) {
-	innerCtx := m.cell.Copy()
+	innerCtx := m.pageBuilder.cell.Copy()
 
-	for i, page := range m.pages {
+	for i, page := range m.pageBuilder.pages {
 		ensureProviderPage(m.provider, i+1)
 		page.Render(m.provider, innerCtx)
 	}
@@ -47,14 +47,14 @@ func (m *Paper) generate() (core.Document, error) {
 }
 
 func (m *Paper) generateConcurrently() (core.Document, error) {
-	chunks := len(m.pages) / m.config.ChunkWorkers
+	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
 	if chunks == 0 {
 		chunks = 1
 	}
 	pageGroups := make([][]core.Page, 0)
-	for i := 0; i < len(m.pages); i += chunks {
-		end := min(i+chunks, len(m.pages))
-		pageGroups = append(pageGroups, m.pages[i:end])
+	for i := 0; i < len(m.pageBuilder.pages); i += chunks {
+		end := min(i+chunks, len(m.pageBuilder.pages))
+		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
 	}
 
 	pdfs, err := processPageGroupsConcurrently(m.config.ChunkWorkers, pageGroups, m.processPage)
@@ -71,15 +71,15 @@ func (m *Paper) generateConcurrently() (core.Document, error) {
 }
 
 func (m *Paper) generateLowMemory() (core.Document, error) {
-	chunks := len(m.pages) / m.config.ChunkWorkers
+	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
 	if chunks == 0 {
 		chunks = 1
 	}
 
 	pageGroups := make([][]core.Page, 0)
-	for i := 0; i < len(m.pages); i += chunks {
-		end := min(i+chunks, len(m.pages))
-		pageGroups = append(pageGroups, m.pages[i:end])
+	for i := 0; i < len(m.pageBuilder.pages); i += chunks {
+		end := min(i+chunks, len(m.pageBuilder.pages))
+		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
 	}
 
 	var pdfResults [][]byte
@@ -101,7 +101,7 @@ func (m *Paper) generateLowMemory() (core.Document, error) {
 }
 
 func (m *Paper) processPage(pages []core.Page) ([]byte, error) {
-	innerCtx := m.cell.Copy()
+	innerCtx := m.pageBuilder.cell.Copy()
 
 	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
 	for i, page := range pages {

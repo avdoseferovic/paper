@@ -103,7 +103,7 @@ Type: Feature
 **MANDATORY: Update this checklist as tasks complete. Change `[ ]` to `[x]`.**
 
 - [x] Task 1: Split provider contract and backend files by responsibility
-- [ ] Task 2: Extract root pagination/page-building ownership
+- [x] Task 2: Extract root pagination/page-building ownership
 - [ ] Task 3: Extract rich-text layout pipeline
 - [ ] Task 4: Normalize props/config and add compatibility-safe concrete helpers
 - [ ] Task 5: Add programmatic render issue reporting
@@ -111,7 +111,7 @@ Type: Feature
 - [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 1 | **Remaining:** 7
+**Total Tasks:** 8 | **Completed:** 2 | **Remaining:** 6
 
 ## Implementation Tasks
 
@@ -184,10 +184,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] Root `Paper` no longer directly implements all pagination/page-building state transitions inline.
-- [ ] Header/footer, `PageBreaker`, `Splittable`, `GetStructure`, sequential, concurrent, and low-memory generation tests pass.
-- [ ] Concurrent generation still preserves page-group order and worker limits.
-- [ ] No new exported layout API is introduced in v2.
+- [x] Root `Paper` no longer directly implements all pagination/page-building state transitions inline.
+- [x] Header/footer, `PageBreaker`, `Splittable`, `GetStructure`, sequential, concurrent, and low-memory generation tests pass.
+- [x] Concurrent generation still preserves page-group order and worker limits.
+- [x] No new exported layout API is introduced in v2.
 
 **Verify:**
 

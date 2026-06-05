@@ -25,19 +25,10 @@ var (
 )
 
 type Paper struct {
-	config   *entity.Config
-	provider core.Provider
-	cache    cache.Cache
-
-	// Building
-	cell          entity.Cell
-	pages         []core.Page
-	rows          []core.Row
-	header        []core.Row
-	footer        []core.Row
-	headerHeight  float64
-	footerHeight  float64
-	currentHeight float64
+	config      *entity.Config
+	provider    core.Provider
+	cache       cache.Cache
+	pageBuilder *pageBuilder
 }
 
 // GetCurrentConfig is responsible for returning the current settings from the file
@@ -54,15 +45,10 @@ func New(cfgs ...*entity.Config) core.Paper {
 	provider := getProvider(cache, cfg)
 
 	m := &Paper{
-		provider: provider,
-		cell: entity.NewRootCell(cfg.Dimensions.Width, cfg.Dimensions.Height, entity.Margins{
-			Left:   cfg.Margins.Left,
-			Top:    cfg.Margins.Top,
-			Right:  cfg.Margins.Right,
-			Bottom: cfg.Margins.Bottom,
-		}),
-		cache:  cache,
-		config: cfg,
+		provider:    provider,
+		cache:       cache,
+		config:      cfg,
+		pageBuilder: newPageBuilder(cfg, provider),
 	}
 
 	return m
@@ -96,13 +82,7 @@ func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (core.Document, error) 
 // more rows than the maximum useful area of a page, paper will split
 // that page in more than one.
 func (m *Paper) AddPages(pages ...core.Page) {
-	for _, page := range pages {
-		if m.currentHeight != m.headerHeight {
-			m.fillPageToAddNew()
-			m.addHeader()
-		}
-		m.addRows(page.GetRows()...)
-	}
+	m.pageBuilder.addPages(pages...)
 }
 
 // AddRows is responsible for add rows in the current document.
@@ -111,7 +91,7 @@ func (m *Paper) AddPages(pages ...core.Page) {
 // PageSize, PageMargin, FooterSize and HeaderSize to calculate the useful
 // area of a page.
 func (m *Paper) AddRows(rows ...core.Row) {
-	m.addRows(rows...)
+	m.pageBuilder.addRows(rows...)
 }
 
 // AddRow is responsible for add one row in the current document.
@@ -121,7 +101,7 @@ func (m *Paper) AddRows(rows ...core.Row) {
 // area of a page.
 func (m *Paper) AddRow(rowHeight float64, cols ...core.Col) core.Row {
 	r := row.New(rowHeight).Add(cols...)
-	m.addRow(r)
+	m.pageBuilder.addRow(r)
 	return r
 }
 
@@ -130,7 +110,7 @@ func (m *Paper) AddRow(rowHeight float64, cols ...core.Col) core.Row {
 // The row height will be calculated based on its content.
 func (m *Paper) AddAutoRow(cols ...core.Col) core.Row {
 	r := row.New().Add(cols...)
-	m.addRow(r)
+	m.pageBuilder.addRow(r)
 	return r
 }
 
@@ -158,8 +138,7 @@ func (m *Paper) AddHTML(htmlStr string) error {
 // FitlnCurrentPage is responsible to validating whether a line fits on
 // the current page.
 func (m *Paper) FitlnCurrentPage(heightNewLine float64) bool {
-	contentSize := m.getRowsHeight(m.rows...) + m.footerHeight + m.headerHeight
-	return contentSize+heightNewLine < m.cell.Height
+	return m.pageBuilder.fitInCurrentPage(heightNewLine)
 }
 
 // RegisterHeader is responsible to define a set of rows as a header
@@ -167,19 +146,7 @@ func (m *Paper) FitlnCurrentPage(heightNewLine float64) bool {
 // The header cannot occupy an area greater than the useful area of the page,
 // it this case the method will return an error.
 func (m *Paper) RegisterHeader(rows ...core.Row) error {
-	height := m.getRowsHeight(rows...)
-	if height+m.footerHeight > m.config.Dimensions.Height {
-		return ErrHeaderHeightIsGreaterThanUsefulArea
-	}
-
-	m.headerHeight = height
-	m.header = rows
-
-	for _, headerRow := range rows {
-		m.addRow(headerRow)
-	}
-
-	return nil
+	return m.pageBuilder.registerHeader(rows...)
 }
 
 // RegisterFooter is responsible to define a set of rows as a footer
@@ -187,14 +154,7 @@ func (m *Paper) RegisterHeader(rows ...core.Row) error {
 // The footer cannot occupy an area greater than the useful area of the page,
 // it this case the method will return an error.
 func (m *Paper) RegisterFooter(rows ...core.Row) error {
-	height := m.getRowsHeight(rows...)
-	if height > m.config.Dimensions.Height {
-		return ErrFooterHeightIsGreaterThanUsefulArea
-	}
-
-	m.footerHeight = height
-	m.footer = rows
-	return nil
+	return m.pageBuilder.registerFooter(rows...)
 }
 
 func getConfig(configs ...*entity.Config) *entity.Config {
