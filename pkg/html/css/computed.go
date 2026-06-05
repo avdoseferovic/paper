@@ -1,7 +1,6 @@
 package css
 
 import (
-	"strconv"
 	"strings"
 )
 
@@ -167,254 +166,29 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		val = ResolveVars(val, s.Vars)
 	}
 
-	switch prop {
-	case "color":
-		s.Color = ParseColor(val)
-	case "background-color":
-		s.BackgroundColor = ParseColor(val)
-	case "box-shadow":
-		if shadows, err := ParseShadow(val); err == nil {
-			s.BoxShadow = shadows
-		} else if s.unsupportedHandler != nil {
-			s.unsupportedHandler(prop, val)
-		}
-	case "text-shadow":
-		if shadows, err := ParseShadow(val); err == nil && len(shadows) > 0 {
-			s.TextShadow = &shadows[0]
-		} else if s.unsupportedHandler != nil {
-			s.unsupportedHandler(prop, val)
-		}
-	case "outline-width":
-		s.OutlineWidth = ParseLength(val, parentFontSize)
-	case "outline-style":
-		s.OutlineStyle = strings.TrimSpace(val)
-	case "outline-color":
-		s.OutlineColor = ParseColor(val)
-	case "outline-offset":
-		s.OutlineOffset = ParseLength(val, parentFontSize)
-	case "outline":
-		parseOutlineShorthand(val, s, parentFontSize)
-	case "background-image":
-		if strings.HasPrefix(val, "linear-gradient(") {
-			if g, err := ParseLinearGradient(val); err == nil {
-				s.BackgroundGradient = &Gradient{Kind: GradientLinear, Linear: g}
-			} else if s.unsupportedHandler != nil {
-				s.unsupportedHandler(prop, val)
-			}
-		} else if strings.HasPrefix(val, "radial-gradient(") {
-			if g, err := ParseRadialGradient(val); err == nil {
-				s.BackgroundGradient = &Gradient{Kind: GradientRadial, Radial: g}
-			} else if s.unsupportedHandler != nil {
-				s.unsupportedHandler(prop, val)
-			}
-		} else if s.unsupportedHandler != nil {
-			s.unsupportedHandler(prop, val)
-		}
-	case "font-family":
-		s.FontFamily = strings.Trim(val, `'"`)
-	case "font-size":
-		s.FontSize = ParseLength(val, parentFontSize)
-	case "font-weight":
-		s.FontWeight = normFontWeight(val)
-	case "font-style":
-		s.FontStyle = val
-	case "text-align":
-		s.TextAlign = val
-	case "text-decoration":
-		s.TextDecoration = val
-	case "line-height":
-		s.LineHeight = ParseLength(val, s.FontSize)
-	case "padding-top":
-		s.PaddingTop = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "padding-right":
-		s.PaddingRight = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "padding-bottom":
-		s.PaddingBottom = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "padding-left":
-		s.PaddingLeft = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "margin-top":
-		s.MarginTop = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "margin-right":
-		s.MarginRight = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "margin-bottom":
-		s.MarginBottom = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "margin-left":
-		s.MarginLeft = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "border-top-width":
-		s.BorderTopWidth = ParseLength(val, 0)
-	case "border-right-width":
-		s.BorderRightWidth = ParseLength(val, 0)
-	case "border-bottom-width":
-		s.BorderBottomWidth = ParseLength(val, 0)
-	case "border-left-width":
-		s.BorderLeftWidth = ParseLength(val, 0)
-	case "border-top-style":
-		s.BorderTopStyle = val
-	case "border-right-style":
-		s.BorderRightStyle = val
-	case "border-bottom-style":
-		s.BorderBottomStyle = val
-	case "border-left-style":
-		s.BorderLeftStyle = val
-	case "border-top-color":
-		s.BorderTopColor = ParseColor(val)
-	case "border-right-color":
-		s.BorderRightColor = ParseColor(val)
-	case "border-bottom-color":
-		s.BorderBottomColor = ParseColor(val)
-	case "border-left-color":
-		s.BorderLeftColor = ParseColor(val)
-	case "border-color":
-		c := ParseColor(val)
-		s.BorderTopColor, s.BorderRightColor, s.BorderBottomColor, s.BorderLeftColor = c, c, c, c
-	case "border-width":
-		w := ParseLength(val, 0)
-		s.BorderTopWidth, s.BorderRightWidth, s.BorderBottomWidth, s.BorderLeftWidth = w, w, w, w
-	case "border-style":
-		s.BorderTopStyle, s.BorderRightStyle, s.BorderBottomStyle, s.BorderLeftStyle = val, val, val, val
-	case "display":
-		if val == "inline-flex" {
-			s.Display = "flex"
-		} else {
-			s.Display = val
-		}
-	case "flex-direction":
-		s.FlexDirection = val
-	case "justify-content":
-		s.JustifyContent = val
-	case "align-self":
-		s.AlignSelf = strings.TrimSpace(val)
-	case "flex-wrap":
-		s.FlexWrap = strings.TrimSpace(val)
-	case "order":
-		v, err := strconv.Atoi(strings.TrimSpace(val))
-		if err == nil {
-			s.Order = v
-		}
-	case "align-items":
-		s.AlignItems = val
-	case "flex-grow":
-		v, err := strconv.ParseFloat(val, 64)
-		if err == nil {
-			s.FlexGrow = v
-		}
-	case "flex-shrink":
-		v, err := strconv.ParseFloat(val, 64)
-		if err == nil {
-			s.FlexShrink = v
-		}
-	case "flex-basis":
-		switch val {
-		case "auto":
-			s.FlexBasisAuto = true
-			s.FlexBasis = 0
-			s.FlexBasisPct = 0
-		default:
-			if pct, ok := ParsePercentage(val); ok {
-				s.FlexBasisPct = pct * 100
-				s.FlexBasis = 0
-				s.FlexBasisAuto = false
-			} else {
-				s.FlexBasis = ParseLength(val, parentFontSize)
-				s.FlexBasisAuto = false
-				s.FlexBasisPct = 0
-			}
-		}
-	case "gap":
-		parts := strings.Fields(val)
-		if len(parts) == 1 {
-			v := ParseLength(parts[0], parentFontSize)
-			s.RowGap = v
-			s.ColumnGap = v
-		} else if len(parts) >= 2 {
-			s.RowGap = ParseLength(parts[0], parentFontSize)
-			s.ColumnGap = ParseLength(parts[1], parentFontSize)
-		}
-	case "row-gap":
-		s.RowGap = ParseLength(val, parentFontSize)
-	case "column-gap":
-		s.ColumnGap = ParseLength(val, parentFontSize)
-	case "width":
-		s.Width = ParseLengthCtx(val, parentFontSize, ctxWidth)
-	case "height":
-		s.Height = ParseLength(val, 0)
-	case "border-radius":
-		s.BorderRadius = ParseLength(val, 0)
-	case "border-top-left-radius":
-		s.BorderRadiusTopLeft = ParseLength(val, 0)
-	case "border-top-right-radius":
-		s.BorderRadiusTopRight = ParseLength(val, 0)
-	case "border-bottom-left-radius":
-		s.BorderRadiusBottomLeft = ParseLength(val, 0)
-	case "border-bottom-right-radius":
-		s.BorderRadiusBottomRight = ParseLength(val, 0)
-	case "letter-spacing":
-		s.LetterSpacing = ParseLength(val, s.FontSize)
-	case "text-transform":
-		s.TextTransform = strings.ToLower(strings.TrimSpace(val))
-	case "text-indent":
-		s.TextIndent = ParseLengthCtx(val, s.FontSize, ctxWidth)
-	case "white-space":
-		s.WhiteSpace = strings.ToLower(strings.TrimSpace(val))
-	case "opacity":
-		v, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(val), "%"), 64)
-		if err == nil {
-			if strings.HasSuffix(strings.TrimSpace(val), "%") {
-				v /= 100.0
-			}
-			if v < 0 {
-				v = 0
-			}
-			if v > 1 {
-				v = 1
-			}
-			s.Opacity = v
-		}
-	case "page-break-before", "break-before":
-		s.PageBreakBefore = strings.TrimSpace(val)
-	case "page-break-after", "break-after":
-		s.PageBreakAfter = strings.TrimSpace(val)
-	case "page-break-inside", "break-inside":
-		s.BreakInside = strings.TrimSpace(val)
-	case "list-style-type":
-		s.ListStyleType = strings.TrimSpace(val)
-	case "vertical-align":
-		// stored implicitly via usage context; no field needed yet
-	default:
-		if s.unsupportedHandler != nil {
-			s.unsupportedHandler(prop, val)
-		}
+	ctx := computedPropertyContext{
+		prop:           prop,
+		val:            val,
+		parentFontSize: parentFontSize,
+		ctxWidth:       ctxWidth,
+	}
+	if s.applyEffectsProperty(ctx) ||
+		s.applyFontProperty(ctx) ||
+		s.applyBoxProperty(ctx) ||
+		s.applyBorderProperty(ctx) ||
+		s.applyFlexProperty(ctx) ||
+		s.applyTypographyProperty(ctx) {
+		return
+	}
+
+	if s.unsupportedHandler != nil {
+		s.unsupportedHandler(prop, val)
 	}
 }
 
-func normFontWeight(val string) string {
-	switch val {
-	case "bold", "bolder", "700", "800", "900":
-		return "bold"
-	default:
-		return "normal"
-	}
-}
-
-// parseOutlineShorthand parses "outline: <width> <style> <color>" in any order.
-func parseOutlineShorthand(val string, s *ComputedStyle, parentFontSize float64) {
-	styleKeywords := map[string]bool{
-		"solid": true, "dashed": true, "dotted": true,
-		"none": true, "hidden": true, "double": true,
-		"groove": true, "ridge": true, "inset": true, "outset": true,
-	}
-	for _, token := range strings.Fields(val) {
-		lower := strings.ToLower(token)
-		if styleKeywords[lower] {
-			s.OutlineStyle = lower
-			continue
-		}
-		if c := ParseColor(token); c != nil {
-			s.OutlineColor = c
-			continue
-		}
-		if l := ParseLength(token, parentFontSize); l > 0 {
-			s.OutlineWidth = l
-		}
-	}
+type computedPropertyContext struct {
+	prop           string
+	val            string
+	parentFontSize float64
+	ctxWidth       float64
 }

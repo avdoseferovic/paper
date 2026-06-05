@@ -107,11 +107,11 @@ Type: Feature
 - [x] Task 3: Extract rich-text layout pipeline
 - [x] Task 4: Normalize props/config and add compatibility-safe concrete helpers
 - [x] Task 5: Add programmatic render issue reporting
-- [ ] Task 6: Reorganize HTML/CSS computed style handling
+- [x] Task 6: Reorganize HTML/CSS computed style handling
 - [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 5 | **Remaining:** 3
+**Total Tasks:** 8 | **Completed:** 6 | **Remaining:** 2
 
 ## Implementation Tasks
 
@@ -350,10 +350,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `ComputedStyle` remains a flat exported struct, preserving selector access and keyed literals.
-- [ ] CSS property application is split into focused handlers, not one large switch.
-- [ ] Existing HTML/CSS tests pass and no supported property is dropped.
-- [ ] Unsupported property callback behavior remains covered by tests.
+- [x] `ComputedStyle` remains a flat exported struct, preserving selector access and keyed literals.
+- [x] CSS property application is split into focused handlers, not one large switch.
+- [x] Existing HTML/CSS tests pass and no supported property is dropped.
+- [x] Unsupported property callback behavior remains covered by tests.
 
 **Verify:**
 
