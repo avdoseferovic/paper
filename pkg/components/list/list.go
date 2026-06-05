@@ -4,7 +4,7 @@ package list
 import (
 	"errors"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core"
 )
 
 var (

@@ -1,12 +1,12 @@
 package entity
 
 import (
-	"github.com/johnfercher/maroto/v2/pkg/consts/generation"
-	"github.com/johnfercher/maroto/v2/pkg/consts/provider"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/generation"
+	"github.com/johnfercher/paper/v2/pkg/consts/provider"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
-// Config is the configuration of a maroto instance.
+// Config is the configuration of a paper instance.
 type Config struct {
 	ProviderType         provider.Type
 	Dimensions           *Dimensions
@@ -34,7 +34,7 @@ func (c *Config) ToMap() map[string]any {
 	}
 
 	if c.Dimensions != nil {
-		m = c.Dimensions.AppendMap("maroto", m)
+		m = c.Dimensions.AppendMap("paper", m)
 	}
 
 	if c.Margins != nil {

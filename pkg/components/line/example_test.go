@@ -1,14 +1,14 @@
 package line_test
 
 import (
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/line"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/line"
 )
 
 // ExampleNew demonstrates how create a line component.
 func ExampleNew() {
-	m := maroto.New()
+	m := paper.New()
 
 	line := line.New()
 	col := col.New(12).Add(line)
@@ -19,7 +19,7 @@ func ExampleNew() {
 
 // ExampleNewCol demonstrates how to crete a line wrapped into a column.
 func ExampleNewCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	lineCol := line.NewCol(12)
 	m.AddRow(10, lineCol)
@@ -29,7 +29,7 @@ func ExampleNewCol() {
 
 // ExampleNewRow demonstrates how to crete a line wrapped into a row.
 func ExampleNewRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	lineRow := line.NewRow(10)
 	m.AddRows(lineRow)

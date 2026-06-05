@@ -4,11 +4,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 const richTextWhiteSpacePre = "pre"

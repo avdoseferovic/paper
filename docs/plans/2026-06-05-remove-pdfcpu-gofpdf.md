@@ -97,10 +97,10 @@ Type: Feature
 - [x] Task 1: Remove backend type leaks from core interfaces
 - [x] Task 2: Internalize and rename the PDF provider backend
 - [x] Task 3: Replace pdfcpu merge with an in-repo merger
-- [ ] Task 4: Rename the Go module and public API to Paper
+- [x] Task 4: Rename the Go module and public API to Paper
 - [ ] Task 5: Regenerate mocks, update docs, and add final dependency guards
 
-**Total Tasks:** 5 | **Completed:** 3 | **Remaining:** 2
+**Total Tasks:** 5 | **Completed:** 4 | **Remaining:** 1
 
 ## Implementation Tasks
 
@@ -264,15 +264,15 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `go.mod` module path is `github.com/johnfercher/paper/v2`.
-- [ ] Root package declaration is `package paper`.
-- [ ] `paper.New()` returns a `core.Paper`.
-- [ ] Root concrete type is `*paper.Paper`; tests no longer expect `*maroto.Maroto`.
-- [ ] Structure snapshots use root type `"paper"` for new output.
-- [ ] The test helper looks for `.paper.yml`, exposes `PaperTest`, and fixture paths live under `test/paper/**`.
-- [ ] No active Go import path points at `github.com/johnfercher/maroto/v2`.
-- [ ] Mockery config uses the new module path and generated mocks compile.
-- [ ] Lint config and local skill instructions reference the new Paper module/import names.
+- [x] `go.mod` module path is `github.com/johnfercher/paper/v2`.
+- [x] Root package declaration is `package paper`.
+- [x] `paper.New()` returns a `core.Paper`.
+- [x] Root concrete type is `*paper.Paper`; tests no longer expect `*maroto.Maroto`.
+- [x] Structure snapshots use root type `"paper"` for new output.
+- [x] The test helper looks for `.paper.yml`, exposes `PaperTest`, and fixture paths live under `test/paper/**`.
+- [x] No active Go import path points at `github.com/johnfercher/maroto/v2`.
+- [x] Mockery config uses the new module path and generated mocks compile.
+- [x] Lint config and local skill instructions reference the new Paper module/import names.
 
 **Verify:**
 

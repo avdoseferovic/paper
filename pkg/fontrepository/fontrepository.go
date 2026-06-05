@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 )
 
 var ErrCannotReadFile = errors.New("cannot read file")

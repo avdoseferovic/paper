@@ -1,33 +1,33 @@
-package maroto_test
+package paper_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
 
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/core"
 
-	"github.com/johnfercher/maroto/v2/mocks"
-	"github.com/johnfercher/maroto/v2/pkg/components/page"
+	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/johnfercher/paper/v2/pkg/components/page"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMetricsDecorator(t *testing.T) {
 	t.Parallel()
 	// Act
-	sut := maroto.NewMetricsDecorator(nil)
+	sut := paper.NewMetricsDecorator(nil)
 
 	// Assert
 	assert.NotNil(t, sut)
-	assert.Equal(t, "*maroto.MetricsDecorator", fmt.Sprintf("%T", sut))
+	assert.Equal(t, "*paper.MetricsDecorator", fmt.Sprintf("%T", sut))
 }
 
 func TestMetricsDecorator_AddPages(t *testing.T) {
@@ -41,7 +41,7 @@ func TestMetricsDecorator_AddPages(t *testing.T) {
 	inner.EXPECT().AddPages(pg)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	sut.AddPages(pg)
@@ -72,7 +72,7 @@ func TestMetricsDecorator_AddRow(t *testing.T) {
 	inner.EXPECT().AddRow(10.0, col).Return(nil)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	sut.AddRow(10, col)
@@ -103,7 +103,7 @@ func TestMetricsDecorator_AddRows(t *testing.T) {
 	inner.EXPECT().AddRows(row)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	sut.AddRows(row)
@@ -135,7 +135,7 @@ func TestMetricsDecorator_GetStructure(t *testing.T) {
 	inner.EXPECT().GetStructure().Return(&node.Node[core.Structure]{})
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 	sut.AddRows(row)
 
 	// Act
@@ -164,7 +164,7 @@ func TestMetricsDecorator_FitlnCurrentPage(t *testing.T) {
 	inner.EXPECT().FitlnCurrentPage(10.0).Return(true)
 	inner.EXPECT().FitlnCurrentPage(20.0).Return(false)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act & Assert
 	assert.True(t, sut.FitlnCurrentPage(10))
@@ -180,7 +180,7 @@ func TestMetricsDecorator_GetCurrentConfig(t *testing.T) {
 	inner := mocks.NewMaroto(t)
 	inner.EXPECT().GetCurrentConfig().Return(cfgToReturn)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	cfg := sut.GetCurrentConfig()
@@ -198,7 +198,7 @@ func TestMetricsDecorator_RegisterHeader(t *testing.T) {
 	inner.EXPECT().RegisterHeader(row).Return(nil)
 	inner.EXPECT().Generate().Return(&core.Pdf{}, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	err := sut.RegisterHeader(row)
@@ -225,7 +225,7 @@ func TestMetricsDecorator_RegisterFooter(t *testing.T) {
 	inner.EXPECT().RegisterFooter(row).Return(nil)
 	inner.EXPECT().Generate().Return(&core.Pdf{}, nil)
 
-	sut := maroto.NewMetricsDecorator(inner)
+	sut := paper.NewMetricsDecorator(inner)
 
 	// Act
 	err := sut.RegisterFooter(row)

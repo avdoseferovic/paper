@@ -1,16 +1,16 @@
 package config_test
 
 import (
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/consts/pagesize"
 )
 
 // ExampleNewBuilder demonstrates how to use builder.
 func ExampleNewBuilder() {
 	cfg := config.NewBuilder().Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -19,7 +19,7 @@ func ExampleNewBuilder() {
 func ExampleCfgBuilder_Build() {
 	cfg := config.NewBuilder().Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -31,7 +31,7 @@ func ExampleCfgBuilder_WithPageSize() {
 		WithPageSize(pagesize.A5).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -43,7 +43,7 @@ func ExampleCfgBuilder_WithTopMargin() {
 		WithTopMargin(15).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -55,7 +55,7 @@ func ExampleCfgBuilder_WithRightMargin() {
 		WithRightMargin(15).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -67,7 +67,7 @@ func ExampleCfgBuilder_WithLeftMargin() {
 		WithLeftMargin(15).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -79,7 +79,7 @@ func ExampleCfgBuilder_WithBottomMargin() {
 		WithBottomMargin(15).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }
@@ -92,7 +92,7 @@ func ExampleCfgBuilder_WithConcurrentMode() {
 		WithConcurrentMode(chunkWorkers).
 		Build()
 
-	_ = maroto.New(cfg)
+	_ = paper.New(cfg)
 
 	// generate document
 }

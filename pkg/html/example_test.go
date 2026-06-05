@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	maroto "github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/html"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,7 @@ func TestExample_FromString_GeneratesPDF(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, rows)
 
-	m := maroto.New()
+	m := paper.New()
 	require.NoError(t, m.AddHTML(htmlInput))
 
 	doc, err := m.Generate()
@@ -55,7 +55,7 @@ func TestExample_InlineCSSReachesPDF(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 
-	m := maroto.New()
+	m := paper.New()
 	require.NoError(t, m.AddHTML(htmlInput))
 	doc, err := m.Generate()
 	require.NoError(t, err)

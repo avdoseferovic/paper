@@ -3,7 +3,7 @@ package metrics_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/metrics"
+	"github.com/johnfercher/paper/v2/pkg/metrics"
 	"github.com/stretchr/testify/assert"
 )
 

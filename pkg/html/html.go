@@ -1,5 +1,5 @@
-// Package html converts HTML strings into Maroto rows so they can be added to
-// a Maroto document. No browser, no external binary, no JavaScript.
+// Package html converts HTML strings into Paper rows so they can be added to
+// a Paper document. No browser, no external binary, no JavaScript.
 //
 // Supported tags and CSS properties are documented in docs/v2/html-support.md.
 package html
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
-	"github.com/johnfercher/maroto/v2/pkg/html/translate"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/html/translate"
 )
 
 // Option configures FromString / FromReader behaviour.
@@ -35,7 +35,7 @@ func WithUnsupportedHandler(fn func(thing, value string)) Option {
 }
 
 // WithGridSize overrides the default 12-column grid for flex quantization.
-// Use this when the maroto document was built with config.WithMaxGridSize(n).
+// Use this when the paper document was built with config.WithMaxGridSize(n).
 func WithGridSize(n int) Option {
 	return func(c *config) {
 		if n > 0 {
@@ -87,7 +87,7 @@ func WithStylesheetBaseDir(dir string) Option {
 	}
 }
 
-// FromString parses an HTML string and returns the corresponding Maroto rows.
+// FromString parses an HTML string and returns the corresponding Paper rows.
 func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
 		return nil, nil

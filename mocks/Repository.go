@@ -3,10 +3,10 @@
 package mocks
 
 import (
-	entity "github.com/johnfercher/maroto/v2/pkg/core/entity"
-	fontrepository "github.com/johnfercher/maroto/v2/pkg/fontrepository"
+	entity "github.com/johnfercher/paper/v2/pkg/core/entity"
+	fontrepository "github.com/johnfercher/paper/v2/pkg/fontrepository"
 
-	fontstyle "github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	fontstyle "github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
 	mock "github.com/stretchr/testify/mock"
 )

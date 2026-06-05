@@ -3,23 +3,23 @@ package main
 import (
 	"log"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/core"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/border"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/border"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func main() {
-	m := GetMaroto()
+	m := GetPaper()
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -36,7 +36,7 @@ func main() {
 	}
 }
 
-func GetMaroto() core.Maroto {
+func GetPaper() core.Paper {
 	cfg := config.NewBuilder().
 		WithDebug(false).
 		Build()
@@ -117,8 +117,8 @@ func GetMaroto() core.Maroto {
 		Top:   2,
 	}
 
-	mrt := maroto.New(cfg)
-	m := maroto.NewMetricsDecorator(mrt)
+	mrt := paper.New(cfg)
+	m := paper.NewMetricsDecorator(mrt)
 
 	count := 0
 	for i := 0; i < 15; i++ {

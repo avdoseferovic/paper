@@ -3,15 +3,15 @@ package image_test
 import (
 	"os"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/image"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/image"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 )
 
 // ExampleNewFromBytes demonstrates how to create an image component reading bytes.
 func ExampleNewFromBytes() {
-	m := maroto.New()
+	m := paper.New()
 
 	bytes, _ := os.ReadFile("image.png")
 
@@ -24,7 +24,7 @@ func ExampleNewFromBytes() {
 
 // ExampleNewFromBytesCol demonstrates how to create an image component wrapped into a column reading bytes.
 func ExampleNewFromBytesCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	bytes, _ := os.ReadFile("image.png")
 
@@ -36,7 +36,7 @@ func ExampleNewFromBytesCol() {
 
 // ExampleNewFromBytesRow demonstrates how to create an image component wrapped into a row reading bytes.
 func ExampleNewFromBytesRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	bytes, _ := os.ReadFile("image.png")
 
@@ -48,7 +48,7 @@ func ExampleNewFromBytesRow() {
 
 // ExampleNewFromFile demonstrates how to create an image component reading file.
 func ExampleNewFromFile() {
-	m := maroto.New()
+	m := paper.New()
 
 	image := image.NewFromFile("image.png")
 	col := col.New(12).Add(image)
@@ -59,7 +59,7 @@ func ExampleNewFromFile() {
 
 // ExampleNewFromFileCol demonstrates how to create an image component wrapped into a column reading file.
 func ExampleNewFromFileCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	imageCol := image.NewFromFileCol(12, "image.png")
 	m.AddRow(10, imageCol)
@@ -69,7 +69,7 @@ func ExampleNewFromFileCol() {
 
 // ExampleNewFromFileRow demonstrates how to create an image component wrapped into a row reading file.
 func ExampleNewFromFileRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	imageRow := image.NewFromFileRow(10, "image.png")
 	m.AddRows(imageRow)

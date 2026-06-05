@@ -3,10 +3,10 @@ package translate
 import (
 	"strings"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // computeNodeStyleRooted is computeNodeStyle with an explicit root style seed.
@@ -96,7 +96,7 @@ func effectiveOpacity(style *css.ComputedStyle) float64 {
 }
 
 // blockCellStyle converts a ComputedStyle's background and border fields into a
-// Maroto props.Cell. Returns nil if no decorative styling is set.
+// Paper props.Cell. Returns nil if no decorative styling is set.
 func blockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if style == nil {
 		return nil

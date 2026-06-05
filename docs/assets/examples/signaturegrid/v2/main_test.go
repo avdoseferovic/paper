@@ -3,13 +3,13 @@ package main
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/test"
+	"github.com/johnfercher/paper/v2/pkg/test"
 )
 
-func TestGetMaroto(t *testing.T) {
+func TestGetPaper(t *testing.T) {
 	t.Parallel()
 	// Act
-	sut := GetMaroto()
+	sut := GetPaper()
 
 	// Assert
 	test.New(t).Assert(sut.GetStructure()).Equals("examples/signaturegrid.json")

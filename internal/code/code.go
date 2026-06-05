@@ -15,10 +15,10 @@ import (
 	"github.com/boombuler/barcode/ean"
 	"github.com/boombuler/barcode/qr"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/barcode"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/barcode"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 var (

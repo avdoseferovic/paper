@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
 )
 
 // applyStyleAndGetBg parses the HTML, applies the user CSS via the
@@ -83,7 +83,7 @@ func TestSelector_Not(t *testing.T) {
 p:not(.intro) { background-color: #ddd }
 </style></head>
 <body><p class="intro">A</p><p>B</p><p>C</p></body></html>`
-	assert.Equal(t, "", styleNthChild(t, html, "p", 1))   // .intro skipped
+	assert.Equal(t, "", styleNthChild(t, html, "p", 1))    // .intro skipped
 	assert.NotEqual(t, "", styleNthChild(t, html, "p", 2)) // matched
 	assert.NotEqual(t, "", styleNthChild(t, html, "p", 3)) // matched
 }

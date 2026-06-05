@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/image"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/fontrepository"
-	"github.com/johnfercher/maroto/v2/pkg/merge"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/image"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/fontrepository"
+	"github.com/johnfercher/paper/v2/pkg/merge"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func TestBytes(t *testing.T) {
@@ -30,12 +30,12 @@ func TestBytes(t *testing.T) {
 	t.Run("when valid PDFs are provided, should merge and return bytes", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		m1 := maroto.New()
+		m1 := paper.New()
 		m1.AddRows(text.NewRow(10, "text1"))
 		doc1, _ := m1.Generate()
 		doc1Bytes := doc1.GetBytes()
 
-		m2 := maroto.New()
+		m2 := paper.New()
 		m2.AddRows(text.NewRow(10, "text2"))
 		doc2, _ := m2.Generate()
 		doc2Bytes := doc2.GetBytes()
@@ -81,7 +81,7 @@ func TestBytes(t *testing.T) {
 func generateTextPDF(t *testing.T, value string, cfg ...*entity.Config) []byte {
 	t.Helper()
 
-	m := maroto.New(cfg...)
+	m := paper.New(cfg...)
 	m.AddRows(text.NewRow(10, value))
 	doc, err := m.Generate()
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func generateImagePDF(t *testing.T) []byte {
 	img, err := os.ReadFile("../../docs/assets/images/logo.png")
 	require.NoError(t, err)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRow(30, image.NewFromBytesCol(12, img, extension.Png, props.Rect{Center: true, Percent: 80}))
 	doc, err := m.Generate()
 	require.NoError(t, err)
@@ -114,7 +114,7 @@ func generateGradientPDF(t *testing.T) []byte {
 			{Color: props.BlueColor, Position: 1},
 		},
 	}
-	m := maroto.New()
+	m := paper.New()
 	m.AddRow(20, text.NewCol(12, "gradient")).WithStyle(&props.Cell{BackgroundGradient: gradient})
 	doc, err := m.Generate()
 	require.NoError(t, err)
@@ -126,7 +126,7 @@ func generateLinkedPDF(t *testing.T) []byte {
 	t.Helper()
 
 	link := "https://example.com"
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(text.NewRow(10, "linked text", props.Text{Hyperlink: &link, Align: align.Center}))
 	doc, err := m.Generate()
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func generateCustomFontPDF(t *testing.T) []byte {
 		WithCustomFonts(fonts).
 		WithDefaultFont(&props.Font{Family: customFont}).
 		Build()
-	m := maroto.New(cfg)
+	m := paper.New(cfg)
 	m.AddRows(text.NewRow(10, "custom font"))
 	doc, err := m.Generate()
 	require.NoError(t, err)

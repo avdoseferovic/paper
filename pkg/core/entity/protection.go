@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
+	"github.com/johnfercher/paper/v2/pkg/consts/protection"
 )
 
 // Protection is the representation of a pdf protection.

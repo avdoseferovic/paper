@@ -1,14 +1,14 @@
 package signature_test
 
 import (
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
 )
 
 // ExampleNew demonstrates how to create a signature component.
 func ExampleNew() {
-	m := maroto.New()
+	m := paper.New()
 
 	signature := signature.New("signature label")
 	col := col.New(12).Add(signature)
@@ -19,7 +19,7 @@ func ExampleNew() {
 
 // ExampleNewCol demonstrates how to create a signature component wrapped into a column.
 func ExampleNewCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	signatureCol := signature.NewCol(12, "signature label")
 	m.AddRow(10, signatureCol)
@@ -29,7 +29,7 @@ func ExampleNewCol() {
 
 // ExampleNewRow demonstrates how to create a signature component wrapped into a row.
 func ExampleNewRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	signatureRow := signature.NewRow(10, "signature label")
 	m.AddRows(signatureRow)

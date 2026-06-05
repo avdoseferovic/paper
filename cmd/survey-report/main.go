@@ -9,18 +9,18 @@ import (
 	"log"
 	"os"
 
-	maroto "github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/line"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/line"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/html"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 		WithBottomMargin(12).
 		Build()
 
-	m := maroto.New(cfg)
+	m := paper.New(cfg)
 	if err := m.RegisterHeader(buildHeader()...); err != nil {
 		log.Fatalf("register header: %v", err)
 	}
@@ -56,7 +56,7 @@ func main() {
 		log.Fatalf("generate: %v", err)
 	}
 
-	out := "/Users/avdo/maroto/test/output/survey-report.pdf"
+	out := "/Users/avdo/paper/test/output/survey-report.pdf"
 	if err := doc.Save(out); err != nil {
 		log.Fatalf("save: %v", err)
 	}
@@ -95,7 +95,7 @@ func buildFooter() []core.Row {
 		Color: &props.Color{Red: 214, Green: 220, Blue: 228}, Thickness: 0.25,
 	})))
 	footRow := row.New(5).Add(
-		col.New(8).Add(text.New("Document ref: ANAM-2026-04812 · Maroto Medical Center", props.Text{
+		col.New(8).Add(text.New("Document ref: ANAM-2026-04812 · Paper Medical Center", props.Text{
 			Family: fontfamily.Helvetica,
 			Size:   7,
 			Color:  muted,

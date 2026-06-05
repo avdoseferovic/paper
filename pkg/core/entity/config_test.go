@@ -3,18 +3,18 @@ package entity_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/generation"
+	"github.com/johnfercher/paper/v2/pkg/consts/generation"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
-	"github.com/johnfercher/maroto/v2/pkg/consts/provider"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/consts/protection"
+	"github.com/johnfercher/paper/v2/pkg/consts/provider"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func TestConfig_ToMap(t *testing.T) {
@@ -27,8 +27,8 @@ func TestConfig_ToMap(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, provider.Paper, m["config_provider_type"])
-	assert.Equal(t, 100.0, m["maroto_dimension_width"])
-	assert.Equal(t, 200.0, m["maroto_dimension_height"])
+	assert.Equal(t, 100.0, m["paper_dimension_width"])
+	assert.Equal(t, 200.0, m["paper_dimension_height"])
 	assert.Equal(t, 20.0, m["config_margin_left"])
 	assert.Equal(t, 30.0, m["config_margin_top"])
 	assert.Equal(t, 40.0, m["config_margin_right"])

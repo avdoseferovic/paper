@@ -6,19 +6,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/generation"
+	"github.com/johnfercher/paper/v2/pkg/consts/generation"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/orientation"
-	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
+	"github.com/johnfercher/paper/v2/pkg/consts/protection"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
-	"github.com/johnfercher/maroto/v2/pkg/consts/provider"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/consts/pagesize"
+	"github.com/johnfercher/paper/v2/pkg/consts/provider"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // Builder is the abstraction responsible for global customizations on the document.
@@ -169,14 +169,14 @@ func (b *CfgBuilder) WithConcurrentMode(chunkWorkers int) Builder {
 	return b
 }
 
-// WithSequentialMode defines that maroto will run in default mode.
+// WithSequentialMode defines that paper will run in default mode.
 func (b *CfgBuilder) WithSequentialMode() Builder {
 	b.chunkWorkers = 1
 	b.generationMode = generation.Sequential
 	return b
 }
 
-// WithSequentialLowMemoryMode defines that maroto will run focusing in reduce memory consumption,
+// WithSequentialLowMemoryMode defines that paper will run focusing in reduce memory consumption,
 // chunk workers define how many divisions the work will have.
 func (b *CfgBuilder) WithSequentialLowMemoryMode(chunkWorkers int) Builder {
 	if chunkWorkers < 1 {
@@ -188,7 +188,7 @@ func (b *CfgBuilder) WithSequentialLowMemoryMode(chunkWorkers int) Builder {
 	return b
 }
 
-// WithDebug defines a debug behaviour where maroto will draw borders in everything.
+// WithDebug defines a debug behaviour where paper will draw borders in everything.
 func (b *CfgBuilder) WithDebug(on bool) Builder {
 	b.debug = on
 	return b

@@ -3,22 +3,22 @@ package main_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/line"
+	"github.com/johnfercher/paper/v2/pkg/components/line"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
-	"github.com/johnfercher/maroto/v2/pkg/components/image"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/test"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2/pkg/components/image"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/test"
 )
 
 func TestMaroto_GetStructure(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	m := maroto.New()
+	m := paper.New()
 
 	m.AddRow(10,
 		code.NewBarCol(4, "barcode"),

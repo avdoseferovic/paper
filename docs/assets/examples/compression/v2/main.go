@@ -6,25 +6,25 @@ import (
 	"log"
 	"os"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
-	"github.com/johnfercher/maroto/v2/pkg/components/image"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2/pkg/components/image"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func main() {
-	m := GetMaroto("docs/assets/images/frontpage.png")
+	m := GetPaper("docs/assets/images/frontpage.png")
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -41,13 +41,13 @@ func main() {
 	}
 }
 
-func GetMaroto(imagePath string) core.Maroto {
+func GetPaper(imagePath string) core.Paper {
 	cfg := config.NewBuilder().
 		WithCompression(true).
 		Build()
 
-	mrt := maroto.New(cfg)
-	m := maroto.NewMetricsDecorator(mrt)
+	mrt := paper.New(cfg)
+	m := paper.NewMetricsDecorator(mrt)
 
 	m.AddRows(
 		text.NewRow(20, "Main features", props.Text{Size: 15, Top: 6.5}),

@@ -7,20 +7,20 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/johnfercher/maroto/v2/pkg/consts/barcode"
+	"github.com/johnfercher/paper/v2/pkg/consts/barcode"
 
-	"github.com/johnfercher/maroto/v2/internal/fixture"
-	"github.com/johnfercher/maroto/v2/internal/merror"
-	"github.com/johnfercher/maroto/v2/mocks"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
+	"github.com/johnfercher/paper/v2/internal/fixture"
+	"github.com/johnfercher/paper/v2/internal/merror"
+	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/protection"
 	"github.com/stretchr/testify/mock"
 
-	gofpdf "github.com/johnfercher/maroto/v2/internal/providers/paper"
+	gofpdf "github.com/johnfercher/paper/v2/internal/providers/paper"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 

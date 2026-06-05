@@ -3,8 +3,8 @@ package translate_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
-	"github.com/johnfercher/maroto/v2/pkg/html/translate"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/html/translate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

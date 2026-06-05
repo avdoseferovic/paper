@@ -3,10 +3,10 @@ package paper_test
 import (
 	"testing"
 
-	gofpdf "github.com/johnfercher/maroto/v2/internal/providers/paper"
-	"github.com/johnfercher/maroto/v2/mocks"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	gofpdf "github.com/johnfercher/paper/v2/internal/providers/paper"
+	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 	"github.com/stretchr/testify/mock"
 )
 

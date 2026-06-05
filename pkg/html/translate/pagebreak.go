@@ -2,13 +2,13 @@ package translate
 
 import (
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // pageBreakRow is a zero-content row that implements core.PageBreaker.
-// maroto.addRow() detects it via type assertion and calls fillPageToAddNew()
+// paper.addRow() detects it via type assertion and calls fillPageToAddNew()
 // without placing the row on any page. Render() is intentionally a no-op.
 type pageBreakRow struct{}
 

@@ -1,7 +1,7 @@
 package core
 
 // Splittable is an optional interface that a Row can implement to allow
-// maroto.addRow() to split it across a page boundary during the build phase.
+// paper.addRow() to split it across a page boundary during the build phase.
 //
 // When addRow() determines the row is too tall for the remaining page space
 // and the row implements Splittable, it calls SplitAt(remainingHeight):

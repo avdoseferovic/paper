@@ -1,11 +1,11 @@
 package paper
 
 import (
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/maroto/v2/pkg/consts/orientation"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 type Line struct {

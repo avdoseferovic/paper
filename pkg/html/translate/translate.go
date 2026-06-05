@@ -1,19 +1,19 @@
-// Package translate converts a parsed HTML DOM into a slice of Maroto rows.
+// Package translate converts a parsed HTML DOM into a slice of Paper rows.
 package translate
 
 import (
 	"strings"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/line"
-	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/line"
+	"github.com/johnfercher/paper/v2/pkg/components/richtext"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // Option configures translator behaviour.
@@ -85,7 +85,7 @@ func WithUnsupportedHandler(fn func(thing, value string)) Option {
 	}
 }
 
-// Translate walks the styled DOM and emits Maroto rows.
+// Translate walks the styled DOM and emits Paper rows.
 func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	if doc == nil {
 		return nil, nil

@@ -3,18 +3,18 @@ package translate
 import (
 	"strconv"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/table"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/richtext"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/table"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
-// tableRows converts a <table> element into one Maroto row containing a Table component.
+// tableRows converts a <table> element into one Paper row containing a Table component.
 // When a <caption> child exists, it is emitted as a centred row above the table.
 // When <colgroup>/<col> children exist, they are detected and logged as a feature
 // the v1 table builder cannot honour (explicit column widths are not supported).

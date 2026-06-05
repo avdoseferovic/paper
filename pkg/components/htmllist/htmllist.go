@@ -3,10 +3,10 @@ package htmllist
 
 import (
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // StyleType controls the marker style.
@@ -68,7 +68,7 @@ func New(items []Item, ps ...Prop) *HTMLList {
 	return &HTMLList{items: items, prop: prop}
 }
 
-// SetConfig propagates Maroto config to all item components.
+// SetConfig propagates Paper config to all item components.
 func (l *HTMLList) SetConfig(config *entity.Config) {
 	l.config = config
 	for _, item := range l.items {

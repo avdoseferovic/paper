@@ -1,2 +1,2 @@
-// Package pkg contains the public code of maroto.
+// Package pkg contains the public code of paper.
 package pkg

@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
-	"github.com/johnfercher/maroto/v2/pkg/html/translate"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/html/translate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

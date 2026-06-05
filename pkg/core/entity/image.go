@@ -3,7 +3,7 @@ package entity
 import (
 	"fmt"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 )
 
 const trimSizeDefault = 10

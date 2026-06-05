@@ -1,6 +1,6 @@
 package fontrepository
 
-import "github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+import "github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
 type customFont struct {
 	family string

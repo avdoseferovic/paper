@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // anchorResolverIface is a narrow interface satisfied by the HTML translator's
@@ -70,7 +70,7 @@ func NewAutoRow(runs []props.RichRun, ps ...props.RichText) core.Row {
 	return row.New().Add(c)
 }
 
-// SetConfig propagates Maroto configuration to the component.
+// SetConfig propagates Paper configuration to the component.
 func (r *RichText) SetConfig(config *entity.Config) {
 	r.config = config
 	r.prop.MakeValid(config.DefaultFont)
@@ -105,7 +105,7 @@ func (r *RichText) GetStructure() *node.Node[core.Structure] {
 }
 
 // GetHeight returns the height the component will occupy in the cell.
-// The result is memoised by cell width so Maroto's two-call pattern (addRow + Render)
+// The result is memoised by cell width so Paper's two-call pattern (addRow + Render)
 // doesn't drift even when SetConfig is called between invocations.
 func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	key := r.configKey()

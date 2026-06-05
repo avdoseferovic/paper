@@ -4,25 +4,25 @@ package main
 import (
 	"log"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/fontrepository"
+	"github.com/johnfercher/paper/v2/pkg/fontrepository"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/breakline"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
+	"github.com/johnfercher/paper/v2/pkg/consts/breakline"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontfamily"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func main() {
-	m := GetMaroto("docs/assets/fonts/arial-unicode-ms.ttf")
+	m := GetPaper("docs/assets/fonts/arial-unicode-ms.ttf")
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -39,7 +39,7 @@ func main() {
 	}
 }
 
-func GetMaroto(customFontFile string) core.Maroto {
+func GetPaper(customFontFile string) core.Paper {
 	customFont := "arial-unicode-ms"
 
 	customFonts, err := fontrepository.New().
@@ -58,8 +58,8 @@ func GetMaroto(customFontFile string) core.Maroto {
 	cfg := builder.WithDefaultFont(&props.Font{Family: customFont}).
 		Build()
 
-	mrt := maroto.New(cfg)
-	m := maroto.NewMetricsDecorator(mrt)
+	mrt := paper.New(cfg)
+	m := paper.NewMetricsDecorator(mrt)
 
 	header, contents := getLanguageSample()
 

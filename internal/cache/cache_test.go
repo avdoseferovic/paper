@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/internal/cache"
+	"github.com/johnfercher/paper/v2/internal/cache"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
 	"github.com/stretchr/testify/assert"
 )

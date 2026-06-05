@@ -1,5 +1,5 @@
 // Package test implements unit test feature.
-// nolint:testpackage // that's the integration test of maroto
+// nolint:testpackage // that's the integration test of paper
 package test
 
 import (
@@ -9,11 +9,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/maroto/v2/internal/fixture"
+	"github.com/johnfercher/paper/v2/internal/fixture"
 )
 
 const (
-	file = "maroto_test.json"
+	file = "paper_test.json"
 )
 
 func TestNew(t *testing.T) {
@@ -39,12 +39,12 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestMarotoTest_Assert(t *testing.T) {
+func TestPaperTest_Assert(t *testing.T) {
 	t.Parallel()
 	t.Run("when call assert, should set node", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("maroto")
+		n := fixture.Node("paper")
 		sut := New(t)
 
 		// Act
@@ -55,13 +55,13 @@ func TestMarotoTest_Assert(t *testing.T) {
 	})
 }
 
-func TestMarotoTest_Save(t *testing.T) {
+func TestPaperTest_Save(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot save, should not create file", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		file := ""
-		n := fixture.Node("maroto")
+		n := fixture.Node("paper")
 		innerT := &testing.T{}
 		sut := New(innerT).Assert(n)
 
@@ -77,7 +77,7 @@ func TestMarotoTest_Save(t *testing.T) {
 	t.Run("when can save, should create file", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("maroto")
+		n := fixture.Node("paper")
 		sut := New(t).Assert(n)
 
 		// Act
@@ -90,12 +90,12 @@ func TestMarotoTest_Save(t *testing.T) {
 
 		testNode := &Node{}
 		_ = json.Unmarshal(bytes, testNode)
-		assert.Equal(t, "maroto", testNode.Type)
+		assert.Equal(t, "paper", testNode.Type)
 		assert.Equal(t, "page", testNode.Nodes[0].Type)
 	})
 }
 
-func TestMarotoTest_Equals(t *testing.T) {
+func TestPaperTest_Equals(t *testing.T) {
 	t.Parallel()
 	t.Run("when file saved is not equals to current, should fail", func(t *testing.T) {
 		t.Parallel()
@@ -113,7 +113,7 @@ func TestMarotoTest_Equals(t *testing.T) {
 	t.Run("when file saved is equals to current, should be success", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("maroto")
+		n := fixture.Node("paper")
 		innerT := &testing.T{}
 		sut := New(innerT).Assert(n)
 

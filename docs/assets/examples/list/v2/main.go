@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/list"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/list"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/props"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
 )
 
 var background = &props.Color{
@@ -22,7 +22,7 @@ var background = &props.Color{
 }
 
 func main() {
-	m := GetMaroto()
+	m := GetPaper()
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -39,9 +39,9 @@ func main() {
 	}
 }
 
-func GetMaroto() core.Maroto {
-	mrt := maroto.New()
-	m := maroto.NewMetricsDecorator(mrt)
+func GetPaper() core.Paper {
+	mrt := paper.New()
+	m := paper.NewMetricsDecorator(mrt)
 
 	objects := getObjects(100)
 	rows, err := list.Build[Object](objects)

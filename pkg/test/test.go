@@ -14,18 +14,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core"
 )
 
 var (
 	ErrCannotReadDir       = errors.New("cannot read directory")
 	ErrCannotReadFile      = errors.New("cannot read file")
 	ErrCannotUnmarshallYML = errors.New("cannot unmarshall yaml")
-	ErrMarotoYMLNotFound   = errors.New("found go.mod but not .maroto.yml")
+	ErrPaperYMLNotFound    = errors.New("found go.mod but not .paper.yml")
 )
 
 var (
-	marotoFile      = ".maroto.yml"
+	paperFile       = ".paper.yml"
 	goModFile       = "go.mod"
 	configSingleton *Config
 	configOnce      sync.Once
@@ -38,24 +38,24 @@ type Node struct {
 	Nodes   []*Node        `json:"nodes,omitempty"`
 }
 
-// MarotoTest is the unit test instance.
-type MarotoTest struct {
+// PaperTest is the unit test instance.
+type PaperTest struct {
 	t    *testing.T
 	node *node.Node[core.Structure]
 }
 
-// New creates the MarotoTest instance to unit tests.
-func New(t *testing.T) *MarotoTest {
+// New creates the PaperTest instance to unit tests.
+func New(t *testing.T) *PaperTest {
 	t.Helper()
 	var initErr error
 	configOnce.Do(func() {
-		path, err := getMarotoConfigFilePath()
+		path, err := getPaperConfigFilePath()
 		if err != nil {
 			initErr = err
 			return
 		}
 
-		cfg, err := loadMarotoConfigFile(path)
+		cfg, err := loadPaperConfigFile(path)
 		if err != nil {
 			initErr = err
 			return
@@ -65,22 +65,22 @@ func New(t *testing.T) *MarotoTest {
 		configSingleton = cfg
 	})
 	if initErr != nil {
-		assert.Fail(t, "could not load .maroto.yml: "+initErr.Error())
+		assert.Fail(t, "could not load .paper.yml: "+initErr.Error())
 	}
 
-	return &MarotoTest{
+	return &PaperTest{
 		t: t,
 	}
 }
 
 // Assert validates if the structure is the same as defined by Equals method.
-func (m *MarotoTest) Assert(structure *node.Node[core.Structure]) *MarotoTest {
+func (m *PaperTest) Assert(structure *node.Node[core.Structure]) *PaperTest {
 	m.node = structure
 	return m
 }
 
 // Equals defines which file will be loaded to do the comparison.
-func (m *MarotoTest) Equals(file string) *MarotoTest {
+func (m *PaperTest) Equals(file string) *PaperTest {
 	m.t.Helper()
 	actual := m.buildNode(m.node)
 	actualBytes, _ := json.Marshal(actual)
@@ -100,7 +100,7 @@ func (m *MarotoTest) Equals(file string) *MarotoTest {
 }
 
 // Save is an auxiliary method to update the file to be asserted.
-func (m *MarotoTest) Save(file string) *MarotoTest {
+func (m *PaperTest) Save(file string) *PaperTest {
 	actual := m.buildNode(m.node)
 	actualBytes, _ := json.MarshalIndent(actual, "", "\t")
 
@@ -112,7 +112,7 @@ func (m *MarotoTest) Save(file string) *MarotoTest {
 	return m
 }
 
-func (m *MarotoTest) buildNode(node *node.Node[core.Structure]) *Node {
+func (m *PaperTest) buildNode(node *node.Node[core.Structure]) *Node {
 	data := node.GetData()
 	actual := &Node{
 		Type:    data.Type,
@@ -128,15 +128,15 @@ func (m *MarotoTest) buildNode(node *node.Node[core.Structure]) *Node {
 	return actual
 }
 
-func getMarotoConfigFilePath() (string, error) {
+func getPaperConfigFilePath() (string, error) {
 	path, _ := os.Getwd()
 	path += "/"
 
-	return getMarotoConfigFilePathRecursive(path)
+	return getPaperConfigFilePathRecursive(path)
 }
 
-func loadMarotoConfigFile(path string) (*Config, error) {
-	bytes, err := os.ReadFile(path + "/" + marotoFile)
+func loadPaperConfigFile(path string) (*Config, error) {
+	bytes, err := os.ReadFile(path + "/" + paperFile)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotReadFile, err)
 	}
@@ -150,13 +150,13 @@ func loadMarotoConfigFile(path string) (*Config, error) {
 	return cfg, nil
 }
 
-func getMarotoConfigFilePathRecursive(path string) (string, error) {
-	hasMaroto, err := hasFileInPath(marotoFile, path)
+func getPaperConfigFilePathRecursive(path string) (string, error) {
+	hasPaper, err := hasFileInPath(paperFile, path)
 	if err != nil {
 		return "", err
 	}
 
-	if hasMaroto {
+	if hasPaper {
 		return path, nil
 	}
 
@@ -166,11 +166,11 @@ func getMarotoConfigFilePathRecursive(path string) (string, error) {
 	}
 
 	if hasGoMod {
-		return "", ErrMarotoYMLNotFound
+		return "", ErrPaperYMLNotFound
 	}
 
 	parentPath := getParentDir(path)
-	return getMarotoConfigFilePathRecursive(parentPath)
+	return getPaperConfigFilePathRecursive(parentPath)
 }
 
 func hasFileInPath(file string, path string) (bool, error) {

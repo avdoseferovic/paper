@@ -3,8 +3,8 @@
 package mocks
 
 import (
-	core "github.com/johnfercher/maroto/v2/pkg/core"
-	entity "github.com/johnfercher/maroto/v2/pkg/core/entity"
+	core "github.com/johnfercher/paper/v2/pkg/core"
+	entity "github.com/johnfercher/paper/v2/pkg/core/entity"
 
 	mock "github.com/stretchr/testify/mock"
 

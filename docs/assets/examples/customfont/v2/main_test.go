@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/test"
+	"github.com/johnfercher/paper/v2/pkg/test"
 )
 
-func TestGetMaroto(t *testing.T) {
+func TestGetPaper(t *testing.T) {
 	t.Parallel()
 	// Act
-	sut := GetMaroto(buildPath("docs/assets/fonts/arial-unicode-ms.ttf"))
+	sut := GetPaper(buildPath("docs/assets/fonts/arial-unicode-ms.ttf"))
 
 	// Assert
 	test.New(t).Assert(sut.GetStructure()).Equals("examples/customfont.json")

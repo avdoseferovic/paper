@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/fontrepository"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/fontrepository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

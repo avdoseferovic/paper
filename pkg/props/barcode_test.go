@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/maroto/v2/internal/fixture"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/internal/fixture"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func TestBarcode_ToMap(t *testing.T) {

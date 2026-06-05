@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 var (
@@ -60,7 +60,7 @@ func New(cells [][]Cell, _ ...any) (*Table, error) {
 // ColCount returns the number of columns determined from the normalised grid.
 func (t *Table) ColCount() int { return t.colCount }
 
-// SetConfig propagates Maroto config to all cell components.
+// SetConfig propagates Paper config to all cell components.
 func (t *Table) SetConfig(config *entity.Config) {
 	t.config = config
 	for _, row := range t.declared {

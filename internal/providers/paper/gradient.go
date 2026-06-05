@@ -12,11 +12,11 @@ import (
 	"strings"
 	"sync"
 
-	gofpdflib "github.com/johnfercher/maroto/v2/internal/paperpdf"
+	gofpdflib "github.com/johnfercher/paper/v2/internal/paperpdf"
 
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 const gradientDPI = 75.0

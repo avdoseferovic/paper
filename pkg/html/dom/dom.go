@@ -1,4 +1,4 @@
-// Package dom provides a Maroto-friendly wrapper over golang.org/x/net/html.
+// Package dom provides a Paper-friendly wrapper over golang.org/x/net/html.
 package dom
 
 import (
@@ -62,7 +62,7 @@ func (d *Document) HTMLElement() *Node {
 // Root returns the underlying html.Node for direct access when needed.
 func (d *Document) Root() *html.Node { return d.root }
 
-// Node wraps a raw html.Node with Maroto-friendly accessors.
+// Node wraps a raw html.Node with Paper-friendly accessors.
 type Node struct {
 	raw          *html.Node
 	preformatted bool // whitespace preserved

@@ -5,7 +5,7 @@ import (
 
 	"github.com/andybalholm/cascadia"
 	"github.com/aymerick/douceur/parser"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
 	"golang.org/x/net/html"
 )
 
@@ -23,7 +23,7 @@ type compiledRule struct {
 	order        int // source order (lower = earlier in stylesheet text)
 }
 
-// builtinCSS is a Maroto-shipped stylesheet prepended to every document.
+// builtinCSS is a Paper-shipped stylesheet prepended to every document.
 // Its rules apply before user-supplied <style> blocks so users may override
 // any built-in default. Inline style="" still has the highest precedence.
 // Only tag-level defaults live here — opinionated presentational classes
@@ -42,7 +42,7 @@ caption { padding: 1mm 0; text-align: center }
 `
 
 // parseStylesheet parses CSS text from <style> blocks into compiled rules.
-// Invalid selectors are skipped silently. The built-in Maroto stylesheet is
+// Invalid selectors are skipped silently. The built-in Paper stylesheet is
 // always prepended so its rules are applied first (and overridable by user CSS).
 func parseStylesheet(text string) *stylesheet {
 	ss := &stylesheet{}

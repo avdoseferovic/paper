@@ -1,16 +1,16 @@
 package code_test
 
 import (
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/props"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
 )
 
-// ExampleNewBar demonstrates how to generate a barcode and add it to maroto.
+// ExampleNewBar demonstrates how to generate a barcode and add it to paper.
 func ExampleNewBar() {
-	m := maroto.New()
+	m := paper.New()
 
 	barCode := code.NewBar("123456789", props.Barcode{Percent: 70.5})
 	col := col.New(6).Add(barCode)
@@ -19,9 +19,9 @@ func ExampleNewBar() {
 	// generate document
 }
 
-// ExampleNewBarCol demonstrates how to generate a column with a barcode and add it to maroto.
+// ExampleNewBarCol demonstrates how to generate a column with a barcode and add it to paper.
 func ExampleNewBarCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	barCodeCol := code.NewBarCol(6, "123456", props.Barcode{Percent: 70.5})
 	m.AddRow(10, barCodeCol)
@@ -29,9 +29,9 @@ func ExampleNewBarCol() {
 	// generate document
 }
 
-// ExampleNewBarRow demonstrates how to generate a row with a barcode and add it to maroto.
+// ExampleNewBarRow demonstrates how to generate a row with a barcode and add it to paper.
 func ExampleNewBarRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	barCodeRow := code.NewBarRow(10, "123456789", props.Barcode{Percent: 70.5})
 	m.AddRows(barCodeRow)
@@ -39,9 +39,9 @@ func ExampleNewBarRow() {
 	// generate document
 }
 
-// ExampleNewQr demonstrates how to generate a qrcode and add it to maroto.
+// ExampleNewQr demonstrates how to generate a qrcode and add it to paper.
 func ExampleNewQr() {
-	m := maroto.New()
+	m := paper.New()
 
 	qrCode := code.NewQr("123456789", props.Rect{Percent: 70.5})
 	col := col.New(6).Add(qrCode)
@@ -50,9 +50,9 @@ func ExampleNewQr() {
 	// generate document
 }
 
-// ExampleNewQrCol demonstrates how to generate a column with a qrcode and add it to maroto.
+// ExampleNewQrCol demonstrates how to generate a column with a qrcode and add it to paper.
 func ExampleNewQrCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	qrCodeCol := code.NewQrCol(12, "123456789", props.Rect{Percent: 70.5})
 	m.AddRow(10, qrCodeCol)
@@ -60,9 +60,9 @@ func ExampleNewQrCol() {
 	// generate document
 }
 
-// ExampleNewQrRow demonstrates how to generate a row with a qrcode and add it to maroto.
+// ExampleNewQrRow demonstrates how to generate a row with a qrcode and add it to paper.
 func ExampleNewQrRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	qrCodeRow := code.NewQrRow(10, "123456789", props.Rect{Percent: 70.5})
 	m.AddRows(qrCodeRow)
@@ -70,9 +70,9 @@ func ExampleNewQrRow() {
 	// generate document
 }
 
-// ExampleNewMatrix demonstrates how to generate a matrixcode and add it to maroto.
+// ExampleNewMatrix demonstrates how to generate a matrixcode and add it to paper.
 func ExampleNewMatrix() {
-	m := maroto.New()
+	m := paper.New()
 
 	matrixCode := code.NewMatrix("123456789", props.Rect{Percent: 70.5})
 	col := col.New(6).Add(matrixCode)
@@ -81,9 +81,9 @@ func ExampleNewMatrix() {
 	// generate document
 }
 
-// ExampleNewMatrixCol demonstrates how to generate a column with a matrixcode and add it to maroto.
+// ExampleNewMatrixCol demonstrates how to generate a column with a matrixcode and add it to paper.
 func ExampleNewMatrixCol() {
-	m := maroto.New()
+	m := paper.New()
 
 	matrixCodeCol := code.NewMatrixCol(12, "123456789", props.Rect{Percent: 70.5})
 	m.AddRow(10, matrixCodeCol)
@@ -91,9 +91,9 @@ func ExampleNewMatrixCol() {
 	// generate document
 }
 
-// ExampleNewMatrixRow demonstrates how to generate a row with a matrixcode and add it to maroto.
+// ExampleNewMatrixRow demonstrates how to generate a row with a matrixcode and add it to paper.
 func ExampleNewMatrixRow() {
-	m := maroto.New()
+	m := paper.New()
 
 	matrixCodeRow := code.NewMatrixRow(10, "123456789", props.Rect{Percent: 70.5})
 	m.AddRows(matrixCodeRow)

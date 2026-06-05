@@ -3,9 +3,9 @@ package translate_test
 import (
 	"testing"
 
-	maroto "github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/html"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestStyledRowRendersWithoutPanic(t *testing.T) {
 		WithBottomMargin(15).
 		Build()
 
-	m := maroto.New(cfg)
+	m := paper.New(cfg)
 	err := m.AddHTML(`<html><head><style>
 		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm; font-size: 12pt }
 		.numbered { list-style-type: decimal-circle }
@@ -57,7 +57,7 @@ func TestStyledRowWithImageBaseDir(t *testing.T) {
 		WithTopMargin(15).
 		Build()
 
-	m := maroto.New(cfg)
+	m := paper.New(cfg)
 	// No image resolver — img falls back to alt text path (no panic expected).
 	rows, err := html.FromString(`<html><head><style>
 		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm }

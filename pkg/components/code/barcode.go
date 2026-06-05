@@ -5,11 +5,11 @@ package code
 import (
 	"github.com/johnfercher/go-tree/node"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 type Barcode struct {
@@ -64,7 +64,7 @@ func NewAutoBarRow(code string, ps ...props.Barcode) core.Row {
 	return row.New().Add(c)
 }
 
-// Render renders a Barcode into a PDF context. The maroto cal this method in process to
+// Render renders a Barcode into a PDF context. The paper cal this method in process to
 // generate the pdf.
 //   - provider: Is the creator provider used to generate the pdf
 //   - cell: cell represents the space available to draw the component

@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/test"
+	"github.com/johnfercher/paper/v2/pkg/test"
 )
 
-func TestGetMaroto(t *testing.T) {
+func TestGetPaper(t *testing.T) {
 	t.Parallel()
 	// Act
 	path := "docs/assets/images/certificate.png"
-	sut := GetMaroto(buildPath(path))
+	sut := GetPaper(buildPath(path))
 
 	// Assert
 	test.New(t).Assert(sut.GetStructure()).Equals("examples/disablepagebreak.json")

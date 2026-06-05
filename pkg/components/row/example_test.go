@@ -1,14 +1,14 @@
 package row_test
 
 import (
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/border"
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/border"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // ExampleNew demonstrates how to create a Row instance.
@@ -19,7 +19,7 @@ func ExampleNew() {
 	height := 10.0
 	row := row.New(height)
 
-	m := maroto.New()
+	m := paper.New()
 
 	m.AddRows(row)
 
@@ -35,7 +35,7 @@ func ExampleRow_Add() {
 
 	row := row.New(10).Add(textCol, qrCodeCol, signatureCol)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(row)
 
 	// Do things and generate
@@ -62,7 +62,7 @@ func ExampleRow_WithStyle() {
 		LineStyle:       linestyle.Dashed,
 	})
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(row)
 
 	// Do things and generate

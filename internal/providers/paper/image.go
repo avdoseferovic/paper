@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	gofpdf "github.com/johnfercher/maroto/v2/internal/paperpdf"
+	gofpdf "github.com/johnfercher/paper/v2/internal/paperpdf"
 
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 var ErrCouldNotRegisterImageOptions = errors.New("could not register image options, maybe path/name is wrong")

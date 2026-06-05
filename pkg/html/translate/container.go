@@ -2,12 +2,12 @@ package translate
 
 import (
 	"github.com/johnfercher/go-tree/node"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/html/css"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/html/css"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // blockContainer wraps multiple child Rows under a single background+border+padding box.
@@ -204,7 +204,7 @@ func buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row 
 
 // splittableContainerRow wraps a blockContainer in a real row.Row (so it
 // renders identically to the pre-Plan-B output) and also exposes SplitAt so
-// maroto.addRow() can split it across pages.
+// paper.addRow() can split it across pages.
 type splittableContainerRow struct {
 	inner     core.Row        // row.New().Add(col.New().Add(container)) — handles Render/GetHeight
 	container *blockContainer // direct reference so SplitAt can introspect children

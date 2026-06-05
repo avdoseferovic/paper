@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/border"
+	"github.com/johnfercher/paper/v2/pkg/consts/border"
 )
 
 func TestType_IsValid(t *testing.T) {

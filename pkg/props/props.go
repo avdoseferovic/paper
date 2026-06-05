@@ -1,2 +1,2 @@
-// Package props contain the public properties of maroto.
+// Package props contain the public properties of paper.
 package props

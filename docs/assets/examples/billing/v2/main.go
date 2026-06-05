@@ -3,23 +3,23 @@ package main
 import (
 	"log"
 
-	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/paper/v2"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/image"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/image"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/align"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 func main() {
-	m := GetMaroto()
+	m := GetPaper()
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -36,7 +36,7 @@ func main() {
 	}
 }
 
-func GetMaroto() core.Maroto {
+func GetPaper() core.Paper {
 	cfg := config.NewBuilder().
 		WithPageNumber().
 		WithLeftMargin(10).
@@ -45,8 +45,8 @@ func GetMaroto() core.Maroto {
 		Build()
 
 	darkGrayColor := getDarkGrayColor()
-	mrt := maroto.New(cfg)
-	m := maroto.NewMetricsDecorator(mrt)
+	mrt := paper.New(cfg)
+	m := paper.NewMetricsDecorator(mrt)
 
 	err := m.RegisterHeader(getPageHeader())
 	if err != nil {

@@ -3,7 +3,7 @@ package barcode
 type Type string
 
 const (
-	// Code128 represents the default barcode type of maroto.
+	// Code128 represents the default barcode type of paper.
 	Code128 Type = "code128"
 	// EAN represents the ean barcode type.
 	EAN Type = "ean"

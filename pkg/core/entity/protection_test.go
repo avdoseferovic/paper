@@ -3,11 +3,11 @@ package entity_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/protection"
+	"github.com/johnfercher/paper/v2/pkg/consts/protection"
 )
 
 func TestProtection_AppendMap(t *testing.T) {

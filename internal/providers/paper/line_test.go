@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	gofpdf "github.com/johnfercher/maroto/v2/internal/providers/paper"
-	"github.com/johnfercher/maroto/v2/mocks"
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/maroto/v2/pkg/consts/orientation"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	gofpdf "github.com/johnfercher/paper/v2/internal/providers/paper"
+	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

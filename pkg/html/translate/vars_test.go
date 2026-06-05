@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/johnfercher/maroto/v2/pkg/html/dom"
+	"github.com/johnfercher/paper/v2/pkg/html/dom"
 )
 
 func TestVars_BodyDefinedInheritsToChildren(t *testing.T) {

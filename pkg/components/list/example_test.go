@@ -3,11 +3,11 @@ package list_test
 import (
 	"strconv"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/list"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/list"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/core"
 )
 
 // Obj implements Listable interface
@@ -75,7 +75,7 @@ func ExampleBuild() {
 
 	rows, _ := list.Build[Obj](objs)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(rows...)
 
 	// generate document
@@ -122,7 +122,7 @@ func ExampleBuildFromPointer() {
 
 	rows, _ := list.BuildFromPointer[Obj](objs)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(rows...)
 
 	// generate document

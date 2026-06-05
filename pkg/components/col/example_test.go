@@ -1,27 +1,27 @@
 package col_test
 
 import (
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/code"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/consts/border"
-	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/code"
+	"github.com/johnfercher/paper/v2/pkg/components/col"
+	"github.com/johnfercher/paper/v2/pkg/components/row"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/consts/border"
+	"github.com/johnfercher/paper/v2/pkg/consts/linestyle"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 // ExampleNew demonstrates how to create a Col instance.
 func ExampleNew() {
-	// size is an optional parameters, if not provided, maroto
+	// size is an optional parameters, if not provided, paper
 	// will apply the maximum size, even if custom size is applied.
 	size := 12
 	col := col.New(size)
 
 	row := row.New(10).Add(col)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(row)
 
 	// Do things and generate
@@ -40,7 +40,7 @@ func ExampleCol_Add() {
 
 	row := row.New(10).Add(col)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(row)
 
 	// Do things and generate
@@ -69,7 +69,7 @@ func ExampleCol_WithStyle() {
 
 	row := row.New(10).Add(col)
 
-	m := maroto.New()
+	m := paper.New()
 	m.AddRows(row)
 
 	// Do things and generate

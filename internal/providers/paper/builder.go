@@ -1,15 +1,15 @@
 package paper
 
 import (
-	gofpdf "github.com/johnfercher/maroto/v2/internal/paperpdf"
+	gofpdf "github.com/johnfercher/paper/v2/internal/paperpdf"
 
-	"github.com/johnfercher/maroto/v2/internal/cache"
-	"github.com/johnfercher/maroto/v2/internal/code"
-	"github.com/johnfercher/maroto/v2/internal/math"
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/cellwriter"
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/internal/cache"
+	"github.com/johnfercher/paper/v2/internal/code"
+	"github.com/johnfercher/paper/v2/internal/math"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 )
 
 // Dependencies is the dependencies provider for gofpdf.

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/johnfercher/maroto/v2/internal/time"
-	"github.com/johnfercher/maroto/v2/pkg/merge"
-	"github.com/johnfercher/maroto/v2/pkg/metrics"
+	"github.com/johnfercher/paper/v2/internal/time"
+	"github.com/johnfercher/paper/v2/pkg/merge"
+	"github.com/johnfercher/paper/v2/pkg/metrics"
 )
 
 var (

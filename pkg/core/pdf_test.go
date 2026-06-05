@@ -9,10 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	maroto "github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/metrics"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/components/text"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/metrics"
 )
 
 func TestNewPDF(t *testing.T) {
@@ -114,7 +114,7 @@ func TestPdf_Merge(t *testing.T) {
 	t.Run("when merge succeeds and report is nil, should update bytes and return nil", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		m := maroto.New()
+		m := paper.New()
 		m.AddRows(text.NewRow(10, "page1"))
 		doc, _ := m.Generate()
 		pdfBytes := doc.GetBytes()
@@ -131,7 +131,7 @@ func TestPdf_Merge(t *testing.T) {
 	t.Run("when merge succeeds and report is not nil, should update bytes and append metric", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		m := maroto.New()
+		m := paper.New()
 		m.AddRows(text.NewRow(10, "page1"))
 		doc, _ := m.Generate()
 		pdfBytes := doc.GetBytes()

@@ -4,19 +4,19 @@ import (
 	"log"
 	"os"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/consts/orientation"
+	"github.com/johnfercher/paper/v2"
+	"github.com/johnfercher/paper/v2/pkg/config"
+	"github.com/johnfercher/paper/v2/pkg/consts/orientation"
 
-	"github.com/johnfercher/maroto/v2/pkg/components/page"
-	"github.com/johnfercher/maroto/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/components/page"
+	"github.com/johnfercher/paper/v2/pkg/core"
 )
 
 func main() {
 	backgroundImage := "docs/assets/images/certificate.png"
-	m := GetMaroto(backgroundImage)
+	m := GetPaper(backgroundImage)
 	document, err := m.Generate()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -33,7 +33,7 @@ func main() {
 	}
 }
 
-func GetMaroto(image string) core.Maroto {
+func GetPaper(image string) core.Paper {
 	bytes, err := os.ReadFile(image)
 	if err != nil {
 		log.Fatal(err)
@@ -51,8 +51,8 @@ func GetMaroto(image string) core.Maroto {
 
 	b.Margins.Bottom = 0
 
-	mrt := maroto.New(b)
-	m := maroto.NewMetricsDecorator(mrt)
+	mrt := paper.New(b)
+	m := paper.NewMetricsDecorator(mrt)
 
 	m.AddPages(page.New())
 	return m

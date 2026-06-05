@@ -3,11 +3,11 @@ package signature_test
 import (
 	"testing"
 
-	"github.com/johnfercher/maroto/v2/internal/fixture"
-	"github.com/johnfercher/maroto/v2/mocks"
-	"github.com/johnfercher/maroto/v2/pkg/components/signature"
-	"github.com/johnfercher/maroto/v2/pkg/props"
-	"github.com/johnfercher/maroto/v2/pkg/test"
+	"github.com/johnfercher/paper/v2/internal/fixture"
+	"github.com/johnfercher/paper/v2/mocks"
+	"github.com/johnfercher/paper/v2/pkg/components/signature"
+	"github.com/johnfercher/paper/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

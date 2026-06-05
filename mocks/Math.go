@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	entity "github.com/johnfercher/maroto/v2/pkg/core/entity"
+	entity "github.com/johnfercher/paper/v2/pkg/core/entity"
 	mock "github.com/stretchr/testify/mock"
 )
 

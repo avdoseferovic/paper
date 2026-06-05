@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/barcode"
+	"github.com/johnfercher/paper/v2/pkg/consts/barcode"
 
-	"github.com/johnfercher/maroto/v2/internal/cache"
-	"github.com/johnfercher/maroto/v2/internal/merror"
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/cellwriter"
-	"github.com/johnfercher/maroto/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/internal/cache"
+	"github.com/johnfercher/paper/v2/internal/merror"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/johnfercher/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 var ErrCannotReadImageOptions = errors.New("could not read image options, maybe path/name is wrong")
@@ -86,7 +86,7 @@ func (g *provider) SetCursor(x, y float64) {
 }
 
 // EnsurePage advances the physical PDF document until pageNumber is current.
-// Maroto builds logical pages before rendering, but some HTML render paths draw
+// Paper builds logical pages before rendering, but some HTML render paths draw
 // by absolute coordinates and do not reliably trigger gofpdf's cursor-based
 // automatic page break between logical pages.
 func (g *provider) EnsurePage(pageNumber int) {

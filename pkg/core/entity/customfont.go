@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+import "github.com/johnfercher/paper/v2/pkg/consts/fontstyle"
 
 // CustomFont is the representation of a font that can be added to the pdf.
 type CustomFont interface {

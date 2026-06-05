@@ -3,9 +3,9 @@ package paper_test
 import (
 	"testing"
 
-	gofpdf "github.com/johnfercher/maroto/v2/internal/providers/paper"
+	gofpdf "github.com/johnfercher/paper/v2/internal/providers/paper"
 
-	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
+	"github.com/johnfercher/paper/v2/pkg/consts/extension"
 	"github.com/stretchr/testify/assert"
 )
 

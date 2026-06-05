@@ -2,12 +2,12 @@
 package row
 
 import (
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
 
 	"github.com/johnfercher/go-tree/node"
 
-	"github.com/johnfercher/maroto/v2/pkg/core"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/core"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
 type Row struct {

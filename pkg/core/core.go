@@ -4,13 +4,13 @@ package core
 import (
 	"github.com/johnfercher/go-tree/node"
 
-	"github.com/johnfercher/maroto/v2/pkg/core/entity"
-	"github.com/johnfercher/maroto/v2/pkg/metrics"
-	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/paper/v2/pkg/core/entity"
+	"github.com/johnfercher/paper/v2/pkg/metrics"
+	"github.com/johnfercher/paper/v2/pkg/props"
 )
 
-// Maroto is the interface that wraps the basic methods of maroto.
-type Maroto interface {
+// Paper is the interface that wraps the basic methods of paper.
+type Paper interface {
 	RegisterHeader(rows ...Row) error
 	RegisterFooter(rows ...Row) error
 	AddRows(rows ...Row)
