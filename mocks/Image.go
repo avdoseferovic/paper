@@ -6,8 +6,6 @@ import (
 	extension "github.com/johnfercher/maroto/v2/pkg/consts/extension"
 	entity "github.com/johnfercher/maroto/v2/pkg/core/entity"
 
-	gofpdf "github.com/phpdave11/gofpdf"
-
 	mock "github.com/stretchr/testify/mock"
 
 	props "github.com/johnfercher/maroto/v2/pkg/props"
@@ -79,24 +77,24 @@ func (_c *Image_Add_Call) RunAndReturn(run func(*entity.Image, *entity.Cell, *en
 	return _c
 }
 
-// GetImageInfo provides a mock function with given fields: img, _a1
-func (_m *Image) GetImageInfo(img *entity.Image, _a1 extension.Type) (*gofpdf.ImageInfoType, uuid.UUID) {
+// GetImageDimensions provides a mock function with given fields: img, _a1
+func (_m *Image) GetImageDimensions(img *entity.Image, _a1 extension.Type) (*entity.Dimensions, uuid.UUID) {
 	ret := _m.Called(img, _a1)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetImageInfo")
+		panic("no return value specified for GetImageDimensions")
 	}
 
-	var r0 *gofpdf.ImageInfoType
+	var r0 *entity.Dimensions
 	var r1 uuid.UUID
-	if rf, ok := ret.Get(0).(func(*entity.Image, extension.Type) (*gofpdf.ImageInfoType, uuid.UUID)); ok {
+	if rf, ok := ret.Get(0).(func(*entity.Image, extension.Type) (*entity.Dimensions, uuid.UUID)); ok {
 		return rf(img, _a1)
 	}
-	if rf, ok := ret.Get(0).(func(*entity.Image, extension.Type) *gofpdf.ImageInfoType); ok {
+	if rf, ok := ret.Get(0).(func(*entity.Image, extension.Type) *entity.Dimensions); ok {
 		r0 = rf(img, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*gofpdf.ImageInfoType)
+			r0 = ret.Get(0).(*entity.Dimensions)
 		}
 	}
 
@@ -111,31 +109,31 @@ func (_m *Image) GetImageInfo(img *entity.Image, _a1 extension.Type) (*gofpdf.Im
 	return r0, r1
 }
 
-// Image_GetImageInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetImageInfo'
-type Image_GetImageInfo_Call struct {
+// Image_GetImageDimensions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetImageDimensions'
+type Image_GetImageDimensions_Call struct {
 	*mock.Call
 }
 
-// GetImageInfo is a helper method to define mock.On call
+// GetImageDimensions is a helper method to define mock.On call
 //   - img *entity.Image
 //   - _a1 extension.Type
-func (_e *Image_Expecter) GetImageInfo(img interface{}, _a1 interface{}) *Image_GetImageInfo_Call {
-	return &Image_GetImageInfo_Call{Call: _e.mock.On("GetImageInfo", img, _a1)}
+func (_e *Image_Expecter) GetImageDimensions(img interface{}, _a1 interface{}) *Image_GetImageDimensions_Call {
+	return &Image_GetImageDimensions_Call{Call: _e.mock.On("GetImageDimensions", img, _a1)}
 }
 
-func (_c *Image_GetImageInfo_Call) Run(run func(img *entity.Image, _a1 extension.Type)) *Image_GetImageInfo_Call {
+func (_c *Image_GetImageDimensions_Call) Run(run func(img *entity.Image, _a1 extension.Type)) *Image_GetImageDimensions_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*entity.Image), args[1].(extension.Type))
 	})
 	return _c
 }
 
-func (_c *Image_GetImageInfo_Call) Return(_a0 *gofpdf.ImageInfoType, _a1 uuid.UUID) *Image_GetImageInfo_Call {
+func (_c *Image_GetImageDimensions_Call) Return(_a0 *entity.Dimensions, _a1 uuid.UUID) *Image_GetImageDimensions_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Image_GetImageInfo_Call) RunAndReturn(run func(*entity.Image, extension.Type) (*gofpdf.ImageInfoType, uuid.UUID)) *Image_GetImageInfo_Call {
+func (_c *Image_GetImageDimensions_Call) RunAndReturn(run func(*entity.Image, extension.Type) (*entity.Dimensions, uuid.UUID)) *Image_GetImageDimensions_Call {
 	_c.Call.Return(run)
 	return _c
 }

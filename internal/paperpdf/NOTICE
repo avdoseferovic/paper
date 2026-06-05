@@ -1,0 +1,7 @@
+This package contains a project-internal copy of the root runtime package from:
+
+  github.com/phpdave11/gofpdf v1.4.3
+
+The copied source is used as Paper's internal PDF backend so Paper does not
+depend on the external GoFPDF module at build time. The upstream license is
+preserved in LICENSE.

@@ -68,6 +68,7 @@ linters:
       - examples$
       - docs/*
       - cmd/*
+      - internal/paperpdf/.*
       - '(.+)_test\.go'
 
 formatters:
@@ -81,3 +82,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - internal/paperpdf/.*

@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	gofpdf "github.com/phpdave11/gofpdf"
+	gofpdf "github.com/johnfercher/maroto/v2/internal/paperpdf"
 
 	io "io"
 

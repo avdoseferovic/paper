@@ -5,6 +5,6 @@ package provider
 type Type string
 
 const (
-	// Gofpdf represents the gofpdf provider.
-	Gofpdf Type = "gofpdf"
+	// Paper represents the paper provider.
+	Paper Type = "paper"
 )
