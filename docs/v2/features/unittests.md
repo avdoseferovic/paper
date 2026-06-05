@@ -5,9 +5,9 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 ## How it works
 
 1. Build your paper document normally.
-2. In your test, call `test.New(m)` to wrap the document.
-3. Call `.Assert(t, "fixture-name")` to compare the component tree against the JSON file at the path defined in `.paper.yml`.
-4. On the first run (or when you want to update the fixture), call `.Save("fixture-name")` to write the JSON file.
+2. In your test, call `test.New(t)` to create the test helper.
+3. Call `.Assert(m.GetStructure()).Equals("fixture-name")` to compare the component tree against the JSON file under `test/paper/` at the module root.
+4. On the first run (or when you want to update the fixture), call `.Assert(m.GetStructure()).Save("fixture-name")` to write the JSON file.
 
 ## GoDoc
 * [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#New)
@@ -15,11 +15,8 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 * [method : Equals](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Equals)
 * [method : Save](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Save)
 
-## Configuration
-To allow unit testing of PDFs, you must create the`.paper.yml`file on the root project folder. The field`test_path`define which [folder](https://github.com/avdoseferovic/paper/tree/v2/test/paper)
-will keep the json files to unit test the components tree.
-
-[filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/.paper.yml ':include :type=code')
+## Fixture Path
+The test helper stores JSON fixtures in [`test/paper/`](https://github.com/avdoseferovic/paper/tree/v2/test/paper) relative to the module root.
 
 ## Code
 [filename](../../assets/examples/unittests/v2/main_test.go ':include :type=code')

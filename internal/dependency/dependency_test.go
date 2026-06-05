@@ -29,6 +29,57 @@ func TestGoDependenciesExcludeRemovedDependenciesAndLegacyModule(t *testing.T) {
 	assertMissing(t, output, previousOwnerPaperModulePath())
 }
 
+func TestGoTestDependenciesExcludeRemovedDependencies(t *testing.T) {
+	t.Parallel()
+
+	root := moduleRoot(t)
+	output := runGo(t, root, "list", "-deps", "-test", "./...")
+
+	assertMissing(t, output, forbiddenModulePaths()...)
+}
+
+func TestActiveGoSourceExcludesRemovedSourceImports(t *testing.T) {
+	t.Parallel()
+
+	root := moduleRoot(t)
+	forbidden := forbiddenGoSourceImportPaths()
+
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relativePath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		relativePath = filepath.ToSlash(relativePath)
+
+		if entry.IsDir() {
+			if shouldSkipDir(relativePath) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if filepath.Ext(relativePath) != ".go" {
+			return nil
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, value := range forbidden {
+			if strings.Contains(string(data), value) {
+				t.Errorf("%s contains removed source import %q", relativePath, value)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestActiveTextExcludesRemovedDependenciesAndLegacyName(t *testing.T) {
 	t.Parallel()
 
@@ -81,6 +132,13 @@ func forbiddenModulePaths() []string {
 		"github.com/" + "pdfcpu/pdfcpu",
 		"github.com/" + "phpdave11/gofpdf",
 		"github.com/" + "johnfercher/go-tree",
+		"github.com/" + "f-amaral/go-" + "async",
+	}
+}
+
+func forbiddenGoSourceImportPaths() []string {
+	return []string{
+		"gopkg.in/" + "yaml.v3",
 	}
 }
 
@@ -98,6 +156,9 @@ func forbiddenTextPatterns() []forbiddenPattern {
 		{name: "removed merge dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "pdfcpu/pdfcpu"))},
 		{name: "removed PDF backend dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "phpdave11/gofpdf"))},
 		{name: "removed tree dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "johnfercher/go-tree"))},
+		{name: "removed async dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "f-amaral/go-" + "async"))},
+		{name: "removed Paper test config file", regex: regexp.MustCompile(regexp.QuoteMeta(".paper" + ".yml"))},
+		{name: "removed Paper test config key", regex: regexp.MustCompile(regexp.QuoteMeta("test_" + "path"))},
 		{name: "previous Paper owner path", regex: regexp.MustCompile(regexp.QuoteMeta(previousOwnerPaperModulePath()))},
 		{name: "legacy module path", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/johnfercher/" + legacy))},
 		{name: "legacy display name", regex: regexp.MustCompile(`(?i)\b` + legacy + `\b`)},

@@ -5,6 +5,7 @@ package test
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -123,4 +124,29 @@ func TestPaperTest_Equals(t *testing.T) {
 		// Assert
 		assert.False(t, innerT.Failed())
 	})
+}
+
+func TestGetPaperConfigFilePathRecursive_ReturnsModuleRootWhenPaperConfigIsMissing(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	nested := filepath.Join(root, "pkg", "test")
+	err := os.MkdirAll(nested, os.ModePerm)
+	assert.NoError(t, err)
+	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module example.test\n"), os.ModePerm)
+	assert.NoError(t, err)
+
+	path, err := getPaperConfigFilePathRecursive(nested + string(os.PathSeparator))
+
+	assert.NoError(t, err)
+	assert.Equal(t, root+string(os.PathSeparator), path)
+}
+
+func TestGetPaperConfigFilePathRecursive_ReturnsErrorWhenGoModIsMissing(t *testing.T) {
+	t.Parallel()
+
+	path, err := getPaperConfigFilePathRecursive(t.TempDir())
+
+	assert.Empty(t, path)
+	assert.ErrorIs(t, err, ErrGoModNotFound)
 }

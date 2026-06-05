@@ -6,27 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
+	"path/filepath"
 	"sync"
 	"testing"
 
 	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 
 	"github.com/avdoseferovic/paper/v2/pkg/core"
 )
 
 var (
-	ErrCannotReadDir       = errors.New("cannot read directory")
-	ErrCannotReadFile      = errors.New("cannot read file")
-	ErrCannotUnmarshallYML = errors.New("cannot unmarshall yaml")
-	ErrPaperYMLNotFound    = errors.New("found go.mod but not .paper.yml")
+	ErrCannotReadDir = errors.New("cannot read directory")
+	ErrGoModNotFound = errors.New("could not find go.mod")
 )
 
 var (
-	paperFile       = ".paper.yml"
 	goModFile       = "go.mod"
+	defaultTestPath = "test/paper/"
 	configSingleton *Config
 	configOnce      sync.Once
 )
@@ -55,17 +52,11 @@ func New(t *testing.T) *PaperTest {
 			return
 		}
 
-		cfg, err := loadPaperConfigFile(path)
-		if err != nil {
-			initErr = err
-			return
-		}
-
-		cfg.AbsolutePath = path
+		cfg := &Config{AbsolutePath: path, TestPath: defaultTestPath}
 		configSingleton = cfg
 	})
 	if initErr != nil {
-		assert.Fail(t, "could not load .paper.yml: "+initErr.Error())
+		assert.Fail(t, "could not configure paper tests: "+initErr.Error())
 	}
 
 	return &PaperTest{
@@ -130,46 +121,24 @@ func (m *PaperTest) buildNode(node *node.Node[core.Structure]) *Node {
 
 func getPaperConfigFilePath() (string, error) {
 	path, _ := os.Getwd()
-	path += "/"
-
 	return getPaperConfigFilePathRecursive(path)
 }
 
-func loadPaperConfigFile(path string) (*Config, error) {
-	bytes, err := os.ReadFile(path + "/" + paperFile)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCannotReadFile, err)
-	}
-
-	cfg := &Config{}
-	err = yaml.Unmarshal(bytes, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCannotUnmarshallYML, err)
-	}
-
-	return cfg, nil
-}
-
 func getPaperConfigFilePathRecursive(path string) (string, error) {
-	hasPaper, err := hasFileInPath(paperFile, path)
-	if err != nil {
-		return "", err
-	}
-
-	if hasPaper {
-		return path, nil
-	}
-
-	hasGoMod, err := hasFileInPath(goModFile, path)
+	cleanPath := filepath.Clean(path)
+	hasGoMod, err := hasFileInPath(goModFile, cleanPath)
 	if err != nil {
 		return "", err
 	}
 
 	if hasGoMod {
-		return "", ErrPaperYMLNotFound
+		return cleanPath + string(os.PathSeparator), nil
 	}
 
-	parentPath := getParentDir(path)
+	parentPath := filepath.Dir(cleanPath)
+	if parentPath == cleanPath {
+		return "", ErrGoModNotFound
+	}
 	return getPaperConfigFilePathRecursive(parentPath)
 }
 
@@ -186,16 +155,4 @@ func hasFileInPath(file string, path string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-func getParentDir(path string) string {
-	dirs := strings.Split(path, "/")
-	dirs = dirs[:len(dirs)-2]
-
-	var builder strings.Builder
-	for _, dir := range dirs {
-		builder.WriteString(dir + "/")
-	}
-
-	return builder.String()
 }
