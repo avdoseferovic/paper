@@ -17,7 +17,9 @@ func (g *provider) AddImageFromFile(file string, cell *entity.Cell, prop *props.
 	extensionStr := strings.ToLower(strings.TrimPrefix(filepath.Ext(file), "."))
 	image, err := g.loadImage(file, extensionStr)
 	if err != nil {
-		g.text.Add("could not load image", cell, merror.DefaultErrorText)
+		message := "could not load image"
+		g.recordRenderIssue("image.load", message, err)
+		g.text.Add(message, cell, merror.DefaultErrorText)
 		return
 	}
 
@@ -27,28 +29,36 @@ func (g *provider) AddImageFromFile(file string, cell *entity.Cell, prop *props.
 func (g *provider) AddImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
 	img, err := FromBytes(bytes, extension)
 	if err != nil {
-		g.text.Add("could not parse image bytes", cell, merror.DefaultErrorText)
+		message := "could not parse image bytes"
+		g.recordRenderIssue("image.parse", message, err)
+		g.text.Add(message, cell, merror.DefaultErrorText)
 		return
 	}
 
 	err = g.image.Add(img, cell, g.cfg.Margins, prop, extension, false)
 	if err != nil {
+		message := "could not add image to document"
+		g.recordRenderIssue("image.add", message, err)
 		g.fpdf.ClearError()
-		g.text.Add("could not add image to document", cell, merror.DefaultErrorText)
+		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 }
 
 func (g *provider) AddBackgroundImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
 	img, err := FromBytes(bytes, extension)
 	if err != nil {
-		g.text.Add("could not parse image bytes", cell, merror.DefaultErrorText)
+		message := "could not parse image bytes"
+		g.recordRenderIssue("background_image.parse", message, err)
+		g.text.Add(message, cell, merror.DefaultErrorText)
 		return
 	}
 
 	err = g.image.Add(img, cell, g.cfg.Margins, prop, extension, true)
 	if err != nil {
+		message := "could not add image to document"
+		g.recordRenderIssue("background_image.add", message, err)
 		g.fpdf.ClearError()
-		g.text.Add("could not add image to document", cell, merror.DefaultErrorText)
+		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 	g.fpdf.SetHomeXY()
 }

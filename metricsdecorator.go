@@ -55,6 +55,9 @@ func (m *MetricsDecorator) Generate() (core.Document, error) {
 	bytes := document.GetBytes()
 
 	report := m.buildMetrics(len(bytes)).Normalize()
+	if innerReport := document.GetReport(); innerReport != nil {
+		report.RenderIssues = append(report.RenderIssues, innerReport.RenderIssues...)
+	}
 
 	return core.NewPDF(bytes, report), nil
 }

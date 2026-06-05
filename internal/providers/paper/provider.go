@@ -6,11 +6,15 @@ import (
 	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/v2/pkg/core"
 	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/metrics"
 	"github.com/avdoseferovic/paper/v2/pkg/props"
 )
 
 // compile-time assertion: *provider satisfies core.Provider.
 var _ core.Provider = (*provider)(nil)
+
+// compile-time assertion: *provider satisfies core.RenderIssueProvider.
+var _ core.RenderIssueProvider = (*provider)(nil)
 
 // compile-time assertion: *provider satisfies core.RichTextProvider.
 var _ core.RichTextProvider = (*provider)(nil)
@@ -52,6 +56,7 @@ type provider struct {
 	cache      cache.Cache
 	cellWriter cellwriter.CellWriter
 	cfg        *entity.Config
+	issues     []metrics.RenderIssue
 }
 
 // New is the constructor of provider for gofpdf.

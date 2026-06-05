@@ -106,12 +106,12 @@ Type: Feature
 - [x] Task 2: Extract root pagination/page-building ownership
 - [x] Task 3: Extract rich-text layout pipeline
 - [x] Task 4: Normalize props/config and add compatibility-safe concrete helpers
-- [ ] Task 5: Add programmatic render issue reporting
+- [x] Task 5: Add programmatic render issue reporting
 - [ ] Task 6: Reorganize HTML/CSS computed style handling
 - [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 4 | **Remaining:** 4
+**Total Tasks:** 8 | **Completed:** 5 | **Remaining:** 3
 
 ## Implementation Tasks
 
@@ -310,10 +310,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] A caller can inspect `doc.GetReport()` and see render issues recorded for provider fallbacks.
-- [ ] Existing fallback text still renders for image/code failures.
-- [ ] Sequential generation includes provider issues in the document report.
-- [ ] Concurrent and low-memory generation either aggregate issues or explicitly document/report the limitation with tests for the chosen behavior.
+- [x] A caller can inspect `doc.GetReport()` and see render issues recorded for provider fallbacks.
+- [x] Existing fallback text still renders for image/code failures.
+- [x] Sequential generation includes provider issues in the document report.
+- [x] Concurrent and low-memory generation either aggregate issues or explicitly document/report the limitation with tests for the chosen behavior.
 
 **Verify:**
 

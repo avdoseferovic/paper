@@ -17,6 +17,7 @@ import (
 
 	"github.com/avdoseferovic/paper/v2/mocks"
 	"github.com/avdoseferovic/paper/v2/pkg/components/page"
+	"github.com/avdoseferovic/paper/v2/pkg/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +38,7 @@ func TestMetricsDecorator_AddPages(t *testing.T) {
 
 	docToReturn := mocks.NewDocument(t)
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
+	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
 	inner.EXPECT().AddPages(pg)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
@@ -68,6 +70,7 @@ func TestMetricsDecorator_AddRow(t *testing.T) {
 
 	docToReturn := mocks.NewDocument(t)
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
+	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
 	inner.EXPECT().AddRow(10.0, col).Return(nil)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
@@ -92,6 +95,28 @@ func TestMetricsDecorator_AddRow(t *testing.T) {
 	inner.AssertNumberOfCalls(t, "AddRow", 2)
 }
 
+func TestMetricsDecorator_GeneratePreservesRenderIssues(t *testing.T) {
+	t.Parallel()
+
+	docToReturn := core.NewPDF([]byte{1, 2, 3}, &metrics.Report{
+		RenderIssues: []metrics.RenderIssue{
+			{Operation: "image.load", Message: "could not load image", Error: "missing"},
+		},
+	})
+	inner := mocks.NewMaroto(t)
+	inner.EXPECT().Generate().Return(docToReturn, nil)
+
+	sut := paper.NewMetricsDecorator(inner)
+
+	doc, err := sut.Generate()
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
+		assert.Len(t, doc.GetReport().RenderIssues, 1)
+		assert.Equal(t, "image.load", doc.GetReport().RenderIssues[0].Operation)
+	}
+}
+
 func TestMetricsDecorator_AddRows(t *testing.T) {
 	t.Parallel()
 	// Arrange
@@ -99,6 +124,7 @@ func TestMetricsDecorator_AddRows(t *testing.T) {
 
 	docToReturn := mocks.NewDocument(t)
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
+	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
 	inner.EXPECT().AddRows(row)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
@@ -130,6 +156,7 @@ func TestMetricsDecorator_GetStructure(t *testing.T) {
 
 	docToReturn := mocks.NewDocument(t)
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
+	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
 	inner.EXPECT().AddRows(row)
 	inner.EXPECT().GetStructure().Return(&node.Node[core.Structure]{})

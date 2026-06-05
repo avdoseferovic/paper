@@ -24,7 +24,7 @@ func TestProcessPageGroupsConcurrentlyPreservesOrderAndWorkerLimit(t *testing.T)
 
 	var active int64
 	var maxActive int64
-	results, err := processPageGroupsConcurrently(2, pageGroups, func(group []core.Page) ([]byte, error) {
+	results, err := processPageGroupsConcurrently(2, pageGroups, func(group []core.Page) (pageProcessResult, error) {
 		current := atomic.AddInt64(&active, 1)
 		for {
 			observed := atomic.LoadInt64(&maxActive)
@@ -35,11 +35,12 @@ func TestProcessPageGroupsConcurrentlyPreservesOrderAndWorkerLimit(t *testing.T)
 		defer atomic.AddInt64(&active, -1)
 
 		time.Sleep(time.Duration(6-len(group)) * time.Millisecond)
-		return []byte{byte(len(group))}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}, {5}}, results)
+	pdfs, _ := splitPageProcessResults(results)
+	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}, {5}}, pdfs)
 	assert.LessOrEqual(t, maxActive, int64(2))
 }
 
@@ -50,11 +51,11 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 	_, err := processPageGroupsConcurrently(3, [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
-	}, func(group []core.Page) ([]byte, error) {
+	}, func(group []core.Page) (pageProcessResult, error) {
 		if len(group) == 2 {
-			return nil, expectedErr
+			return pageProcessResult{}, expectedErr
 		}
-		return []byte{byte(len(group))}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
 	})
 
 	assert.ErrorIs(t, err, expectedErr)

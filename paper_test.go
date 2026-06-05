@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/avdoseferovic/paper/v2/pkg/components/code"
+	componentimage "github.com/avdoseferovic/paper/v2/pkg/components/image"
 	"github.com/avdoseferovic/paper/v2/pkg/components/text"
 
 	"github.com/avdoseferovic/paper/v2/pkg/components/col"
@@ -18,6 +19,7 @@ import (
 	"github.com/avdoseferovic/paper/v2/pkg/config"
 	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
 	"github.com/avdoseferovic/paper/v2/pkg/core"
+	coreentity "github.com/avdoseferovic/paper/v2/pkg/core/entity"
 	"github.com/avdoseferovic/paper/v2/pkg/test"
 
 	"github.com/avdoseferovic/paper/v2"
@@ -552,6 +554,44 @@ func TestMaroto_Generate(t *testing.T) {
 
 		// Assert
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_page_number.json")
+	})
+}
+
+func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
+	t.Run("sequential generation reports image fallback issue", func(t *testing.T) {
+		sut := paper.New()
+		sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
+
+		doc, err := sut.Generate()
+
+		assert.NoError(t, err)
+		if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
+			assert.NotEmpty(t, doc.GetBytes())
+			assert.Len(t, doc.GetReport().RenderIssues, 1)
+			assert.Equal(t, "image.load", doc.GetReport().RenderIssues[0].Operation)
+			assert.Equal(t, "could not load image", doc.GetReport().RenderIssues[0].Message)
+			assert.NotEmpty(t, doc.GetReport().RenderIssues[0].Error)
+		}
+	})
+
+	t.Run("concurrent and low memory generation aggregate image fallback issues", func(t *testing.T) {
+		for name, cfg := range map[string]*coreentity.Config{
+			"concurrent": config.NewBuilder().WithConcurrentMode(2).Build(),
+			"low-memory": config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
+		} {
+			t.Run(name, func(t *testing.T) {
+				sut := paper.New(cfg)
+				sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
+
+				doc, err := sut.Generate()
+
+				assert.NoError(t, err)
+				if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
+					assert.Len(t, doc.GetReport().RenderIssues, 1)
+					assert.Equal(t, "image.load", doc.GetReport().RenderIssues[0].Operation)
+				}
+			})
+		}
 	})
 }
 

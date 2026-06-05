@@ -38,6 +38,40 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "*paper.provider", fmt.Sprintf("%T", sut))
 }
 
+func TestProvider_RenderIssuesAreRecordedAndCopied(t *testing.T) {
+	t.Parallel()
+
+	cell := &entity.Cell{}
+	prop := fixture.RectProp()
+
+	cache := mocks.NewCache(t)
+	cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("cache miss"))
+
+	code := mocks.NewCode(t)
+	code.EXPECT().GenDataMatrix(codeContent).Return(nil, errors.New("generate failed"))
+
+	text := mocks.NewText(t)
+	text.EXPECT().Add("could not generate matrixcode", cell, merror.DefaultErrorText)
+
+	sut := gofpdf.New(&gofpdf.Dependencies{
+		Cache: cache,
+		Code:  code,
+		Text:  text,
+	})
+
+	sut.AddMatrixCode(codeContent, cell, &prop)
+
+	issueProvider := sut.(core.RenderIssueProvider)
+	issues := issueProvider.RenderIssues()
+	assert.Len(t, issues, 1)
+	assert.Equal(t, "matrixcode.generate", issues[0].Operation)
+	assert.Equal(t, "could not generate matrixcode", issues[0].Message)
+	assert.Contains(t, issues[0].Error, "generate failed")
+
+	issues[0].Operation = "changed"
+	assert.Equal(t, "matrixcode.generate", issueProvider.RenderIssues()[0].Operation)
+}
+
 func TestProvider_AddText(t *testing.T) {
 	t.Parallel()
 	// Arrange

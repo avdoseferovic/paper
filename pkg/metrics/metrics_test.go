@@ -1,6 +1,8 @@
 package metrics_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/avdoseferovic/paper/v2/pkg/metrics"
@@ -402,4 +404,26 @@ func TestReport_Save(t *testing.T) {
 		// Assert
 		assert.NoError(t, err)
 	})
+}
+
+func TestReport_SaveIncludesRenderIssues(t *testing.T) {
+	t.Parallel()
+
+	report := &metrics.Report{
+		RenderIssues: []metrics.RenderIssue{
+			{
+				Operation: "image.load",
+				Message:   "could not load image",
+				Error:     "file does not exist",
+			},
+		},
+	}
+	file := filepath.Join(t.TempDir(), "report.txt")
+
+	err := report.Save(file)
+	assert.NoError(t, err)
+
+	bytes, err := os.ReadFile(file)
+	assert.NoError(t, err)
+	assert.Contains(t, string(bytes), "image.load -> could not load image: file does not exist")
 }

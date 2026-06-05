@@ -7,7 +7,13 @@ import (
 	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
 	"github.com/avdoseferovic/paper/v2/pkg/core"
 	"github.com/avdoseferovic/paper/v2/pkg/merge"
+	"github.com/avdoseferovic/paper/v2/pkg/metrics"
 )
+
+type pageProcessResult struct {
+	bytes  []byte
+	issues []metrics.RenderIssue
+}
 
 // Generate is responsible to compute the component tree created by
 // the usage of all other Paper methods, and generate the PDF document.
@@ -43,7 +49,7 @@ func (m *Paper) generate() (core.Document, error) {
 		return nil, err
 	}
 
-	return core.NewPDF(documentBytes, nil), nil
+	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(m.provider))), nil
 }
 
 func (m *Paper) generateConcurrently() (core.Document, error) {
@@ -57,17 +63,18 @@ func (m *Paper) generateConcurrently() (core.Document, error) {
 		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
 	}
 
-	pdfs, err := processPageGroupsConcurrently(m.config.ChunkWorkers, pageGroups, m.processPage)
+	results, err := processPageGroupsConcurrently(m.config.ChunkWorkers, pageGroups, m.processPage)
 	if err != nil {
 		return nil, ErrCannotGenerateInParallelMode
 	}
 
+	pdfs, issues := splitPageProcessResults(results)
 	mergedBytes, err := merge.Bytes(pdfs...)
 	if err != nil {
 		return nil, err
 	}
 
-	return core.NewPDF(mergedBytes, nil), nil
+	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
 }
 
 func (m *Paper) generateLowMemory() (core.Document, error) {
@@ -82,25 +89,26 @@ func (m *Paper) generateLowMemory() (core.Document, error) {
 		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
 	}
 
-	var pdfResults [][]byte
+	var results []pageProcessResult
 	for _, pageGroup := range pageGroups {
-		bytes, err := m.processPage(pageGroup)
+		result, err := m.processPage(pageGroup)
 		if err != nil {
 			return nil, ErrCannotGenerateInLowMemoryMode
 		}
 
-		pdfResults = append(pdfResults, bytes)
+		results = append(results, result)
 	}
 
+	pdfResults, issues := splitPageProcessResults(results)
 	mergedBytes, err := merge.Bytes(pdfResults...)
 	if err != nil {
 		return nil, err
 	}
 
-	return core.NewPDF(mergedBytes, nil), nil
+	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
 }
 
-func (m *Paper) processPage(pages []core.Page) ([]byte, error) {
+func (m *Paper) processPage(pages []core.Page) (pageProcessResult, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 
 	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
@@ -109,14 +117,21 @@ func (m *Paper) processPage(pages []core.Page) ([]byte, error) {
 		page.Render(innerProvider, innerCtx)
 	}
 
-	return innerProvider.GenerateBytes()
+	bytes, err := innerProvider.GenerateBytes()
+	if err != nil {
+		return pageProcessResult{}, err
+	}
+	return pageProcessResult{
+		bytes:  bytes,
+		issues: collectRenderIssues(innerProvider),
+	}, nil
 }
 
 func processPageGroupsConcurrently(
 	workerCount int,
 	pageGroups [][]core.Page,
-	processor func([]core.Page) ([]byte, error),
-) ([][]byte, error) {
+	processor func([]core.Page) (pageProcessResult, error),
+) ([]pageProcessResult, error) {
 	if len(pageGroups) == 0 {
 		return nil, nil
 	}
@@ -125,7 +140,7 @@ func processPageGroupsConcurrently(
 	}
 	workerCount = min(workerCount, len(pageGroups))
 
-	results := make([][]byte, len(pageGroups))
+	results := make([]pageProcessResult, len(pageGroups))
 	jobs := make(chan int)
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
@@ -166,4 +181,33 @@ func ensureProviderPage(provider core.Provider, pageNumber int) {
 	if pp, ok := provider.(core.PageProvider); ok {
 		pp.EnsurePage(pageNumber)
 	}
+}
+
+func collectRenderIssues(provider core.Provider) []metrics.RenderIssue {
+	issueProvider, ok := provider.(core.RenderIssueProvider)
+	if !ok {
+		return nil
+	}
+	return issueProvider.RenderIssues()
+}
+
+func reportFromIssues(issues []metrics.RenderIssue) *metrics.Report {
+	if len(issues) == 0 {
+		return nil
+	}
+	return &metrics.Report{RenderIssues: append([]metrics.RenderIssue(nil), issues...)}
+}
+
+func splitPageProcessResults(results []pageProcessResult) ([][]byte, []metrics.RenderIssue) {
+	pdfs := make([][]byte, 0, len(results))
+	issueCount := 0
+	for _, result := range results {
+		issueCount += len(result.issues)
+	}
+	issues := make([]metrics.RenderIssue, 0, issueCount)
+	for _, result := range results {
+		pdfs = append(pdfs, result.bytes)
+		issues = append(issues, result.issues...)
+	}
+	return pdfs, issues
 }

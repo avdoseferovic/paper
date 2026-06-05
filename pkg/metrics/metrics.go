@@ -168,10 +168,26 @@ func (s *SizeMetric) String() string {
 	return s.Key + " -> " + s.Size.String()
 }
 
+// RenderIssue describes a best-effort render fallback that did not abort PDF generation.
+type RenderIssue struct {
+	Operation string
+	Message   string
+	Error     string
+}
+
+// String returns the render issue formatted.
+func (i RenderIssue) String() string {
+	if i.Error == "" {
+		return i.Operation + " -> " + i.Message
+	}
+	return i.Operation + " -> " + i.Message + ": " + i.Error
+}
+
 // Report is a metrics report.
 type Report struct {
-	TimeMetrics []TimeMetric
-	SizeMetric  SizeMetric
+	TimeMetrics  []TimeMetric
+	SizeMetric   SizeMetric
+	RenderIssues []RenderIssue
 }
 
 // Normalize normalizes the report.
@@ -191,6 +207,9 @@ func (r *Report) String() string {
 	for _, metric := range r.TimeMetrics {
 		builder.WriteString(metric.String())
 	}
+	for _, issue := range r.RenderIssues {
+		builder.WriteString(issue.String())
+	}
 	return builder.String()
 }
 
@@ -202,6 +221,9 @@ func (r *Report) Save(file string) error {
 		builder.WriteString(s.String() + "\n")
 	}
 	builder.WriteString(r.SizeMetric.String() + "\n")
+	for _, issue := range r.RenderIssues {
+		builder.WriteString(issue.String() + "\n")
+	}
 
 	f, err := os.Create(file)
 	if err != nil {
