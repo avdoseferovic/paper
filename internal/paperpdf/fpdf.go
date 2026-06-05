@@ -111,14 +111,7 @@ func fpdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType)
 	f.colorFlag = false
 	f.ws = 0
 	f.fontpath = fontDirStr
-	// Core fonts
-	f.coreFonts = map[string]bool{
-		"courier":      true,
-		"helvetica":    true,
-		"times":        true,
-		"symbol":       true,
-		"zapfdingbats": true,
-	}
+	f.coreFonts = cloneCoreFontSet()
 	// Scale factor
 	switch unitStr {
 	case "pt", "point":
@@ -134,17 +127,7 @@ func fpdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType)
 		return
 	}
 	f.unitStr = unitStr
-	// Page sizes
-	f.stdPageSizes = make(map[string]SizeType)
-	f.stdPageSizes["a3"] = SizeType{841.89, 1190.55}
-	f.stdPageSizes["a4"] = SizeType{595.28, 841.89}
-	f.stdPageSizes["a5"] = SizeType{420.94, 595.28}
-	f.stdPageSizes["a6"] = SizeType{297.64, 420.94}
-	f.stdPageSizes["a2"] = SizeType{1190.55, 1683.78}
-	f.stdPageSizes["a1"] = SizeType{1683.78, 2383.94}
-	f.stdPageSizes["letter"] = SizeType{612, 792}
-	f.stdPageSizes["legal"] = SizeType{612, 1008}
-	f.stdPageSizes["tabloid"] = SizeType{792, 1224}
+	f.stdPageSizes = cloneStandardPageSizes()
 	if size.Wd > 0 && size.Ht > 0 {
 		f.defPageSize = size
 	} else {

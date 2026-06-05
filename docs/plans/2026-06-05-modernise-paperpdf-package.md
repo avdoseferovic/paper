@@ -100,10 +100,10 @@ Type: Feature
 - [x] Task 3: Normalize localized error handling and `any` usage
 - [x] Task 4: Harden and modernize UTF-8 font parser internals
 - [x] Task 5: Extract font binary helpers
-- [ ] Task 6: Simplify static initialization data
+- [x] Task 6: Simplify static initialization data
 - [ ] Task 7: Record local backend patches and run final verification
 
-**Total Tasks:** 7 | **Completed:** 5 | **Remaining:** 2
+**Total Tasks:** 7 | **Completed:** 6 | **Remaining:** 1
 
 ## Implementation Tasks
 
