@@ -1,7 +1,7 @@
 # Analyse Unused Dead Code Implementation Plan
 
 Created: 2026-06-05
-Status: PENDING
+Status: COMPLETE
 Approved: Yes
 Iterations: 0
 Worktree: No
@@ -114,9 +114,9 @@ Type: Feature
 - [x] Task 3: Remove active-source dead code and redundant examples
 - [x] Task 4: Prune unreachable `internal/paperpdf` backend code
 - [x] Task 5: Add guardrails for unversioned paths and dead-code cleanup
-- [ ] Task 6: Tidy module metadata and run full verification
+- [x] Task 6: Tidy module metadata and run full verification
 
-**Total Tasks:** 6 | **Completed:** 5 | **Remaining:** 1
+**Total Tasks:** 6 | **Completed:** 6 | **Remaining:** 0
 
 ## Implementation Tasks
 
@@ -362,11 +362,11 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `go mod tidy` has been run.
-- [ ] Full test suite passes.
-- [ ] Build, vet, lint, race subset, and diff checks pass.
-- [ ] `deadcode -test ./...` returns no active-source findings except any intentionally documented backend exception.
-- [ ] Plan status is moved to COMPLETE after implementation and VERIFIED after verification.
+- [x] `go mod tidy` has been run.
+- [x] Full test suite passes.
+- [x] Build, vet, lint, race subset, and diff checks pass.
+- [x] `deadcode -test ./...` returns no active-source findings except any intentionally documented backend exception.
+- [x] Plan status is moved to COMPLETE after implementation and VERIFIED after verification.
 
 **Verify:**
 
