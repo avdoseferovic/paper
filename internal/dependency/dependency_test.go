@@ -122,6 +122,64 @@ func TestActiveTextExcludesRemovedDependenciesAndLegacyName(t *testing.T) {
 	}
 }
 
+func TestVersionedProjectArtifactsStayRemoved(t *testing.T) {
+	t.Parallel()
+
+	root := moduleRoot(t)
+	for _, path := range removedVersionedPaths() {
+		assertPathMissing(t, filepath.Join(root, path))
+	}
+	for _, pattern := range removedVersionedGlobs(root) {
+		assertNoGlobMatches(t, pattern)
+	}
+}
+
+func TestRemovedDeadCodeArtifactsStayRemoved(t *testing.T) {
+	t.Parallel()
+
+	root := moduleRoot(t)
+	for _, path := range removedDeadCodePaths() {
+		assertPathMissing(t, filepath.Join(root, path))
+	}
+
+	forbidden := removedDeadCodeSourceLiterals()
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relativePath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		relativePath = filepath.ToSlash(relativePath)
+
+		if entry.IsDir() {
+			if shouldSkipDir(relativePath) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if filepath.Ext(relativePath) != ".go" {
+			return nil
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		content := string(data)
+		for _, value := range forbidden {
+			if strings.Contains(content, value) {
+				t.Errorf("%s contains removed dead-code symbol %q", relativePath, value)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMaintenanceReorganizationArtifactsExist(t *testing.T) {
 	t.Parallel()
 
@@ -154,7 +212,7 @@ func forbiddenGoSourceImportPaths() []string {
 }
 
 func legacyModulePath() string {
-	return "github.com/johnfercher/" + legacyName() + "/v2"
+	return "github.com/johnfercher/" + legacyName()
 }
 
 func previousOwnerPaperModulePath() string {
@@ -164,6 +222,10 @@ func previousOwnerPaperModulePath() string {
 func forbiddenTextPatterns() []forbiddenPattern {
 	legacy := legacyName()
 	return []forbiddenPattern{
+		{name: "versioned Paper module path", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/avdoseferovic/paper/" + "v2"))},
+		{name: "versioned docs path", regex: regexp.MustCompile(regexp.QuoteMeta("docs/" + "v1"))},
+		{name: "versioned docs path", regex: regexp.MustCompile(regexp.QuoteMeta("docs/" + "v2"))},
+		{name: "versioned example path", regex: regexp.MustCompile(regexp.QuoteMeta("docs/assets/examples/") + `[^[:space:]"']+/` + regexp.QuoteMeta("v2"))},
 		{name: "removed merge dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "pdfcpu/pdfcpu"))},
 		{name: "removed PDF backend dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "phpdave11/gofpdf"))},
 		{name: "removed tree dependency", regex: regexp.MustCompile(regexp.QuoteMeta("github.com/" + "johnfercher/go-tree"))},
@@ -178,6 +240,53 @@ func forbiddenTextPatterns() []forbiddenPattern {
 		{name: "legacy fixture prefix", regex: regexp.MustCompile(regexp.QuoteMeta(legacy + "_"))},
 		{name: "stale provider path", regex: regexp.MustCompile(regexp.QuoteMeta("internal/providers/" + "gofpdf"))},
 		{name: "stale provider phrase", regex: regexp.MustCompile(`(?i)gofpdf ` + `provider`)},
+	}
+}
+
+func removedVersionedPaths() []string {
+	return []string{
+		"docs/" + "v1",
+		"docs/" + "v2",
+	}
+}
+
+func removedVersionedGlobs(root string) []string {
+	return []string{
+		filepath.Join(root, "docs", "assets", "examples", "*", "v2"),
+		filepath.Join(root, "docs", "assets", "pdf", "*"+"v2"+".pdf"),
+		filepath.Join(root, "docs", "assets", "pdf", "v2"+".pdf"),
+		filepath.Join(root, "docs", "assets", "text", "*"+"v2"+".txt"),
+		filepath.Join(root, "docs", "assets", "text", "v2"+".txt"),
+	}
+}
+
+func removedDeadCodePaths() []string {
+	return []string{
+		filepath.Join("pkg", "pkg.go"),
+		filepath.Join("pkg", "components", "components.go"),
+		filepath.Join("pkg", "consts", "consts.go"),
+		filepath.Join("pkg", "components", "checkbox", "example_test.go"),
+		filepath.Join("pkg", "components", "code", "example_test.go"),
+		filepath.Join("pkg", "components", "col", "example_test.go"),
+		filepath.Join("pkg", "components", "image", "example_test.go"),
+		filepath.Join("pkg", "components", "line", "example_test.go"),
+		filepath.Join("pkg", "components", "list", "example_test.go"),
+		filepath.Join("pkg", "components", "row", "example_test.go"),
+		filepath.Join("pkg", "components", "signature", "example_test.go"),
+		filepath.Join("pkg", "components", "text", "example_test.go"),
+		filepath.Join("pkg", "config", "example_test.go"),
+	}
+}
+
+func removedDeadCodeSourceLiterals() []string {
+	return []string{
+		"wrapRow" + "AnchorSource",
+		"newAnchor" + "Source",
+		"row" + "Component",
+		"func (tr *translator) " + "flexRow(",
+		"func " + "hrRow(",
+		"func (m *PaperTest) " + "Save(",
+		"func " + "Green(",
 	}
 }
 
@@ -253,10 +362,34 @@ func shouldSkipDir(path string) bool {
 	}
 
 	switch path {
-	case ".git", ".worktrees", "docs/plans", "docs/v1", "docs/assets/pdf", "internal/paperpdf":
+	case ".git", ".worktrees", "docs/plans", "docs/assets/pdf", "internal/paperpdf":
 		return true
 	default:
 		return false
+	}
+}
+
+func assertPathMissing(t *testing.T, path string) {
+	t.Helper()
+
+	_, err := os.Stat(path)
+	if err == nil {
+		t.Fatalf("expected %s to be removed", path)
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("could not inspect %s: %v", path, err)
+	}
+}
+
+func assertNoGlobMatches(t *testing.T, pattern string) {
+	t.Helper()
+
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		t.Fatalf("invalid glob %s: %v", pattern, err)
+	}
+	if len(matches) > 0 {
+		t.Fatalf("expected no matches for %s, found %v", pattern, matches)
 	}
 }
 

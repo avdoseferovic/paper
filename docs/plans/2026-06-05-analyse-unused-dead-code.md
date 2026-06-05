@@ -113,10 +113,10 @@ Type: Feature
 - [x] Task 2: Remove v1/v2 docs, examples, and generated asset names
 - [x] Task 3: Remove active-source dead code and redundant examples
 - [x] Task 4: Prune unreachable `internal/paperpdf` backend code
-- [ ] Task 5: Add guardrails for unversioned paths and dead-code cleanup
+- [x] Task 5: Add guardrails for unversioned paths and dead-code cleanup
 - [ ] Task 6: Tidy module metadata and run full verification
 
-**Total Tasks:** 6 | **Completed:** 4 | **Remaining:** 2
+**Total Tasks:** 6 | **Completed:** 5 | **Remaining:** 1
 
 ## Implementation Tasks
 
@@ -330,15 +330,15 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] Dependency tests fail if `/v2` module path returns in active source/docs/config.
-- [ ] Dependency tests fail if `docs/v1`, `docs/v2`, or `docs/assets/examples/*/v2` returns.
-- [ ] Dependency tests fail if removed active dead-code symbols return.
-- [ ] Existing removed-dependency guards still pass.
+- [x] Dependency tests fail if `/v2` module path returns in active source/docs/config.
+- [x] Dependency tests fail if `docs/v1`, `docs/v2`, or `docs/assets/examples/*/v2` returns.
+- [x] Dependency tests fail if removed active dead-code symbols return.
+- [x] Existing removed-dependency guards still pass.
 
 **Verify:**
 
 - `go test ./internal/dependency -count=1`
-- `rg -n "github\\.com/avdoseferovic/paper/v2|docs/v1|docs/v2|/v2\\b|wrapRowAnchorSource|newAnchorSource|func \\(tr \\*translator\\) flexRow|func hrRow|func \\(m \\*PaperTest\\) Save" README.md docs pkg internal cmd .mockery.yaml .github Makefile --glob '!docs/plans/**' --glob '!internal/paperpdf/**'`
+- `rg -n "github\\.com/avdoseferovic/paper/v2|docs/v1|docs/v2|/v2\\b|wrapRowAnchorSource|newAnchorSource|func \\(tr \\*translator\\) flexRow\\(|func hrRow\\(|func \\(m \\*PaperTest\\) Save\\(" README.md docs pkg internal cmd .mockery.yaml .github Makefile --glob '!docs/plans/**' --glob '!internal/paperpdf/**'`
 
 ### Task 6: Tidy Module Metadata and Run Full Verification
 
