@@ -59,15 +59,17 @@ func sliceCompress(data []byte) []byte {
 func sliceUncompress(data []byte) (outData []byte, err error) {
 	inBuf := bytes.NewReader(data)
 	r, err := zlib.NewReader(inBuf)
-	defer r.Close()
-	if err == nil {
-		var outBuf bytes.Buffer
-		_, err = outBuf.ReadFrom(r)
-		if err == nil {
-			outData = outBuf.Bytes()
-		}
+	if err != nil {
+		return nil, err
 	}
-	return
+	defer r.Close()
+
+	var outBuf bytes.Buffer
+	_, err = outBuf.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
+	return outBuf.Bytes(), nil
 }
 
 // utf8toutf16 converts UTF-8 to UTF-16BE; from http://www.fpdf.org/
@@ -395,19 +397,13 @@ func arrayMerge(arr1, arr2 *untypedKeyMap) *untypedKeyMap {
 	return &answer
 }
 
-func remove(arr []int, key int) []int {
-	n := 0
+func removeInt(arr []int, key int) []int {
 	for i, mKey := range arr {
 		if mKey == key {
-			n = i
+			return append(arr[:i], arr[i+1:]...)
 		}
 	}
-	if n == 0 {
-		return arr[1:]
-	} else if n == len(arr)-1 {
-		return arr[:len(arr)-1]
-	}
-	return append(arr[:n], arr[n+1:]...)
+	return arr
 }
 
 func isChinese(rune2 rune) bool {

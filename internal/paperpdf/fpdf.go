@@ -32,7 +32,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -1662,7 +1661,7 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 		originalSize := ttfStat.Size()
 		Type := "UTF8"
 		var utf8Bytes []byte
-		utf8Bytes, err = ioutil.ReadFile(fileStr)
+		utf8Bytes, err = os.ReadFile(fileStr)
 		if err != nil {
 			f.SetError(err)
 			return
@@ -1809,7 +1808,7 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 
 		err := utf8File.parseFile()
 		if err != nil {
-			fmt.Printf("get metrics Error: %e\n", err)
+			f.SetError(fmt.Errorf("get font metrics: %w", err))
 			return
 		}
 		desc := FontDescType{
@@ -2333,7 +2332,6 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 		s.printf("%.2f %.2f %.2f %.2f re %s ", f.x*k, (f.h-f.y)*k, w*k, -h*k, op)
 	}
 	if len(borderStr) > 0 && borderStr != "1" {
-		// fmt.Printf("border is '%s', no fill\n", borderStr)
 		x := f.x
 		y := f.y
 		left := x * k
@@ -4206,7 +4204,7 @@ func (f *Fpdf) generateCIDFontMap(font *fontDefType, LastRune int) {
 				cidArray[key].delete("interval")
 			}
 			cidArray[previousKey] = arrayMerge(cidArray[previousKey], cidArray[key])
-			cidArrayKeys = remove(cidArrayKeys, key)
+			cidArrayKeys = removeInt(cidArrayKeys, key)
 		} else {
 			g++
 			previousKey = key
@@ -4263,14 +4261,14 @@ func (f *Fpdf) loadFontFile(name string) ([]byte, error) {
 	if f.fontLoader != nil {
 		reader, err := f.fontLoader.Open(name)
 		if err == nil {
-			data, err := ioutil.ReadAll(reader)
+			data, err := io.ReadAll(reader)
 			if closer, ok := reader.(io.Closer); ok {
 				closer.Close()
 			}
 			return data, err
 		}
 	}
-	return ioutil.ReadFile(path.Join(f.fontpath, name))
+	return os.ReadFile(path.Join(f.fontpath, name))
 }
 
 func (f *Fpdf) putimages() {

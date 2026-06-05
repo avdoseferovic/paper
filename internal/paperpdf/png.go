@@ -125,8 +125,6 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 			x := int(f.readBeInt32(buf))
 			y := int(f.readBeInt32(buf))
 			units := buf.Next(1)[0]
-			// fmt.Printf("got a pHYs block, x=%d, y=%d, u=%d, readdpi=%t\n",
-			// x, y, int(units), readdpi)
 			// only modify the info block if the user wants us to
 			if x == y && readdpi {
 				switch units {

@@ -19,7 +19,7 @@ package paperpdf
 
 import (
 	"encoding/gob"
-	"sort"
+	sortpkg "sort"
 )
 
 // CreateTemplate defines a new template using the current page size.
@@ -114,7 +114,7 @@ func (f *Fpdf) templateFontCatalog() {
 		keyList = append(keyList, key)
 	}
 	if f.catalogSort {
-		sort.Strings(keyList)
+		sortpkg.Strings(keyList)
 	}
 	for _, key = range keyList {
 		font = f.fonts[key]
@@ -163,7 +163,7 @@ func (f *Fpdf) putTemplates() {
 					keyList = append(keyList, key)
 				}
 				if gl.catalogSort {
-					sort.Strings(keyList)
+					sortpkg.Strings(keyList)
 				}
 				for _, key = range keyList {
 					// for _, ti := range tImages {
@@ -200,13 +200,7 @@ func templateKeyList(mp map[string]Template, sort bool) (keyList []string) {
 		keyList = append(keyList, key)
 	}
 	if sort {
-		gensort(len(keyList),
-			func(a, b int) bool {
-				return keyList[a] < keyList[b]
-			},
-			func(a, b int) {
-				keyList[a], keyList[b] = keyList[b], keyList[a]
-			})
+		sortpkg.Strings(keyList)
 	}
 	return
 }

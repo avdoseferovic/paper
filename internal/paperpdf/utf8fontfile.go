@@ -55,6 +55,7 @@ type utf8FontFile struct {
 	DefaultWidth         float64
 	symbolData           map[int]map[string][]int
 	CodeSymbolDictionary map[int]int
+	err                  error
 }
 
 type tableDescription struct {
@@ -95,6 +96,7 @@ func newUTF8Font(reader *fileReader) *utf8FontFile {
 
 func (utf *utf8FontFile) parseFile() error {
 	utf.fileReader.readerPosition = 0
+	utf.err = nil
 	utf.symbolPosition = make([]int, 0)
 	utf.charSymbolDictionary = make(map[int]int)
 	utf.tableDescriptions = make(map[string]*tableDescription)
@@ -103,17 +105,17 @@ func (utf *utf8FontFile) parseFile() error {
 	utf.Descent = 0
 	codeType := uint32(utf.readUint32())
 	if codeType == 0x4F54544F {
-		return fmt.Errorf("not supported\n ")
+		return fmt.Errorf("unsupported OpenType CFF font")
 	}
 	if codeType == 0x74746366 {
-		return fmt.Errorf("not supported\n ")
+		return fmt.Errorf("unsupported TrueType collection font")
 	}
 	if codeType != 0x00010000 && codeType != 0x74727565 {
-		return fmt.Errorf("Not a TrueType font: codeType=%v\n ", codeType)
+		return fmt.Errorf("not a TrueType font: codeType=%d", codeType)
 	}
 	utf.generateTableDescriptions()
 	utf.parseTables()
-	return nil
+	return utf.err
 }
 
 func (utf *utf8FontFile) generateTableDescriptions() {
@@ -181,17 +183,18 @@ func (utf *utf8FontFile) generateChecksum(data []byte) []int {
 	return answer
 }
 
+func (utf *utf8FontFile) setErrorf(format string, args ...interface{}) {
+	if utf.err == nil {
+		utf.err = fmt.Errorf(format, args...)
+	}
+}
+
 func (utf *utf8FontFile) seek(shift int) {
 	_, _ = utf.fileReader.seek(int64(shift), 0)
 }
 
 func (utf *utf8FontFile) skip(delta int) {
 	_, _ = utf.fileReader.seek(int64(delta), 1)
-}
-
-// SeekTable position
-func (utf *utf8FontFile) SeekTable(name string) int {
-	return utf.seekTable(name, 0)
 }
 
 func (utf *utf8FontFile) seekTable(name string, offsetInTable int) int {
@@ -257,36 +260,16 @@ func (utf *utf8FontFile) setOutTable(name string, data []byte) {
 	utf.outTablesData[name] = data
 }
 
-func arrayKeys(arr map[int]string) []int {
-	answer := make([]int, len(arr))
-	i := 0
-	for key := range arr {
-		answer[i] = key
-		i++
-	}
-	return answer
-}
-
-func inArray(s int, arr []int) bool {
-	for _, i := range arr {
-		if s == i {
-			return true
-		}
-	}
-	return false
-}
-
 func (utf *utf8FontFile) parseNAMETable() int {
-	namePosition := utf.SeekTable("name")
+	namePosition := utf.seekTable("name", 0)
 	format := utf.readUint16()
 	if format != 0 {
-		fmt.Printf("Illegal format %d\n", format)
+		utf.setErrorf("unsupported name table format %d", format)
 		return format
 	}
 	nameCount := utf.readUint16()
 	stringDataPosition := namePosition + utf.readUint16()
 	names := map[int]string{1: "", 2: "", 3: "", 4: "", 6: ""}
-	keys := arrayKeys(names)
 	counter := len(names)
 	for i := 0; i < nameCount; i++ {
 		system := utf.readUint16()
@@ -295,7 +278,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 		nameID := utf.readUint16()
 		size := utf.readUint16()
 		position := utf.readUint16()
-		if !inArray(nameID, keys) {
+		if _, ok := names[nameID]; !ok {
 			continue
 		}
 		currentName := ""
@@ -303,7 +286,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 			oldPos := utf.fileReader.readerPosition
 			utf.seek(stringDataPosition + position)
 			if size%2 != 0 {
-				fmt.Printf("name is not binar byte format\n")
+				utf.setErrorf("name table string is not binary byte format")
 				return format
 			}
 			size /= 2
@@ -333,7 +316,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 }
 
 func (utf *utf8FontFile) parseHEADTable() {
-	utf.SeekTable("head")
+	utf.seekTable("head", 0)
 	utf.skip(18)
 	utf.fontElementSize = utf.readUint16()
 	scale := 1000.0 / float64(utf.fontElementSize)
@@ -347,7 +330,7 @@ func (utf *utf8FontFile) parseHEADTable() {
 	_ = utf.readUint16()
 	symbolDataFormat := utf.readUint16()
 	if symbolDataFormat != 0 {
-		fmt.Printf("Unknown symbol data format %d\n", symbolDataFormat)
+		utf.setErrorf("unknown symbol data format %d", symbolDataFormat)
 		return
 	}
 }
@@ -356,7 +339,7 @@ func (utf *utf8FontFile) parseHHEATable() int {
 	metricsCount := 0
 	if _, OK := utf.tableDescriptions["hhea"]; OK {
 		scale := 1000.0 / float64(utf.fontElementSize)
-		utf.SeekTable("hhea")
+		utf.seekTable("hhea", 0)
 		utf.skip(4)
 		hheaAscender := utf.readInt16()
 		hheaDescender := utf.readInt16()
@@ -365,12 +348,12 @@ func (utf *utf8FontFile) parseHHEATable() int {
 		utf.skip(24)
 		metricDataFormat := utf.readUint16()
 		if metricDataFormat != 0 {
-			fmt.Printf("Unknown horizontal metric data format %d\n", metricDataFormat)
+			utf.setErrorf("unknown horizontal metric data format %d", metricDataFormat)
 			return 0
 		}
 		metricsCount = utf.readUint16()
 		if metricsCount == 0 {
-			fmt.Printf("Number of horizontal metrics is 0\n")
+			utf.setErrorf("number of horizontal metrics is 0")
 			return 0
 		}
 	}
@@ -381,14 +364,14 @@ func (utf *utf8FontFile) parseOS2Table() int {
 	var weightType int
 	scale := 1000.0 / float64(utf.fontElementSize)
 	if _, OK := utf.tableDescriptions["OS/2"]; OK {
-		utf.SeekTable("OS/2")
+		utf.seekTable("OS/2", 0)
 		version := utf.readUint16()
 		utf.skip(2)
 		weightType = utf.readUint16()
 		utf.skip(2)
 		fsType := utf.readUint16()
 		if fsType == 0x0002 || (fsType&0x0300) != 0 {
-			fmt.Printf("ERROR - copyright restrictions.\n")
+			utf.setErrorf("font cannot be embedded because of copyright restrictions")
 			return 0
 		}
 		utf.skip(20)
@@ -425,7 +408,7 @@ func (utf *utf8FontFile) parseOS2Table() int {
 }
 
 func (utf *utf8FontFile) parsePOSTTable(weight int) {
-	utf.SeekTable("post")
+	utf.seekTable("post", 0)
 	utf.skip(4)
 	utf.ItalicAngle = int(utf.readInt16()) + utf.readUint16()/65536.0
 	scale := 1000.0 / float64(utf.fontElementSize)
@@ -447,7 +430,7 @@ func (utf *utf8FontFile) parsePOSTTable(weight int) {
 }
 
 func (utf *utf8FontFile) parseCMAPTable(format int) int {
-	cmapPosition := utf.SeekTable("cmap")
+	cmapPosition := utf.seekTable("cmap", 0)
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	cidCMAPPosition := 0
@@ -468,7 +451,7 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 		utf.seek(int(oldReaderPosition))
 	}
 	if cidCMAPPosition == 0 {
-		fmt.Printf("Font does not have cmap for Unicode\n")
+		utf.setErrorf("font does not have cmap for Unicode")
 		return cidCMAPPosition
 	}
 	return cidCMAPPosition
@@ -476,13 +459,31 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 
 func (utf *utf8FontFile) parseTables() {
 	f := utf.parseNAMETable()
+	if utf.err != nil {
+		return
+	}
 	utf.parseHEADTable()
+	if utf.err != nil {
+		return
+	}
 	n := utf.parseHHEATable()
+	if utf.err != nil {
+		return
+	}
 	w := utf.parseOS2Table()
+	if utf.err != nil {
+		return
+	}
 	utf.parsePOSTTable(w)
+	if utf.err != nil {
+		return
+	}
 	runeCMAPPosition := utf.parseCMAPTable(f)
+	if utf.err != nil {
+		return
+	}
 
-	utf.SeekTable("maxp")
+	utf.seekTable("maxp", 0)
 	utf.skip(4)
 	numSymbols := utf.readUint16()
 
@@ -495,7 +496,7 @@ func (utf *utf8FontFile) parseTables() {
 }
 
 func (utf *utf8FontFile) generateCMAP() map[int][]int {
-	cmapPosition := utf.SeekTable("cmap")
+	cmapPosition := utf.seekTable("cmap", 0)
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	runeCmapPosition := 0
@@ -515,7 +516,7 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 	}
 
 	if runeCmapPosition == 0 {
-		fmt.Printf("Font does not have cmap for Unicode\n")
+		utf.setErrorf("font does not have cmap for Unicode")
 		return nil
 	}
 
@@ -638,6 +639,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 // GenerateCutFont fill utf8FontFile from .utf file, only with runes from usedRunes
 func (utf *utf8FontFile) GenerateCutFont(usedRunes map[int]int) []byte {
 	utf.fileReader.readerPosition = 0
+	utf.err = nil
 	utf.symbolPosition = make([]int, 0)
 	utf.charSymbolDictionary = make(map[int]int)
 	utf.tableDescriptions = make(map[string]*tableDescription)
@@ -648,27 +650,30 @@ func (utf *utf8FontFile) GenerateCutFont(usedRunes map[int]int) []byte {
 	utf.LastRune = 0
 	utf.generateTableDescriptions()
 
-	utf.SeekTable("head")
+	utf.seekTable("head", 0)
 	utf.skip(50)
 	LocaFormat := utf.readUint16()
 
-	utf.SeekTable("hhea")
+	utf.seekTable("hhea", 0)
 	utf.skip(34)
 	metricsCount := utf.readUint16()
 	oldMetrics := metricsCount
 
-	utf.SeekTable("maxp")
+	utf.seekTable("maxp", 0)
 	utf.skip(4)
 	numSymbols := utf.readUint16()
 
 	symbolCharDictionary := utf.generateCMAP()
-	if symbolCharDictionary == nil {
+	if symbolCharDictionary == nil || utf.err != nil {
 		return nil
 	}
 
 	utf.parseHMTXTable(metricsCount, numSymbols, symbolCharDictionary, 1.0)
 
 	utf.parseLOCATable(LocaFormat, numSymbols)
+	if utf.err != nil {
+		return nil
+	}
 
 	cidSymbolPairCollection, symbolArray, symbolCollection, symbolCollectionKeys := utf.parseSymbols(usedRunes)
 
@@ -833,7 +838,7 @@ func (utf *utf8FontFile) getSymbols(originalSymbolIdx int, start *int, symbolSet
 
 func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbolToChar map[int][]int, scale float64) {
 	var widths int
-	start := utf.SeekTable("hmtx")
+	start := utf.seekTable("hmtx", 0)
 	arrayWidths := 0
 	var arr []int
 	utf.CharWidths = make([]int, 256*256)
@@ -886,7 +891,7 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 }
 
 func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
-	start := utf.SeekTable("hmtx")
+	start := utf.seekTable("hmtx", 0)
 	var metrics []byte
 	if gid < metricCount {
 		utf.seek(start + (gid * 4))
@@ -901,7 +906,7 @@ func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
 }
 
 func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
-	start := utf.SeekTable("loca")
+	start := utf.seekTable("loca", 0)
 	utf.symbolPosition = make([]int, 0)
 	if format == 0 {
 		data := utf.getRange(start, (numSymbols*2)+2)
@@ -916,8 +921,7 @@ func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 			utf.symbolPosition = append(utf.symbolPosition, arr[n+1])
 		}
 	} else {
-		fmt.Printf("Unknown loca table format %d\n", format)
-		return
+		utf.setErrorf("unknown loca table format %d", format)
 	}
 }
 
