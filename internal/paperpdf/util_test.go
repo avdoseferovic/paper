@@ -68,6 +68,32 @@ func TestAddUTF8FontFromBytesRecordsParseErrorWithoutStdout(t *testing.T) {
 	}
 }
 
+func TestAddUTF8FontFromBytesTruncatedTrueTypeDoesNotPanicOrWriteStdout(t *testing.T) {
+	f := NewCustom(&InitType{
+		OrientationStr: "P",
+		UnitStr:        "mm",
+		SizeStr:        "A4",
+	})
+
+	var recovered any
+	stdout := captureStdout(t, func() {
+		defer func() {
+			recovered = recover()
+		}()
+		f.AddUTF8FontFromBytes("broken", "", []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x01})
+	})
+
+	if recovered != nil {
+		t.Fatalf("expected truncated TrueType-like bytes not to panic, got %v", recovered)
+	}
+	if stdout != "" {
+		t.Fatalf("expected no stdout while parsing a bad font, got %q", stdout)
+	}
+	if f.Error() == nil {
+		t.Fatal("expected bad font parse to be recorded on Fpdf")
+	}
+}
+
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 

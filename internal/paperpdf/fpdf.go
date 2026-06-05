@@ -1675,14 +1675,14 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 		}
 
 		desc := FontDescType{
-			Ascent:       int(utf8File.Ascent),
-			Descent:      int(utf8File.Descent),
-			CapHeight:    utf8File.CapHeight,
-			Flags:        utf8File.Flags,
-			FontBBox:     utf8File.Bbox,
-			ItalicAngle:  utf8File.ItalicAngle,
-			StemV:        utf8File.StemV,
-			MissingWidth: round(utf8File.DefaultWidth),
+			Ascent:       int(utf8File.ascent),
+			Descent:      int(utf8File.descent),
+			CapHeight:    utf8File.capHeight,
+			Flags:        utf8File.flags,
+			FontBBox:     utf8File.bbox,
+			ItalicAngle:  utf8File.italicAngle,
+			StemV:        utf8File.stemV,
+			MissingWidth: round(utf8File.defaultWidth),
 		}
 
 		var sbarr map[int]int
@@ -1695,9 +1695,9 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 			Tp:        Type,
 			Name:      fontKey,
 			Desc:      desc,
-			Up:        int(round(utf8File.UnderlinePosition)),
-			Ut:        round(utf8File.UnderlineThickness),
-			Cw:        utf8File.CharWidths,
+			Up:        int(round(utf8File.underlinePosition)),
+			Ut:        round(utf8File.underlineThickness),
+			Cw:        utf8File.charWidths,
 			usedRunes: sbarr,
 			File:      fileStr,
 			utf8File:  utf8File,
@@ -1812,14 +1812,14 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 			return
 		}
 		desc := FontDescType{
-			Ascent:       int(utf8File.Ascent),
-			Descent:      int(utf8File.Descent),
-			CapHeight:    utf8File.CapHeight,
-			Flags:        utf8File.Flags,
-			FontBBox:     utf8File.Bbox,
-			ItalicAngle:  utf8File.ItalicAngle,
-			StemV:        utf8File.StemV,
-			MissingWidth: round(utf8File.DefaultWidth),
+			Ascent:       int(utf8File.ascent),
+			Descent:      int(utf8File.descent),
+			CapHeight:    utf8File.capHeight,
+			Flags:        utf8File.flags,
+			FontBBox:     utf8File.bbox,
+			ItalicAngle:  utf8File.italicAngle,
+			StemV:        utf8File.stemV,
+			MissingWidth: round(utf8File.defaultWidth),
 		}
 
 		var sbarr map[int]int
@@ -1832,9 +1832,9 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 			Tp:        Type,
 			Name:      fontkey,
 			Desc:      desc,
-			Up:        int(round(utf8File.UnderlinePosition)),
-			Ut:        round(utf8File.UnderlineThickness),
-			Cw:        utf8File.CharWidths,
+			Up:        int(round(utf8File.underlinePosition)),
+			Ut:        round(utf8File.underlineThickness),
+			Cw:        utf8File.charWidths,
 			utf8File:  utf8File,
 			usedRunes: sbarr,
 		}
@@ -4039,10 +4039,10 @@ func (f *Fpdf) putfonts() {
 				fontName := "utf8" + font.Name
 				usedRunes := font.usedRunes
 				delete(usedRunes, 0)
-				utf8FontStream := font.utf8File.GenerateCutFont(usedRunes)
+				utf8FontStream := font.utf8File.generateCutFont(usedRunes)
 				utf8FontSize := len(utf8FontStream)
 				compressedFontStream := sliceCompress(utf8FontStream)
-				CodeSignDictionary := font.utf8File.CodeSymbolDictionary
+				CodeSignDictionary := font.utf8File.codeSymbolDictionary
 				delete(CodeSignDictionary, 0)
 
 				f.newobj()
@@ -4054,7 +4054,7 @@ func (f *Fpdf) putfonts() {
 				if font.Desc.MissingWidth != 0 {
 					f.out("/DW " + strconv.Itoa(font.Desc.MissingWidth) + "")
 				}
-				f.generateCIDFontMap(&font, font.utf8File.LastRune)
+				f.generateCIDFontMap(&font, font.utf8File.lastRune)
 				f.out("/CIDToGIDMap " + strconv.Itoa(f.n+4) + " 0 R>>")
 				f.out("endobj")
 
