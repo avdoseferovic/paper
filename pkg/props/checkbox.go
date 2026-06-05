@@ -37,6 +37,11 @@ func (c *Checkbox) ToMap() map[string]any {
 
 // MakeValid from Checkbox define default values for a Checkbox.
 func (c *Checkbox) MakeValid() {
+	*c = NormalizeCheckbox(*c)
+}
+
+// NormalizeCheckbox returns a defaulted copy of c.
+func NormalizeCheckbox(c Checkbox) Checkbox {
 	if c.Size <= 0 {
 		c.Size = 5.0
 	}
@@ -48,4 +53,6 @@ func (c *Checkbox) MakeValid() {
 	if c.Left < 0 {
 		c.Left = 0
 	}
+
+	return c
 }

@@ -73,6 +73,37 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestNewCopiesCallerOwnedCellsAndStyles(t *testing.T) {
+	t.Parallel()
+
+	background := &props.Color{Red: 1, Green: 2, Blue: 3}
+	cells := [][]table.Cell{{
+		{Content: nil, Style: &props.Cell{BackgroundColor: background}},
+	}}
+
+	tbl, err := table.New(cells)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, cells[0][0].Colspan)
+	assert.Equal(t, 0, cells[0][0].Rowspan)
+
+	background.Red = 99
+
+	provider := mocks.NewProvider(t)
+	provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+	provider.EXPECT().CreateCol(
+		100.0,
+		5.0,
+		mock.AnythingOfType("*entity.Config"),
+		mock.MatchedBy(func(style *props.Cell) bool {
+			return style != nil && style.BackgroundColor != nil && style.BackgroundColor.Red == 1
+		}),
+	).Return()
+	provider.EXPECT().CreateRow(5.0).Return()
+
+	tbl.SetConfig(defaultConfig())
+	tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
+}
+
 func TestTable_ColCount(t *testing.T) {
 	t.Parallel()
 	cells := [][]table.Cell{

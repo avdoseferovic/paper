@@ -73,6 +73,13 @@ type CfgBuilder struct {
 
 // NewBuilder is responsible to create an instance of Builder.
 func NewBuilder() Builder {
+	return NewCfgBuilder()
+}
+
+// NewCfgBuilder creates a concrete configuration builder.
+// NewBuilder is kept for v2 compatibility with its existing Builder return type.
+func NewCfgBuilder() *CfgBuilder {
+	defaultFontColor := props.Black()
 	return &CfgBuilder{
 		providerType: provider.Paper,
 		margins: &entity.Margins{
@@ -86,7 +93,7 @@ func NewBuilder() Builder {
 			Size:   pagesize.DefaultFontSize,
 			Family: fontfamily.Arial,
 			Style:  fontstyle.Normal,
-			Color:  &props.BlackColor,
+			Color:  &defaultFontColor,
 		},
 		generationMode: generation.Sequential,
 		chunkWorkers:   1,
@@ -223,7 +230,7 @@ func (b *CfgBuilder) WithDefaultFont(font *props.Font) Builder {
 	}
 
 	if font.Color != nil {
-		b.defaultFont.Color = font.Color
+		b.defaultFont.Color = props.CloneColor(font.Color)
 	}
 
 	return b
@@ -244,6 +251,7 @@ func (b *CfgBuilder) WithPageNumber(pageNumber ...props.PageNumber) Builder {
 		pageN.Place = props.Bottom
 	}
 
+	pageN.Color = props.CloneColor(pageN.Color)
 	b.pageNumber = &pageN
 
 	return b
@@ -362,14 +370,14 @@ func (b *CfgBuilder) WithCreationDate(time time.Time) Builder {
 
 // WithCustomFonts add custom fonts.
 func (b *CfgBuilder) WithCustomFonts(customFonts []entity.CustomFont) Builder {
-	b.customFonts = customFonts
+	b.customFonts = append([]entity.CustomFont(nil), customFonts...)
 	return b
 }
 
 // WithBackgroundImage defines the background image that will be applied in every page.
 func (b *CfgBuilder) WithBackgroundImage(bytes []byte, ext extension.Type) Builder {
 	b.backgroundImage = &entity.Image{
-		Bytes:     bytes,
+		Bytes:     append([]byte(nil), bytes...),
 		Extension: ext,
 	}
 
@@ -402,25 +410,27 @@ func (b *CfgBuilder) WithKeywords(keywordsStr string, isUTF8 bool) Builder {
 
 // Build finalizes the customization returning the entity.Config.
 func (b *CfgBuilder) Build() *entity.Config {
-	if b.pageNumber != nil {
-		b.pageNumber.WithFont(b.defaultFont)
+	pageNumber := clonePageNumber(b.pageNumber)
+	if pageNumber != nil {
+		pageNumber.WithFont(b.defaultFont)
+		pageNumber.Color = props.CloneColor(pageNumber.Color)
 	}
 
 	return &entity.Config{
 		ProviderType:         b.providerType,
-		Dimensions:           b.getDimensions(),
-		Margins:              b.margins,
+		Dimensions:           cloneDimensions(b.getDimensions()),
+		Margins:              cloneMargins(b.margins),
 		GenerationMode:       b.generationMode,
 		ChunkWorkers:         b.chunkWorkers,
 		Debug:                b.debug,
 		MaxGridSize:          b.maxGridSize,
-		DefaultFont:          b.defaultFont,
-		PageNumber:           b.pageNumber,
-		Protection:           b.protection,
+		DefaultFont:          cloneFont(b.defaultFont),
+		PageNumber:           pageNumber,
+		Protection:           cloneProtection(b.protection),
 		Compression:          b.compression,
-		Metadata:             b.metadata,
-		CustomFonts:          b.customFonts,
-		BackgroundImage:      b.backgroundImage,
+		Metadata:             cloneMetadata(b.metadata),
+		CustomFonts:          append([]entity.CustomFont(nil), b.customFonts...),
+		BackgroundImage:      cloneImage(b.backgroundImage),
 		DisableAutoPageBreak: b.disableAutoPageBreak,
 	}
 }
@@ -446,4 +456,80 @@ func (b *CfgBuilder) getDimensions() *entity.Dimensions {
 	}
 
 	return dimensions
+}
+
+func cloneDimensions(dimensions *entity.Dimensions) *entity.Dimensions {
+	if dimensions == nil {
+		return nil
+	}
+	clone := *dimensions
+	return &clone
+}
+
+func cloneMargins(margins *entity.Margins) *entity.Margins {
+	if margins == nil {
+		return nil
+	}
+	clone := *margins
+	return &clone
+}
+
+func cloneFont(font *props.Font) *props.Font {
+	if font == nil {
+		return nil
+	}
+	clone := props.NormalizeFont(*font, "")
+	return &clone
+}
+
+func clonePageNumber(pageNumber *props.PageNumber) *props.PageNumber {
+	if pageNumber == nil {
+		return nil
+	}
+	clone := props.ClonePageNumber(*pageNumber)
+	return &clone
+}
+
+func cloneProtection(protection *entity.Protection) *entity.Protection {
+	if protection == nil {
+		return nil
+	}
+	clone := *protection
+	return &clone
+}
+
+func cloneMetadata(metadata *entity.Metadata) *entity.Metadata {
+	if metadata == nil {
+		return nil
+	}
+	clone := &entity.Metadata{
+		Author:      cloneUTF8Text(metadata.Author),
+		Creator:     cloneUTF8Text(metadata.Creator),
+		Subject:     cloneUTF8Text(metadata.Subject),
+		Title:       cloneUTF8Text(metadata.Title),
+		KeywordsStr: cloneUTF8Text(metadata.KeywordsStr),
+	}
+	if metadata.CreationDate != nil {
+		creationDate := *metadata.CreationDate
+		clone.CreationDate = &creationDate
+	}
+	return clone
+}
+
+func cloneUTF8Text(text *entity.Utf8Text) *entity.Utf8Text {
+	if text == nil {
+		return nil
+	}
+	clone := *text
+	return &clone
+}
+
+func cloneImage(image *entity.Image) *entity.Image {
+	if image == nil {
+		return nil
+	}
+	clone := *image
+	clone.Bytes = append([]byte(nil), image.Bytes...)
+	clone.Dimensions = cloneDimensions(image.Dimensions)
+	return &clone
 }

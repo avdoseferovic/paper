@@ -40,7 +40,7 @@ func New(runs []props.RichRun, ps ...props.RichText) *RichText {
 	if len(ps) > 0 {
 		prop = ps[0]
 	}
-	return &RichText{runs: runs, prop: prop}
+	return &RichText{runs: props.CloneRichRuns(runs), prop: prop}
 }
 
 // WithAnchorRegistry attaches an anchor registry so that runs with LocalAnchor
@@ -180,16 +180,7 @@ func (r *RichText) runsWithDefaultFont() []props.RichRun {
 	}
 	out := make([]props.RichRun, len(r.runs))
 	for i, run := range r.runs {
-		out[i] = run
-		if out[i].Family == "" {
-			out[i].Family = r.config.DefaultFont.Family
-		}
-		if out[i].Style == "" {
-			out[i].Style = r.config.DefaultFont.Style
-		}
-		if out[i].Size == 0 {
-			out[i].Size = r.config.DefaultFont.Size
-		}
+		out[i] = props.NormalizeRichRun(run, r.config.DefaultFont)
 	}
 	return out
 }

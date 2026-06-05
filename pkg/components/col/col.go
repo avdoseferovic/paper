@@ -87,7 +87,7 @@ func (c *Col) SetConfig(config *entity.Config) {
 
 // WithStyle sets the style for the column.
 func (c *Col) WithStyle(style *props.Cell) core.Col {
-	c.style = style
+	c.style = props.CloneCell(style)
 	return c
 }
 

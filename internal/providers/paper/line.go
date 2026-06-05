@@ -15,9 +15,10 @@ type Line struct {
 }
 
 func NewLine(pdf gofpdfwrapper.Fpdf) *Line {
+	defaultColor := props.Black()
 	return &Line{
 		pdf:              pdf,
-		defaultColor:     &props.BlackColor,
+		defaultColor:     &defaultColor,
 		defaultThickness: linestyle.DefaultLineThickness,
 	}
 }

@@ -31,15 +31,16 @@ type Paper struct {
 	pageBuilder *pageBuilder
 }
 
-// GetCurrentConfig is responsible for returning the current settings from the file
-func (m *Paper) GetCurrentConfig() *entity.Config {
-	return m.config
-}
-
 // New is responsible for create a new instance of core.Paper.
 // It's optional to provide an *entity.Config with customizations
 // those customization are created by using the config.Builder.
 func New(cfgs ...*entity.Config) core.Paper {
+	return NewPaper(cfgs...)
+}
+
+// NewPaper creates a concrete Paper instance.
+// New is kept for v2 compatibility with its existing core.Paper return type.
+func NewPaper(cfgs ...*entity.Config) *Paper {
 	cache := cache.New()
 	cfg := getConfig(cfgs...)
 	provider := getProvider(cache, cfg)
@@ -52,6 +53,11 @@ func New(cfgs ...*entity.Config) core.Paper {
 	}
 
 	return m
+}
+
+// GetCurrentConfig is responsible for returning the current settings from the file
+func (m *Paper) GetCurrentConfig() *entity.Config {
+	return m.config
 }
 
 // FromHTML converts an HTML string directly into a PDF document.

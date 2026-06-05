@@ -46,6 +46,11 @@ func (r *Rect) ToMap() map[string]any {
 // MakeValid from Rect will make the properties from a rectangle reliable to fit inside a cell
 // and define default values for a rectangle.
 func (r *Rect) MakeValid() {
+	*r = NormalizeRect(*r)
+}
+
+// NormalizeRect returns a defaulted copy of r.
+func NormalizeRect(r Rect) Rect {
 	minPercentage := 0.0
 	maxPercentage := 100.0
 	minValue := 0.0
@@ -66,4 +71,6 @@ func (r *Rect) MakeValid() {
 	if r.Top < minValue {
 		r.Top = minValue
 	}
+
+	return r
 }

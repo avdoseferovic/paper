@@ -15,6 +15,44 @@ var (
 	BlueColor = Color{Red: 0, Green: 0, Blue: 255}
 )
 
+// White returns an independent white Color value.
+func White() Color {
+	return WhiteColor
+}
+
+// Black returns an independent black Color value.
+func Black() Color {
+	return BlackColor
+}
+
+// Red returns an independent red Color value.
+func Red() Color {
+	return RedColor
+}
+
+// Green returns an independent green Color value.
+func Green() Color {
+	return GreenColor
+}
+
+// Blue returns an independent blue Color value.
+func Blue() Color {
+	return BlueColor
+}
+
+// CloneColor returns an independent copy of c.
+func CloneColor(c *Color) *Color {
+	if c == nil {
+		return nil
+	}
+	clone := *c
+	if c.Alpha != nil {
+		alpha := *c.Alpha
+		clone.Alpha = &alpha
+	}
+	return &clone
+}
+
 // Color represents a color in the RGB (Red, Green, Blue) space,
 // is possible mix values, when all values are 0 the result color is black
 // when all values are 255 the result color is white.

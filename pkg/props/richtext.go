@@ -55,6 +55,11 @@ type RichText struct {
 
 // MakeValid fills in default values for RichText paragraph props.
 func (r *RichText) MakeValid(font *Font) {
+	*r = NormalizeRichText(*r, font)
+}
+
+// NormalizeRichText returns a defaulted copy of r.
+func NormalizeRichText(r RichText, _ ...*Font) RichText {
 	if r.Align == "" {
 		r.Align = align.Left
 	}
@@ -67,4 +72,44 @@ func (r *RichText) MakeValid(font *Font) {
 	if r.WhiteSpace == "" {
 		r.WhiteSpace = "normal"
 	}
+	return r
+}
+
+// NormalizeRichRun returns a defaulted copy of run.
+func NormalizeRichRun(run RichRun, font *Font) RichRun {
+	if font != nil {
+		normalizedFont := NormalizeFont(*font, "")
+		if run.Family == "" {
+			run.Family = normalizedFont.Family
+		}
+		if run.Style == "" {
+			run.Style = normalizedFont.Style
+		}
+		if run.Size == 0 {
+			run.Size = normalizedFont.Size
+		}
+	}
+	run.Color = CloneColor(run.Color)
+	run.Background = CloneColor(run.Background)
+	if run.Hyperlink != nil {
+		hyperlink := *run.Hyperlink
+		run.Hyperlink = &hyperlink
+	}
+	if run.TextShadow != nil {
+		shadow := CloneShadow(*run.TextShadow)
+		run.TextShadow = &shadow
+	}
+	return run
+}
+
+// CloneRichRuns returns an independent copy of runs.
+func CloneRichRuns(runs []RichRun) []RichRun {
+	if runs == nil {
+		return nil
+	}
+	clone := make([]RichRun, len(runs))
+	for i, run := range runs {
+		clone[i] = NormalizeRichRun(run, nil)
+	}
+	return clone
 }

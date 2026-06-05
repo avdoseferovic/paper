@@ -76,6 +76,56 @@ type Cell struct {
 	BorderRadiusBottomRight float64
 }
 
+// CloneCell returns an independent copy of c.
+func CloneCell(c *Cell) *Cell {
+	if c == nil {
+		return nil
+	}
+	clone := *c
+	clone.BackgroundColor = CloneColor(c.BackgroundColor)
+	clone.BorderColor = CloneColor(c.BorderColor)
+	clone.BorderTopColor = CloneColor(c.BorderTopColor)
+	clone.BorderRightColor = CloneColor(c.BorderRightColor)
+	clone.BorderBottomColor = CloneColor(c.BorderBottomColor)
+	clone.BorderLeftColor = CloneColor(c.BorderLeftColor)
+	clone.OutlineColor = CloneColor(c.OutlineColor)
+	clone.BackgroundGradient = cloneGradient(c.BackgroundGradient)
+	clone.BoxShadow = cloneShadows(c.BoxShadow)
+	return &clone
+}
+
+func cloneGradient(gradient *Gradient) *Gradient {
+	if gradient == nil {
+		return nil
+	}
+	clone := *gradient
+	clone.Stops = make([]GradientStop, len(gradient.Stops))
+	for i, stop := range gradient.Stops {
+		clone.Stops[i] = stop
+		clone.Stops[i].Color = cloneColorValue(stop.Color)
+	}
+	return &clone
+}
+
+func cloneShadows(shadows []Shadow) []Shadow {
+	if shadows == nil {
+		return nil
+	}
+	clone := make([]Shadow, len(shadows))
+	for i, shadow := range shadows {
+		clone[i] = CloneShadow(shadow)
+	}
+	return clone
+}
+
+func cloneColorValue(color Color) Color {
+	clone := CloneColor(&color)
+	if clone == nil {
+		return Color{}
+	}
+	return *clone
+}
+
 // HasBorderRadius reports whether any uniform or per-corner radius is non-zero.
 func (c *Cell) HasBorderRadius() bool {
 	if c == nil {

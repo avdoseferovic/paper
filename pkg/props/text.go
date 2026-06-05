@@ -89,23 +89,35 @@ func (t *Text) ToMap() map[string]any {
 
 // MakeValid from Text define default values for a Text.
 func (t *Text) MakeValid(font *Font) {
+	*t = NormalizeText(*t, font)
+}
+
+// NormalizeText returns a defaulted copy of t.
+func NormalizeText(t Text, font *Font) Text {
 	minValue := 0.0
 	undefinedValue := 0.0
 
+	defaultFont := Font{}
+	if font != nil {
+		defaultFont = NormalizeFont(*font, "")
+	}
+
 	if t.Family == "" {
-		t.Family = font.Family
+		t.Family = defaultFont.Family
 	}
 
 	if t.Style == "" {
-		t.Style = font.Style
+		t.Style = defaultFont.Style
 	}
 
 	if t.Size == undefinedValue {
-		t.Size = font.Size
+		t.Size = defaultFont.Size
 	}
 
 	if t.Color == nil {
-		t.Color = font.Color
+		t.Color = CloneColor(defaultFont.Color)
+	} else {
+		t.Color = CloneColor(t.Color)
 	}
 
 	if t.Align == "" {
@@ -135,4 +147,6 @@ func (t *Text) MakeValid(font *Font) {
 	if t.BreakLineStrategy == "" {
 		t.BreakLineStrategy = breakline.EmptySpaceStrategy
 	}
+
+	return t
 }

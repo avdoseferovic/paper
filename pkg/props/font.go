@@ -40,6 +40,11 @@ func (f *Font) AppendMap(m map[string]any) map[string]any {
 
 // MakeValid from Font define default values for a Signature.
 func (f *Font) MakeValid(defaultFamily string) {
+	*f = NormalizeFont(*f, defaultFamily)
+}
+
+// NormalizeFont returns a defaulted copy of f.
+func NormalizeFont(f Font, defaultFamily string) Font {
 	if f.Family == "" {
 		f.Family = defaultFamily
 	}
@@ -51,6 +56,9 @@ func (f *Font) MakeValid(defaultFamily string) {
 	if f.Size == 0.0 {
 		f.Size = 8.0
 	}
+
+	f.Color = CloneColor(f.Color)
+	return f
 }
 
 // ToTextProp from Font return a Text based on Font.

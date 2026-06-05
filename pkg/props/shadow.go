@@ -9,3 +9,9 @@ type Shadow struct {
 	Color      *Color  // nil = use default black
 	Inset      bool    // draw inside cell rather than behind it
 }
+
+// CloneShadow returns an independent copy of shadow.
+func CloneShadow(shadow Shadow) Shadow {
+	shadow.Color = CloneColor(shadow.Color)
+	return shadow
+}

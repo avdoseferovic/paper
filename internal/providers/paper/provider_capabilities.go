@@ -80,7 +80,8 @@ func (g *provider) DrawFilledCircle(cell *entity.Cell, fill *props.Color) {
 	}
 	color := fill
 	if color == nil {
-		color = &props.BlackColor
+		black := props.Black()
+		color = &black
 	}
 	origR, origG, origB := g.fpdf.GetFillColor()
 	defer g.fpdf.SetFillColor(origR, origG, origB)

@@ -69,6 +69,11 @@ func (b *Barcode) ToRectProp() *Rect {
 // MakeValid from Barcode will make the properties from a barcode reliable to fit inside a cell
 // and define default values for a barcode.
 func (b *Barcode) MakeValid() {
+	*b = NormalizeBarcode(*b)
+}
+
+// NormalizeBarcode returns a defaulted copy of b.
+func NormalizeBarcode(b Barcode) Barcode {
 	minPercentage := 0.0
 	maxPercentage := 100.0
 	minValue := 0.0
@@ -110,4 +115,6 @@ func (b *Barcode) MakeValid() {
 	if b.Type == "" {
 		b.Type = barcode.Code128
 	}
+
+	return b
 }

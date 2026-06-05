@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper/v2/pkg/components/row"
 	"github.com/avdoseferovic/paper/v2/pkg/core"
 	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/v2/pkg/props"
 	"github.com/avdoseferovic/paper/v2/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,6 +41,18 @@ func TestNew(t *testing.T) {
 		// Assert
 		test.New(t).Assert(r.GetStructure()).Equals("components/rows/new_col_with_prop.json")
 	})
+}
+
+func TestRow_WithStyleCopiesCallerOwnedStyle(t *testing.T) {
+	t.Parallel()
+
+	background := &props.Color{Red: 1, Green: 2, Blue: 3}
+	style := &props.Cell{BackgroundColor: background}
+	sut := row.New(12).WithStyle(style)
+
+	background.Red = 99
+
+	assert.Equal(t, "RGB(1, 2, 3)", sut.GetStructure().GetData().Details["prop_background_color"])
 }
 
 func TestRow_GetHeight(t *testing.T) {

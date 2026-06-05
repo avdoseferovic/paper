@@ -105,13 +105,13 @@ Type: Feature
 - [x] Task 1: Split provider contract and backend files by responsibility
 - [x] Task 2: Extract root pagination/page-building ownership
 - [x] Task 3: Extract rich-text layout pipeline
-- [ ] Task 4: Normalize props/config and add compatibility-safe concrete helpers
+- [x] Task 4: Normalize props/config and add compatibility-safe concrete helpers
 - [ ] Task 5: Add programmatic render issue reporting
 - [ ] Task 6: Reorganize HTML/CSS computed style handling
 - [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 3 | **Remaining:** 5
+**Total Tasks:** 8 | **Completed:** 4 | **Remaining:** 4
 
 ## Implementation Tasks
 
@@ -268,12 +268,12 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] Existing exported constructor signatures are unchanged.
-- [ ] Opt-in concrete helpers exist where they improve Go ergonomics without replacing existing constructors.
-- [ ] Prop defaulting uses normalized-copy helpers rather than each component hand-mutating defaults directly.
-- [ ] Internal defaults no longer store pointers to exported mutable color globals.
-- [ ] Builder output is not unexpectedly mutated by later builder or caller changes in covered tests.
-- [ ] Mutation-after-construction tests cover color pointers, font props, metadata pointers, custom font slices, and background image bytes where applicable.
+- [x] Existing exported constructor signatures are unchanged.
+- [x] Opt-in concrete helpers exist where they improve Go ergonomics without replacing existing constructors.
+- [x] Prop defaulting uses normalized-copy helpers rather than each component hand-mutating defaults directly.
+- [x] Internal defaults no longer store pointers to exported mutable color globals.
+- [x] Builder output is not unexpectedly mutated by later builder or caller changes in covered tests.
+- [x] Mutation-after-construction tests cover color pointers, font props, metadata pointers, custom font slices, and background image bytes where applicable.
 
 **Verify:**
 

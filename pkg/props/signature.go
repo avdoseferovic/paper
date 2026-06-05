@@ -67,6 +67,11 @@ func (s *Signature) ToMap() map[string]any {
 
 // MakeValid from Signature define default values for a Signature.
 func (s *Signature) MakeValid(defaultFontFamily string) {
+	*s = NormalizeSignature(*s, defaultFontFamily)
+}
+
+// NormalizeSignature returns a defaulted copy of s.
+func NormalizeSignature(s Signature, defaultFontFamily string) Signature {
 	if s.FontFamily == "" {
 		s.FontFamily = defaultFontFamily
 	}
@@ -89,6 +94,9 @@ func (s *Signature) MakeValid(defaultFontFamily string) {
 	if s.SafePadding <= 0 {
 		s.SafePadding = 1.5
 	}
+	s.FontColor = CloneColor(s.FontColor)
+	s.LineColor = CloneColor(s.LineColor)
+	return s
 }
 
 // ToLineProp from Signature return a Line based on Signature.

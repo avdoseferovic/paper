@@ -37,6 +37,7 @@ type Table struct {
 
 // New validates spans, normalises the grid, and builds the Table component.
 func New(cells [][]Cell, _ ...any) (*Table, error) {
+	cells = cloneCells(cells)
 	normaliseSpans(cells)
 
 	colCount, err := deriveColCount(cells)
@@ -55,6 +56,21 @@ func New(cells [][]Cell, _ ...any) (*Table, error) {
 		rowCount: len(cells),
 		colCount: colCount,
 	}, nil
+}
+
+func cloneCells(cells [][]Cell) [][]Cell {
+	if cells == nil {
+		return nil
+	}
+	clone := make([][]Cell, len(cells))
+	for r := range cells {
+		clone[r] = make([]Cell, len(cells[r]))
+		for c := range cells[r] {
+			clone[r][c] = cells[r][c]
+			clone[r][c].Style = props.CloneCell(cells[r][c].Style)
+		}
+	}
+	return clone
 }
 
 // ColCount returns the number of columns determined from the normalised grid.

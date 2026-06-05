@@ -129,7 +129,7 @@ func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 
 // WithStyle sets the style of a Row.
 func (r *Row) WithStyle(style *props.Cell) core.Row {
-	r.style = style
+	r.style = props.CloneCell(style)
 	return r
 }
 

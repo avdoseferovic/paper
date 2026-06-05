@@ -49,6 +49,12 @@ type PageNumber struct {
 	Color *Color
 }
 
+// ClonePageNumber returns an independent copy of p.
+func ClonePageNumber(p PageNumber) PageNumber {
+	p.Color = CloneColor(p.Color)
+	return p
+}
+
 // GetNumberTextProp returns the Text properties of the page number.
 // nolint:staticcheck // builder
 func (p *PageNumber) GetNumberTextProp(height float64) *Text {
@@ -56,7 +62,7 @@ func (p *PageNumber) GetNumberTextProp(height float64) *Text {
 		Family: p.Family,
 		Style:  p.Style,
 		Size:   p.Size,
-		Color:  p.Color,
+		Color:  CloneColor(p.Color),
 		Align:  align.Center,
 	}
 

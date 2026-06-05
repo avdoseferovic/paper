@@ -58,6 +58,11 @@ func (l *Line) ToMap() map[string]any {
 
 // MakeValid from Line define default values for a Line.
 func (l *Line) MakeValid() {
+	*l = NormalizeLine(*l)
+}
+
+// NormalizeLine returns a defaulted copy of l.
+func NormalizeLine(l Line) Line {
 	if l.Style == "" {
 		l.Style = linestyle.Solid
 	}
@@ -85,4 +90,7 @@ func (l *Line) MakeValid() {
 	if l.SizePercent > 100 {
 		l.SizePercent = 100
 	}
+
+	l.Color = CloneColor(l.Color)
+	return l
 }

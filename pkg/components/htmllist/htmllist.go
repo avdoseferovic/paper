@@ -65,7 +65,9 @@ func New(items []Item, ps ...Prop) *HTMLList {
 	if prop.MarkerPadding == 0 {
 		prop.MarkerPadding = 1
 	}
-	return &HTMLList{items: items, prop: prop}
+	prop.MarkerBackground = props.CloneColor(prop.MarkerBackground)
+	prop.MarkerTextColor = props.CloneColor(prop.MarkerTextColor)
+	return &HTMLList{items: append([]Item(nil), items...), prop: prop}
 }
 
 // SetConfig propagates Paper config to all item components.

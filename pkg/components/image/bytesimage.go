@@ -28,7 +28,7 @@ func NewFromBytes(bytes []byte, extension extension.Type, ps ...props.Rect) core
 	prop.MakeValid()
 
 	return &BytesImage{
-		bytes:     bytes,
+		bytes:     append([]byte(nil), bytes...),
 		prop:      prop,
 		extension: extension,
 	}

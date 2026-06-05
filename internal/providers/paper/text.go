@@ -62,7 +62,8 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 
 	// override style if hyperlink is set
 	if textProp.Hyperlink != nil {
-		s.font.SetColor(&props.BlueColor)
+		blue := props.Blue()
+		s.font.SetColor(&blue)
 	}
 
 	y += fontHeight

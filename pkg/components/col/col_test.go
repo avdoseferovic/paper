@@ -51,6 +51,18 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestCol_WithStyleCopiesCallerOwnedStyle(t *testing.T) {
+	t.Parallel()
+
+	background := &props.Color{Red: 1, Green: 2, Blue: 3}
+	style := &props.Cell{BackgroundColor: background}
+	sut := col.New(12).WithStyle(style)
+
+	background.Red = 99
+
+	assert.Equal(t, "RGB(1, 2, 3)", sut.GetStructure().GetData().Details["prop_background_color"])
+}
+
 func TestCol_GetSize(t *testing.T) {
 	t.Parallel()
 	t.Run("when size defined in creation, should use it", func(t *testing.T) {

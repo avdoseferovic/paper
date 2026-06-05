@@ -21,7 +21,7 @@ type Page struct {
 func New(ps ...props.PageNumber) core.Page {
 	prop := props.PageNumber{}
 	if len(ps) > 0 {
-		prop = ps[0]
+		prop = props.ClonePageNumber(ps[0])
 	}
 
 	return &Page{
