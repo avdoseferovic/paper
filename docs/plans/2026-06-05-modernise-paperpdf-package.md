@@ -97,13 +97,13 @@ Type: Feature
 
 - [x] Task 1: Preserve current cleanup baseline
 - [x] Task 2: Replace CID width map helper with typed Go structures
-- [ ] Task 3: Normalize localized error handling and `any` usage
+- [x] Task 3: Normalize localized error handling and `any` usage
 - [ ] Task 4: Harden and modernize UTF-8 font parser internals
 - [ ] Task 5: Extract font binary helpers
 - [ ] Task 6: Simplify static initialization data
 - [ ] Task 7: Record local backend patches and run final verification
 
-**Total Tasks:** 7 | **Completed:** 2 | **Remaining:** 5
+**Total Tasks:** 7 | **Completed:** 3 | **Remaining:** 4
 
 ## Implementation Tasks
 

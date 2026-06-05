@@ -16,10 +16,7 @@
 
 package paperpdf
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 func byteBound(v byte) byte {
 	if v > 100 {
@@ -48,7 +45,7 @@ func (f *Fpdf) AddSpotColor(nameStr string, c, m, y, k byte) {
 				},
 			}
 		} else {
-			f.err = fmt.Errorf("name \"%s\" is already associated with a spot color", nameStr)
+			f.SetErrorf("name %q is already associated with a spot color", nameStr)
 		}
 	}
 }
@@ -57,7 +54,7 @@ func (f *Fpdf) getSpotColor(nameStr string) (clr spotColorType, ok bool) {
 	if f.err == nil {
 		clr, ok = f.spotColorMap[nameStr]
 		if !ok {
-			f.err = fmt.Errorf("spot color name \"%s\" is not registered", nameStr)
+			f.SetErrorf("spot color name %q is not registered", nameStr)
 		}
 	}
 	return

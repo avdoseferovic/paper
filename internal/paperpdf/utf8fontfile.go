@@ -183,7 +183,7 @@ func (utf *utf8FontFile) generateChecksum(data []byte) []int {
 	return answer
 }
 
-func (utf *utf8FontFile) setErrorf(format string, args ...interface{}) {
+func (utf *utf8FontFile) setErrorf(format string, args ...any) {
 	if utf.err == nil {
 		utf.err = fmt.Errorf(format, args...)
 	}

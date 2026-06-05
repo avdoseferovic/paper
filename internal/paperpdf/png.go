@@ -18,7 +18,6 @@ package paperpdf
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 )
 
@@ -33,29 +32,32 @@ func (f *Fpdf) pngColorSpace(ct byte) (colspace string, colorVal int) {
 	case 3:
 		colspace = "Indexed"
 	default:
-		f.err = fmt.Errorf("unknown color type in PNG buffer: %d", ct)
+		f.SetErrorf("unknown color type in PNG buffer: %d", ct)
 	}
 	return
 }
 
 func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoType) {
 	info = f.newImageInfo()
+	if f.err != nil {
+		return
+	}
 	// 	Check signature
 	if string(buf.Next(8)) != "\x89PNG\x0d\x0a\x1a\x0a" {
-		f.err = fmt.Errorf("not a PNG buffer")
+		f.SetErrorf("not a PNG buffer")
 		return
 	}
 	// Read header chunk
 	_ = buf.Next(4)
 	if string(buf.Next(4)) != "IHDR" {
-		f.err = fmt.Errorf("incorrect PNG buffer")
+		f.SetErrorf("incorrect PNG buffer")
 		return
 	}
 	w := f.readBeInt32(buf)
 	h := f.readBeInt32(buf)
 	bpc := f.readByte(buf)
 	if bpc > 8 {
-		f.err = fmt.Errorf("16-bit depth not supported in PNG file")
+		f.SetErrorf("16-bit depth not supported in PNG file")
 	}
 	ct := f.readByte(buf)
 	var colspace string
@@ -65,15 +67,15 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 		return
 	}
 	if f.readByte(buf) != 0 {
-		f.err = fmt.Errorf("'unknown compression method in PNG buffer")
+		f.SetErrorf("unknown compression method in PNG buffer")
 		return
 	}
 	if f.readByte(buf) != 0 {
-		f.err = fmt.Errorf("'unknown filter method in PNG buffer")
+		f.SetErrorf("unknown filter method in PNG buffer")
 		return
 	}
 	if f.readByte(buf) != 0 {
-		f.err = fmt.Errorf("interlacing not supported in PNG buffer")
+		f.SetErrorf("interlacing not supported in PNG buffer")
 		return
 	}
 	_ = buf.Next(4)
@@ -145,7 +147,7 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 		}
 	}
 	if colspace == "Indexed" && len(pal) == 0 {
-		f.err = fmt.Errorf("missing palette in PNG buffer")
+		f.SetErrorf("missing palette in PNG buffer")
 	}
 	info.w = float64(w)
 	info.h = float64(h)
@@ -161,7 +163,7 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 		var err error
 		data, err = sliceUncompress(data)
 		if err != nil {
-			f.err = err
+			f.SetError(err)
 			return
 		}
 		var color, alpha bytes.Buffer

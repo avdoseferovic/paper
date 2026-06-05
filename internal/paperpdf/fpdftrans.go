@@ -1,9 +1,6 @@
 package paperpdf
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 // Routines in this file are translated from the work of Moritz Wagner and
 // Andreas Würmser.
@@ -58,7 +55,7 @@ func (f *Fpdf) TransformScaleXY(s, x, y float64) {
 // The TransformBegin() example demonstrates this method.
 func (f *Fpdf) TransformScale(scaleWd, scaleHt, x, y float64) {
 	if scaleWd == 0 || scaleHt == 0 {
-		f.err = fmt.Errorf("scale factor cannot be zero")
+		f.SetErrorf("scale factor cannot be zero")
 		return
 	}
 	y = (f.h - y) * f.k
@@ -173,7 +170,7 @@ func (f *Fpdf) TransformSkewY(angleY, x, y float64) {
 // The TransformBegin() example demonstrates this method.
 func (f *Fpdf) TransformSkew(angleX, angleY, x, y float64) {
 	if angleX <= -90 || angleX >= 90 || angleY <= -90 || angleY >= 90 {
-		f.err = fmt.Errorf("skew values must be between -90° and 90°")
+		f.SetErrorf("skew values must be between -90° and 90°")
 		return
 	}
 	x *= f.k
@@ -195,8 +192,8 @@ func (f *Fpdf) Transform(tm TransformMatrix) {
 	if f.transformNest > 0 {
 		f.outf("%.5f %.5f %.5f %.5f %.5f %.5f cm",
 			tm.A, tm.B, tm.C, tm.D, tm.E, tm.F)
-	} else if f.err == nil {
-		f.err = fmt.Errorf("transformation context is not active")
+	} else {
+		f.SetErrorf("transformation context is not active")
 	}
 }
 
@@ -208,6 +205,6 @@ func (f *Fpdf) TransformEnd() {
 		f.transformNest--
 		f.out("Q")
 	} else {
-		f.err = fmt.Errorf("error attempting to end transformation operation out of sequence")
+		f.SetErrorf("error attempting to end transformation operation out of sequence")
 	}
 }

@@ -35,7 +35,7 @@ func round(f float64) int {
 	return int(math.Floor(f + 0.5))
 }
 
-func sprintf(fmtStr string, args ...interface{}) string {
+func sprintf(fmtStr string, args ...any) string {
 	return fmt.Sprintf(fmtStr, args...)
 }
 
@@ -244,9 +244,13 @@ func (f *Fpdf) UnicodeTranslatorFromDescriptor(cpStr string) (rep func(string) s
 		}
 		str, ok = embeddedMapList[cpStr]
 		if ok {
-			rep, f.err = UnicodeTranslator(strings.NewReader(str))
+			var err error
+			rep, err = UnicodeTranslator(strings.NewReader(str))
+			f.SetError(err)
 		} else {
-			rep, f.err = UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
+			var err error
+			rep, err = UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
+			f.SetError(err)
 		}
 	} else {
 		rep = doNothing
