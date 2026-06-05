@@ -104,14 +104,14 @@ Type: Feature
 
 - [x] Task 1: Split provider contract and backend files by responsibility
 - [x] Task 2: Extract root pagination/page-building ownership
-- [ ] Task 3: Extract rich-text layout pipeline
+- [x] Task 3: Extract rich-text layout pipeline
 - [ ] Task 4: Normalize props/config and add compatibility-safe concrete helpers
 - [ ] Task 5: Add programmatic render issue reporting
 - [ ] Task 6: Reorganize HTML/CSS computed style handling
 - [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 2 | **Remaining:** 6
+**Total Tasks:** 8 | **Completed:** 3 | **Remaining:** 5
 
 ## Implementation Tasks
 
@@ -218,10 +218,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] `AddRichText` no longer carries tokenization, measurement, wrapping, and drawing all inline.
-- [ ] Unit tests cover token preservation/collapse, wrapping order, alignment offsets, and letter-spacing width contribution.
-- [ ] Existing rich-text provider tests pass without behavior changes.
-- [ ] No `gocognit`, `gocyclo`, or `maintidx` suppression remains on `AddRichText`.
+- [x] `AddRichText` no longer carries tokenization, measurement, wrapping, and drawing all inline.
+- [x] Unit tests cover token preservation/collapse, wrapping order, alignment offsets, and letter-spacing width contribution.
+- [x] Existing rich-text provider tests pass without behavior changes.
+- [x] No `gocognit`, `gocyclo`, or `maintidx` suppression remains on `AddRichText`.
 
 **Verify:**
 

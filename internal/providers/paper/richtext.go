@@ -38,9 +38,7 @@ type resolvedRun struct {
 
 // AddRichText renders a paragraph of mixed inline runs within cell.
 // Font state is captured on entry and restored via defer so callers are unaffected.
-// All intermediate state (line buffer, cursors) is method-local — safe for concurrent use.
-//
-//nolint:gocognit,gocyclo,maintidx // Preserved renderer branching; this task only renames the provider backend.
+// Layout state is computed by pure helpers; PDF drawing is isolated in render helpers.
 func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) {
 	if len(runs) == 0 {
 		return
@@ -84,141 +82,18 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 
 	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
 
-	// Tokenise runs into renderable text spans + explicit line breaks.
-	tokens := tokeniseRuns(resolved, whiteSpace)
-
-	// Measure each token using its run's font and unicode translation.
-	lastRunIdx := -1
-	for i := range tokens {
-		if tokens[i].isBreak {
-			continue
-		}
-		r := resolved[tokens[i].runIdx]
-		if tokens[i].runIdx != lastRunIdx {
+	tokens, lineWidths := layoutRichTextTokens(resolved, richTextLayoutInput{
+		prop:       prop,
+		width:      width,
+		whiteSpace: whiteSpace,
+		measure: func(r resolvedRun, text string) (string, float64) {
 			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
-			lastRunIdx = tokens[i].runIdx
-		}
-		translated := s.translateUnicode(tokens[i].text, r.Family)
-		tokens[i].translated = translated
-		tokens[i].width = s.pdf.GetStringWidth(translated)
-		if r.LetterSpacing > 0 {
-			runeCount := len([]rune(translated))
-			if runeCount > 1 {
-				tokens[i].width += float64(runeCount-1) * r.LetterSpacing
-			}
-		}
-	}
+			translated := s.translateUnicode(text, r.Family)
+			return translated, s.pdf.GetStringWidth(translated)
+		},
+	})
 
-	// Line-wrap: assign each token an x and lineY.
-	lineY := 0
-	curX := firstXForLine(lineY, prop.FirstLineIndent)
-	noWrap := whiteSpace == "nowrap" || whiteSpace == richTextWhiteSpacePre
-	lastRunIdx = -1
-	for i := range tokens {
-		t := &tokens[i]
-		if t.isBreak {
-			lineY++
-			curX = firstXForLine(lineY, prop.FirstLineIndent)
-			lastRunIdx = -1
-			continue
-		}
-		r := resolved[t.runIdx]
-		if t.runIdx != lastRunIdx {
-			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
-			lastRunIdx = t.runIdx
-		}
-
-		lineStart := firstXForLine(lineY, prop.FirstLineIndent)
-		if t.skipAtLineStart && curX == lineStart {
-			t.skip = true
-			continue
-		}
-		if !noWrap && curX > lineStart && curX+t.width > width {
-			lineY++
-			curX = firstXForLine(lineY, prop.FirstLineIndent)
-			if t.skipAtLineStart {
-				t.skip = true
-				continue
-			}
-		}
-		t.x = curX
-		curX += t.width
-		t.lineY = lineY
-	}
-
-	lineWidths := make(map[int]float64)
-	for _, t := range tokens {
-		if t.isBreak || t.skip {
-			continue
-		}
-		if right := t.x + t.width; right > lineWidths[t.lineY] {
-			lineWidths[t.lineY] = right
-		}
-	}
-
-	// Render.
-	left, top, _, _ := s.pdf.GetMargins()
-	lastRunIdx = -1
-	for _, t := range tokens {
-		if t.isBreak || t.skip {
-			continue
-		}
-		r := resolved[t.runIdx]
-		if t.runIdx != lastRunIdx {
-			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
-			if r.Color != nil {
-				s.font.SetColor(r.Color)
-			} else {
-				s.font.SetColor(origColor)
-			}
-			lastRunIdx = t.runIdx
-		}
-		x := cell.X + prop.Left + alignmentOffset(prop.Align, width, lineWidths[t.lineY]) + t.x + left
-		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
-
-		if r.Background != nil {
-			s.pdf.SetFillColor(r.Background.Red, r.Background.Green, r.Background.Blue)
-			if r.Background.Alpha != nil && *r.Background.Alpha < 1 {
-				s.pdf.SetAlpha(*r.Background.Alpha, "Normal")
-				s.pdf.Rect(x, y-lineHeight, t.width, lineHeight, "F")
-				s.pdf.SetAlpha(1, "Normal")
-			} else {
-				s.pdf.Rect(x, y-lineHeight, t.width, lineHeight, "F")
-			}
-			s.pdf.SetFillColor(255, 255, 255)
-		}
-
-		if r.TextShadow != nil && r.TextShadow.Color != nil {
-			sc := r.TextShadow.Color
-			s.pdf.SetTextColor(sc.Red, sc.Green, sc.Blue)
-			s.pdf.Text(x+r.TextShadow.OffsetX, y+r.TextShadow.OffsetY, t.translated)
-			// Restore run colour before drawing normal text.
-			if r.Color != nil {
-				s.pdf.SetTextColor(r.Color.Red, r.Color.Green, r.Color.Blue)
-			} else {
-				s.pdf.SetTextColor(origColor.Red, origColor.Green, origColor.Blue)
-			}
-		}
-
-		if r.LetterSpacing > 0 {
-			curX := x
-			for _, ch := range t.translated {
-				charStr := string(ch)
-				s.pdf.Text(curX, y, charStr)
-				curX += s.pdf.GetStringWidth(charStr) + r.LetterSpacing
-			}
-		} else {
-			s.pdf.Text(x, y, t.translated)
-		}
-
-		if r.Hyperlink != nil {
-			s.pdf.LinkString(x, y-lineHeight, t.width, lineHeight, *r.Hyperlink)
-		}
-		if r.LocalAnchor != "" && prop.AnchorResolver != nil {
-			linkID := prop.AnchorResolver(r.LocalAnchor)
-			s.pdf.Link(x, y-lineHeight, t.width, lineHeight, linkID)
-		}
-	}
+	s.renderRichTextTokens(tokens, lineWidths, resolved, cell, prop, lineHeight, lineMultiplier, origColor)
 }
 
 // rtToken is the per-word state used by AddRichText's three-pass layout.
