@@ -3,7 +3,7 @@ package table
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 

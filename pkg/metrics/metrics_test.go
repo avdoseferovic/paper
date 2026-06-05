@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/pkg/metrics"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,6 @@
 package props
 
-import "github.com/avdoseferovic/paper/v2/pkg/consts/barcode"
+import "github.com/avdoseferovic/paper/pkg/consts/barcode"
 
 // Barcode represents properties from a barcode inside a cell.
 type Barcode struct {

@@ -1,8 +1,8 @@
 package props
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
 // Font represents properties from a text.

@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
 // WithAuthor defines the author name metadata.

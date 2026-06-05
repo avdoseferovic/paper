@@ -10,7 +10,7 @@
 - Returns an error if the header rows are taller than the page's usable height.
 
 ## GoDoc
-* [paper : RegisterHeader](https://pkg.go.dev/github.com/avdoseferovic/paper/v2#Paper.RegisterHeader)
+* [paper : RegisterHeader](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterHeader)
 
 ## Code Example
 [filename](../../assets/examples/header/v2/main.go ':include :type=code')

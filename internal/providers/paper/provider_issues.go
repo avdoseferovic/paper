@@ -1,6 +1,6 @@
 package paper
 
-import "github.com/avdoseferovic/paper/v2/pkg/metrics"
+import "github.com/avdoseferovic/paper/pkg/metrics"
 
 // RenderIssues returns the render fallback issues recorded by the provider.
 func (g *provider) RenderIssues() []metrics.RenderIssue {

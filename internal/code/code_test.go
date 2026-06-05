@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/pkg/consts/barcode"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/avdoseferovic/paper/v2/internal/code"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/internal/code"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 

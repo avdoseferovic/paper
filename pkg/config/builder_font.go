@@ -3,7 +3,7 @@ package config
 import (
 	"strings"
 
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // WithDefaultFont defines a custom font, other than arial. This can be used to define a custom font as default.

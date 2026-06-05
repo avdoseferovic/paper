@@ -3,10 +3,10 @@ package translate_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/html/css"
-	"github.com/avdoseferovic/paper/v2/pkg/html/translate"
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/html/css"
+	"github.com/avdoseferovic/paper/pkg/html/translate"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

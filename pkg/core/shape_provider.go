@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // ShapeProvider is a narrow optional capability interface for components that

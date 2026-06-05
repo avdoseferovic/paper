@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/avdoseferovic/paper/v2/internal/time"
-	"github.com/avdoseferovic/paper/v2/pkg/merge"
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/internal/time"
+	"github.com/avdoseferovic/paper/pkg/merge"
+	"github.com/avdoseferovic/paper/pkg/metrics"
 )
 
 var (

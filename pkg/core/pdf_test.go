@@ -9,10 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/metrics"
 )
 
 func TestNewPDF(t *testing.T) {

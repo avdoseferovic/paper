@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	metrics "github.com/avdoseferovic/paper/v2/pkg/metrics"
+	metrics "github.com/avdoseferovic/paper/pkg/metrics"
 	mock "github.com/stretchr/testify/mock"
 )
 

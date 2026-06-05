@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

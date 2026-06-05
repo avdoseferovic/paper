@@ -1,10 +1,10 @@
 package checkbox_test
 
 import (
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/components/checkbox"
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/components/checkbox"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // ExampleNew demonstrates how to create a checkbox component.

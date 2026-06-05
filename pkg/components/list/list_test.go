@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/internal/fixture"
-	"github.com/avdoseferovic/paper/v2/pkg/components/list"
-	"github.com/avdoseferovic/paper/v2/pkg/components/page"
-	"github.com/avdoseferovic/paper/v2/pkg/components/row"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/pkg/components/list"
+	"github.com/avdoseferovic/paper/pkg/components/page"
+	"github.com/avdoseferovic/paper/pkg/components/row"
+	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 

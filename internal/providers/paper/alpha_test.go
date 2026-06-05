@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 )
 
 // alphaFpdfStub embeds the Fpdf interface so it satisfies the type with all

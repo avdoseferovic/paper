@@ -10,10 +10,10 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 4. On the first run (or when you want to update the fixture), call `.Assert(m.GetStructure()).Save("fixture-name")` to write the JSON file.
 
 ## GoDoc
-* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#New)
-* [method : Assert](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Assert)
-* [method : Equals](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Equals)
-* [method : Save](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/test#PaperTest.Save)
+* [constructor : New](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#New)
+* [method : Assert](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Assert)
+* [method : Equals](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Equals)
+* [method : Save](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/test#PaperTest.Save)
 
 ## Fixture Path
 The test helper stores JSON fixtures in [`test/paper/`](https://github.com/avdoseferovic/paper/tree/v2/test/paper) relative to the module root.

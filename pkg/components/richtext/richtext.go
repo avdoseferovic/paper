@@ -4,13 +4,13 @@ package richtext
 import (
 	"strings"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/components/row"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/row"
+	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
 // anchorResolverIface is a narrow interface satisfied by the HTML translator's

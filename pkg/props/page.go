@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
 // Place is the representation of a place in a page.

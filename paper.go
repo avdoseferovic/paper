@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/avdoseferovic/paper/v2/internal/cache"
+	"github.com/avdoseferovic/paper/internal/cache"
 
-	paperprovider "github.com/avdoseferovic/paper/v2/internal/providers/paper"
+	paperprovider "github.com/avdoseferovic/paper/internal/providers/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/row"
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/html"
+	"github.com/avdoseferovic/paper/pkg/components/row"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/html"
 )
 
 var (

@@ -1,9 +1,9 @@
 package table
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // computeRowHeights runs the two-pass rowspan height algorithm and caches results.

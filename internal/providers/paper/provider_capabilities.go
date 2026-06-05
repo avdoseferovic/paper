@@ -3,9 +3,9 @@ package paper
 import (
 	"math"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // WithCharSpacing runs fn without adjusting character spacing (no-op).

@@ -9,7 +9,7 @@
 - Very narrow pages may cause text to overflow if column widths become smaller than a single word.
 
 ## GoDoc
-* [builder : WithDimensions](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithDimensions)
+* [builder : WithDimensions](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithDimensions)
 
 ## Code Example
 [filename](../../assets/examples/customdimensions/v2/main.go ':include :type=code')

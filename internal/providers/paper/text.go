@@ -6,13 +6,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/align"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 type Text struct {

@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/components/page"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/components/page"
+	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/core"
 )
 
 func main() {

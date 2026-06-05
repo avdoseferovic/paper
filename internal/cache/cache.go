@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
 var (

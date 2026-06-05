@@ -1,9 +1,9 @@
 package core
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // GridProvider is the provider surface used to advance the PDF grid cursor and

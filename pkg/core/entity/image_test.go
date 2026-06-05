@@ -3,11 +3,11 @@ package entity_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 )
 
 func TestImage_AppendMap(t *testing.T) {

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	gofpdf "github.com/avdoseferovic/paper/v2/internal/providers/paper"
-	"github.com/avdoseferovic/paper/v2/mocks"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
+	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
 )
 
 func parseInlineRuns(t *testing.T, htmlStr string) []runEntry {

@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/pkg/consts/barcode"
 	"github.com/google/uuid"
 
-	"github.com/avdoseferovic/paper/v2/internal/fixture"
-	"github.com/avdoseferovic/paper/v2/internal/merror"
-	"github.com/avdoseferovic/paper/v2/mocks"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
+	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/internal/merror"
+	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/consts/protection"
 	"github.com/stretchr/testify/mock"
 
-	gofpdf "github.com/avdoseferovic/paper/v2/internal/providers/paper"
+	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/stretchr/testify/assert"
 )
 

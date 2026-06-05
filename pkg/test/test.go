@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core"
 )
 
 var (

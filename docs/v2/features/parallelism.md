@@ -17,7 +17,7 @@
 - Incompatible with `WithSequentialLowMemoryMode`; the last one called wins.
 
 ## GoDoc
-* [builder : WithConcurrentMode](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithConcurrentMode)
+* [builder : WithConcurrentMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithConcurrentMode)
 
 ## Code Example
 [filename](../../assets/examples/parallelism/v2/main.go  ':include :type=code')

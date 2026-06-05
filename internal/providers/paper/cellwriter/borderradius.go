@@ -1,10 +1,10 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/border"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/pkg/consts/border"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // bezierArcMagic is the standard cubic-Bezier approximation factor for a

@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	gofpdf "github.com/avdoseferovic/paper/v2/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
 
 	io "io"
 

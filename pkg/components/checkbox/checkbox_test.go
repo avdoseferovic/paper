@@ -3,11 +3,11 @@ package checkbox_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/internal/fixture"
-	"github.com/avdoseferovic/paper/v2/mocks"
-	"github.com/avdoseferovic/paper/v2/pkg/components/checkbox"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/pkg/components/checkbox"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 

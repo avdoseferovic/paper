@@ -1,6 +1,6 @@
 package fontrepository
 
-import "github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+import "github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 type customFont struct {
 	family string

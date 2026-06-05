@@ -1,10 +1,10 @@
 package core
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/google/uuid"
 )
 

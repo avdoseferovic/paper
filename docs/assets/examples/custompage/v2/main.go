@@ -3,18 +3,18 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core"
 
-	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/pagesize"
+	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/components/image"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/image"
+	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 func main() {

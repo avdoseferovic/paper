@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
 func TestAnchor_LocalAnchor_PopulatedOnRichRun(t *testing.T) {

@@ -1,6 +1,6 @@
 # Paper V2
 
-[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper/v2)
+[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper)
 [![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
 [![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
@@ -41,7 +41,7 @@ Use `paper.New()` only when you need to mix HTML with manually composed rows, he
 * Installation with`go get`:
 
 ```bash
-go get github.com/avdoseferovic/paper/v2@v2.4.0
+go get github.com/avdoseferovic/paper@v2.4.0
 ```
 
 * You can see the full `v2` documentation [here](https://paper.tech/#/README?id=paper-v2).

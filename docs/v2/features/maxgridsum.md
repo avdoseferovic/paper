@@ -9,7 +9,7 @@
 - Change the grid size only at the document level; it cannot be changed per row.
 
 ## GoDoc
-* [builder : WithMaxGridSize](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithMaxGridSize)
+* [builder : WithMaxGridSize](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithMaxGridSize)
 
 ## Code Example
 [filename](../../assets/examples/maxgridsum/v2/main.go ':include :type=code')

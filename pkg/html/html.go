@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
-	"github.com/avdoseferovic/paper/v2/pkg/html/translate"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/html/translate"
 )
 
 // Option configures FromString / FromReader behaviour.

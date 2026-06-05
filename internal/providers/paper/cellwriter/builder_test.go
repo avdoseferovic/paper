@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 
 	"github.com/stretchr/testify/assert"
 )

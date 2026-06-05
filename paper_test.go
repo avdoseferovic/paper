@@ -9,20 +9,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/code"
-	componentimage "github.com/avdoseferovic/paper/v2/pkg/components/image"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/components/code"
+	componentimage "github.com/avdoseferovic/paper/pkg/components/image"
+	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/components/page"
-	"github.com/avdoseferovic/paper/v2/pkg/components/row"
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	coreentity "github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/page"
+	"github.com/avdoseferovic/paper/pkg/components/row"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/consts/protection"
+	"github.com/avdoseferovic/paper/pkg/core"
+	coreentity "github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/test"
 
-	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper"
 
 	"github.com/stretchr/testify/assert"
 )

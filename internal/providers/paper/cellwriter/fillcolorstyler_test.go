@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/mocks"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/cellwriter"
+	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 	"github.com/stretchr/testify/assert"
 )
 

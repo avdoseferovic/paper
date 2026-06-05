@@ -3,10 +3,10 @@ package merror_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/internal/merror"
+	"github.com/avdoseferovic/paper/internal/merror"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/stretchr/testify/assert"
 )
 

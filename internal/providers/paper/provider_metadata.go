@@ -1,6 +1,6 @@
 package paper
 
-import "github.com/avdoseferovic/paper/v2/pkg/core/entity"
+import "github.com/avdoseferovic/paper/pkg/core/entity"
 
 func (g *provider) SetProtection(protection *entity.Protection) {
 	if protection == nil {

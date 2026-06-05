@@ -9,10 +9,10 @@ Paper ships with a standard set of built-in fonts. `WithCustomFonts` lets you re
 - Font files are embedded in the PDF, so the output is self-contained but larger.
 
 ## GoDoc
-* [builder : WithCustomFonts](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithCustomFonts)
-* [repository : AddUTF8Font](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/repository#FontRepository.AddUTF8Font)
-* [repository : Load](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/repository#FontRepository.Load)
-* [entity : CustomFont](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/core/entity#CustomFont)
+* [builder : WithCustomFonts](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithCustomFonts)
+* [repository : AddUTF8Font](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/repository#FontRepository.AddUTF8Font)
+* [repository : Load](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/repository#FontRepository.Load)
+* [entity : CustomFont](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core/entity#CustomFont)
 
 ## Code Example
 [filename](../../assets/examples/customfont/v2/main.go ':include :type=code')

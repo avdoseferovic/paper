@@ -20,11 +20,11 @@ Like QR codes, Data Matrix codes use `props.Rect` for layout control.
 - Set `JustReferenceWidth: true` when using `AddAutoRow` to allow the row to grow to the code's natural height.
 
 ## GoDoc
-* [constructor : NewMatrix](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewMatrix)
-* [constructor : NewMatrixCol](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewMatrixCol)
-* [constructor : NewMatrixRow](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#NewMatrixRow)
-* [props : Rect](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/props#Rect)
-* [component : MatrixCode](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/components/code#MatrixCode)
+* [constructor : NewMatrix](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#NewMatrix)
+* [constructor : NewMatrixCol](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#NewMatrixCol)
+* [constructor : NewMatrixRow](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#NewMatrixRow)
+* [props : Rect](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Rect)
+* [component : MatrixCode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#MatrixCode)
 
 ## Code Example
 [filename](../../assets/examples/datamatrixgrid/v2/main.go ':include :type=code')

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/pkg/test"
 )
 
 func TestGetPaper(t *testing.T) {

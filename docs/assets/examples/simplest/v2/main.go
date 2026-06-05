@@ -3,19 +3,19 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/checkbox"
+	"github.com/avdoseferovic/paper/pkg/components/checkbox"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/line"
 
-	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/code"
-	"github.com/avdoseferovic/paper/v2/pkg/components/image"
-	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/components/code"
+	"github.com/avdoseferovic/paper/pkg/components/image"
+	"github.com/avdoseferovic/paper/pkg/components/signature"
+	"github.com/avdoseferovic/paper/pkg/components/text"
 )
 
 func main() {

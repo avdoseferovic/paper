@@ -10,7 +10,7 @@
 - Returns an error if the footer height exceeds the page's usable height.
 
 ## GoDoc
-* [paper : RegisterFooter](https://pkg.go.dev/github.com/avdoseferovic/paper/v2#Paper.RegisterFooter)
+* [paper : RegisterFooter](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterFooter)
 
 ## Code Example
 [filename](../../assets/examples/footer/v2/main.go ':include :type=code')

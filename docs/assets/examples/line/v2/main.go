@@ -3,16 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core"
 
-	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/line"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/components/line"
+	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/props"
 
-	"github.com/avdoseferovic/paper/v2/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/config"
 )
 
 func main() {

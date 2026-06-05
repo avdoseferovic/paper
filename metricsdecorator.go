@@ -1,11 +1,11 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/v2/internal/time"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/internal/time"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/metrics"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
 type MetricsDecorator struct {

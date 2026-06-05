@@ -3,8 +3,8 @@ package paper
 import (
 	"bytes"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 func (g *provider) CreateRow(height float64) {

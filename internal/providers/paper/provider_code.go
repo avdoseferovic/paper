@@ -1,11 +1,11 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/v2/internal/merror"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/barcode"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/internal/merror"
+	"github.com/avdoseferovic/paper/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 func (g *provider) AddMatrixCode(code string, cell *entity.Cell, prop *props.Rect) {

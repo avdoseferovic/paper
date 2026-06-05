@@ -1,15 +1,15 @@
 package col_test
 
 import (
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/components/code"
-	"github.com/avdoseferovic/paper/v2/pkg/components/col"
-	"github.com/avdoseferovic/paper/v2/pkg/components/row"
-	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/border"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/components/code"
+	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/row"
+	"github.com/avdoseferovic/paper/pkg/components/signature"
+	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/consts/border"
+	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // ExampleNew demonstrates how to create a Col instance.

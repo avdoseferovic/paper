@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/pkg/consts/generation"
 )
 
 // WithConcurrentMode defines concurrent generation, chunk workers define how mano chuncks

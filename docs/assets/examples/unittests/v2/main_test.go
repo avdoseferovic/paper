@@ -3,16 +3,16 @@ package main_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/line"
+	"github.com/avdoseferovic/paper/pkg/components/line"
 
-	"github.com/avdoseferovic/paper/v2"
+	"github.com/avdoseferovic/paper"
 
-	"github.com/avdoseferovic/paper/v2/pkg/components/code"
-	"github.com/avdoseferovic/paper/v2/pkg/components/image"
-	"github.com/avdoseferovic/paper/v2/pkg/components/signature"
-	"github.com/avdoseferovic/paper/v2/pkg/components/text"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/v2/pkg/test"
+	"github.com/avdoseferovic/paper/pkg/components/code"
+	"github.com/avdoseferovic/paper/pkg/components/image"
+	"github.com/avdoseferovic/paper/pkg/components/signature"
+	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/test"
 )
 
 func TestPaper_GetStructure(t *testing.T) {

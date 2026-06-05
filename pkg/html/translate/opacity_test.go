@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/avdoseferovic/paper/v2/pkg/html/css"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 )
 
 func TestToPropsColor_NilAlphaForOpaque(t *testing.T) {

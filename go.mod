@@ -1,4 +1,4 @@
-module github.com/avdoseferovic/paper/v2
+module github.com/avdoseferovic/paper
 
 go 1.26.1
 

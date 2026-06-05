@@ -1,9 +1,9 @@
 package config_test
 
 import (
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/pagesize"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 )
 
 // ExampleNewBuilder demonstrates how to use builder.

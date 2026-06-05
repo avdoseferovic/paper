@@ -1,10 +1,10 @@
 package translate
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/v2/pkg/html/css"
-	"github.com/avdoseferovic/paper/v2/pkg/html/dom"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/html/css"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // inlineRuns walks the inline children of a block element and returns the run list.

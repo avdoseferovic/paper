@@ -5,19 +5,19 @@ package config
 import (
 	"time"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/pkg/consts/generation"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/protection"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts/protection"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontfamily"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/pagesize"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/provider"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
+	"github.com/avdoseferovic/paper/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // Builder is the abstraction responsible for global customizations on the document.

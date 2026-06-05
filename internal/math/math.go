@@ -1,7 +1,7 @@
 package math
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
 type Math struct{}

@@ -1,6 +1,6 @@
 # Paper V2
 
-[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper/v2)
+[![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
 [![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
 [![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
@@ -16,7 +16,7 @@
 * Installation with`go get`:
 
 ```bash
-go get github.com/avdoseferovic/paper/v2@v2.4.0
+go get github.com/avdoseferovic/paper@v2.4.0
 ```
 
 The public API was completely redesigned with the aim of enhancing the

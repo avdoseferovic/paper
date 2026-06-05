@@ -1,6 +1,6 @@
 package paper
 
-import "github.com/avdoseferovic/paper/v2/pkg/props"
+import "github.com/avdoseferovic/paper/pkg/props"
 
 type richTextMeasureFunc func(run resolvedRun, text string) (translated string, width float64)
 

@@ -3,9 +3,9 @@ package translate_test
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2"
-	"github.com/avdoseferovic/paper/v2/pkg/config"
-	"github.com/avdoseferovic/paper/v2/pkg/html"
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -9,8 +9,8 @@
 - Any image format supported by the underlying PDF library (JPEG, PNG) can be used; the extension argument tells paper how to decode the file.
 
 ## GoDoc
-* [builder : WithBackgroundImage](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithBackgroundImage)
-* [consts : Extension](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/consts/extension#Type)
+* [builder : WithBackgroundImage](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithBackgroundImage)
+* [consts : Extension](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/extension#Type)
 
 ## Code Example
 [filename](../../assets/examples/background/v2/main.go  ':include :type=code')

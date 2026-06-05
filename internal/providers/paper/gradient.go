@@ -12,11 +12,11 @@ import (
 	"strings"
 	"sync"
 
-	gofpdflib "github.com/avdoseferovic/paper/v2/internal/paperpdf"
+	gofpdflib "github.com/avdoseferovic/paper/internal/paperpdf"
 
-	"github.com/avdoseferovic/paper/v2/internal/providers/paper/gofpdfwrapper"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 const gradientDPI = 75.0

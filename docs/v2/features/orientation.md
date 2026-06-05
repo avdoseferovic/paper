@@ -9,8 +9,8 @@
 - All pages in a single document share the same orientation; mixed-orientation documents are not directly supported. Use `merge.Bytes` to combine separately generated portrait and landscape documents.
 
 ## GoDoc
-* [builder : WithOrientation](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/config#CfgBuilder.WithOrientation)
-* [orientation : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/v2/pkg/consts/orientation)
+* [builder : WithOrientation](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithOrientation)
+* [orientation : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/orientation)
 
 ## Code Example
 [filename](../../assets/examples/orientation/v2/main.go ':include :type=code')

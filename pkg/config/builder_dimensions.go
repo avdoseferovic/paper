@@ -1,9 +1,9 @@
 package config
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/orientation"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/pagesize"
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
 // WithPageSize defines the page size, ex: A4, A4 and etc.

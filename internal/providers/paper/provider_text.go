@@ -1,8 +1,8 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 func (g *provider) AddText(text string, cell *entity.Cell, prop *props.Text) {

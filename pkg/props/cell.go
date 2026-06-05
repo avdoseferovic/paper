@@ -1,8 +1,8 @@
 package props
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/border"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts/border"
+	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 )
 
 // Cell is the representation of a cell in the grid system.

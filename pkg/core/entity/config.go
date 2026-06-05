@@ -1,9 +1,9 @@
 package entity
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/provider"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // Config is the configuration of a paper instance.

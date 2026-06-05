@@ -3,7 +3,7 @@ package paper
 import (
 	"testing"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/stretchr/testify/assert"
 )
 

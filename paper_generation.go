@@ -3,11 +3,11 @@ package paper
 import (
 	"sync"
 
-	"github.com/avdoseferovic/paper/v2/internal/cache"
-	"github.com/avdoseferovic/paper/v2/pkg/consts/generation"
-	"github.com/avdoseferovic/paper/v2/pkg/core"
-	"github.com/avdoseferovic/paper/v2/pkg/merge"
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
+	"github.com/avdoseferovic/paper/internal/cache"
+	"github.com/avdoseferovic/paper/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/merge"
+	"github.com/avdoseferovic/paper/pkg/metrics"
 )
 
 type pageProcessResult struct {

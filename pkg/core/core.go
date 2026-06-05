@@ -2,11 +2,11 @@
 package core
 
 import (
-	"github.com/avdoseferovic/paper/v2/pkg/tree/node"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 
-	"github.com/avdoseferovic/paper/v2/pkg/core/entity"
-	"github.com/avdoseferovic/paper/v2/pkg/metrics"
-	"github.com/avdoseferovic/paper/v2/pkg/props"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/metrics"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // Paper is the interface that wraps the basic methods of paper.
