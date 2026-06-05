@@ -441,6 +441,12 @@ Type: Feature
 - `Fpdf.CreateTemplate` / `UseTemplate` / `Serialize` -> generated PDF still contains expected XObject/resource references.
 - `fpdfNew` -> `defaultPageSizes` / `coreFontSet` helpers still produces A4 portrait defaults and supports custom page sizes.
 
+## Verification Fixes
+
+- [x] Propagate UTF-8 font subsetting errors from `putfonts` through `Fpdf.Error()` before writing partial font objects.
+- [x] Bound-check one-byte glyphs and truncated composite glyph component data during UTF-8 font subsetting.
+- [x] Bound-check malformed PNG transparency chunks, physical-pixel chunks, and decompressed alpha scanline data.
+
 ## Open Questions
 
 - None blocking. If implementation uncovers additional dead code, it must be proven with `deadcode -test ./...` and mapped into this plan before removal.

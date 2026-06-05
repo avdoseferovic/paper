@@ -18,6 +18,7 @@ package paperpdf
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 )
 
@@ -87,34 +88,48 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 	loop := true
 	for loop {
 		n := int(f.readBeInt32(buf))
+		if f.err != nil {
+			return
+		}
+		if n < 0 || buf.Len() < n+8 {
+			f.SetErrorf("incorrect PNG chunk")
+			return
+		}
 		// dbg("Loop [%d]", n)
-		switch string(buf.Next(4)) {
+		chunkType := string(buf.Next(4))
+		chunkData := buf.Next(n)
+		_ = buf.Next(4)
+		switch chunkType {
 		case "PLTE":
 			// dbg("PLTE")
 			// Read palette
-			pal = buf.Next(n)
-			_ = buf.Next(4)
+			pal = chunkData
 		case "tRNS":
 			// dbg("tRNS")
 			// Read transparency info
-			t := buf.Next(n)
 			switch ct {
 			case 0:
-				trns = []int{int(t[1])} // ord(substr($t,1,1)));
+				if len(chunkData) < 2 {
+					f.SetErrorf("incorrect PNG transparency chunk")
+					return
+				}
+				trns = []int{int(chunkData[1])} // ord(substr($t,1,1)));
 			case 2:
-				trns = []int{int(t[1]), int(t[3]), int(t[5])} // array(ord(substr($t,1,1)), ord(substr($t,3,1)), ord(substr($t,5,1)));
+				if len(chunkData) < 6 {
+					f.SetErrorf("incorrect PNG transparency chunk")
+					return
+				}
+				trns = []int{int(chunkData[1]), int(chunkData[3]), int(chunkData[5])} // array(ord(substr($t,1,1)), ord(substr($t,3,1)), ord(substr($t,5,1)));
 			default:
-				pos := strings.Index(string(t), "\x00")
+				pos := strings.Index(string(chunkData), "\x00")
 				if pos >= 0 {
 					trns = []int{pos} // array($pos);
 				}
 			}
-			_ = buf.Next(4)
 		case "IDAT":
 			// dbg("IDAT")
 			// Read image data block
-			data = append(data, buf.Next(n)...)
-			_ = buf.Next(4)
+			data = append(data, chunkData...)
 		case "IEND":
 			// dbg("IEND")
 			loop = false
@@ -124,9 +139,13 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 			// but we ignore files like this
 			// but if they're the same then we can stamp our info
 			// object with it
-			x := int(f.readBeInt32(buf))
-			y := int(f.readBeInt32(buf))
-			units := buf.Next(1)[0]
+			if len(chunkData) < 9 {
+				f.SetErrorf("incorrect PNG physical pixel dimensions chunk")
+				return
+			}
+			x := int(binary.BigEndian.Uint32(chunkData[0:4]))
+			y := int(binary.BigEndian.Uint32(chunkData[4:8]))
+			units := chunkData[8]
 			// only modify the info block if the user wants us to
 			if x == y && readdpi {
 				switch units {
@@ -137,10 +156,8 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 					info.dpi = float64(x)
 				}
 			}
-			_ = buf.Next(4)
 		default:
 			// dbg("default")
-			_ = buf.Next(n + 4)
 		}
 		if loop {
 			loop = n > 0
@@ -172,6 +189,10 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 			width := int(w)
 			height := int(h)
 			length := 2 * width
+			if len(data) < height*(1+length) {
+				f.SetErrorf("PNG alpha channel data is truncated")
+				return
+			}
 			var pos, elPos int
 			for i := 0; i < height; i++ {
 				pos = (1 + length) * i
@@ -189,6 +210,10 @@ func (f *Fpdf) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoT
 			width := int(w)
 			height := int(h)
 			length := 4 * width
+			if len(data) < height*(1+length) {
+				f.SetErrorf("PNG alpha channel data is truncated")
+				return
+			}
 			var pos, elPos int
 			for i := 0; i < height; i++ {
 				pos = (1 + length) * i

@@ -2,6 +2,7 @@ package paperpdf
 
 import (
 	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"errors"
 	"strings"
@@ -59,6 +60,45 @@ func TestPNGParseKeepsFirstError(t *testing.T) {
 	}
 }
 
+func TestPNGShortTransparencyChunkReturnsErrorWithoutPanic(t *testing.T) {
+	f := NewCustom(&InitType{})
+
+	recovered := recoverPNGParse(f, pngWithChunks(0, pngChunk("tRNS", []byte{0}), pngChunk("IEND", nil)))
+
+	if recovered != nil {
+		t.Fatalf("expected short tRNS chunk not to panic, got %v", recovered)
+	}
+	if f.Error() == nil {
+		t.Fatal("expected short tRNS chunk to set an error")
+	}
+}
+
+func TestPNGShortPhysicalChunkReturnsErrorWithoutPanic(t *testing.T) {
+	f := NewCustom(&InitType{})
+
+	recovered := recoverPNGParse(f, pngWithChunks(2, pngChunk("pHYs", nil), pngChunk("IEND", nil)))
+
+	if recovered != nil {
+		t.Fatalf("expected short pHYs chunk not to panic, got %v", recovered)
+	}
+	if f.Error() == nil {
+		t.Fatal("expected short pHYs chunk to set an error")
+	}
+}
+
+func TestPNGShortAlphaDataReturnsErrorWithoutPanic(t *testing.T) {
+	f := NewCustom(&InitType{})
+
+	recovered := recoverPNGParse(f, pngWithChunks(6, pngChunk("IDAT", zlibData([]byte{0})), pngChunk("IEND", nil)))
+
+	if recovered != nil {
+		t.Fatalf("expected short alpha data not to panic, got %v", recovered)
+	}
+	if f.Error() == nil {
+		t.Fatal("expected short alpha data to set an error")
+	}
+}
+
 func TestTransformKeepsFirstError(t *testing.T) {
 	f := NewCustom(&InitType{})
 	first := errors.New("first error")
@@ -101,5 +141,43 @@ func malformedPNGHeader(compression, filter byte) []byte {
 	b.WriteByte(filter)
 	b.WriteByte(0)
 	_ = binary.Write(&b, binary.BigEndian, uint32(0))
+	return b.Bytes()
+}
+
+func recoverPNGParse(f *Fpdf, data []byte) (recovered any) {
+	defer func() {
+		recovered = recover()
+	}()
+	f.parsepngstream(bytes.NewBuffer(data), true)
+	return nil
+}
+
+func pngWithChunks(colorType byte, chunks ...[]byte) []byte {
+	var b bytes.Buffer
+	b.Write(malformedPNGHeader(0, 0))
+	// malformedPNGHeader writes only a valid PNG signature and IHDR.
+	// Append caller-provided chunks for targeted parser coverage.
+	for _, chunk := range chunks {
+		b.Write(chunk)
+	}
+	data := b.Bytes()
+	data[25] = colorType
+	return data
+}
+
+func pngChunk(name string, data []byte) []byte {
+	var b bytes.Buffer
+	_ = binary.Write(&b, binary.BigEndian, uint32(len(data)))
+	b.WriteString(name)
+	b.Write(data)
+	_ = binary.Write(&b, binary.BigEndian, uint32(0))
+	return b.Bytes()
+}
+
+func zlibData(data []byte) []byte {
+	var b bytes.Buffer
+	w := zlib.NewWriter(&b)
+	_, _ = w.Write(data)
+	_ = w.Close()
 	return b.Bytes()
 }

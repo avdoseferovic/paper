@@ -759,47 +759,19 @@ func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
 		offsets = append(offsets, pos)
 		symbolPos := utf.symbolPosition[originalSymbolIdx]
 		symbolLen := utf.symbolPosition[originalSymbolIdx+1] - symbolPos
-		if symbolPos < 0 || symbolLen < 0 || symbolPos+symbolLen > len(symbolData) {
-			utf.setErrorf("glyph data is truncated")
+		data, ok := utf.glyphData(symbolData, symbolPos, symbolLen)
+		if !ok {
 			return nil
 		}
-		data := symbolData[symbolPos : symbolPos+symbolLen]
 		var up int
 		if symbolLen > 0 {
 			up = unpackUint16(data[0:2])
 		}
 
 		if symbolLen > 2 && (up&(1<<15)) != 0 {
-			posInSymbol := 10
-			flags := symbolContinue
-			nComponentElements := 0
-			for (flags & symbolContinue) != 0 {
-				nComponentElements++
-				up = unpackUint16(data[posInSymbol : posInSymbol+2])
-				flags = up
-				up = unpackUint16(data[posInSymbol+2 : posInSymbol+4])
-				symbolIdx := up
-				if _, OK := utf.symbolData[originalSymbolIdx]; !OK {
-					utf.symbolData[originalSymbolIdx] = make(map[string][]int)
-				}
-				if _, OK := utf.symbolData[originalSymbolIdx]["compSymbols"]; !OK {
-					utf.symbolData[originalSymbolIdx]["compSymbols"] = make([]int, 0)
-				}
-				utf.symbolData[originalSymbolIdx]["compSymbols"] = append(utf.symbolData[originalSymbolIdx]["compSymbols"], symbolIdx)
-				data = utf.insertUint16(data, posInSymbol+2, symbolArray[symbolIdx])
-				posInSymbol += 4
-				if (flags & symbolWords) != 0 {
-					posInSymbol += 4
-				} else {
-					posInSymbol += 2
-				}
-				if (flags & symbolScale) != 0 {
-					posInSymbol += 2
-				} else if (flags & symbolAllScale) != 0 {
-					posInSymbol += 4
-				} else if (flags & symbol2x2) != 0 {
-					posInSymbol += 8
-				}
+			data = utf.rewriteCompositeGlyph(data, originalSymbolIdx, symbolArray)
+			if utf.err != nil {
+				return nil
 			}
 		}
 
@@ -865,6 +837,64 @@ func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
 	utf.setOutTable("OS/2", os2Data)
 
 	return utf.assembleTables()
+}
+
+func (utf *utf8FontFile) glyphData(symbolData []byte, symbolPos, symbolLen int) ([]byte, bool) {
+	if symbolPos < 0 || symbolLen < 0 || symbolPos+symbolLen > len(symbolData) {
+		utf.setErrorf("glyph data is truncated")
+		return nil, false
+	}
+	if symbolLen == 1 {
+		utf.setErrorf("glyph data is truncated")
+		return nil, false
+	}
+	return symbolData[symbolPos : symbolPos+symbolLen], true
+}
+
+func (utf *utf8FontFile) rewriteCompositeGlyph(data []byte, originalSymbolIdx int, symbolArray map[int]int) []byte {
+	posInSymbol := 10
+	flags := symbolContinue
+	for flags&symbolContinue != 0 {
+		if posInSymbol+4 > len(data) {
+			utf.setErrorf("composite glyph data is truncated")
+			return data
+		}
+
+		flags = unpackUint16(data[posInSymbol : posInSymbol+2])
+		symbolIdx := unpackUint16(data[posInSymbol+2 : posInSymbol+4])
+
+		componentEnd := posInSymbol + 4
+		if flags&symbolWords != 0 {
+			componentEnd += 4
+		} else {
+			componentEnd += 2
+		}
+		if flags&symbolScale != 0 {
+			componentEnd += 2
+		} else if flags&symbolAllScale != 0 {
+			componentEnd += 4
+		} else if flags&symbol2x2 != 0 {
+			componentEnd += 8
+		}
+		if componentEnd > len(data) {
+			utf.setErrorf("composite glyph data is truncated")
+			return data
+		}
+
+		if utf.symbolData == nil {
+			utf.symbolData = make(map[int]map[string][]int)
+		}
+		if _, ok := utf.symbolData[originalSymbolIdx]; !ok {
+			utf.symbolData[originalSymbolIdx] = make(map[string][]int)
+		}
+		if _, ok := utf.symbolData[originalSymbolIdx]["compSymbols"]; !ok {
+			utf.symbolData[originalSymbolIdx]["compSymbols"] = make([]int, 0)
+		}
+		utf.symbolData[originalSymbolIdx]["compSymbols"] = append(utf.symbolData[originalSymbolIdx]["compSymbols"], symbolIdx)
+		data = utf.insertUint16(data, posInSymbol+2, symbolArray[symbolIdx])
+		posInSymbol = componentEnd
+	}
+	return data
 }
 
 func (utf *utf8FontFile) getSymbols(originalSymbolIdx int, start *int, symbolSet map[int]int, SymbolsCollection map[int]int, SymbolsCollectionKeys []int) (*int, map[int]int, map[int]int, []int) {

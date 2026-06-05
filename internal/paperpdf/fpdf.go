@@ -4023,6 +4023,14 @@ func (f *Fpdf) putfonts() {
 				usedRunes := font.usedRunes
 				delete(usedRunes, 0)
 				utf8FontStream := font.utf8File.generateCutFont(usedRunes)
+				if font.utf8File.err != nil {
+					f.SetError(fmt.Errorf("generate UTF-8 font subset: %w", font.utf8File.err))
+					return
+				}
+				if utf8FontStream == nil {
+					f.SetErrorf("generate UTF-8 font subset: empty font stream")
+					return
+				}
 				utf8FontSize := len(utf8FontStream)
 				compressedFontStream := sliceCompress(utf8FontStream)
 				CodeSignDictionary := font.utf8File.codeSymbolDictionary
