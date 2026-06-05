@@ -221,12 +221,12 @@ Paper's grid is **12 columns wide** by default (configurable via `config.WithMax
 
 ### Limitations (intentional)
 
-- **`flex-wrap`** — not supported. Flex items always stay on a single row.
-- **`order`** — items render in DOM order regardless.
+- **`flex-wrap`** — `wrap` and `wrap-reverse` are supported with greedy line packing based on `flex-basis`.
+- **`order`** — supported; equal order values preserve DOM order.
 - **`align-self`** — per-item cross-axis override not supported (use container-level `align-items`).
 - **`align-content`** — N/A without wrap.
 - **`flex-shrink`** — parsed but no independent effect. Hamilton's quantizer always sums exactly to the grid total, so overflow is impossible.
-- **`flex-direction: *-reverse`** — accepted as valid CSS but children render in source order.
+- **`flex-direction: row-reverse`** — supported. `column-reverse` is accepted as valid CSS but currently renders like `column`.
 - **`space-between` with no slack** — silently degrades to `flex-start` when item widths sum to the grid. Workaround: use non-equal flex weights, or ensure `gap` reserves spacer cols.
 - **`align-items: center`/`flex-end`** — best-effort within Paper's row model. Cross-axis alignment in PDF is bounded by the row's auto-height behaviour.
 

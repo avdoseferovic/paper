@@ -32,9 +32,12 @@ const dpiForRaster = 150.0
 // non-nil the caller falls back to the <img>'s alt text.
 type ImageResolver func(src string) (data []byte, ext string, err error)
 
-// ErrImageResolverRefused is returned by the default resolver when asked to load
-// a non-data: URI without an explicit WithImageBaseDir or WithImageResolver.
-var ErrImageResolverRefused = errors.New("html: default resolver refuses local file reads; configure WithImageBaseDir or WithImageResolver")
+// ErrImageResolverRefused is returned by the default resolver when asked to
+// load a non-data: URI without an explicit html.WithImageBaseDir or the
+// lower-level translate.WithImageResolver.
+var ErrImageResolverRefused = errors.New(
+	"html: default resolver refuses local file reads; configure html.WithImageBaseDir or translate.WithImageResolver",
+)
 
 // safeDefaultResolver only accepts data: URIs. It refuses any other src to
 // prevent path-traversal attacks on user-controlled HTML.

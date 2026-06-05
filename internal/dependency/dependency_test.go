@@ -262,6 +262,12 @@ func removedVersionedGlobs(root string) []string {
 
 func removedDeadCodePaths() []string {
 	return []string{
+		filepath.Join("internal", "paperpdf", "compare.go"),
+		filepath.Join("internal", "paperpdf", "font.go"),
+		filepath.Join("internal", "paperpdf", "grid.go"),
+		filepath.Join("internal", "paperpdf", "label.go"),
+		filepath.Join("internal", "paperpdf", "svgbasic.go"),
+		filepath.Join("internal", "paperpdf", "ttfparser.go"),
 		filepath.Join("pkg", "pkg.go"),
 		filepath.Join("pkg", "components", "components.go"),
 		filepath.Join("pkg", "consts", "consts.go"),
@@ -400,7 +406,7 @@ func shouldScanFile(path string) bool {
 	}
 
 	switch filepath.Ext(path) {
-	case ".go", ".md", ".html", ".json", ".yaml", ".yml":
+	case ".go", ".md", ".html", ".json", ".txt", ".yaml", ".yml":
 		return true
 	default:
 		return false
