@@ -13,3 +13,10 @@ Ownership boundary:
     internal/providers/paper.
   - Avoid casual style-only rewrites or broad refactors in this directory.
   - Record upstream refreshes or local backend patches here.
+
+Local backend patches:
+
+  - 2026-06-05: Modernized the internal backend with dependency-removal
+    cleanup, typed CID width generation, first-error-preserving error paths,
+    malformed TrueType parser hardening, focused font binary helpers, static
+    initialization data helpers, and package-local regression tests.
