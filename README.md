@@ -19,6 +19,10 @@ A Paper way to create PDFs. Paper can convert HTML directly to PDF, or compose d
 For custom layouts, you can still write PDFs with Paper's row/column API. A row may have many cols, and a col may have many components.
 Pages are added automatically when content exceeds the useful area. You can also define headers and footers for documents that need manual composition.
 
+Paper's PDF backend is internal to this module. Application code should use
+Paper's public packages and should not import or depend on GoFPDF directly for
+Paper rendering behavior.
+
 ## HTML to PDF
 
 ```go

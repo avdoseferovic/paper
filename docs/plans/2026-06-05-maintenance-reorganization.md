@@ -108,10 +108,10 @@ Type: Feature
 - [x] Task 4: Normalize props/config and add compatibility-safe concrete helpers
 - [x] Task 5: Add programmatic render issue reporting
 - [x] Task 6: Reorganize HTML/CSS computed style handling
-- [ ] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
+- [x] Task 7: Clean public package docs/aggregate surfaces and backend ownership docs
 - [ ] Task 8: Add organization guardrails and run full verification
 
-**Total Tasks:** 8 | **Completed:** 6 | **Remaining:** 2
+**Total Tasks:** 8 | **Completed:** 7 | **Remaining:** 1
 
 ## Implementation Tasks
 
@@ -387,10 +387,10 @@ Type: Feature
 
 **Definition of Done:**
 
-- [ ] Public aggregate packages contain useful package docs and remain importable.
-- [ ] Existing public subpackage imports remain valid.
-- [ ] `internal/paperpdf` has explicit ownership guidance and attribution remains intact.
-- [ ] README/docs no longer imply obsolete Maroto/Gofpdf ownership boundaries.
+- [x] Public aggregate packages contain useful package docs and remain importable.
+- [x] Existing public subpackage imports remain valid.
+- [x] `internal/paperpdf` has explicit ownership guidance and attribution remains intact.
+- [x] README/docs no longer imply obsolete Maroto/Gofpdf ownership boundaries.
 
 **Verify:**
 

@@ -5,3 +5,11 @@ This package contains a project-internal copy of the root runtime package from:
 The copied source is used as Paper's internal PDF backend so Paper does not
 depend on the external GoFPDF module at build time. The upstream license is
 preserved in LICENSE.
+
+Ownership boundary:
+
+  - Treat this directory as third-party-derived backend code.
+  - Keep Paper-owned adapter and rendering orchestration logic in
+    internal/providers/paper.
+  - Avoid casual style-only rewrites or broad refactors in this directory.
+  - Record upstream refreshes or local backend patches here.

@@ -6,7 +6,7 @@ package core
 // into subsequent rendering.
 //
 // Note: the current phpdave11/gofpdf fork does not expose SetCharSpacing —
-// only SetWordSpacing. The gofpdf provider therefore implements this interface
+// only SetWordSpacing. The internal paper provider therefore implements this interface
 // as a no-op (fn is invoked without any spacing adjustment). The interface and
 // type assertion path are still in place so a future fork swap or upstream
 // change can light up the feature without further wiring changes.

@@ -15,7 +15,7 @@ import (
 	"github.com/avdoseferovic/paper/v2/pkg/test"
 )
 
-func TestMaroto_GetStructure(t *testing.T) {
+func TestPaper_GetStructure(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	m := paper.New()

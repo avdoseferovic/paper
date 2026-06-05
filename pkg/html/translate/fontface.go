@@ -13,7 +13,7 @@ import (
 )
 
 // loadedFont is a font that's been resolved via the stylesheet resolver
-// and is ready to be registered with the gofpdf provider via LateFontProvider
+// and is ready to be registered with the PDF provider via LateFontProvider
 // at render time.
 type loadedFont struct {
 	family string
@@ -22,7 +22,7 @@ type loadedFont struct {
 
 // fontRegistration is a zero-height component that registers a font with
 // the provider on first Render. Subsequent renders are no-ops (registration
-// is idempotent within a single document; gofpdf overwrites silently).
+// is idempotent within a single document; the backend overwrites silently).
 type fontRegistration struct {
 	font loadedFont
 	done bool
