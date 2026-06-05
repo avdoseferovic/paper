@@ -1,8 +1,11 @@
 package maroto_test
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +23,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+type errorReader struct {
+	err error
+}
+
+func (r errorReader) Read(_ []byte) (int, error) {
+	return 0, r.err
+}
 
 func TestNew(t *testing.T) {
 	t.Parallel()
@@ -72,6 +83,63 @@ func TestNew(t *testing.T) {
 		// Assert
 		assert.NotNil(t, sut)
 		assert.Equal(t, "*maroto.Maroto", fmt.Sprintf("%T", sut))
+	})
+}
+
+func TestFromHTML(t *testing.T) {
+	t.Parallel()
+
+	t.Run("generates a PDF document from HTML", func(t *testing.T) {
+		t.Parallel()
+
+		doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+
+		assert.NoError(t, err)
+		if assert.NotNil(t, doc) {
+			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
+			assert.Greater(t, len(doc.GetBytes()), 1000)
+		}
+	})
+
+	t.Run("accepts the same config shape as New", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.NewBuilder().
+			WithMaxGridSize(20).
+			Build()
+
+		doc, err := maroto.FromHTML(`<div style="display:flex"><p>A</p><p>B</p><p>C</p></div>`, cfg)
+
+		assert.NoError(t, err)
+		if assert.NotNil(t, doc) {
+			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
+		}
+	})
+}
+
+func TestFromHTMLReader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("generates a PDF document from a reader", func(t *testing.T) {
+		t.Parallel()
+
+		doc, err := maroto.FromHTMLReader(strings.NewReader(`<p>reader input</p>`))
+
+		assert.NoError(t, err)
+		if assert.NotNil(t, doc) {
+			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
+		}
+	})
+
+	t.Run("returns read errors", func(t *testing.T) {
+		t.Parallel()
+
+		wantErr := errors.New("read failed")
+
+		doc, err := maroto.FromHTMLReader(errorReader{err: wantErr})
+
+		assert.Nil(t, doc)
+		assert.ErrorIs(t, err, wantErr)
 	})
 }
 

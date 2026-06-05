@@ -31,6 +31,9 @@ var _ core.ShapeProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.PositionProvider.
 var _ core.PositionProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.PageProvider.
+var _ core.PageProvider = (*provider)(nil)
+
 // compile-time assertion: *provider satisfies core.AlphaProvider.
 var _ core.AlphaProvider = (*provider)(nil)
 
@@ -80,6 +83,16 @@ func (g *provider) Link(x, y, w, h float64, linkID int) {
 func (g *provider) SetCursor(x, y float64) {
 	left, top, _, _ := g.fpdf.GetMargins()
 	g.fpdf.SetXY(x+left, y+top)
+}
+
+// EnsurePage advances the physical PDF document until pageNumber is current.
+// Maroto builds logical pages before rendering, but some HTML render paths draw
+// by absolute coordinates and do not reliably trigger gofpdf's cursor-based
+// automatic page break between logical pages.
+func (g *provider) EnsurePage(pageNumber int) {
+	for g.fpdf.PageNo() < pageNumber {
+		g.fpdf.AddPage()
+	}
 }
 
 // WithAlpha runs fn with the gofpdf alpha temporarily set to a (clamped to

@@ -1,5 +1,6 @@
 * [← Back To Home](README.md?id=maroto-v2)
 * **Features**
+  * [HTML to PDF](v2/html-support.md?id=html-to-pdf-support)
   * [Basics](v2/features/basics.md?id=basics)
   * [Add Page](v2/features/addpage.md?id=add-page)
   * [Auto Row](v2/features/autorow.md?id=auto-row)

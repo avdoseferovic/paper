@@ -1,10 +1,17 @@
 # Basics
 
-Maroto uses a **grid-based layout** to compose PDF documents. Every page is divided into a fixed number of columns (default: 12) and an unlimited number of rows. Components such as text, images, barcodes and lines are placed inside columns, and columns are grouped into rows.
+Maroto can generate PDFs directly from HTML with `maroto.FromHTML`. Use the grid-based layout API when you need lower-level control over pages, rows, columns, headers, footers, or individual components.
+
+```go
+doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+```
+
+Every page in the manual layout API is divided into a fixed number of columns (default: 12) and an unlimited number of rows. Components such as text, images, barcodes and lines are placed inside columns, and columns are grouped into rows.
 
 The entry point is `maroto.New()`, which accepts an optional `*entity.Config` produced by `config.NewBuilder()`. Once the document is configured, content is added via `AddRow`, `AddRows`, `AddAutoRow`, or `AddPages`. Finally, `Generate()` returns a `Document` that can be saved to disk or exported as bytes.
 
 ## GoDoc
+* [maroto : FromHTML](https://pkg.go.dev/github.com/johnfercher/maroto/v2#FromHTML)
 * [maroto : New](https://pkg.go.dev/github.com/johnfercher/maroto/v2#New)
 * [maroto : AddRow](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.AddRow)
 * [maroto : AddRows](https://pkg.go.dev/github.com/johnfercher/maroto/v2#Maroto.AddRows)

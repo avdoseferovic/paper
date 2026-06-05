@@ -10,15 +10,27 @@
 [![Stars Badge](https://img.shields.io/github/stars/johnfercher/maroto.svg?style=social&label=Stars)](https://github.com/johnfercher/maroto/stargazers)
 
 
-A Maroto way to create PDFs. Maroto is inspired in Bootstrap and uses [Gofpdf](https://github.com/phpdave11/gofpdf). Fast and simple.
+A Maroto way to create PDFs. Maroto can convert HTML directly to PDF, or compose documents with a Bootstrap-inspired row/column API on top of [Gofpdf](https://github.com/phpdave11/gofpdf). Fast and simple.
 
 ![sirmaroto](docs/assets/images/logosmall.png)
 > Maroto definition: Brazilian expression, means an astute/clever/intelligent person. 
 > [Art by **@marinabankr**](https://www.instagram.com/marinabankr/)
 
-You can write your PDFs like you are creating a site using Bootstrap. A Row may have many Cols, and a Col may have many components. 
-Besides that, pages will be added when content may extrapolate the useful area. You can define a header which will be added
-always when a new page appear, in this case, a header may have many rows, lines or tablelist. 
+For custom layouts, you can still write PDFs with Maroto's row/column API. A row may have many cols, and a col may have many components.
+Pages are added automatically when content exceeds the useful area. You can also define headers and footers for documents that need manual composition.
+
+## HTML to PDF
+
+```go
+doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+if err != nil {
+    log.Fatal(err)
+}
+
+_ = doc.Save("out.pdf")
+```
+
+Use `maroto.New()` only when you need to mix HTML with manually composed rows, headers, footers, or other Maroto components.
 
 #### Maroto `v2.4.0` is here! Try out:
 

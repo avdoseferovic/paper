@@ -2,7 +2,9 @@ package gofpdf
 
 import (
 	"strings"
+	"unicode"
 
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
@@ -76,8 +78,10 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		lineMultiplier = 1.0
 	}
 
-	// Tokenise runs into words + explicit line breaks.
-	tokens := tokeniseRuns(resolved)
+	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
+
+	// Tokenise runs into renderable text spans + explicit line breaks.
+	tokens := tokeniseRuns(resolved, whiteSpace)
 
 	// Measure each token using its run's font and unicode translation.
 	lastRunIdx := -1
@@ -90,7 +94,7 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
 			lastRunIdx = tokens[i].runIdx
 		}
-		translated := s.translateUnicode(tokens[i].word, r.Family)
+		translated := s.translateUnicode(tokens[i].text, r.Family)
 		tokens[i].translated = translated
 		tokens[i].width = s.pdf.GetStringWidth(translated)
 		if r.LetterSpacing > 0 {
@@ -102,52 +106,58 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	}
 
 	// Line-wrap: assign each token an x and lineY.
-	curX := 0.0
 	lineY := 0
-	spaceWidth := 0.0
+	curX := firstXForLine(lineY, prop.FirstLineIndent)
+	noWrap := whiteSpace == "nowrap" || whiteSpace == "pre"
 	lastRunIdx = -1
 	for i := range tokens {
 		t := &tokens[i]
 		if t.isBreak {
 			lineY++
-			curX = 0
+			curX = firstXForLine(lineY, prop.FirstLineIndent)
 			lastRunIdx = -1
 			continue
 		}
 		r := resolved[t.runIdx]
 		if t.runIdx != lastRunIdx {
 			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
-			spaceWidth = s.pdf.GetStringWidth(" ")
 			lastRunIdx = t.runIdx
 		}
 
-		need := t.width
-		if curX > 0 {
-			need += spaceWidth
+		lineStart := firstXForLine(lineY, prop.FirstLineIndent)
+		if t.skipAtLineStart && curX == lineStart {
+			t.skip = true
+			continue
 		}
-		if curX > 0 && curX+need > width {
+		if !noWrap && curX > lineStart && curX+t.width > width {
 			lineY++
-			curX = 0
+			curX = firstXForLine(lineY, prop.FirstLineIndent)
+			lineStart = curX
+			if t.skipAtLineStart {
+				t.skip = true
+				continue
+			}
 		}
-
-		// Position this token: first on the line at x=0, otherwise after the
-		// running x cursor plus a space gap. The gap MUST be added here so
-		// adjacent words in the same run actually separate visually.
-		if curX == 0 {
-			t.x = 0
-			curX = t.width
-		} else {
-			t.x = curX + spaceWidth
-			curX = t.x + t.width
-		}
+		t.x = curX
+		curX += t.width
 		t.lineY = lineY
+	}
+
+	lineWidths := make(map[int]float64)
+	for _, t := range tokens {
+		if t.isBreak || t.skip {
+			continue
+		}
+		if right := t.x + t.width; right > lineWidths[t.lineY] {
+			lineWidths[t.lineY] = right
+		}
 	}
 
 	// Render.
 	left, top, _, _ := s.pdf.GetMargins()
 	lastRunIdx = -1
 	for _, t := range tokens {
-		if t.isBreak {
+		if t.isBreak || t.skip {
 			continue
 		}
 		r := resolved[t.runIdx]
@@ -160,7 +170,7 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 			}
 			lastRunIdx = t.runIdx
 		}
-		x := cell.X + prop.Left + t.x + left
+		x := cell.X + prop.Left + alignmentOffset(prop.Align, width, lineWidths[t.lineY]) + t.x + left
 		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
 
 		if r.Background != nil {
@@ -210,37 +220,129 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 
 // rtToken is the per-word state used by AddRichText's three-pass layout.
 type rtToken struct {
-	word       string
-	translated string
-	runIdx     int
-	width      float64
-	x          float64
-	lineY      int
-	isBreak    bool
+	text            string
+	translated      string
+	runIdx          int
+	width           float64
+	x               float64
+	lineY           int
+	isBreak         bool
+	skip            bool
+	skipAtLineStart bool
 }
 
-// tokeniseRuns splits the resolved run sequence into words preserving order
-// and inserting explicit isBreak tokens at every \n boundary.
-func tokeniseRuns(runs []resolvedRun) []rtToken {
+// tokeniseRuns splits the resolved run sequence into renderable text spans,
+// preserving or collapsing whitespace according to CSS white-space semantics.
+func tokeniseRuns(runs []resolvedRun, whiteSpace string) []rtToken {
 	var out []rtToken
+	pendingCollapsedSpace := false
 	for i, r := range runs {
-		if !strings.Contains(r.Text, "\n") {
-			for _, w := range strings.Fields(r.Text) {
-				out = append(out, rtToken{word: w, runIdx: i})
-			}
-			continue
-		}
-		parts := strings.Split(r.Text, "\n")
-		for j, part := range parts {
-			for _, w := range strings.Fields(part) {
-				out = append(out, rtToken{word: w, runIdx: i})
-			}
-			if j < len(parts)-1 {
-				out = append(out, rtToken{runIdx: i, isBreak: true})
-			}
+		switch whiteSpace {
+		case "pre", "pre-wrap":
+			out = append(out, tokenisePreservedText(r.Text, i)...)
+		case "pre-line":
+			out, pendingCollapsedSpace = appendCollapsedTokens(out, r.Text, i, true, pendingCollapsedSpace)
+		default:
+			out, pendingCollapsedSpace = appendCollapsedTokens(out, r.Text, i, false, pendingCollapsedSpace)
 		}
 	}
 	return out
+}
+
+func appendCollapsedTokens(out []rtToken, text string, runIdx int, preserveNewlines bool, pendingSpace bool) ([]rtToken, bool) {
+	var b strings.Builder
+	flushWord := func() {
+		if b.Len() == 0 {
+			return
+		}
+		if pendingSpace && hasTextOnCurrentLine(out) {
+			out = append(out, rtToken{text: " ", runIdx: runIdx, skipAtLineStart: true})
+		}
+		pendingSpace = false
+		out = append(out, rtToken{text: b.String(), runIdx: runIdx})
+		b.Reset()
+	}
+	for _, r := range text {
+		if r == '\n' && preserveNewlines {
+			flushWord()
+			out = append(out, rtToken{runIdx: runIdx, isBreak: true})
+			pendingSpace = false
+			continue
+		}
+		if unicode.IsSpace(r) {
+			flushWord()
+			pendingSpace = true
+			continue
+		}
+		b.WriteRune(r)
+	}
+	flushWord()
+	return out, pendingSpace
+}
+
+func tokenisePreservedText(text string, runIdx int) []rtToken {
+	var out []rtToken
+	var b strings.Builder
+	flush := func() {
+		if b.Len() == 0 {
+			return
+		}
+		out = append(out, rtToken{text: b.String(), runIdx: runIdx})
+		b.Reset()
+	}
+	for _, r := range text {
+		if r == '\n' {
+			flush()
+			out = append(out, rtToken{runIdx: runIdx, isBreak: true})
+			continue
+		}
+		b.WriteRune(r)
+	}
+	flush()
+	return out
+}
+
+func hasTextOnCurrentLine(tokens []rtToken) bool {
+	for i := len(tokens) - 1; i >= 0; i-- {
+		if tokens[i].isBreak {
+			return false
+		}
+		if tokens[i].text != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func firstXForLine(lineY int, firstLineIndent float64) float64 {
+	if lineY == 0 && firstLineIndent > 0 {
+		return firstLineIndent
+	}
+	return 0
+}
+
+func alignmentOffset(a align.Type, width, lineWidth float64) float64 {
+	slack := width - lineWidth
+	if slack <= 0 {
+		return 0
+	}
+	switch a {
+	case align.Center:
+		return slack / 2
+	case align.Right:
+		return slack
+	default:
+		return 0
+	}
+}
+
+func normalizeRichTextWhiteSpace(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "nowrap", "pre", "pre-wrap", "pre-line":
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return "normal"
+	}
 }
 
 // styleWithUnderline appends "U" to the gofpdf style string when underline is set.

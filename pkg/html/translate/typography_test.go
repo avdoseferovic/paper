@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
+	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
 	"github.com/johnfercher/maroto/v2/pkg/html/dom"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -90,4 +92,28 @@ func TestTypography_WhiteSpace_Stored(t *testing.T) {
 	style := css.NewComputedStyle()
 	style.Apply("white-space", "nowrap", nil)
 	assert.Equal(t, "nowrap", style.WhiteSpace)
+}
+
+func TestTypography_RichTextLayoutPropsMappedFromCSS(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><p style="white-space:pre-line;text-indent:5mm;text-align:right">one
+two</p></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "richtext" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, "pre-line", details["white_space"])
+	assert.Equal(t, 5.0, details["first_line_indent"])
+	assert.Equal(t, align.Right, details["align"])
+	assert.Zero(t, details["left"], "text-indent should not shift every line through left padding")
 }

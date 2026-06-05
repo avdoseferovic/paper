@@ -5,12 +5,14 @@ import (
 
 	"github.com/johnfercher/maroto/v2/internal/providers/gofpdf"
 	"github.com/johnfercher/maroto/v2/mocks"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontfamily"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // baseRichTextSetup creates a minimal set of pdf + font mocks for AddRichText.
@@ -179,6 +181,128 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
 		assert.Zero(t, textColorCalls)
 	})
+}
+
+func TestAddRichText_WhiteSpace(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nowrap keeps tokens on one rendered line", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+		var ys []float64
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+			Run(func(_, y float64, _ string) { ys = append(ys, y) }).Maybe()
+
+		prop := &props.RichText{WhiteSpace: "nowrap"}
+		prop.MakeValid(nil)
+		runs := []props.RichRun{{Text: "one two three", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 10, Height: 20}, prop)
+
+		assert.NotEmpty(t, ys)
+		for _, y := range ys {
+			assert.Equal(t, ys[0], y)
+		}
+	})
+}
+
+func TestAddRichText_FirstLineIndent(t *testing.T) {
+	t.Parallel()
+
+	t.Run("offsets only the first rendered line", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+		var xs []float64
+		var texts []string
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+			Run(func(x, _ float64, text string) {
+				xs = append(xs, x)
+				texts = append(texts, text)
+			}).Maybe()
+
+		prop := &props.RichText{FirstLineIndent: 5}
+		prop.MakeValid(nil)
+		runs := []props.RichRun{{Text: "one two", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 16, Height: 20}, prop)
+
+		require.GreaterOrEqual(t, len(xs), 2)
+		assert.Equal(t, "one", texts[0])
+		assert.Equal(t, 5.0, xs[0])
+		assert.Equal(t, "two", texts[len(texts)-1])
+		assert.Equal(t, 0.0, xs[len(xs)-1])
+	})
+}
+
+func TestAddRichText_Align(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		align align.Type
+		wantX float64
+	}{
+		{name: "center", align: align.Center, wantX: 10},
+		{name: "right", align: align.Right, wantX: 20},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+			font := mocks.NewFont(t)
+			font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+			font.EXPECT().GetColor().Return(origColor)
+			font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+			font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+			font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+			var xs []float64
+			pdf := mocks.NewFpdf(t)
+			pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+			pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(10.0).Maybe()
+			pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+			pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+				Run(func(x, _ float64, _ string) { xs = append(xs, x) }).Maybe()
+
+			prop := &props.RichText{Align: tt.align}
+			prop.MakeValid(nil)
+			runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+
+			sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+			sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 30, Height: 20}, prop)
+
+			require.NotEmpty(t, xs)
+			assert.Equal(t, tt.wantX, xs[0])
+		})
+	}
 }
 
 func TestAddRichText_Background(t *testing.T) {

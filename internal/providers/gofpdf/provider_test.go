@@ -642,6 +642,33 @@ func TestProvider_CreateRow(t *testing.T) {
 	fpdf.AssertNumberOfCalls(t, "Ln", 1)
 }
 
+func TestProvider_EnsurePage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds pages until requested page is current", func(t *testing.T) {
+		t.Parallel()
+		fpdf := mocks.NewFpdf(t)
+		fpdf.EXPECT().PageNo().Return(1).Once()
+		fpdf.EXPECT().AddPage().Once()
+		fpdf.EXPECT().PageNo().Return(2).Once()
+
+		sut := gofpdf.New(&gofpdf.Dependencies{Fpdf: fpdf})
+
+		sut.(core.PageProvider).EnsurePage(2)
+	})
+
+	t.Run("does not add a page when already current", func(t *testing.T) {
+		t.Parallel()
+		fpdf := mocks.NewFpdf(t)
+		fpdf.EXPECT().PageNo().Return(2).Once()
+
+		sut := gofpdf.New(&gofpdf.Dependencies{Fpdf: fpdf})
+
+		sut.(core.PageProvider).EnsurePage(2)
+		fpdf.AssertNotCalled(t, "AddPage")
+	})
+}
+
 func TestProvider_CreateCol(t *testing.T) {
 	t.Parallel()
 	// Arrange

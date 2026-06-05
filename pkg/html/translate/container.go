@@ -21,6 +21,7 @@ type blockContainer struct {
 	paddingLeft   float64
 	config        *entity.Config
 	cachedHeight  float64
+	cachedWidth   float64
 }
 
 type marginBox struct {
@@ -93,6 +94,7 @@ func (b *blockContainer) SetConfig(config *entity.Config) {
 	}
 	// Invalidate the height cache when config changes.
 	b.cachedHeight = 0
+	b.cachedWidth = 0
 }
 
 // GetStructure returns a "container" structure with all child row structures attached.
@@ -113,7 +115,7 @@ func (b *blockContainer) GetStructure() *node.Node[core.Structure] {
 
 // GetHeight returns the sum of child row heights plus top+bottom padding.
 func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
-	if b.cachedHeight > 0 {
+	if b.cachedHeight > 0 && b.cachedWidth == cell.Width {
 		return b.cachedHeight
 	}
 	inner := cell.Copy()
@@ -126,6 +128,7 @@ func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) fl
 		total += r.GetHeight(provider, &inner)
 	}
 	b.cachedHeight = total
+	b.cachedWidth = cell.Width
 	return total
 }
 
@@ -235,8 +238,14 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 		return nil, nil, false
 	}
 
-	// Use a dummy cell for height measurement (width only matters for word wrap).
-	dummyCell := &entity.Cell{Width: 10000, Height: 10000}
+	// Split with the same content width used by the build-phase GetHeight call.
+	// Falling back to a huge width underestimates wrapped text and can collapse
+	// an entire multi-page HTML document onto one rendered page.
+	width := s.container.cachedWidth
+	if width <= 0 {
+		width = 10000
+	}
+	dummyCell := &entity.Cell{Width: width, Height: 10000}
 
 	totalHeight := s.container.GetHeight(provider, dummyCell)
 	if totalHeight <= remainingHeight {

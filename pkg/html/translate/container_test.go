@@ -327,9 +327,48 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 		assert.True(t, didSplit, "split should be signaled")
 		assert.Nil(t, first, "when nothing fits, first must be nil (push to next page)")
 	})
+
+	t.Run("SplitAt uses the last measured content width", func(t *testing.T) {
+		widthAware := &widthAwareRow{}
+		container := &blockContainer{rows: []core.Row{widthAware}}
+		scr := newSplittableContainerRow(container)
+		scr.SetConfig(cfg)
+
+		narrowCell := &entity.Cell{Width: 100, Height: 100}
+		assert.Equal(t, 30.0, scr.GetHeight(p, narrowCell))
+
+		first, rest, didSplit := scr.SplitAt(p, 10)
+
+		assert.True(t, didSplit, "row is 30mm tall at the measured width and must split")
+		assert.Nil(t, first, "nothing fits in 10mm at the measured width")
+		assert.NotNil(t, rest)
+	})
 }
 
 // buildFixedHeightRow creates a Row with a fixed pixel height for test purposes.
 func buildFixedHeightRow(heightMM float64) core.Row {
 	return row.New(heightMM).Add(col.New())
 }
+
+type widthAwareRow struct{}
+
+func (r *widthAwareRow) SetConfig(_ *entity.Config) {}
+
+func (r *widthAwareRow) GetStructure() *node.Node[core.Structure] {
+	return node.New(core.Structure{Type: "width_aware_row"})
+}
+
+func (r *widthAwareRow) Add(...core.Col) core.Row { return r }
+
+func (r *widthAwareRow) GetHeight(_ core.Provider, cell *entity.Cell) float64 {
+	if cell.Width <= 200 {
+		return 30
+	}
+	return 5
+}
+
+func (r *widthAwareRow) GetColumns() []core.Col { return nil }
+
+func (r *widthAwareRow) WithStyle(_ *props.Cell) core.Row { return r }
+
+func (r *widthAwareRow) Render(core.Provider, entity.Cell) {}

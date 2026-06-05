@@ -150,6 +150,38 @@ func TestRichText_GetHeight(t *testing.T) {
 
 		assert.Equal(t, 5.0, sut.GetHeight(provider, cell))
 	})
+
+	t.Run("nowrap height ignores automatic wrapping", func(t *testing.T) {
+		t.Parallel()
+		runs := []props.RichRun{{Text: "one two three", Family: "Helvetica", Style: fontstyle.Normal, Size: 10}}
+
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"), mock.AnythingOfType("*props.Text"),
+			mock.AnythingOfType("float64")).Return(4).Maybe()
+
+		cell := &entity.Cell{Width: 10, Height: 100}
+		sut := richtext.New(runs, props.RichText{WhiteSpace: "nowrap"})
+		sut.SetConfig(defaultConfig())
+
+		assert.Equal(t, 5.0, sut.GetHeight(provider, cell))
+	})
+
+	t.Run("pre-line height preserves explicit line breaks", func(t *testing.T) {
+		t.Parallel()
+		runs := []props.RichRun{{Text: "one\ntwo", Family: "Helvetica", Style: fontstyle.Normal, Size: 10}}
+
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(mock.AnythingOfType("string"), mock.AnythingOfType("*props.Text"),
+			mock.AnythingOfType("float64")).Return(1).Maybe()
+
+		cell := &entity.Cell{Width: 50, Height: 100}
+		sut := richtext.New(runs, props.RichText{WhiteSpace: "pre-line"})
+		sut.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, sut.GetHeight(provider, cell))
+	})
 }
 
 func TestRichText_Render(t *testing.T) {
@@ -188,6 +220,23 @@ func TestRichText_Render(t *testing.T) {
 		assert.Equal(t, fontstyle.Normal, provider.runs[0].Style)
 		assert.Equal(t, 10.0, provider.runs[0].Size)
 	})
+
+	t.Run("passes white-space and first-line indent props to rich text provider", func(t *testing.T) {
+		t.Parallel()
+		provider := &richTextProviderFake{Provider: mocks.NewProvider(t)}
+		cell := &entity.Cell{Width: 50, Height: 100}
+		sut := richtext.New([]props.RichRun{{Text: "hello"}}, props.RichText{
+			WhiteSpace:      "pre-line",
+			FirstLineIndent: 5,
+		})
+		sut.SetConfig(defaultConfig())
+
+		sut.Render(provider, cell)
+
+		require.NotNil(t, provider.prop)
+		assert.Equal(t, "pre-line", provider.prop.WhiteSpace)
+		assert.Equal(t, 5.0, provider.prop.FirstLineIndent)
+	})
 }
 
 // Verify RichText implements core.Component at compile time.
@@ -196,6 +245,7 @@ var _ core.Component = (*richtext.RichText)(nil)
 type richTextProviderFake struct {
 	*mocks.Provider
 	runs []props.RichRun
+	prop *props.RichText
 }
 
 func (f *richTextProviderFake) MeasureString(_ string, _ *props.Text) float64 {
@@ -204,6 +254,7 @@ func (f *richTextProviderFake) MeasureString(_ string, _ *props.Text) float64 {
 
 func (f *richTextProviderFake) AddTextAt(_, _ float64, _ string, _ *props.Text) {}
 
-func (f *richTextProviderFake) AddRichText(runs []props.RichRun, _ *entity.Cell, _ *props.RichText) {
+func (f *richTextProviderFake) AddRichText(runs []props.RichRun, _ *entity.Cell, prop *props.RichText) {
 	f.runs = runs
+	f.prop = prop
 }

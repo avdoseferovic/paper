@@ -1,21 +1,30 @@
-# HTML → PDF Support
+# HTML to PDF Support
 
-Maroto can convert a documented subset of HTML/CSS into PDF rows. No browser, no Node, no external binary — pure Go.
+Maroto can convert a documented subset of HTML/CSS directly into PDF documents. No browser, no Node, no external binary — pure Go.
 
 ## Quick start
 
 ```go
 import maroto "github.com/johnfercher/maroto/v2"
 
+doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+if err != nil {
+    log.Fatal(err)
+}
+_ = doc.Save("out.pdf")
+```
+
+Use `maroto.New()` when you need to mix HTML with headers, footers, manual rows, or other Maroto components:
+
+```go
 m := maroto.New()
 if err := m.AddHTML(`<h1>Hello</h1><p>World</p>`); err != nil {
     log.Fatal(err)
 }
 doc, _ := m.Generate()
-_ = doc.Save("out.pdf")
 ```
 
-Or build rows directly:
+Or build rows directly for advanced resolver options:
 
 ```go
 import "github.com/johnfercher/maroto/v2/pkg/html"
@@ -43,6 +52,8 @@ rows, err := html.FromString(htmlString)
 ## Supported CSS properties
 
 **Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space`
+
+`text-align` supports `left`, `center`, and `right` for RichText paragraphs. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs.
 
 **Opacity:** `opacity` (0–1 or 0%–100%), multiplies into every descendant colour's alpha during the cascade.
 
@@ -77,10 +88,9 @@ rows, err := html.FromString(htmlString)
 These remain partially supported or deferred — most are visual-quality trade-offs of the pure-Go pipeline.
 
 - `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement (since `phpdave11/gofpdf` does not expose `SetCharSpacing`). Performance scales with character count, not word count.
+- `text-align: justify` currently degrades to left alignment for RichText paragraphs.
 - `align-self` is parsed and stored on `ComputedStyle` but the visual cross-axis offset requires knowing the row's max child height at render time. Currently a structural no-op; full visual alignment is deferred (blocked on explicit container height support).
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
-- `white-space` is parsed and stored; the renderer always wraps regardless of `nowrap`. `<pre>` and `<code>` continue to preserve whitespace via DOM-level detection.
-- `text-indent` shifts the entire paragraph (whole-block) in v1; CSS first-line-only indent requires renderer-side support.
 - `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
 - `text-shadow` renders only the first shadow when comma-separated multi-shadows are provided.
 - `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.

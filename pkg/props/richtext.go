@@ -43,6 +43,8 @@ type RichText struct {
 	Align             align.Type
 	LineHeight        float64
 	BreakLineStrategy breakline.Strategy
+	FirstLineIndent   float64
+	WhiteSpace        string
 
 	// AnchorResolver, when non-nil, is called with a LocalAnchor name to
 	// obtain the PDF link ID for per-run internal anchor rectangles. It is set
@@ -61,5 +63,8 @@ func (r *RichText) MakeValid(font *Font) {
 	}
 	if r.BreakLineStrategy == "" {
 		r.BreakLineStrategy = breakline.EmptySpaceStrategy
+	}
+	if r.WhiteSpace == "" {
+		r.WhiteSpace = "normal"
 	}
 }

@@ -36,6 +36,16 @@ func ExampleNewMetricsDecorator() {
 	_, _ = m.Generate()
 }
 
+// ExampleFromHTML demonstrates the shortest path from HTML to PDF.
+func ExampleFromHTML() {
+	doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_ = doc.GetBytes()
+}
+
 // ExampleMaroto_AddPages demonstrates how to add a new page in maroto.
 func ExampleMaroto_AddPages() {
 	m := maroto.New()

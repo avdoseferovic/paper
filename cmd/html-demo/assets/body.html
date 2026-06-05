@@ -89,6 +89,7 @@
     .pill-cloud   { display: flex; flex-wrap: wrap; gap: 2mm }
     .pill-tag     { background-color: #e3f2fd; border: 0.3mm solid #1e88e5; border-radius: 3mm; padding: 1mm 2mm }
     .var-demo     { background-color: var(--brand-soft); color: var(--brand); padding: 2mm; border-radius: 1.5mm; width: calc(100% - 20mm) }
+    .type-sample  { background-color: #f7f7fb; border: 0.3mm solid #d7dce6; border-radius: 2mm; padding: 2mm; margin-top: 1mm }
     :root { --brand: #0f2c4a; --brand-soft: #eef3f9 }
     .zebra tr:nth-child(even) td { background-color: #f4f6f8 }
     .zebra tr:first-child td { font-weight: bold }
@@ -128,7 +129,14 @@
     <h2>Typography &amp; Inline Runs</h2>
     <p>This paragraph combines <b>bold</b>, <strong>strong</strong>, <i>italic</i>, <em>emphasis</em>, <u>underline</u>, <s>strike</s>, <sub>subscript</sub>, <sup>superscript</sup>, and a live <a href="https://github.com/johnfercher/maroto">project link</a>.</p>
     <p style="text-transform: uppercase; letter-spacing: 0.4pt">letter-spaced uppercase text</p>
-    <p style="text-indent: 8mm">Text-indent shifts the leading edge of a paragraph.</p>
+    <p class="type-sample" style="text-indent: 8mm">Text-indent now offsets only the first rendered line. This sentence wraps so the second line returns to the normal paragraph edge.</p>
+    <p class="type-sample" style="text-align: center">Centered paragraph using CSS text-align.</p>
+    <p class="type-sample" style="text-align: right">Right-aligned paragraph using CSS text-align.</p>
+    <p class="type-sample" style="white-space: pre-line">pre-line preserves this break
+while still collapsing extra inline spacing.</p>
+    <p class="type-sample" style="white-space: pre-wrap">pre-wrap keeps     repeated spaces and
+explicit line breaks.</p>
+    <p class="type-sample" style="white-space: nowrap">nowrap keeps this long sentence on a single rendered line even in a narrow-looking text sample.</p>
     <blockquote>Blockquotes render as padded, bordered, colored rows — useful for callouts or excerpts.</blockquote>
 
     <p class="gap-lg"></p>

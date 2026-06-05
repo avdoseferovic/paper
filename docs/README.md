@@ -29,6 +29,21 @@ library in various aspects. The main objectives of`v2.0.0`are:
 5. Allow recursive Row/Col; **(on roadmap)**
 6. Allow generation based on [serialized data](https://github.com/johnfercher/maroto/discussions/390).
 
+## HTML to PDF
+
+For HTML-only documents, the public API is one call:
+
+```go
+doc, err := maroto.FromHTML(`<h1>Hello</h1><p>World</p>`)
+if err != nil {
+    log.Fatal(err)
+}
+
+_ = doc.Save("out.pdf")
+```
+
+Use the row/column API when you need to mix HTML with manual components, headers, footers, page numbers, or lower-level layout control.
+
 ## Code Example
 This is part of the [simplest example](v2/examples/simplest?id=simplest).
 

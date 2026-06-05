@@ -8,6 +8,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/components/line"
 	"github.com/johnfercher/maroto/v2/pkg/components/richtext"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/html/css"
@@ -288,14 +289,7 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	// user `h2 { font-size: 12pt }` override the 20pt heading default.
 	applyInlineStyleToRuns(style, runs)
 	applyBlockStyling(n, runs)
-	// text-indent shifts the whole paragraph in v1 (true first-line indent
-	// requires renderer-side support; documented limitation).
-	rtProp := props.RichText{
-		Top:    style.PaddingTop,
-		Right:  style.PaddingRight,
-		Bottom: style.PaddingBottom,
-		Left:   style.PaddingLeft + style.TextIndent,
-	}
+	rtProp := richTextPropsFromStyle(style)
 	rt := richtext.New(runs, rtProp)
 	if tr.anchorReg != nil {
 		rt.WithAnchorRegistry(tr.anchorReg)
@@ -306,6 +300,38 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 		r = r.WithStyle(cellStyle)
 	}
 	return r
+}
+
+func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {
+	if style == nil {
+		return props.RichText{}
+	}
+	rt := props.RichText{
+		Top:             style.PaddingTop,
+		Right:           style.PaddingRight,
+		Bottom:          style.PaddingBottom,
+		Left:            style.PaddingLeft,
+		Align:           richTextAlignFromCSS(style.TextAlign),
+		FirstLineIndent: style.TextIndent,
+		WhiteSpace:      style.WhiteSpace,
+	}
+	if style.LineHeight > 0 && style.LineHeight != 1 {
+		rt.LineHeight = style.LineHeight
+	}
+	return rt
+}
+
+func richTextAlignFromCSS(value string) align.Type {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "center":
+		return align.Center
+	case "right", "end":
+		return align.Right
+	case "justify":
+		return align.Justify
+	default:
+		return ""
+	}
 }
 
 // hrRow produces a thin row containing a horizontal line (default style).

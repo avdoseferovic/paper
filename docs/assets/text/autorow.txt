@@ -1,2 +1,2 @@
-generate -> avg: 1.93ms, executions: [1.93ms]
+generate -> avg: 3.05ms, executions: [3.05ms]
 file_size -> 222.71Kb

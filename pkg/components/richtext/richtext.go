@@ -7,6 +7,7 @@ import (
 	"github.com/johnfercher/go-tree/node"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/core/entity"
 	"github.com/johnfercher/maroto/v2/pkg/props"
@@ -83,6 +84,18 @@ func (r *RichText) GetStructure() *node.Node[core.Structure] {
 	}
 	if r.prop.LineHeight != 0 {
 		details["line_height"] = r.prop.LineHeight
+	}
+	if r.prop.FirstLineIndent != 0 {
+		details["first_line_indent"] = r.prop.FirstLineIndent
+	}
+	if r.prop.Left != 0 {
+		details["left"] = r.prop.Left
+	}
+	if r.prop.Align != "" && r.prop.Align != align.Left {
+		details["align"] = r.prop.Align
+	}
+	if ws := normalizeWhiteSpace(r.prop.WhiteSpace); ws != "normal" {
+		details["white_space"] = ws
 	}
 	str := core.Structure{
 		Type:    "richtext",
@@ -191,11 +204,27 @@ func (r *RichText) runsWithDefaultFont() []props.RichRun {
 // lines per segment without double-counting the line breaks themselves.
 func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colWidth float64) int {
 	total := 0
-	for segment := range strings.SplitSeq(r.allText(), "\n") {
+	mode := normalizeWhiteSpace(r.prop.WhiteSpace)
+	text := textForWhiteSpace(r.allText(), mode)
+	if mode == "nowrap" || mode == "pre" {
+		return countExplicitLines(text)
+	}
+	firstLineIndent := r.prop.FirstLineIndent
+	for segment := range strings.SplitSeq(text, "\n") {
 		if segment == "" {
+			total++
+			firstLineIndent = 0
 			continue
 		}
-		total += provider.GetLinesQuantity(segment, fontProp, colWidth)
+		width := colWidth
+		if firstLineIndent > 0 {
+			width -= firstLineIndent
+			firstLineIndent = 0
+			if width <= 0 {
+				width = colWidth
+			}
+		}
+		total += provider.GetLinesQuantity(segment, fontProp, width)
 	}
 	return total
 }
@@ -245,4 +274,35 @@ func (r *RichText) invalidateCache() {
 	r.cachedHeight = 0
 	r.cachedCellWidth = 0
 	r.cachedConfigKey = ""
+}
+
+func normalizeWhiteSpace(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "nowrap", "pre", "pre-wrap", "pre-line":
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return "normal"
+	}
+}
+
+func textForWhiteSpace(text, mode string) string {
+	switch mode {
+	case "pre", "pre-wrap":
+		return text
+	case "pre-line":
+		parts := strings.Split(text, "\n")
+		for i, part := range parts {
+			parts[i] = strings.Join(strings.Fields(part), " ")
+		}
+		return strings.Join(parts, "\n")
+	default:
+		return strings.Join(strings.Fields(text), " ")
+	}
+}
+
+func countExplicitLines(text string) int {
+	if text == "" {
+		return 1
+	}
+	return strings.Count(text, "\n") + 1
 }

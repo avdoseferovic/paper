@@ -1,4 +1,5 @@
 * [Maroto V2](README.md?id=maroto-v2)
+  * [HTML to PDF](v2/html-support.md?id=html-to-pdf-support)
   * [Features](v2/features/basics.md?id=basics)
   * [Examples](v2/examples/billing.md?id=billing)
 * [Maroto V1 (Deprecated)](v1/README.md?id=deprecated)

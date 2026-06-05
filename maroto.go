@@ -2,6 +2,8 @@ package maroto
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"math"
 
 	"github.com/f-amaral/go-async/pool"
@@ -74,6 +76,27 @@ func New(cfgs ...*entity.Config) core.Maroto {
 	}
 
 	return m
+}
+
+// FromHTML converts an HTML string directly into a PDF document.
+// It is the shortest path for callers that only need HTML-to-PDF output.
+// Optional configs are the same configs accepted by New.
+func FromHTML(htmlStr string, cfgs ...*entity.Config) (core.Document, error) {
+	m := New(cfgs...)
+	if err := m.AddHTML(htmlStr); err != nil {
+		return nil, err
+	}
+	return m.Generate()
+}
+
+// FromHTMLReader reads HTML from r and converts it directly into a PDF document.
+// Optional configs are the same configs accepted by New.
+func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (core.Document, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("maroto: reading HTML: %w", err)
+	}
+	return FromHTML(string(data), cfgs...)
 }
 
 // AddPages is responsible for add pages directly in the document.
@@ -332,7 +355,8 @@ func (m *Maroto) setConfig() {
 func (m *Maroto) generate() (core.Document, error) {
 	innerCtx := m.cell.Copy()
 
-	for _, page := range m.pages {
+	for i, page := range m.pages {
+		ensureProviderPage(m.provider, i+1)
 		page.Render(m.provider, innerCtx)
 	}
 
@@ -411,11 +435,18 @@ func (m *Maroto) processPage(pages []core.Page) ([]byte, error) {
 	innerCtx := m.cell.Copy()
 
 	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
-	for _, page := range pages {
+	for i, page := range pages {
+		ensureProviderPage(innerProvider, i+1)
 		page.Render(innerProvider, innerCtx)
 	}
 
 	return innerProvider.GenerateBytes()
+}
+
+func ensureProviderPage(provider core.Provider, pageNumber int) {
+	if pp, ok := provider.(core.PageProvider); ok {
+		pp.EnsurePage(pageNumber)
+	}
 }
 
 func (m *Maroto) getRowsHeight(rows ...core.Row) float64 {

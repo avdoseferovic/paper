@@ -318,7 +318,7 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 		}
 		applyBlockStyling(n, runs)
 		applyInlineStyleToRuns(style, runs)
-		rt := richtext.New(runs, props.RichText{})
+		rt := richtext.New(runs, richTextPropsFromStyle(style))
 		if shouldUseContainer(style) {
 			r := row.New().Add(col.New().Add(rt))
 			return &blockContainer{
