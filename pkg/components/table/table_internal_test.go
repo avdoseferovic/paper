@@ -45,3 +45,15 @@ func TestPaddedTableCellClampsNegativeInnerSize(t *testing.T) {
 	assert.Zero(t, cell.Width)
 	assert.Zero(t, cell.Height)
 }
+
+func TestNormalizeColumnWidths(t *testing.T) {
+	t.Parallel()
+
+	assert.Nil(t, normalizeColumnWidths(nil, 2))
+
+	got := normalizeColumnWidths([]float64{1, 3}, 2)
+	assert.InDeltaSlice(t, []float64{0.25, 0.75}, got, 0.0001)
+
+	got = normalizeColumnWidths([]float64{2}, 3)
+	assert.InDeltaSlice(t, []float64{1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0}, got, 0.0001)
+}

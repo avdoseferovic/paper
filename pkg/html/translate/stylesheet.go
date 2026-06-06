@@ -2,6 +2,7 @@ package translate
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/andybalholm/cascadia"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -14,6 +15,7 @@ import (
 // (@media, @keyframes, …) are dropped silently.
 type stylesheet struct {
 	rules     []compiledRule
+	pseudos   []compiledPseudoRule
 	fontFaces []fontFaceRule
 }
 
@@ -23,13 +25,20 @@ type compiledRule struct {
 	order        int // source order (lower = earlier in stylesheet text)
 }
 
+type compiledPseudoRule struct {
+	compiledRule
+	pseudo string // "before" | "after"
+}
+
 // builtinCSS is a Paper-shipped stylesheet prepended to every document.
 // Its rules apply before user-supplied <style> blocks so users may override
 // any built-in default. Inline style="" still has the highest precedence.
 // Only tag-level defaults live here — opinionated presentational classes
 // belong in the consumer's own stylesheet.
 const builtinCSS = `
+[hidden] { display: none }
 p { padding: 1mm 0 }
+pre { padding: 1mm 0; white-space: pre; font-family: courier }
 h1 { padding: 3mm 0 1mm 0 }
 h2 { padding: 2mm 0 1mm 0 }
 h3 { padding: 1mm 0 }
@@ -74,18 +83,51 @@ func parseStylesheet(text string) *stylesheet {
 		}
 		decls = css.ExpandShorthands(decls)
 		for _, sel := range rule.Selectors {
-			m, err := cascadia.Parse(sel)
+			baseSelector, pseudo := splitPseudoElementSelector(sel)
+			m, err := cascadia.Parse(baseSelector)
 			if err != nil {
 				continue
 			}
-			ss.rules = append(ss.rules, compiledRule{
+			compiled := compiledRule{
 				matcher:      m,
 				declarations: decls,
 				order:        len(ss.rules),
-			})
+			}
+			if pseudo != "" {
+				compiled.order = len(ss.rules) + len(ss.pseudos)
+				ss.pseudos = append(ss.pseudos, compiledPseudoRule{
+					compiledRule: compiled,
+					pseudo:       pseudo,
+				})
+				continue
+			}
+			ss.rules = append(ss.rules, compiled)
 		}
 	}
 	return ss
+}
+
+func splitPseudoElementSelector(selector string) (baseSelector, pseudo string) {
+	trimmed := strings.TrimSpace(selector)
+	lower := strings.ToLower(trimmed)
+	for _, suffix := range []struct {
+		value  string
+		pseudo string
+	}{
+		{value: "::before", pseudo: "before"},
+		{value: ":before", pseudo: "before"},
+		{value: "::after", pseudo: "after"},
+		{value: ":after", pseudo: "after"},
+	} {
+		if strings.HasSuffix(lower, suffix.value) {
+			base := strings.TrimSpace(trimmed[:len(trimmed)-len(suffix.value)])
+			if base == "" {
+				base = "*"
+			}
+			return base, suffix.pseudo
+		}
+	}
+	return trimmed, ""
 }
 
 // applyToNodeCtx merges all matching stylesheet declarations into the ComputedStyle
@@ -99,6 +141,34 @@ func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, pare
 	matching := make([]compiledRule, 0, len(s.rules))
 	for _, rule := range s.rules {
 		if rule.matcher.Match(n) {
+			matching = append(matching, rule)
+		}
+	}
+	sort.SliceStable(matching, func(i, j int) bool {
+		si := matching[i].matcher.Specificity()
+		sj := matching[j].matcher.Specificity()
+		if si.Less(sj) {
+			return true
+		}
+		if sj.Less(si) {
+			return false
+		}
+		return matching[i].order < matching[j].order
+	})
+	for _, rule := range matching {
+		for prop, val := range rule.declarations {
+			style.ApplyCtx(prop, val, parent, ctxWidth)
+		}
+	}
+}
+
+func (s *stylesheet) applyPseudoToNodeCtx(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle, ctxWidth float64, pseudo string) {
+	if s == nil || len(s.pseudos) == 0 {
+		return
+	}
+	matching := make([]compiledPseudoRule, 0, len(s.pseudos))
+	for _, rule := range s.pseudos {
+		if rule.pseudo == pseudo && rule.matcher.Match(n) {
 			matching = append(matching, rule)
 		}
 	}

@@ -92,6 +92,53 @@ func TestHTMLList_Render(t *testing.T) {
 		cell := &entity.Cell{Width: 100, Height: 200}
 		assert.NotPanics(t, func() { l.Render(provider, cell) })
 	})
+
+	t.Run("none style renders content without marker gutter", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		content := mocks.NewComponent(t)
+		content.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		content.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 100
+		})).Return(7.0)
+		content.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 0 && cell.Width == 100 && cell.Height == 7
+		})).Return()
+
+		l := htmllist.New([]htmllist.Item{{Content: content}}, htmllist.Prop{Style: htmllist.None})
+		l.SetConfig(defaultConfig())
+		l.Render(provider, &entity.Cell{Width: 100, Height: 200})
+		provider.AssertNotCalled(t, "AddText", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("start offsets decimal markers", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().AddText("3.", mock.AnythingOfType("*entity.Cell"), mock.AnythingOfType("*props.Text")).Return()
+		provider.EXPECT().AddText("4.", mock.AnythingOfType("*entity.Cell"), mock.AnythingOfType("*props.Text")).Return()
+
+		items := []htmllist.Item{{Content: nil}, {Content: nil}}
+		l := htmllist.New(items, htmllist.Prop{Style: htmllist.Decimal, Start: 3, GutterWidth: 8})
+		l.SetConfig(defaultConfig())
+		l.Render(provider, &entity.Cell{Width: 100, Height: 200})
+	})
+
+	t.Run("reversed markers count down from item count", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().AddText("3.", mock.AnythingOfType("*entity.Cell"), mock.AnythingOfType("*props.Text")).Return()
+		provider.EXPECT().AddText("2.", mock.AnythingOfType("*entity.Cell"), mock.AnythingOfType("*props.Text")).Return()
+		provider.EXPECT().AddText("1.", mock.AnythingOfType("*entity.Cell"), mock.AnythingOfType("*props.Text")).Return()
+
+		items := []htmllist.Item{{Content: nil}, {Content: nil}, {Content: nil}}
+		l := htmllist.New(items, htmllist.Prop{Style: htmllist.Decimal, Reversed: true, GutterWidth: 8})
+		l.SetConfig(defaultConfig())
+		l.Render(provider, &entity.Cell{Width: 100, Height: 200})
+	})
 }
 
 func TestMarkerFormat(t *testing.T) {
@@ -102,6 +149,7 @@ func TestMarkerFormat(t *testing.T) {
 		expected string
 	}{
 		{htmllist.Bullet, 0, "•"},
+		{htmllist.None, 0, ""},
 		{htmllist.Decimal, 0, "1."},
 		{htmllist.Decimal, 9, "10."},
 		{htmllist.DecimalCircle, 0, "1"},

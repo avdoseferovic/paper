@@ -8,13 +8,13 @@ import (
 // Render draws the table into the PDF cell.
 func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 	t.computeRowHeights(provider, cell)
-	colWidth := cell.Width / float64(t.colCount)
 	y := cell.Y
 
 	for r := range t.rowCount {
 		rowH := t.rowHeights[r]
 		x := cell.X
 		for c := range t.colCount {
+			colWidth := t.columnWidth(cell.Width, c)
 			slot := t.grid[r][c]
 			// Skip empty and spanned slots. Render each declared cell only at its origin.
 			if slot < 0 {
@@ -26,7 +26,7 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 				x += colWidth
 				continue
 			}
-			w := colWidth * float64(declCell.Colspan)
+			w := t.columnSpanWidth(cell.Width, c, declCell.Colspan)
 			innerCell := paddedTableCell(x, y, w, rowH, declCell.Style)
 			if declCell.Style != nil {
 				if pp, ok := provider.(core.PositionProvider); ok {

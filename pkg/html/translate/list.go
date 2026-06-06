@@ -6,6 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -33,8 +34,12 @@ func (tr *translator) listRows(n *dom.Node) []core.Row {
 
 func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 	style := htmllist.Bullet
+	start := 0
+	reversed := false
 	if n.Tag() == "ol" {
 		style = listStyleFromType(n.Attr("type"))
+		start = atoiOr(n.Attr("start"), 0)
+		reversed = hasAttr(n, "reversed")
 	}
 	cssStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 	if s, ok := listStyleFromCSS(cssStyle.ListStyleType); ok {
@@ -46,12 +51,12 @@ func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 		if child.Tag() != "li" {
 			continue
 		}
-		items = append(items, tr.buildItem(child))
+		items = append(items, tr.buildItem(child, cssStyle))
 	}
 	if len(items) == 0 {
 		return nil
 	}
-	return htmllist.New(items, htmllist.Prop{Style: style})
+	return htmllist.New(items, htmllist.Prop{Style: style, Start: start, Reversed: reversed})
 }
 
 // listStyleFromCSS maps a CSS list-style-type value to an htmllist.StyleType.
@@ -61,6 +66,8 @@ func listStyleFromCSS(val string) (htmllist.StyleType, bool) {
 	switch val {
 	case "":
 		return "", false
+	case "none":
+		return htmllist.None, true
 	case "disc", "circle", "square":
 		return htmllist.Bullet, true
 	case "decimal":
@@ -80,8 +87,10 @@ func listStyleFromCSS(val string) (htmllist.StyleType, bool) {
 	}
 }
 
-func (tr *translator) buildItem(li *dom.Node) htmllist.Item {
+func (tr *translator) buildItem(li *dom.Node, parentStyle *css.ComputedStyle) htmllist.Item {
 	item := htmllist.Item{}
+	style := computeNodeStyle(tr.sheet, li, parentStyle)
+	inlineStyle := blockInlineStyle(style)
 
 	// Recursively check for nested ul/ol; collect inline content into runs.
 	var runs []props.RichRun
@@ -91,7 +100,7 @@ func (tr *translator) buildItem(li *dom.Node) htmllist.Item {
 			item.SubList = tr.buildList(c)
 		default:
 			// Use inline walker on each child to flatten its text and styling.
-			walkInline(c, runContext{}, &runs)
+			walkInline(c, tr.styledRunContext(inlineStyle), &runs)
 		}
 	}
 	if len(runs) > 0 {
@@ -113,4 +122,16 @@ func listStyleFromType(t string) htmllist.StyleType {
 	default:
 		return htmllist.Decimal
 	}
+}
+
+func hasAttr(n *dom.Node, name string) bool {
+	if n == nil || n.RawNode() == nil {
+		return false
+	}
+	for _, attr := range n.RawNode().Attr {
+		if attr.Key == name {
+			return true
+		}
+	}
+	return false
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -28,13 +29,10 @@ func runsFromHTML(t *testing.T, htmlStr string) []props.RichRun {
 		return true
 	})
 	require.NotNil(t, target, "expected to find a <p> or <span>")
-	style := computeNodeStyle(nil, target, nil)
-	for prop, val := range parseInlineStyle(target.InlineStyle()) {
-		style.Apply(prop, val, nil)
-	}
-	runs := inlineRuns(target)
-	applyInlineStyleToRuns(style, runs)
-	return runs
+	inlineCSS, _ := doc.StyleSources()
+	tr := &translator{sheet: parseStylesheet(string(inlineCSS))}
+	style := computeNodeStyle(tr.sheet, target, nil)
+	return tr.inlineRunsStyled(target, blockInlineStyle(style))
 }
 
 func TestTypography_TextTransform_Uppercase(t *testing.T) {
@@ -75,6 +73,121 @@ func TestTypography_TextShadow_PropagatesMultipleShadows(t *testing.T) {
 	require.NotNil(t, runs[0].TextShadow)
 	assert.Equal(t, runs[0].TextShadows[0], *runs[0].TextShadow)
 	assert.InDelta(t, 2.0, runs[0].TextShadows[1].OffsetX, 0.001)
+}
+
+func TestTypography_DisplayNoneInlineElementSkipped(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>.hidden{display:none}</style><p>A<span class="hidden">hidden</span>B<span hidden>gone</span></p>`)
+	require.NotEmpty(t, runs)
+
+	var text string
+	for _, run := range runs {
+		text += run.Text
+	}
+	assert.Equal(t, "AB", text)
+}
+
+func TestTypography_InlineCSSVerticalAlignMappedToRuns(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<p>H<span style="vertical-align:sub;font-size:9pt">2</span>O x<span style="vertical-align:super;font-size:9pt">2</span></p>`)
+	require.NotEmpty(t, runs)
+
+	var foundSub, foundSuper bool
+	for _, run := range runs {
+		switch run.Text {
+		case "2":
+			switch run.VerticalAlign {
+			case "sub":
+				assert.InDelta(t, 9.0, run.Size, 0.01)
+				foundSub = true
+			case "super":
+				assert.InDelta(t, 9.0, run.Size, 0.01)
+				foundSuper = true
+			}
+		}
+	}
+	assert.True(t, foundSub, "expected CSS vertical-align:sub run")
+	assert.True(t, foundSuper, "expected CSS vertical-align:super run")
+}
+
+func TestTypography_StylesheetInlineSelectorMappedToRuns(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>.chem{vertical-align:sub}.power{vertical-align:super}</style><p>H<span class="chem">2</span>O x<span class="power">2</span></p>`)
+	require.NotEmpty(t, runs)
+
+	var foundSub, foundSuper bool
+	for _, run := range runs {
+		if run.Text != "2" {
+			continue
+		}
+		foundSub = foundSub || run.VerticalAlign == "sub"
+		foundSuper = foundSuper || run.VerticalAlign == "super"
+	}
+	assert.True(t, foundSub, "expected stylesheet subscript run")
+	assert.True(t, foundSuper, "expected stylesheet superscript run")
+}
+
+func TestTypography_InlineCSSMappedToRichRun(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<p><span style="font-family:'Courier New', monospace;font-weight:bold;font-style:italic;text-decoration:underline line-through;background-color:#eee;color:red">styled</span></p>`)
+	require.Len(t, runs, 1)
+
+	run := runs[0]
+	assert.Equal(t, "Courier New", run.Family)
+	assert.Equal(t, fontstyle.BoldItalic, run.Style)
+	assert.True(t, run.Underline)
+	assert.True(t, run.Strikethrough)
+	require.NotNil(t, run.Background)
+	require.NotNil(t, run.Color)
+	assert.Equal(t, 255, run.Color.Red)
+}
+
+func TestTypography_PseudoElementsGenerateStyledContent(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+p::before { content:"Note: "; font-weight:bold; color:red }
+p::after { content:"." }
+</style><p>hello</p>`)
+	require.Len(t, runs, 3)
+
+	assert.Equal(t, "Note: ", runs[0].Text)
+	assert.Equal(t, fontstyle.Bold, runs[0].Style)
+	require.NotNil(t, runs[0].Color)
+	assert.Equal(t, 255, runs[0].Color.Red)
+	assert.Equal(t, "hello", runs[1].Text)
+	assert.Equal(t, ".", runs[2].Text)
+}
+
+func TestTypography_PseudoElementContentSupportsAttr(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+.field::after { content:" (" attr(data-unit) ")" }
+</style><p><span class="field" data-unit="kg">Weight</span></p>`)
+	require.NotEmpty(t, runs)
+
+	var text string
+	for _, run := range runs {
+		text += run.Text
+	}
+	assert.Equal(t, "Weight (kg)", text)
+}
+
+func TestTypography_PseudoElementSelectorSpecificity(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+p::before { content:"base " }
+p.note::before { content:"specific " }
+</style><p class="note">body</p>`)
+	require.NotEmpty(t, runs)
+
+	assert.Equal(t, "specific ", runs[0].Text)
 }
 
 func TestTypography_TextIndent_Stored(t *testing.T) {
@@ -127,6 +240,39 @@ two</p></body></html>`)
 	assert.Equal(t, 5.0, details["first_line_indent"])
 	assert.Equal(t, align.Right, details["align"])
 	assert.Zero(t, details["left"], "text-indent should not shift every line through left padding")
+}
+
+func TestTypography_PreDefaultsPreserveWhitespaceAndUseMonospace(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><pre>one
+  two</pre></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	var value string
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "richtext" {
+			details = s.Details
+			value, _ = s.Value.(string)
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, "pre", details["white_space"])
+	assert.Equal(t, "one\n  two", value)
+
+	tr, _ := parseTranslator(t, `<html><body><pre>one
+  two</pre></body></html>`)
+	pre := findNode(doc, "pre")
+	require.NotNil(t, pre)
+	style := computeNodeStyle(tr.sheet, pre, nil)
+	runs := tr.inlineRunsStyled(pre, blockInlineStyle(style))
+	require.NotEmpty(t, runs)
+	assert.Equal(t, "courier", runs[0].Family)
 }
 
 func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {

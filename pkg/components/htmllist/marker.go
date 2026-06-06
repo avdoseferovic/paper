@@ -8,6 +8,8 @@ import (
 // FormatMarker returns the formatted marker string for a given style and 0-based index.
 func FormatMarker(style StyleType, idx int) string {
 	switch style {
+	case None:
+		return ""
 	case Decimal:
 		return fmt.Sprintf("%d.", idx+1)
 	case DecimalCircle:

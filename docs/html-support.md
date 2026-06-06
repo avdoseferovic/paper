@@ -41,21 +41,25 @@ rows, err := html.FromString(htmlString)
 
 `sub` and `sup` render with browser-like smaller text and baseline offsets. `small` renders at a reduced font size.
 
-**Tables:** `table, thead, tbody, tfoot, tr, th, td, caption` — with `colspan` and `rowspan` attributes. `colgroup`/`col` are recognised; explicit column widths are not honoured yet (logged via `unsupportedHandler`).
+`pre` defaults to `white-space: pre` and `font-family: courier`, so line breaks and repeated spaces are preserved unless user CSS overrides those properties.
 
-**Lists:** `ul, ol, li, dl, dt, dd` — `ol` supports `type="a|A|i|I"` for alpha/roman markers. Nested lists supported. `<dl>`/`<dt>`/`<dd>` render as definition lists with bold term and indented definition.
+**Tables:** `table, thead, tbody, tfoot, tr, th, td, caption` — with `colspan` and `rowspan` attributes. `colgroup`/`col` width hints are honoured as relative column widths, including `col span="…"`. Table cells honour padding, background, borders, border radius, box shadow, and outline through the same `props.Cell` renderer used by block containers.
+
+**Lists:** `ul, ol, li, dl, dt, dd` — `ol` supports `type="a|A|i|I"` for alpha/roman markers plus `start` and `reversed` numbering. CSS `list-style-type` supports `none`, `disc|circle|square`, `decimal`, `lower-alpha`, `upper-alpha`, `lower-roman`, `upper-roman`, and Paper's `decimal-circle` extension. Nested lists supported. `<dl>`/`<dt>`/`<dd>` render as definition lists with bold term and indented definition.
 
 **Disclosure:** `details, summary` — always rendered expanded with a bold summary above the body (PDFs have no toggle).
 
 **Anchors:** `id="…"` on any element registers a PDF named destination; `<a href="#id">` produces an internal PDF link that jumps to it. Forward references (link before target) are supported via a pre-pass.
 
-**Images:** `img`, `svg` — block-level and inline `<img src="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. Inline `<svg>...</svg>` elements are rasterised via oksvg+rasterx. See [Images](#images) below.
+**Images:** `img`, `picture`, `source`, `svg` — block-level and inline `<img src="…" srcset="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. `<picture><source srcset="…"><img …></picture>` uses the first source candidate and falls back to the nested `<img>`. Inline `<svg>...</svg>` elements are rasterised via oksvg+rasterx. See [Images](#images) below.
+
+**Hidden content:** The HTML `hidden` attribute and CSS `display:none` suppress block and inline content before PDF rows/runs are created.
 
 ## Supported CSS properties
 
-**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space`
+**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space, vertical-align, content`
 
-`text-align` supports `left`, `center`, `right`, and `justify` for RichText paragraphs. Justified text expands collapsed spaces on wrapped lines; the final line remains left-aligned. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs.
+`text-align` supports `left`, `center`, `right`, and `justify` for RichText paragraphs. Justified text expands collapsed spaces on wrapped lines; the final line remains left-aligned. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs. Inline elements support `vertical-align: sub|super|baseline`; `<sub>` and `<sup>` also apply a smaller browser-like font scale.
 
 **Opacity:** `opacity` (0–1 or 0%–100%), multiplies into every descendant colour's alpha during the cascade.
 
@@ -69,7 +73,7 @@ rows, err := html.FromString(htmlString)
 
 **Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `text-shadow` (1–4 shadows, comma-separated, per run), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
 
-**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `object-fit`, `object-position`
+**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `object-fit`, `object-position`. `display:none` removes matching block elements and inline descendants from output.
 
 **Flex:** `flex-direction` (incl. `row-reverse`/`column-reverse`), `flex-wrap` (`nowrap`/`wrap`/`wrap-reverse`), `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `order`, `align-self`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
 
@@ -83,7 +87,7 @@ rows, err := html.FromString(htmlString)
 
 **Colour formats:** named colours (full CSS Color Level 4, ~147 entries), `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Alpha is tracked through to the internal PDF backend.
 
-**Selectors:** Cascadia provides full CSS selector support: tag, class, id, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
+**Selectors:** Cascadia provides full CSS selector support: tag, class, id, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`. `::before` and `::after` generate inline text when `content` uses quoted strings and/or `attr(name)`, inheriting normal inline text styles. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
 
 ### Limitations
 
@@ -93,6 +97,7 @@ These remain partially supported or deferred — most are visual-quality trade-o
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
 - `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
 - `background-image: url(...)` supports `contain`, `cover`, one/two-value sizes, keyword/percentage positions, and `repeat|no-repeat|repeat-x|repeat-y`. Multiple layered background images are not implemented yet.
+- `::before` / `::after` support generated text only. CSS counters, generated images, quotes, and arbitrary `content` tokens are not implemented yet.
 - `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.
 - Conic gradients (`conic-gradient`) are not implemented. `filter: drop-shadow(...)` is not implemented.
 - Inset `box-shadow` with `border-radius`: the inset shadow does NOT clip to the rounded corners (rectangular). Round-corner inset clipping is deferred.
@@ -114,7 +119,7 @@ Now **supported** via `core.Splittable` on `blockContainer`. When a styled `<div
 - JavaScript (the parser is HTML-only; no JS engine)
 - CSS `grid`, `float`, `position`, `transform` (basic `flex` is supported — see [CSS Flex](#css-flex))
 - `@media`, `@keyframes`, `@import` (note: `@font-face` IS supported — see [@font-face](#font-face) section)
-- Pseudo-elements (`::before`, `::after`) and state-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`). Non-state pseudo-classes including `:nth-child`, `:first-child`, `:last-child`, `:not(...)` ARE supported via Cascadia (see the Selectors entry above).
+- State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`). Non-state pseudo-classes and text-generating `::before` / `::after` ARE supported (see the Selectors entry above).
 - (External stylesheets via `<link rel="stylesheet" href="…">` ARE supported with a configured resolver — see [Resolver options](#resolver-options-image-stylesheet-font))
 - Form elements (`<input>`, `<button>`, `<form>`)
 - `<video>`, `<audio>`, `<canvas>`, `<iframe>`
@@ -260,10 +265,11 @@ The conversion is purely additive — your existing Paper code continues to work
 
 ## Images
 
-Block-level `<img src="…" width="…" height="…" alt="…">` and `<svg>...</svg>` produce a row containing the image. Inline `<img>` and `<svg>` participate as atomic RichText runs inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources and elements are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
+Block-level `<img src="…" srcset="…" width="…" height="…" alt="…">`, `<picture>...</picture>`, and `<svg>...</svg>` produce a row containing the image. Inline `<img>`, `<picture>`, and `<svg>` participate as atomic RichText runs inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources and elements are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
 
 ```html
 <img src="logo.svg" width="20mm" height="20mm" alt="company logo">
+<picture><source srcset="logo@1x.png 1x, logo@2x.png 2x"><img src="logo.png" width="20mm" height="20mm" alt="company logo"></picture>
 <p>Text before <img src="icon.svg" width="5mm" height="5mm" alt="icon"> text after.</p>
 <p>Inline SVG <svg width="5mm" height="5mm" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5"/></svg></p>
 ```
@@ -290,6 +296,8 @@ The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `
 If only one of width/height is given for an SVG image or element, the intrinsic aspect ratio from the `viewBox` fills the other.
 
 Block-level and inline images support `object-fit: contain|cover|fill|none|scale-down` and `object-position` keywords, percentages, and basic lengths. `cover`, `none`, and overflowing positioned images are clipped to the CSS image box.
+
+`srcset` supports density descriptors (`1x`, `2x`) and width descriptors (`400w`, `800w`). Paper has no viewport negotiation, so static selection is deterministic: highest density wins, then largest width. `<picture>` uses the first `<source>` with a usable `srcset`/`src`, then falls back to the nested `<img>`. `media`, `type`, and `sizes` are currently ignored.
 
 ### Image failure handling
 

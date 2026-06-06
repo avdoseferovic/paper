@@ -100,6 +100,22 @@ func TestTranslate_Flex(t *testing.T) {
 		assert.Len(t, rows, 1)
 	})
 
+	t.Run("class-based display:none via stylesheet hides known block tag", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><head><style>.hidden{display:none}</style></head><body><p class="hidden">invisible</p><p>visible</p></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 1)
+	})
+
+	t.Run("hidden attribute hides element", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><p hidden>invisible</p><p>visible</p></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 1)
+	})
+
 	t.Run("WithGridSize(8) distributes flex cols over 8 not 12", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div>a</div><div>b</div></div></body></html>`)

@@ -3,6 +3,8 @@ package translate
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -128,6 +130,52 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 1.0, cells[0].Style.PaddingLeft)
 		assert.Nil(t, cells[1].Style)
 	})
+
+	t.Run("cell border styles are carried into table cell style", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><td style="border:1mm dashed #ff0000">Cell</td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Style)
+		assert.Equal(t, 1.0, cells[0].Style.BorderTopThickness)
+		assert.Equal(t, 1.0, cells[0].Style.BorderRightThickness)
+		assert.Equal(t, 1.0, cells[0].Style.BorderBottomThickness)
+		assert.Equal(t, 1.0, cells[0].Style.BorderLeftThickness)
+		assert.Equal(t, linestyle.Dashed, cells[0].Style.BorderTopStyle)
+		require.NotNil(t, cells[0].Style.BorderTopColor)
+		assert.Equal(t, 255, cells[0].Style.BorderTopColor.Red)
+	})
+
+	t.Run("cell radius shadow and outline are carried into table cell style", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><td style="border-radius:2mm;box-shadow:1mm 1mm #000;outline:0.5mm dotted blue">Cell</td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Style)
+		assert.Equal(t, 2.0, cells[0].Style.BorderRadiusTopLeft)
+		assert.Equal(t, 2.0, cells[0].Style.BorderRadiusTopRight)
+		assert.Equal(t, 2.0, cells[0].Style.BorderRadiusBottomRight)
+		assert.Equal(t, 2.0, cells[0].Style.BorderRadiusBottomLeft)
+		require.Len(t, cells[0].Style.BoxShadow, 1)
+		assert.Equal(t, 0.5, cells[0].Style.OutlineWidth)
+		assert.Equal(t, linestyle.Dotted, cells[0].Style.OutlineStyle)
+	})
 }
 
 func TestTranslate_TableRowStyle_Integration(t *testing.T) {
@@ -143,5 +191,56 @@ func TestTranslate_TableRowStyle_Integration(t *testing.T) {
 		rows, err := Translate(doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
+	})
+}
+
+func TestTranslate_TableColgroupWidths(t *testing.T) {
+	t.Parallel()
+
+	t.Run("width attributes map to table column widths", func(t *testing.T) {
+		t.Parallel()
+		doc, err := dom.Parse(`<html><body><table>
+			<colgroup><col width="25%"><col width="75%"></colgroup>
+			<tr><td>A</td><td>B</td></tr>
+		</table></body></html>`)
+		require.NoError(t, err)
+
+		rows, err := Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+
+		var details map[string]any
+		walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+			if s.Type == "table" {
+				details = s.Details
+			}
+		})
+		require.NotNil(t, details)
+		assert.InDeltaSlice(t, []float64{0.25, 0.75}, details["column_widths"], 0.0001)
+	})
+
+	t.Run("css widths and col span map to repeated column widths", func(t *testing.T) {
+		t.Parallel()
+		doc, err := dom.Parse(`<html><head><style>
+			col.narrow { width: 20% }
+			col.wide { width: 40% }
+		</style></head><body><table>
+			<colgroup><col class="narrow" span="2"><col class="wide"></colgroup>
+			<tr><td>A</td><td>B</td><td>C</td></tr>
+		</table></body></html>`)
+		require.NoError(t, err)
+
+		rows, err := Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+
+		var details map[string]any
+		walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+			if s.Type == "table" {
+				details = s.Details
+			}
+		})
+		require.NotNil(t, details)
+		assert.InDeltaSlice(t, []float64{0.25, 0.25, 0.5}, details["column_widths"], 0.0001)
 	})
 }

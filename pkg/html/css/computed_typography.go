@@ -21,7 +21,9 @@ func (s *ComputedStyle) applyTypographyProperty(ctx computedPropertyContext) boo
 	case "list-style-type":
 		s.ListStyleType = strings.TrimSpace(ctx.val)
 	case "vertical-align":
-		// Stored implicitly via usage context; no field needed yet.
+		s.VerticalAlign = strings.ToLower(strings.TrimSpace(ctx.val))
+	case "content":
+		s.Content = strings.TrimSpace(ctx.val)
 	default:
 		return false
 	}

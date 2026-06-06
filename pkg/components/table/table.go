@@ -25,18 +25,22 @@ type Cell struct {
 	Style   *props.Cell
 }
 
+// Option configures a Table.
+type Option func(*Table)
+
 // Table is a core.Component that renders a grid with span support.
 type Table struct {
-	declared   [][]Cell // original declaration
-	grid       [][]int  // normalized: flat index into declared cells; -1 = occupied by span
-	rowCount   int
-	colCount   int
-	config     *entity.Config
-	rowHeights []float64 // computed by two-pass algorithm
+	declared     [][]Cell // original declaration
+	grid         [][]int  // normalized: flat index into declared cells; -1 = occupied by span
+	rowCount     int
+	colCount     int
+	columnWidths []float64 // normalized fractions; nil means equal-width columns
+	config       *entity.Config
+	rowHeights   []float64 // computed by two-pass algorithm
 }
 
 // New validates spans, normalises the grid, and builds the Table component.
-func New(cells [][]Cell, _ ...any) (*Table, error) {
+func New(cells [][]Cell, opts ...Option) (*Table, error) {
 	cells = cloneCells(cells)
 	normaliseSpans(cells)
 
@@ -50,12 +54,18 @@ func New(cells [][]Cell, _ ...any) (*Table, error) {
 		return nil, err
 	}
 
-	return &Table{
+	t := &Table{
 		declared: cells,
 		grid:     grid,
 		rowCount: len(cells),
 		colCount: colCount,
-	}, nil
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(t)
+		}
+	}
+	return t, nil
 }
 
 func cloneCells(cells [][]Cell) [][]Cell {
@@ -75,6 +85,14 @@ func cloneCells(cells [][]Cell) [][]Cell {
 
 // ColCount returns the number of columns determined from the normalised grid.
 func (t *Table) ColCount() int { return t.colCount }
+
+// ColumnWidths returns normalized column width fractions, or nil for equal widths.
+func (t *Table) ColumnWidths() []float64 {
+	if len(t.columnWidths) == 0 {
+		return nil
+	}
+	return append([]float64(nil), t.columnWidths...)
+}
 
 // SetConfig propagates Paper config to all cell components.
 func (t *Table) SetConfig(config *entity.Config) {
@@ -96,6 +114,9 @@ func (t *Table) GetStructure() *node.Node[core.Structure] {
 			"rows": t.rowCount,
 			"cols": t.colCount,
 		},
+	}
+	if len(t.columnWidths) > 0 {
+		str.Details["column_widths"] = append([]float64(nil), t.columnWidths...)
 	}
 	return node.New(str)
 }

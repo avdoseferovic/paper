@@ -259,12 +259,11 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 	}
 
 	if isLeafFlexItem(n) {
-		runs := tr.inlineRuns(n)
+		runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 		if len(runs) == 0 {
 			return nil
 		}
 		applyBlockStyling(n, runs)
-		applyInlineStyleToRuns(style, runs)
 		rt := richtext.New(runs, richTextPropsFromStyle(style))
 		if shouldUseContainer(style) {
 			r := row.New().Add(col.New().Add(rt))

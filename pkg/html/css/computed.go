@@ -111,6 +111,8 @@ type ComputedStyle struct {
 	TextTransform string  // "none" | "uppercase" | "lowercase" | "capitalize"
 	TextIndent    float64 // mm; first-line indent
 	WhiteSpace    string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
+	VerticalAlign string  // "baseline" | "sub" | "super" | "sup"
+	Content       string  // generated content for ::before/::after
 
 	// Page break hints.
 	PageBreakBefore string // "always" | "avoid" | "auto"

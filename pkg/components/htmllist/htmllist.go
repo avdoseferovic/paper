@@ -13,6 +13,7 @@ import (
 type StyleType string
 
 const (
+	None          StyleType = "none"
 	Bullet        StyleType = "bullet"
 	Decimal       StyleType = "decimal"
 	DecimalCircle StyleType = "decimal-circle"
@@ -25,6 +26,8 @@ const (
 // Prop holds list-level configuration.
 type Prop struct {
 	Style         StyleType
+	Start         int     // 1-based first marker value; 0 = default
+	Reversed      bool    // ordered markers count down from Start or item count
 	Indent        float64 // mm per nesting level
 	MarkerPadding float64 // mm gap between marker and content
 	GutterWidth   float64 // 0 = measure at render time
@@ -94,6 +97,12 @@ func (l *HTMLList) GetStructure() *node.Node[core.Structure] {
 			"marker_style": string(style),
 		},
 	}
+	if l.prop.Start != 0 {
+		str.Details["start"] = l.prop.Start
+	}
+	if l.prop.Reversed {
+		str.Details["reversed"] = true
+	}
 	return node.New(str)
 }
 
@@ -147,10 +156,12 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 			}
 		}
 
-		marker := FormatMarker(l.prop.Style, i)
+		marker := FormatMarker(l.prop.Style, l.markerIndex(i))
 		// Marker is anchored to the first line of the item, not stretched to itemH.
 		markerCell := &entity.Cell{X: cell.X, Y: y, Width: gutter, Height: lineH}
-		l.renderMarker(provider, marker, markerCell)
+		if l.prop.Style != None {
+			l.renderMarker(provider, marker, markerCell)
+		}
 
 		if item.Content != nil {
 			contentCell := &entity.Cell{X: cell.X + gutter, Y: y, Width: contentWidth, Height: itemH}
@@ -232,6 +243,9 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 // so the inscribed circle is readable (otherwise a 2-char "10" measurement
 // produces a circle smaller than the digit it contains).
 func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
+	if l.prop.Style == None {
+		return 0
+	}
 	if l.prop.GutterWidth > 0 {
 		return l.prop.GutterWidth
 	}
@@ -240,7 +254,7 @@ func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
 	textWidth := 0.0
 	if rtp, ok := provider.(core.RichTextProvider); ok {
 		for i := range len(l.items) {
-			m := FormatMarker(l.prop.Style, i)
+			m := FormatMarker(l.prop.Style, l.markerIndex(i))
 			w := rtp.MeasureString(m, tp)
 			if w > textWidth {
 				textWidth = w
@@ -284,4 +298,18 @@ func (l *HTMLList) circleMarkerTextProp() *props.Text {
 		tp.Size = 7
 	}
 	return tp
+}
+
+func (l *HTMLList) markerIndex(itemIndex int) int {
+	start := l.prop.Start
+	if start == 0 {
+		start = 1
+		if l.prop.Reversed {
+			start = len(l.items)
+		}
+	}
+	if l.prop.Reversed {
+		return max(start-itemIndex, 1) - 1
+	}
+	return max(start+itemIndex, 1) - 1
 }

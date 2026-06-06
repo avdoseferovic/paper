@@ -96,6 +96,18 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		assert.Equal(t, s.TextShadows[0], *s.TextShadow)
 		assert.InDelta(t, 2.0, s.TextShadows[1].OffsetX, 0.001)
 	})
+	t.Run("vertical-align is stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("vertical-align", "Super", nil)
+		assert.Equal(t, "super", s.VerticalAlign)
+	})
+	t.Run("content is stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("content", `"* " attr(data-label)`, nil)
+		assert.Equal(t, `"* " attr(data-label)`, s.Content)
+	})
 	t.Run("background-image url populates BackgroundImageURL", func(t *testing.T) {
 		t.Parallel()
 		s := css.NewComputedStyle()

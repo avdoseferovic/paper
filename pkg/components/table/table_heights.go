@@ -11,22 +11,25 @@ func (t *Table) computeRowHeights(provider core.Provider, cell *entity.Cell) {
 	if len(t.rowHeights) == t.rowCount {
 		return
 	}
-	colWidth := cell.Width / float64(t.colCount)
-	heights := t.passOne(provider, cell, colWidth)
-	t.passTwo(provider, cell, colWidth, heights)
+	heights := t.passOne(provider, cell)
+	t.passTwo(provider, cell, heights)
 	t.rowHeights = heights
 }
 
 // passOne computes heights for single-row cells.
-func (t *Table) passOne(provider core.Provider, cell *entity.Cell, colWidth float64) []float64 {
+func (t *Table) passOne(provider core.Provider, cell *entity.Cell) []float64 {
 	heights := make([]float64, t.rowCount)
 	defH := t.defaultRowHeight(provider)
+	flat := 0
 	for r, row := range t.declared {
 		for _, c := range row {
+			originCol := t.originColumn(flat)
+			flat++
 			if c.Rowspan > 1 || c.Content == nil {
 				continue
 			}
-			inner := paddedTableCell(0, 0, colWidth*float64(c.Colspan), cell.Height, c.Style)
+			width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
+			inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
 			if h := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style); h > heights[r] {
 				heights[r] = h
 			}
@@ -39,13 +42,17 @@ func (t *Table) passOne(provider core.Provider, cell *entity.Cell, colWidth floa
 }
 
 // passTwo distributes rowspan cells' height surplus across spanned rows.
-func (t *Table) passTwo(provider core.Provider, cell *entity.Cell, colWidth float64, heights []float64) {
+func (t *Table) passTwo(provider core.Provider, cell *entity.Cell, heights []float64) {
+	flat := 0
 	for r, row := range t.declared {
 		for _, c := range row {
+			originCol := t.originColumn(flat)
+			flat++
 			if c.Rowspan <= 1 || c.Content == nil {
 				continue
 			}
-			inner := paddedTableCell(0, 0, colWidth*float64(c.Colspan), cell.Height, c.Style)
+			width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
+			inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
 			needed := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style)
 			spanEnd := min(r+c.Rowspan, t.rowCount)
 			sum := 0.0

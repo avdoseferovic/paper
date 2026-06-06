@@ -3,6 +3,7 @@ package translate
 import (
 	"strings"
 
+	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -62,6 +63,92 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 		}
 	}
 	return s
+}
+
+func computeInlineNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+	s := inheritInlineStyle(parent)
+	if sheet != nil && n.RawNode() != nil {
+		sheet.applyToNodeCtx(n.RawNode(), s, parent, 0)
+	}
+	inline := n.InlineStyle()
+	if inline != "" {
+		for prop, val := range parseInlineStyle(inline) {
+			s.Apply(prop, val, parent)
+		}
+	}
+	return s
+}
+
+func computePseudoNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle {
+	s := inheritInlineStyle(parent)
+	if sheet != nil && n.RawNode() != nil {
+		sheet.applyPseudoToNodeCtx(n.RawNode(), s, parent, 0, pseudo)
+	}
+	return s
+}
+
+func inheritInlineStyle(parent *css.ComputedStyle) *css.ComputedStyle {
+	s := css.NewComputedStyle()
+	if parent == nil {
+		return s
+	}
+	s.FontFamily = parent.FontFamily
+	s.FontSize = parent.FontSize
+	s.FontWeight = parent.FontWeight
+	s.FontStyle = parent.FontStyle
+	s.Color = cloneCSSColor(parent.Color)
+	s.TextDecoration = parent.TextDecoration
+	s.LineHeight = parent.LineHeight
+	s.BackgroundColor = cloneCSSColor(parent.BackgroundColor)
+	s.TextShadow = cloneCSSShadow(parent.TextShadow)
+	s.TextShadows = cloneCSSShadows(parent.TextShadows)
+	s.Opacity = parent.Opacity
+	s.LetterSpacing = parent.LetterSpacing
+	s.TextTransform = parent.TextTransform
+	s.VerticalAlign = parent.VerticalAlign
+	if len(parent.Vars) > 0 {
+		s.Vars = make(map[string]string, len(parent.Vars))
+		for k, v := range parent.Vars {
+			s.Vars[k] = v
+		}
+	}
+	return s
+}
+
+func blockInlineStyle(style *css.ComputedStyle) *css.ComputedStyle {
+	s := inheritInlineStyle(style)
+	s.BackgroundColor = nil
+	s.VerticalAlign = ""
+	return s
+}
+
+func cloneCSSColor(c *css.RGBColor) *css.RGBColor {
+	if c == nil {
+		return nil
+	}
+	clone := *c
+	return &clone
+}
+
+func cloneCSSShadow(s *css.Shadow) *css.Shadow {
+	if s == nil {
+		return nil
+	}
+	clone := *s
+	clone.Color = cloneCSSColor(s.Color)
+	return &clone
+}
+
+func cloneCSSShadows(shadows []css.Shadow) []css.Shadow {
+	if len(shadows) == 0 {
+		return nil
+	}
+	out := make([]css.Shadow, len(shadows))
+	for i, shadow := range shadows {
+		out[i] = shadow
+		out[i].Color = cloneCSSColor(shadow.Color)
+	}
+	return out
 }
 
 // toPropsColor converts an RGBColor into a props.Color, multiplying any explicit
@@ -217,36 +304,177 @@ func cssStopsToProps(stops []css.GradientStop) []props.GradientStop {
 	return out
 }
 
-// applyInlineStyleToRuns applies CSS-computed font size and color to every run
-// whose own field is unset (run-level styling wins over block-level).
-// Also applies typography properties (letter-spacing, text-transform) to all runs.
-func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
-	if style == nil {
+func applyInlineStyleToRun(style *css.ComputedStyle, run *props.RichRun) {
+	if style == nil || run == nil {
 		return
 	}
-	for i := range runs {
-		if style.FontSize > 0 && runs[i].Size == 0 {
-			// FontSize is in mm; props.RichRun expects pt — convert.
-			runs[i].Size = style.FontSize / 0.352778
+	if family := firstFontFamily(style.FontFamily); family != "" && run.Family == "" {
+		run.Family = family
+	}
+	if style.FontWeight == "bold" || isItalicCSSFontStyle(style.FontStyle) {
+		run.Style = mergeCSSFontStyle(run.Style, style.FontWeight, style.FontStyle)
+	}
+	if style.FontSize > 0 && run.Size == 0 {
+		// FontSize is in mm; props.RichRun expects pt — convert.
+		run.Size = style.FontSize / 0.352778
+	}
+	if style.Color != nil && run.Color == nil {
+		run.Color = toPropsColor(style.Color, effectiveOpacity(style))
+	}
+	if style.BackgroundColor != nil && run.Background == nil {
+		run.Background = toPropsColor(style.BackgroundColor, effectiveOpacity(style))
+	}
+	if style.LetterSpacing > 0 && run.LetterSpacing == 0 {
+		run.LetterSpacing = style.LetterSpacing
+	}
+	applyTextDecoration(style.TextDecoration, run)
+	if align := richRunVerticalAlignFromCSS(style.VerticalAlign); align != "" {
+		run.VerticalAlign = align
+	}
+	if style.TextTransform != "" && style.TextTransform != "none" {
+		run.Text = css.ApplyTextTransform(run.Text, style.TextTransform)
+	}
+	if len(style.TextShadows) > 0 && len(run.TextShadows) == 0 && run.TextShadow == nil {
+		run.TextShadows = cssShadowsToProps(style.TextShadows)
+		if len(run.TextShadows) > 0 {
+			run.TextShadow = &run.TextShadows[0]
 		}
-		if style.Color != nil && runs[i].Color == nil {
-			runs[i].Color = toPropsColor(style.Color, effectiveOpacity(style))
+	} else if style.TextShadow != nil && run.TextShadow == nil {
+		run.TextShadow = cssShadowToProps(style.TextShadow)
+	}
+}
+
+func firstFontFamily(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	first, _, _ := strings.Cut(value, ",")
+	return strings.Trim(strings.TrimSpace(first), `'"`)
+}
+
+func isItalicCSSFontStyle(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "italic", "oblique":
+		return true
+	default:
+		return false
+	}
+}
+
+func mergeCSSFontStyle(existing fontstyle.Type, weight, style string) fontstyle.Type {
+	bold := strings.Contains(string(existing), string(fontstyle.Bold)) || weight == "bold"
+	italic := strings.Contains(string(existing), string(fontstyle.Italic)) || isItalicCSSFontStyle(style)
+	switch {
+	case bold && italic:
+		return fontstyle.BoldItalic
+	case bold:
+		return fontstyle.Bold
+	case italic:
+		return fontstyle.Italic
+	default:
+		return existing
+	}
+}
+
+func applyTextDecoration(value string, run *props.RichRun) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" || value == "none" {
+		return
+	}
+	if strings.Contains(value, "underline") {
+		run.Underline = true
+	}
+	if strings.Contains(value, "line-through") {
+		run.Strikethrough = true
+	}
+}
+
+func richRunVerticalAlignFromCSS(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "baseline":
+		return "baseline"
+	case "sub":
+		return "sub"
+	case "super", "sup":
+		return "super"
+	default:
+		return ""
+	}
+}
+
+func generatedContentText(value string, n *dom.Node) (string, bool) {
+	value = strings.TrimSpace(value)
+	switch strings.ToLower(value) {
+	case "", "normal", "none":
+		return "", false
+	}
+
+	var out strings.Builder
+	consumed := false
+	for value != "" {
+		value = strings.TrimLeft(value, " \t\r\n\f")
+		if value == "" {
+			break
 		}
-		if style.LetterSpacing > 0 && runs[i].LetterSpacing == 0 {
-			runs[i].LetterSpacing = style.LetterSpacing
-		}
-		if style.TextTransform != "" && style.TextTransform != "none" {
-			runs[i].Text = css.ApplyTextTransform(runs[i].Text, style.TextTransform)
-		}
-		if len(style.TextShadows) > 0 && len(runs[i].TextShadows) == 0 && runs[i].TextShadow == nil {
-			runs[i].TextShadows = cssShadowsToProps(style.TextShadows)
-			if len(runs[i].TextShadows) > 0 {
-				runs[i].TextShadow = &runs[i].TextShadows[0]
+		lower := strings.ToLower(value)
+		if strings.HasPrefix(lower, "attr(") {
+			end := strings.IndexByte(value, ')')
+			if end < 0 {
+				return "", false
 			}
-		} else if style.TextShadow != nil && runs[i].TextShadow == nil {
-			runs[i].TextShadow = cssShadowToProps(style.TextShadow)
+			name := strings.Trim(strings.TrimSpace(value[len("attr("):end]), `'"`)
+			if name != "" && n != nil {
+				out.WriteString(n.Attr(name))
+			}
+			value = value[end+1:]
+			consumed = true
+			continue
+		}
+		if value[0] == '"' || value[0] == '\'' {
+			text, rest, ok := readCSSContentString(value)
+			if !ok {
+				return "", false
+			}
+			out.WriteString(text)
+			value = rest
+			consumed = true
+			continue
+		}
+		return "", false
+	}
+	return out.String(), consumed
+}
+
+func readCSSContentString(value string) (string, string, bool) {
+	if value == "" {
+		return "", "", false
+	}
+	quote := value[0]
+	var out strings.Builder
+	escaped := false
+	for i := 1; i < len(value); i++ {
+		ch := value[i]
+		if escaped {
+			switch ch {
+			case 'a', 'A':
+				out.WriteByte('\n')
+			default:
+				out.WriteByte(ch)
+			}
+			escaped = false
+			continue
+		}
+		switch ch {
+		case '\\':
+			escaped = true
+		case quote:
+			return out.String(), value[i+1:], true
+		default:
+			out.WriteByte(ch)
 		}
 	}
+	return "", "", false
 }
 
 // cssShadowToProps converts a single css.Shadow to a *props.Shadow.
@@ -269,8 +497,12 @@ func cssShadowToProps(s *css.Shadow) *props.Shadow {
 
 // isDisplayNone checks for the display:none inline-style override.
 func isDisplayNone(n *dom.Node) bool {
-	return strings.Contains(n.InlineStyle(), "display:none") ||
-		strings.Contains(n.InlineStyle(), "display: none")
+	if n != nil && n.Attr("hidden") != "" {
+		return true
+	}
+	return n != nil &&
+		(strings.Contains(n.InlineStyle(), "display:none") ||
+			strings.Contains(n.InlineStyle(), "display: none"))
 }
 
 // parseInlineStyle parses a CSS declaration block (e.g. "color:red; font-size:12pt")

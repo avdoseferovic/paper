@@ -35,7 +35,8 @@ func (tr *translator) detailsRows(n *dom.Node) []core.Row {
 }
 
 func (tr *translator) summaryRow(n *dom.Node) core.Row {
-	runs := tr.inlineRuns(n)
+	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	for i := range runs {
 		if runs[i].Style == fontstyle.Normal {
 			runs[i].Style = fontstyle.Bold

@@ -22,14 +22,47 @@ func inlineRunsWithHandler(n *dom.Node, h func(thing, value string)) []props.Ric
 
 func (tr *translator) inlineRuns(n *dom.Node) []props.RichRun {
 	return inlineRunsWithContext(n, runContext{
-		handler:     tr.unsupportedHandler,
-		inlineImage: tr.inlineImage,
-		inlineSVG:   tr.inlineSVG,
+		handler:       tr.unsupportedHandler,
+		inlineImage:   tr.inlineImage,
+		inlinePicture: tr.inlinePicture,
+		inlineSVG:     tr.inlineSVG,
 	})
+}
+
+func (tr *translator) inlineRunsStyled(n *dom.Node, style *css.ComputedStyle) []props.RichRun {
+	return inlineRunsWithContext(n, tr.styledRunContext(style))
+}
+
+func (tr *translator) styledRunContext(style *css.ComputedStyle) runContext {
+	return runContext{
+		handler:        tr.unsupportedHandler,
+		inlineImage:    tr.inlineImage,
+		inlinePicture:  tr.inlinePicture,
+		inlineSVG:      tr.inlineSVG,
+		style:          style,
+		styleResolver:  tr.computeInlineStyle,
+		pseudoResolver: tr.computePseudoStyle,
+	}
+}
+
+func (tr *translator) computeInlineStyle(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+	return computeInlineNodeStyle(tr.sheet, n, parent)
+}
+
+func (tr *translator) computePseudoStyle(n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle {
+	return computePseudoNodeStyle(tr.sheet, n, parent, pseudo)
 }
 
 func inlineRunsWithContext(n *dom.Node, ctx runContext) []props.RichRun {
 	var runs []props.RichRun
+	if n != nil && n.Tag() != "" {
+		appendGeneratedContent(n, ctx, "before", &runs)
+		for _, c := range n.Children() {
+			walkInline(c, ctx, &runs)
+		}
+		appendGeneratedContent(n, ctx, "after", &runs)
+		return runs
+	}
 	walkInline(n, ctx, &runs)
 	return runs
 }
@@ -52,7 +85,11 @@ type runContext struct {
 	familyOverride string
 	handler        func(thing, value string) // optional unsupportedHandler for side-channel data
 	inlineImage    func(n *dom.Node) (*props.RichImage, bool)
+	inlinePicture  func(n *dom.Node) (*props.RichImage, bool)
 	inlineSVG      func(n *dom.Node) (*props.RichImage, bool)
+	style          *css.ComputedStyle
+	styleResolver  func(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle
+	pseudoResolver func(n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle
 }
 
 func (c runContext) toStyle() fontstyle.Type {
@@ -77,22 +114,57 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 		appendTextRun(n, ctx, runs)
 		return
 	}
-	if handleSelfClosing(tag, n, ctx, runs) {
+	next := ctx
+	if ctx.styleResolver != nil {
+		next.style = ctx.styleResolver(n, ctx.style)
+	}
+	if isDisplayNone(n) || (next.style != nil && next.style.Display == "none") {
 		return
 	}
-	next := mutateContext(tag, n, ctx)
+	if tag == "picture" && ctx.inlinePicture != nil {
+		if img, ok := ctx.inlinePicture(n); ok {
+			run := richRunFromContext("", next)
+			run.Image = img
+			*runs = append(*runs, run)
+			return
+		}
+	}
+	if handleSelfClosing(tag, n, next, runs) {
+		return
+	}
+	next = mutateContext(tag, n, next)
+	appendGeneratedContent(n, next, "before", runs)
 	// <q>: wrap children with ASCII quotes.
 	if tag == "q" {
-		*runs = append(*runs, props.RichRun{Text: `"`, Style: next.toStyle()})
+		*runs = append(*runs, richRunFromContext(`"`, next))
 		for _, c := range n.Children() {
 			walkInline(c, next, runs)
 		}
-		*runs = append(*runs, props.RichRun{Text: `"`, Style: next.toStyle()})
+		*runs = append(*runs, richRunFromContext(`"`, next))
+		appendGeneratedContent(n, next, "after", runs)
 		return
 	}
 	for _, c := range n.Children() {
 		walkInline(c, next, runs)
 	}
+	appendGeneratedContent(n, next, "after", runs)
+}
+
+func appendGeneratedContent(n *dom.Node, ctx runContext, pseudo string, runs *[]props.RichRun) {
+	if ctx.pseudoResolver == nil || n == nil || n.Tag() == "" {
+		return
+	}
+	style := ctx.pseudoResolver(n, ctx.style, pseudo)
+	if style == nil || style.Content == "" {
+		return
+	}
+	text, ok := generatedContentText(style.Content, n)
+	if !ok || text == "" {
+		return
+	}
+	pseudoCtx := ctx
+	pseudoCtx.style = style
+	*runs = append(*runs, richRunFromContext(text, pseudoCtx))
 }
 
 func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
@@ -130,6 +202,7 @@ func richRunFromContext(text string, ctx runContext) props.RichRun {
 			run.Background.Alpha = &a
 		}
 	}
+	applyInlineStyleToRun(ctx.style, &run)
 	return run
 }
 

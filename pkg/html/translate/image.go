@@ -132,10 +132,14 @@ func extFromFilename(name string) string {
 // imageRow builds a block-level row for <img>. Returns the row and ok=true on
 // success; ok=false signals the caller to fall back to alt text.
 func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
-	src := strings.TrimSpace(n.Attr("src"))
+	src := tr.selectedImageSource(n)
 	if src == "" {
 		return nil, false
 	}
+	return tr.imageRowWithSource(n, src)
+}
+
+func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, bool) {
 	resolver := tr.imageResolver
 	if resolver == nil {
 		resolver = safeDefaultResolver
@@ -196,10 +200,14 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 }
 
 func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
-	src := strings.TrimSpace(n.Attr("src"))
+	src := tr.selectedImageSource(n)
 	if src == "" {
 		return nil, false
 	}
+	return tr.inlineImageWithSource(n, src)
+}
+
+func (tr *translator) inlineImageWithSource(n *dom.Node, src string) (*props.RichImage, bool) {
 	resolver := tr.imageResolver
 	if resolver == nil {
 		resolver = safeDefaultResolver
@@ -244,6 +252,144 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 		ObjectFit:      style.ObjectFit,
 		ObjectPosition: style.ObjectPosition,
 	}, true
+}
+
+func (tr *translator) inlinePicture(n *dom.Node) (*props.RichImage, bool) {
+	img := pictureFallbackImage(n)
+	if img == nil {
+		return nil, false
+	}
+	src := pictureSelectedSource(n, strings.TrimSpace(img.Attr("src")))
+	if src == "" {
+		src = tr.selectedImageSource(img)
+	}
+	return tr.inlineImageWithSource(img, src)
+}
+
+func (tr *translator) pictureRow(n *dom.Node) []core.Row {
+	img := pictureFallbackImage(n)
+	if img == nil {
+		return nil
+	}
+	src := pictureSelectedSource(n, strings.TrimSpace(img.Attr("src")))
+	if src == "" {
+		src = tr.selectedImageSource(img)
+	}
+	if r, ok := tr.imageRowWithSource(img, src); ok {
+		return []core.Row{r}
+	}
+	return altRow(img)
+}
+
+func pictureFallbackImage(n *dom.Node) *dom.Node {
+	for _, child := range n.Children() {
+		if child.Tag() == "img" {
+			return child
+		}
+	}
+	return nil
+}
+
+func (tr *translator) selectedImageSource(n *dom.Node) string {
+	return selectSrcsetCandidate(n.Attr("src"), n.Attr("srcset"))
+}
+
+func pictureSelectedSource(picture *dom.Node, fallback string) string {
+	for _, child := range picture.Children() {
+		if child.Tag() != "source" {
+			continue
+		}
+		if src := selectSrcsetCandidate("", child.Attr("srcset")); src != "" {
+			return src
+		}
+		if src := strings.TrimSpace(child.Attr("src")); src != "" {
+			return src
+		}
+	}
+	return fallback
+}
+
+type srcsetCandidate struct {
+	src     string
+	density float64
+	width   float64
+	order   int
+}
+
+func selectSrcsetCandidate(src, srcset string) string {
+	fallback := strings.TrimSpace(src)
+	candidates := parseSrcset(srcset)
+	if len(candidates) == 0 {
+		return fallback
+	}
+	best := candidates[0]
+	for _, candidate := range candidates[1:] {
+		if betterSrcsetCandidate(candidate, best) {
+			best = candidate
+		}
+	}
+	if best.src == "" {
+		return fallback
+	}
+	return best.src
+}
+
+func parseSrcset(srcset string) []srcsetCandidate {
+	var candidates []srcsetCandidate
+	for i, raw := range splitSrcset(srcset) {
+		fields := strings.Fields(raw)
+		if len(fields) == 0 {
+			continue
+		}
+		candidate := srcsetCandidate{src: fields[0], density: 1, order: i}
+		for _, descriptor := range fields[1:] {
+			if value, ok := strings.CutSuffix(descriptor, "x"); ok {
+				if density, err := strconv.ParseFloat(value, 64); err == nil && density > 0 {
+					candidate.density = density
+				}
+				continue
+			}
+			if value, ok := strings.CutSuffix(descriptor, "w"); ok {
+				if width, err := strconv.ParseFloat(value, 64); err == nil && width > 0 {
+					candidate.width = width
+				}
+			}
+		}
+		candidates = append(candidates, candidate)
+	}
+	return candidates
+}
+
+func splitSrcset(srcset string) []string {
+	var parts []string
+	i := 0
+	for i < len(srcset) {
+		for i < len(srcset) && (srcset[i] == ',' || srcset[i] == ' ' || srcset[i] == '\t' || srcset[i] == '\n' || srcset[i] == '\r') {
+			i++
+		}
+		start := i
+		for i < len(srcset) && srcset[i] != ' ' && srcset[i] != '\t' && srcset[i] != '\n' && srcset[i] != '\r' {
+			i++
+		}
+		for i < len(srcset) && srcset[i] != ',' {
+			i++
+		}
+		if candidate := strings.TrimSpace(srcset[start:i]); candidate != "" {
+			parts = append(parts, candidate)
+		}
+	}
+	return parts
+}
+
+func betterSrcsetCandidate(candidate, best srcsetCandidate) bool {
+	switch {
+	case candidate.density != best.density:
+		return candidate.density > best.density
+	case candidate.width != best.width:
+		return candidate.width > best.width
+	default:
+		return candidate.order < best.order
+	}
 }
 
 func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {

@@ -183,6 +183,13 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	if isDisplayNone(n) {
 		return nil
 	}
+	var style *css.ComputedStyle
+	if n.Tag() != "" {
+		style = computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+		if style.Display == "none" {
+			return nil
+		}
+	}
 
 	rows := tr.dispatchBlockRows(n)
 	// If the element has an id, wrap its first row in an anchorTarget so the
@@ -191,8 +198,7 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 		rows[0] = wrapRowAnchorTarget(rows[0], id, tr.anchorReg)
 	}
 	// Prepend/append page-break markers when CSS requests them.
-	if n.Tag() != "" {
-		style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	if style != nil {
 		if style.PageBreakBefore == "always" {
 			rows = append([]core.Row{NewPageBreakRow()}, rows...)
 		}
@@ -235,6 +241,8 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 			return []core.Row{r}
 		}
 		return altRow(n)
+	case "picture":
+		return tr.pictureRow(n)
 	case "svg":
 		if r, ok := tr.svgRow(n); ok {
 			return []core.Row{r}
@@ -279,14 +287,13 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 // edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
-	runs := tr.inlineRuns(n)
+	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
 	// User CSS first, then heading-default fallback. applyBlockStyling only
 	// sets runs[i].Size when it's still 0, so applying inline CSS first lets a
 	// user `h2 { font-size: 12pt }` override the 20pt heading default.
-	applyInlineStyleToRuns(style, runs)
 	applyBlockStyling(n, runs)
 	rtProp := richTextPropsFromStyle(style)
 	rt := richtext.New(runs, rtProp)
