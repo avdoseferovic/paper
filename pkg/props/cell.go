@@ -2,6 +2,7 @@ package props
 
 import (
 	"github.com/avdoseferovic/paper/pkg/consts/border"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 )
 
@@ -54,6 +55,9 @@ type Cell struct {
 	// (overrides BackgroundColor when both are set).
 	BackgroundGradient *Gradient
 
+	// BackgroundImage, when non-nil, paints an image behind the cell content.
+	BackgroundImage *CellBackgroundImage
+
 	// BoxShadow holds the shadows to paint behind the cell (up to 4).
 	BoxShadow []Shadow
 
@@ -90,7 +94,27 @@ func CloneCell(c *Cell) *Cell {
 	clone.BorderLeftColor = CloneColor(c.BorderLeftColor)
 	clone.OutlineColor = CloneColor(c.OutlineColor)
 	clone.BackgroundGradient = cloneGradient(c.BackgroundGradient)
+	clone.BackgroundImage = cloneCellBackgroundImage(c.BackgroundImage)
 	clone.BoxShadow = cloneShadows(c.BoxShadow)
+	return &clone
+}
+
+// CellBackgroundImage is a resolved image background for a styled cell.
+type CellBackgroundImage struct {
+	Bytes     []byte
+	Extension extension.Type
+	Rect      Rect
+	Size      string
+	Position  string
+	Repeat    string
+}
+
+func cloneCellBackgroundImage(image *CellBackgroundImage) *CellBackgroundImage {
+	if image == nil {
+		return nil
+	}
+	clone := *image
+	clone.Bytes = append([]byte(nil), image.Bytes...)
 	return &clone
 }
 
@@ -191,6 +215,11 @@ func (c *Cell) ToMap() map[string]any {
 
 	if c.BackgroundColor != nil {
 		m["prop_background_color"] = c.BackgroundColor.ToString()
+	}
+
+	if c.BackgroundImage != nil {
+		m["prop_background_image_extension"] = c.BackgroundImage.Extension
+		m["prop_background_image_bytes_size"] = len(c.BackgroundImage.Bytes)
 	}
 
 	if c.BorderColor != nil {

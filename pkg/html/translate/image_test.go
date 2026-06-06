@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,6 +152,40 @@ func TestImageRow_CustomResolverIsInvoked(t *testing.T) {
 	assert.True(t, called, "custom resolver should be invoked")
 }
 
+func TestImageRow_CSSDimensionsOverrideAttributes(t *testing.T) {
+	t.Parallel()
+
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "logo.png", src)
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><head><style>.logo { width: 12mm; height: 7mm }</style></head><body><img class="logo" src="logo.png" width="1mm" height="1mm"></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.InDelta(t, 7.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
+}
+
+func TestImageRow_MaxWidthClampsAutoHeight(t *testing.T) {
+	t.Parallel()
+
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "logo.png", src)
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><head><style>.logo { width: 120mm; max-width: 25% }</style></head><body><img class="logo" src="logo.png"></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver), WithContentWidth(80))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.InDelta(t, 20.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
+}
+
 func TestImageRow_UnsupportedSVGFallsBackToAlt(t *testing.T) {
 	t.Parallel()
 	// oksvg's IgnoreErrorMode lets junk parse-but-render-nothing; we still
@@ -201,6 +236,66 @@ func TestInlineImage_DataURIProducesRichImageRun(t *testing.T) {
 	assert.True(t, found, "expected inline image run")
 }
 
+func TestInlineImage_CSSDimensionsFromStylesheet(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	doc, err := dom.Parse(`<html><head><style>.icon { width: 25%; height: 3mm }</style></head><body><p>A <img class="icon" src="` + uri + `" alt="logo"> B</p></body></html>`)
+	require.NoError(t, err)
+
+	inlineCSS, _ := doc.StyleSources()
+	tr := &translator{
+		sheet:          parseStylesheet(inlineCSS),
+		contentWidthMM: 80,
+	}
+	p := firstNodeByTag(doc, "p")
+	require.NotNil(t, p)
+
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		assert.InDelta(t, 20.0, run.Image.Width, 0.001)
+		assert.InDelta(t, 3.0, run.Image.Height, 0.001)
+		found = true
+	}
+	assert.True(t, found, "expected inline image run")
+}
+
+func TestInlineImage_MinWidthClampsAutoHeight(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	doc, err := dom.Parse(`<html><head><style>.icon { width: 5mm; min-width: 25% }</style></head><body><p>A <img class="icon" src="` + uri + `" alt="logo"> B</p></body></html>`)
+	require.NoError(t, err)
+
+	inlineCSS, _ := doc.StyleSources()
+	tr := &translator{
+		sheet:          parseStylesheet(inlineCSS),
+		contentWidthMM: 80,
+	}
+	p := firstNodeByTag(doc, "p")
+	require.NotNil(t, p)
+
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		assert.InDelta(t, 20.0, run.Image.Width, 0.001)
+		assert.InDelta(t, 20.0, run.Image.Height, 0.001)
+		found = true
+	}
+	assert.True(t, found, "expected inline image run")
+}
+
 func TestInlineImage_SVGRasterisesToRichImageRun(t *testing.T) {
 	t.Parallel()
 
@@ -231,4 +326,87 @@ func TestInlineImage_SVGRasterisesToRichImageRun(t *testing.T) {
 		found = true
 	}
 	assert.True(t, found, "expected inline SVG image run")
+}
+
+func TestBackgroundImage_URLProducesContainerBackgroundImage(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "bg.png", src)
+		return pngBytes, "png", nil
+	}
+	doc, err := dom.Parse(`<html><head><style>.bg { background-image:url("bg.png"); background-size:cover; background-position:center bottom; background-repeat:no-repeat; padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	containerRow, ok := rows[0].(*splittableContainerRow)
+	require.True(t, ok)
+	require.NotNil(t, containerRow.container)
+	require.NotNil(t, containerRow.container.style)
+	require.NotNil(t, containerRow.container.style.BackgroundImage)
+	assert.Equal(t, extension.Png, containerRow.container.style.BackgroundImage.Extension)
+	assert.Equal(t, pngBytes, containerRow.container.style.BackgroundImage.Bytes)
+	assert.Equal(t, "cover", containerRow.container.style.BackgroundImage.Size)
+	assert.Equal(t, "center bottom", containerRow.container.style.BackgroundImage.Position)
+	assert.Equal(t, "no-repeat", containerRow.container.style.BackgroundImage.Repeat)
+}
+
+func TestBackgroundImage_DataURIInlineStyleProducesContainerBackgroundImage(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	doc, err := dom.Parse(`<html><body><div style="background-image:url('` + uri + `'); padding:1mm"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	containerRow, ok := rows[0].(*splittableContainerRow)
+	require.True(t, ok)
+	require.NotNil(t, containerRow.container)
+	require.NotNil(t, containerRow.container.style)
+	require.NotNil(t, containerRow.container.style.BackgroundImage)
+	assert.Equal(t, extension.Png, containerRow.container.style.BackgroundImage.Extension)
+	assert.Equal(t, pngBytes, containerRow.container.style.BackgroundImage.Bytes)
+}
+
+func TestBackgroundImage_SVGRasterisesToPNG(t *testing.T) {
+	t.Parallel()
+
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "bg.svg", src)
+		return []byte(minimalSVG), "svg", nil
+	}
+	doc, err := dom.Parse(`<html><head><style>.bg { background-image:url(bg.svg); padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	containerRow, ok := rows[0].(*splittableContainerRow)
+	require.True(t, ok)
+	require.NotNil(t, containerRow.container)
+	require.NotNil(t, containerRow.container.style)
+	require.NotNil(t, containerRow.container.style.BackgroundImage)
+	assert.Equal(t, extension.Png, containerRow.container.style.BackgroundImage.Extension)
+	assert.NotEmpty(t, containerRow.container.style.BackgroundImage.Bytes)
+}
+
+func firstNodeByTag(doc *dom.Document, tag string) *dom.Node {
+	var found *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == tag {
+			found = n
+			return false
+		}
+		return true
+	})
+	return found
 }

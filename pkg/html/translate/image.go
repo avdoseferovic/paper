@@ -145,23 +145,22 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 		return nil, false
 	}
 
-	widthMM := parseImageDimension(n.Attr("width"))
-	heightMM := parseImageDimension(n.Attr("height"))
+	style := tr.imageStyle(n)
+	dimensions := imageDimensions(n, style)
+	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	if ext == "svg" {
-		pngBytes, w, h, rerr := rasteriseSVG(data, widthMM, heightMM)
+		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported("img.svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
 		ext = "png"
-		if widthMM == 0 {
-			widthMM = mmFromPx(w)
-		}
-		if heightMM == 0 {
-			heightMM = mmFromPx(h)
-		}
+		intrinsicWidth = mmFromPx(w)
+		intrinsicHeight = mmFromPx(h)
+	} else {
+		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
 	}
 
 	extType := extensionType(ext)
@@ -170,12 +169,7 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 		return nil, false
 	}
 
-	if heightMM <= 0 {
-		heightMM = widthMM
-	}
-	if heightMM <= 0 {
-		heightMM = 10 // safe default
-	}
+	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 10)
 
 	// Pick a small col that approximates the requested mm width. The image
 	// fills the col (Percent=100, Center=true). Using a small col instead of
@@ -220,12 +214,12 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 		return nil, false
 	}
 
-	widthMM := parseImageDimension(n.Attr("width"))
-	heightMM := parseImageDimension(n.Attr("height"))
+	style := tr.imageStyle(n)
+	dimensions := imageDimensions(n, style)
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	if ext == "svg" {
-		pngBytes, w, h, rerr := rasteriseSVG(data, widthMM, heightMM)
+		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported("img.svg", rerr.Error())
 			return nil, false
@@ -244,7 +238,7 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 		return nil, false
 	}
 
-	widthMM, heightMM = resolveInlineImageDimensions(widthMM, heightMM, intrinsicWidth, intrinsicHeight)
+	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 4)
 	return &props.RichImage{
 		Bytes:     data,
 		Extension: extType,
@@ -252,6 +246,90 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 		Height:    heightMM,
 		Alt:       n.Attr("alt"),
 	}, true
+}
+
+func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackgroundImage {
+	if style == nil {
+		return nil
+	}
+	src := style.BackgroundImageURL
+	src = strings.TrimSpace(src)
+	if src == "" {
+		return nil
+	}
+	resolver := tr.imageResolver
+	if resolver == nil {
+		resolver = safeDefaultResolver
+	}
+	data, ext, err := resolver(src)
+	if err != nil {
+		tr.unsupported("background-image.src", err.Error())
+		return nil
+	}
+	if ext == "svg" {
+		pngBytes, _, _, rerr := rasteriseSVG(data, 0, 0)
+		if rerr != nil {
+			tr.unsupported("background-image.svg", rerr.Error())
+			return nil
+		}
+		data = pngBytes
+		ext = "png"
+	}
+	extType := extensionType(ext)
+	if extType == "" {
+		tr.unsupported("background-image.ext", "unsupported extension: "+ext)
+		return nil
+	}
+	rect := props.Rect{Percent: 100, Center: true}
+	rect.MakeValid()
+	return &props.CellBackgroundImage{
+		Bytes:     data,
+		Extension: extType,
+		Rect:      rect,
+		Size:      style.BackgroundSize,
+		Position:  style.BackgroundPosition,
+		Repeat:    style.BackgroundRepeat,
+	}
+}
+
+func (tr *translator) imageStyle(n *dom.Node) *css.ComputedStyle {
+	return computeNodeStyleCtx(tr.sheet, n, tr.rootStyle, tr.availableContentWidth())
+}
+
+func (tr *translator) availableContentWidth() float64 {
+	if tr.contentWidthMM > 0 {
+		return tr.contentWidthMM
+	}
+	return 170.0
+}
+
+type imageDimensionStyle struct {
+	width     float64
+	height    float64
+	minWidth  float64
+	maxWidth  float64
+	minHeight float64
+	maxHeight float64
+}
+
+func imageDimensions(n *dom.Node, style *css.ComputedStyle) imageDimensionStyle {
+	dimensions := imageDimensionStyle{
+		width:  parseImageDimension(n.Attr("width")),
+		height: parseImageDimension(n.Attr("height")),
+	}
+	if style != nil {
+		if style.Width > 0 {
+			dimensions.width = style.Width
+		}
+		if style.Height > 0 {
+			dimensions.height = style.Height
+		}
+		dimensions.minWidth = style.MinWidth
+		dimensions.maxWidth = style.MaxWidth
+		dimensions.minHeight = style.MinHeight
+		dimensions.maxHeight = style.MaxHeight
+	}
+	return dimensions
 }
 
 func rasterImageSizeMM(data []byte) (float64, float64) {
@@ -262,23 +340,62 @@ func rasterImageSizeMM(data []byte) (float64, float64) {
 	return css.ParseLength(strconv.Itoa(cfg.Width)+"px", 0), css.ParseLength(strconv.Itoa(cfg.Height)+"px", 0)
 }
 
-func resolveInlineImageDimensions(widthMM, heightMM, intrinsicWidth, intrinsicHeight float64) (float64, float64) {
+func resolveImageDimensions(dimensions imageDimensionStyle, intrinsicWidth, intrinsicHeight, fallbackSize float64) (float64, float64) {
+	widthMM := dimensions.width
+	heightMM := dimensions.height
+	widthExplicit := widthMM > 0
+	heightExplicit := heightMM > 0
 	switch {
 	case widthMM > 0 && heightMM > 0:
-		return widthMM, heightMM
+		// keep both explicit dimensions
 	case widthMM > 0 && intrinsicWidth > 0 && intrinsicHeight > 0:
-		return widthMM, widthMM * intrinsicHeight / intrinsicWidth
+		heightMM = widthMM * intrinsicHeight / intrinsicWidth
 	case heightMM > 0 && intrinsicWidth > 0 && intrinsicHeight > 0:
-		return heightMM * intrinsicWidth / intrinsicHeight, heightMM
+		widthMM = heightMM * intrinsicWidth / intrinsicHeight
 	case widthMM > 0:
-		return widthMM, widthMM
+		heightMM = widthMM
 	case heightMM > 0:
-		return heightMM, heightMM
+		widthMM = heightMM
 	case intrinsicWidth > 0 && intrinsicHeight > 0:
-		return intrinsicWidth, intrinsicHeight
+		widthMM = intrinsicWidth
+		heightMM = intrinsicHeight
 	default:
-		return 4, 4
+		widthMM = fallbackSize
+		heightMM = fallbackSize
 	}
+	return constrainImageDimensions(widthMM, heightMM, widthExplicit, heightExplicit, dimensions)
+}
+
+func constrainImageDimensions(widthMM, heightMM float64, widthExplicit, heightExplicit bool, dimensions imageDimensionStyle) (float64, float64) {
+	aspect := 1.0
+	if widthMM > 0 {
+		aspect = heightMM / widthMM
+	}
+	if dimensions.minWidth > 0 && widthMM < dimensions.minWidth {
+		widthMM = dimensions.minWidth
+		if !heightExplicit {
+			heightMM = widthMM * aspect
+		}
+	}
+	if dimensions.maxWidth > 0 && widthMM > dimensions.maxWidth {
+		widthMM = dimensions.maxWidth
+		if !heightExplicit {
+			heightMM = widthMM * aspect
+		}
+	}
+	if dimensions.minHeight > 0 && heightMM < dimensions.minHeight {
+		heightMM = dimensions.minHeight
+		if !widthExplicit && aspect > 0 {
+			widthMM = heightMM / aspect
+		}
+	}
+	if dimensions.maxHeight > 0 && heightMM > dimensions.maxHeight {
+		heightMM = dimensions.maxHeight
+		if !widthExplicit && aspect > 0 {
+			widthMM = heightMM / aspect
+		}
+	}
+	return widthMM, heightMM
 }
 
 // unsupported reports a rendering issue back through the optional handler.

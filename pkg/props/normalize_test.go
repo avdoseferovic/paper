@@ -128,6 +128,7 @@ func TestNormalizeRichTextAndCloneCellCopyNestedPointers(t *testing.T) {
 	background := &props.Color{Red: 1, Green: 2, Blue: 3, Alpha: &alpha}
 	border := &props.Color{Red: 4, Green: 5, Blue: 6}
 	shadowColor := &props.Color{Red: 7, Green: 8, Blue: 9}
+	imageBytes := []byte{1, 2, 3}
 	cell := &props.Cell{
 		BackgroundColor: background,
 		BorderColor:     border,
@@ -136,7 +137,8 @@ func TestNormalizeRichTextAndCloneCellCopyNestedPointers(t *testing.T) {
 		BackgroundGradient: &props.Gradient{
 			Stops: []props.GradientStop{{Color: props.Red(), Position: 0}},
 		},
-		BoxShadow: []props.Shadow{{Color: shadowColor}},
+		BackgroundImage: &props.CellBackgroundImage{Bytes: imageBytes},
+		BoxShadow:       []props.Shadow{{Color: shadowColor}},
 	}
 
 	clone := props.CloneCell(cell)
@@ -145,15 +147,18 @@ func TestNormalizeRichTextAndCloneCellCopyNestedPointers(t *testing.T) {
 	assert.NotSame(t, border, clone.BorderColor)
 	assert.NotSame(t, shadowColor, clone.BoxShadow[0].Color)
 	assert.NotSame(t, cell.BackgroundGradient, clone.BackgroundGradient)
+	assert.NotSame(t, &cell.BackgroundImage.Bytes[0], &clone.BackgroundImage.Bytes[0])
 
 	background.Red = 99
 	border.Red = 99
 	shadowColor.Red = 99
+	imageBytes[0] = 99
 	cell.BackgroundGradient.Stops[0].Color.Red = 99
 
 	assert.Equal(t, 1, clone.BackgroundColor.Red)
 	assert.Equal(t, 4, clone.BorderColor.Red)
 	assert.Equal(t, 7, clone.BoxShadow[0].Color.Red)
 	assert.Equal(t, 255, clone.BackgroundGradient.Stops[0].Color.Red)
+	assert.Equal(t, byte(1), clone.BackgroundImage.Bytes[0])
 	assert.Equal(t, 0.5, *clone.BackgroundColor.Alpha)
 }

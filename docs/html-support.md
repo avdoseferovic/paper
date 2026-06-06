@@ -65,11 +65,11 @@ rows, err := html.FromString(htmlString)
 
 **Border-radius:** `border-radius` (1–4 values, CSS spec), `border-{top-left,top-right,bottom-left,bottom-right}-radius`. When combined with non-uniform per-side border widths, the renderer uses a single averaged stroke thickness (current limitation).
 
-**Background:** `background-color`, `background-image: linear-gradient(...)` / `radial-gradient(...)` (rasterised to PNG and embedded; up to 5 colour stops, angle keywords + `Ndeg`, positions, named radial centres).
+**Background:** `background-color`, `background-image: url(...)`, `linear-gradient(...)`, and `radial-gradient(...)`; `background-size`, `background-position`, and `background-repeat`. URL backgrounds support PNG, JPG, and SVG via the same safe resolver as `<img>`; SVG and gradients are rasterised to PNG and embedded.
 
 **Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `text-shadow` (per-run, first shadow only), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
 
-**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`
+**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`
 
 **Flex:** `flex-direction` (incl. `row-reverse`/`column-reverse`), `flex-wrap` (`nowrap`/`wrap`/`wrap-reverse`), `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `order`, `align-self`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
 
@@ -95,6 +95,7 @@ These remain partially supported or deferred — most are visual-quality trade-o
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
 - `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
 - `text-shadow` renders only the first shadow when comma-separated multi-shadows are provided.
+- `background-image: url(...)` supports `contain`, `cover`, one/two-value sizes, keyword/percentage positions, and `repeat|no-repeat|repeat-x|repeat-y`. Multiple layered background images are not implemented yet.
 - `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.
 - Conic gradients (`conic-gradient`) are not implemented. `filter: drop-shadow(...)` is not implemented.
 - Inset `box-shadow` with `border-radius`: the inset shadow does NOT clip to the rounded corners (rectangular). Round-corner inset clipping is deferred.
@@ -139,7 +140,7 @@ Three resolver families share the same safety model: **by default, only `data:` 
 
 | Resolver        | Default-only-data | Base dir option              |
 | --------------- | ----------------- | ---------------------------- |
-| `<img src>`     | ✓                 | `WithImageBaseDir(dir)`      |
+| `<img src>` / `background-image:url(...)` | ✓ | `WithImageBaseDir(dir)`      |
 | `<link href>`   | ✓                 | `WithStylesheetBaseDir(dir)` |
 | `@font-face`    | ✓ (shared with `<link>`) | shared `WithStylesheetBaseDir` |
 
@@ -286,7 +287,7 @@ The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `
 
 ### Supported `<img>` units
 
-`width` and `height` accept `px`, `pt`, `mm`, `cm`. Bare numbers (`width="20"`) are treated as pixels. `em` and `%` are not supported at image resolution because the translator has no font context at that point.
+`width` and `height` attributes and CSS properties accept `px`, `pt`, `mm`, and `cm`. CSS `width`, `min-width`, and `max-width` also accept `%` when a content width is known. Bare HTML attribute numbers (`width="20"`) are treated as pixels. CSS dimensions override width/height attributes, and min/max constraints preserve aspect ratio when the opposite dimension is automatic.
 
 If only one of width/height is given for an SVG, the intrinsic aspect ratio from the `viewBox` fills the other.
 

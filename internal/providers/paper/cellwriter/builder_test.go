@@ -42,6 +42,8 @@ func TestCellWriterBuilder_Build(t *testing.T) {
 	chain = chain.GetNext()
 	assert.Equal(t, "fillColorStyler", chain.GetName())
 	chain = chain.GetNext()
+	assert.Equal(t, "backgroundImageStyler", chain.GetName())
+	chain = chain.GetNext()
 	assert.Equal(t, "outlineStyler", chain.GetName())
 	chain = chain.GetNext()
 	assert.Equal(t, "cellWriter", chain.GetName())

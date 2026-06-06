@@ -20,9 +20,10 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer)
 	fillColorStyler := NewFillColorStyler(fpdf)
 	perSideBorder := NewPerSideBorderStyler(fpdf)
 	borderRadius := NewBorderRadiusStyler(fpdf)
+	backgroundImageStyler := NewBackgroundImageStyler(fpdf)
 
 	// Chain order (first applied → last):
-	//   shadow → perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → outline → cellWriter
+	//   shadow → perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → backgroundImage → outline → cellWriter
 	// shadow: draws behind all decorations.
 	// outline: LAST before cellWriter — draws outside the cell box after all fills.
 	outlineStyle := NewOutlineStyler(fpdf)
@@ -34,7 +35,8 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer)
 	borderThicknessStyler.SetNext(borderLineStyler)
 	borderLineStyler.SetNext(borderColorStyle)
 	borderColorStyle.SetNext(fillColorStyler)
-	fillColorStyler.SetNext(outlineStyle)
+	fillColorStyler.SetNext(backgroundImageStyler)
+	backgroundImageStyler.SetNext(outlineStyle)
 	outlineStyle.SetNext(cellCreator)
 
 	if len(drawer) > 0 && drawer[0] != nil {

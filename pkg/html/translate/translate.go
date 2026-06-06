@@ -262,7 +262,7 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 		// When the container has background/border/padding, wrap children
 		// in a single styled blockContainer so the styling spans them all.
 		if shouldUseContainer(style) && len(rows) > 0 {
-			return []core.Row{buildContainerRow(style, rows)}
+			return []core.Row{tr.buildContainerRow(style, rows)}
 		}
 		return rows
 	}
@@ -290,7 +290,7 @@ func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	}
 	c := col.New().Add(rt)
 	r := row.New().Add(c)
-	if cellStyle := blockCellStyle(style); cellStyle != nil {
+	if cellStyle := tr.blockCellStyle(style); cellStyle != nil {
 		r = r.WithStyle(cellStyle)
 	}
 	return r

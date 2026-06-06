@@ -88,11 +88,11 @@ func parseStylesheet(text string) *stylesheet {
 	return ss
 }
 
-// applyToNode merges all matching stylesheet declarations into the ComputedStyle
+// applyToNodeCtx merges all matching stylesheet declarations into the ComputedStyle
 // following CSS cascade rules: lower specificity first, equal specificity by source
 // order (later wins). A class selector therefore wins over a tag selector even if
 // the tag rule appears later in the stylesheet text.
-func (s *stylesheet) applyToNode(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle) {
+func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle, ctxWidth float64) {
 	if s == nil || len(s.rules) == 0 {
 		return
 	}
@@ -115,7 +115,7 @@ func (s *stylesheet) applyToNode(n *html.Node, style *css.ComputedStyle, parent 
 	})
 	for _, rule := range matching {
 		for prop, val := range rule.declarations {
-			style.Apply(prop, val, parent)
+			style.ApplyCtx(prop, val, parent, ctxWidth)
 		}
 	}
 }

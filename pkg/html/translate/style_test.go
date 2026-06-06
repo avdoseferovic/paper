@@ -83,3 +83,12 @@ func TestComputeNodeStyle_ShorthandBorder(t *testing.T) {
 	assert.NotNil(t, style.BorderTopColor)
 	assert.Equal(t, 255, style.BorderTopColor.R)
 }
+
+func TestParseInlineStyle_DataURIURLKeepsSemicolon(t *testing.T) {
+	t.Parallel()
+
+	decls := parseInlineStyle(`background-image:url("data:image/png;base64,abc"); padding:1mm`)
+
+	assert.Equal(t, `url("data:image/png;base64,abc")`, decls["background-image"])
+	assert.Equal(t, "1mm", decls["padding-top"])
+}

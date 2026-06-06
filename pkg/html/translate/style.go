@@ -53,7 +53,7 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 		}
 	}
 	if sheet != nil && n.RawNode() != nil {
-		sheet.applyToNode(n.RawNode(), s, parent)
+		sheet.applyToNodeCtx(n.RawNode(), s, parent, ctxWidth)
 	}
 	inline := n.InlineStyle()
 	if inline != "" {
@@ -97,7 +97,23 @@ func effectiveOpacity(style *css.ComputedStyle) float64 {
 
 // blockCellStyle converts a ComputedStyle's background and border fields into a
 // Paper props.Cell. Returns nil if no decorative styling is set.
-func blockCellStyle(style *css.ComputedStyle) *props.Cell {
+func (tr *translator) blockCellStyle(style *css.ComputedStyle) *props.Cell {
+	cell := baseBlockCellStyle(style)
+	if style == nil {
+		return cell
+	}
+	bgImage := tr.backgroundImage(style)
+	if bgImage == nil {
+		return cell
+	}
+	if cell == nil {
+		cell = &props.Cell{}
+	}
+	cell.BackgroundImage = bgImage
+	return cell
+}
+
+func baseBlockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if style == nil {
 		return nil
 	}
@@ -256,7 +272,7 @@ func isDisplayNone(n *dom.Node) bool {
 // into a property→value map. Shorthands are expanded via css.ExpandShorthands.
 func parseInlineStyle(decl string) map[string]string {
 	raw := make(map[string]string)
-	for part := range strings.SplitSeq(decl, ";") {
+	for _, part := range splitStyleDeclarations(decl) {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
@@ -273,6 +289,32 @@ func parseInlineStyle(decl string) map[string]string {
 		raw[prop] = val
 	}
 	return css.ExpandShorthands(raw)
+}
+
+func splitStyleDeclarations(decl string) []string {
+	var parts []string
+	start := 0
+	depth := 0
+	var quote rune
+	for i, r := range decl {
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		case r == '\'' || r == '"':
+			quote = r
+		case r == '(':
+			depth++
+		case r == ')' && depth > 0:
+			depth--
+		case r == ';' && depth == 0:
+			parts = append(parts, decl[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, decl[start:])
+	return parts
 }
 
 // cssBorderStyleToLineStyle maps a CSS border-style string to a linestyle.Type.

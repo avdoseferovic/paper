@@ -258,7 +258,7 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 			r := row.New().Add(col.New().Add(rt))
 			return &blockContainer{
 				rows:          []core.Row{r},
-				style:         blockCellStyle(style),
+				style:         tr.blockCellStyle(style),
 				paddingTop:    style.PaddingTop,
 				paddingRight:  style.PaddingRight,
 				paddingBottom: style.PaddingBottom,
@@ -287,7 +287,7 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 	if shouldUseContainer(style) {
 		return &blockContainer{
 			rows:          subRows,
-			style:         blockCellStyle(style),
+			style:         tr.blockCellStyle(style),
 			paddingTop:    style.PaddingTop,
 			paddingRight:  style.PaddingRight,
 			paddingBottom: style.PaddingBottom,

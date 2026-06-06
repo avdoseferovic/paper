@@ -38,6 +38,15 @@ func TestApplyCtx_CalcPercentWidth(t *testing.T) {
 		assert.InDelta(t, 0.0, s.Width, 0.01)
 	})
 
+	t.Run("min/max width use ctxWidth for percentages", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.ApplyCtx("min-width", "25%", nil, 80)
+		s.ApplyCtx("max-width", "calc(50% - 5mm)", nil, 80)
+		assert.InDelta(t, 20.0, s.MinWidth, 0.01)
+		assert.InDelta(t, 35.0, s.MaxWidth, 0.01)
+	})
+
 	t.Run("Apply wraps ApplyCtx with ctxWidth=0 — same as before", func(t *testing.T) {
 		t.Parallel()
 		s1 := css.NewComputedStyle()

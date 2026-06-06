@@ -86,6 +86,28 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		s.Apply("box-shadow", "0 4mm 6mm rgba(0,0,0,0.2)", nil)
 		assert.Len(t, s.BoxShadow, 1)
 	})
+	t.Run("background-image url populates BackgroundImageURL", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("background-image", `url("icon.svg")`, nil)
+		assert.Equal(t, "icon.svg", s.BackgroundImageURL)
+	})
+	t.Run("background-image unquoted url populates BackgroundImageURL", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("background-image", `url(icon.svg)`, nil)
+		assert.Equal(t, "icon.svg", s.BackgroundImageURL)
+	})
+	t.Run("background image longhands are stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("background-size", "Cover", nil)
+		s.Apply("background-position", "Center Right", nil)
+		s.Apply("background-repeat", "No-Repeat", nil)
+		assert.Equal(t, "cover", s.BackgroundSize)
+		assert.Equal(t, "center right", s.BackgroundPosition)
+		assert.Equal(t, "no-repeat", s.BackgroundRepeat)
+	})
 }
 
 // ── Shorthand expansion ───────────────────────────────────────────────────────

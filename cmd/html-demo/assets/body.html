@@ -82,6 +82,7 @@
     .grad-linear { background-image: linear-gradient(to right, #0f2c4a, #1e88e5); color: white; padding: 4mm 3mm; margin-bottom: 2mm }
     .grad-radial  { background-image: radial-gradient(circle at center, #fff9c4, #f57f17); padding: 4mm 3mm }
     .grad-diag    { background-image: linear-gradient(45deg, #e91e63 0%, #9c27b0 50%, #3f51b5 100%); color: white; padding: 4mm 3mm }
+    .bg-url       { background-color: #edf6f0; background-image: url("icon.svg"); background-size: contain; background-position: center; background-repeat: no-repeat; padding: 4mm 3mm; border: 0.25mm solid #b9d7c8; border-radius: 2mm }
     .shadow-card  { background-color: #fff; border: 0.3mm solid #ddd; box-shadow: 1mm 1mm 3mm rgba(0,0,0,0.25); padding: 3mm }
     .shadow-inset { background-color: #f5f5f5; box-shadow: inset 0 1mm 3mm rgba(0,0,0,0.2); padding: 3mm }
     .outlined     { outline: 0.5mm solid #e91e63; outline-offset: 1mm; padding: 2mm }
@@ -90,6 +91,7 @@
     .pill-tag     { background-color: #e3f2fd; border: 0.3mm solid #1e88e5; border-radius: 3mm; padding: 1mm 2mm }
     .var-demo     { background-color: var(--brand-soft); color: var(--brand); padding: 2mm; border-radius: 1.5mm; width: calc(100% - 20mm) }
     .type-sample  { background-color: #f7f7fb; border: 0.3mm solid #d7dce6; border-radius: 2mm; padding: 2mm; margin-top: 1mm }
+    .inline-icon  { width: 8mm; max-width: 4mm }
     :root { --brand: #0f2c4a; --brand-soft: #eef3f9 }
     .zebra tr:nth-child(even) td { background-color: #f4f6f8 }
     .zebra tr:first-child td { font-weight: bold }
@@ -127,7 +129,7 @@
     <p class="gap-lg"></p>
 
     <h2>Typography &amp; Inline Runs</h2>
-    <p>This paragraph combines <b>bold</b>, <strong>strong</strong>, <i>italic</i>, <em>emphasis</em>, <u>underline</u>, <s>strike</s>, <sub>subscript</sub>, <sup>superscript</sup>, an inline <img src="icon.svg" width="4mm" height="4mm" alt="icon"> SVG icon, and a live <a href="https://github.com/avdoseferovic/paper">project link</a>.</p>
+    <p>This paragraph combines <b>bold</b>, <strong>strong</strong>, <i>italic</i>, <em>emphasis</em>, <u>underline</u>, <s>strike</s>, <sub>subscript</sub>, <sup>superscript</sup>, an inline <img class="inline-icon" src="icon.svg" alt="icon"> SVG icon, and a live <a href="https://github.com/avdoseferovic/paper">project link</a>.</p>
     <p style="text-transform: uppercase; letter-spacing: 0.4pt">letter-spaced uppercase text</p>
     <p class="type-sample" style="text-indent: 8mm">Text-indent now offsets only the first rendered line. This sentence wraps so the second line returns to the normal paragraph edge.</p>
     <p class="type-sample" style="text-align: center">Centered paragraph using CSS text-align.</p>
@@ -154,6 +156,8 @@ explicit line breaks.</p>
     <div class="grad-radial"><p>Radial gradient: white centre to amber edge</p></div>
     <p class="gap"></p>
     <div class="grad-diag"><p>45° three-stop diagonal gradient</p></div>
+    <p class="gap"></p>
+    <div class="bg-url"><p>SVG background-image resolved through CSS url()</p></div>
 
     <p class="gap-lg"></p>
 

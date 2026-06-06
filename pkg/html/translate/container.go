@@ -177,6 +177,9 @@ func shouldUseContainer(style *css.ComputedStyle) bool {
 	if style.BackgroundColor != nil {
 		return true
 	}
+	if style.BackgroundImageURL != "" {
+		return true
+	}
 	if style.BorderTopWidth > 0 || style.BorderRightWidth > 0 ||
 		style.BorderBottomWidth > 0 || style.BorderLeftWidth > 0 {
 		return true
@@ -189,8 +192,8 @@ func shouldUseContainer(style *css.ComputedStyle) bool {
 }
 
 // buildContainerRow wraps the given child rows into a single splittableContainerRow.
-func buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
-	cellStyle := blockCellStyle(style)
+func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
+	cellStyle := tr.blockCellStyle(style)
 	container := &blockContainer{
 		rows:          childRows,
 		style:         cellStyle,

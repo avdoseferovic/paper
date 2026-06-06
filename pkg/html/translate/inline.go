@@ -8,7 +8,7 @@ import (
 )
 
 // inlineRuns walks the inline children of a block element and returns the run list.
-// Inline images and <br> are flattened into the run sequence (br = "\n", img omitted).
+// <br> becomes "\n"; <img> becomes an image run when a translator resolver is available.
 func inlineRuns(n *dom.Node) []props.RichRun {
 	return inlineRunsWithHandler(n, nil)
 }
