@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Kurt Jung (Gmail: kurt.w.jung)
+ * Copyright (c) 2013-2014 Kurt Jung (Gmail: kurt.w.jung)
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,6 +15,18 @@
  */
 
 package paperpdf
+
+// SVGBasicSegmentType describes a single curve or position segment.
+type SVGBasicSegmentType struct {
+	Cmd byte
+	Arg [6]float64
+}
+
+// SVGBasicType aggregates the paths needed to describe a multi-segment SVG
+// image for SVGBasicWrite.
+type SVGBasicType struct {
+	Segments [][]SVGBasicSegmentType
+}
 
 // SVGBasicWrite renders the paths encoded in the basic SVG image specified by
 // sb. The scale value is used to convert the coordinates in the path to the
