@@ -106,6 +106,7 @@ func inheritInlineStyle(parent *css.ComputedStyle) *css.ComputedStyle {
 	s.LetterSpacing = parent.LetterSpacing
 	s.TextTransform = parent.TextTransform
 	s.VerticalAlign = parent.VerticalAlign
+	s.Quotes = parent.Quotes
 	if len(parent.Vars) > 0 {
 		s.Vars = make(map[string]string, len(parent.Vars))
 		for k, v := range parent.Vars {
@@ -403,15 +404,35 @@ func richRunVerticalAlignFromCSS(value string) string {
 	}
 }
 
-func generatedContentText(value string, n *dom.Node) (string, bool) {
+func generatedContentText(value string, n *dom.Node, counters *counterState) (string, bool) {
+	runs, ok := generatedContentRuns(value, n, runContext{counters: counters})
+	if !ok {
+		return "", false
+	}
+	var out strings.Builder
+	for _, run := range runs {
+		out.WriteString(run.Text)
+	}
+	return out.String(), len(runs) > 0
+}
+
+func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 	value = strings.TrimSpace(value)
 	switch strings.ToLower(value) {
 	case "", "normal", "none":
-		return "", false
+		return nil, false
 	}
 
-	var out strings.Builder
+	var text strings.Builder
+	var runs []props.RichRun
 	consumed := false
+	flushText := func() {
+		if text.Len() == 0 {
+			return
+		}
+		runs = append(runs, richRunFromContext(text.String(), ctx))
+		text.Reset()
+	}
 	for value != "" {
 		value = strings.TrimLeft(value, " \t\r\n\f")
 		if value == "" {
@@ -419,31 +440,258 @@ func generatedContentText(value string, n *dom.Node) (string, bool) {
 		}
 		lower := strings.ToLower(value)
 		if strings.HasPrefix(lower, "attr(") {
-			end := strings.IndexByte(value, ')')
-			if end < 0 {
-				return "", false
-			}
-			name := strings.Trim(strings.TrimSpace(value[len("attr("):end]), `'"`)
-			if name != "" && n != nil {
-				out.WriteString(n.Attr(name))
-			}
-			value = value[end+1:]
-			consumed = true
-			continue
-		}
-		if value[0] == '"' || value[0] == '\'' {
-			text, rest, ok := readCSSContentString(value)
+			args, rest, ok := readCSSFunction(value, "attr")
 			if !ok {
-				return "", false
+				return nil, false
 			}
-			out.WriteString(text)
+			name := strings.Trim(strings.TrimSpace(args), `'"`)
+			if name != "" && n != nil {
+				text.WriteString(n.Attr(name))
+			}
 			value = rest
 			consumed = true
 			continue
 		}
+		if strings.HasPrefix(lower, "counter(") {
+			args, rest, ok := readCSSFunction(value, "counter")
+			if !ok {
+				return nil, false
+			}
+			content, ok := generatedCounterText(args, ctx.counters)
+			if !ok {
+				return nil, false
+			}
+			text.WriteString(content)
+			value = rest
+			consumed = true
+			continue
+		}
+		if strings.HasPrefix(lower, "counters(") {
+			args, rest, ok := readCSSFunction(value, "counters")
+			if !ok {
+				return nil, false
+			}
+			content, ok := generatedCountersText(args, ctx.counters)
+			if !ok {
+				return nil, false
+			}
+			text.WriteString(content)
+			value = rest
+			consumed = true
+			continue
+		}
+		if strings.HasPrefix(lower, "url(") {
+			args, rest, ok := readCSSFunction(value, "url")
+			if !ok {
+				return nil, false
+			}
+			src, ok := cssStringArg(args)
+			if !ok || src == "" {
+				return nil, false
+			}
+			if ctx.contentImage != nil {
+				if img, ok := ctx.contentImage(src, ctx.style); ok {
+					flushText()
+					run := richRunFromContext("", ctx)
+					run.Image = img
+					runs = append(runs, run)
+				}
+			}
+			value = rest
+			consumed = true
+			continue
+		}
+		if rest, ok := consumeContentKeyword(value, "open-quote"); ok {
+			text.WriteString(ctx.quotes.open(ctx.style))
+			value = rest
+			consumed = true
+			continue
+		}
+		if rest, ok := consumeContentKeyword(value, "close-quote"); ok {
+			text.WriteString(ctx.quotes.close(ctx.style))
+			value = rest
+			consumed = true
+			continue
+		}
+		if rest, ok := consumeContentKeyword(value, "no-open-quote"); ok {
+			ctx.quotes.noOpen()
+			value = rest
+			consumed = true
+			continue
+		}
+		if rest, ok := consumeContentKeyword(value, "no-close-quote"); ok {
+			ctx.quotes.noClose()
+			value = rest
+			consumed = true
+			continue
+		}
+		if value[0] == '"' || value[0] == '\'' {
+			literal, rest, ok := readCSSContentString(value)
+			if !ok {
+				return nil, false
+			}
+			text.WriteString(literal)
+			value = rest
+			consumed = true
+			continue
+		}
+		return nil, false
+	}
+	flushText()
+	return runs, consumed
+}
+
+func consumeContentKeyword(value, keyword string) (string, bool) {
+	if len(value) < len(keyword) || !strings.EqualFold(value[:len(keyword)], keyword) {
 		return "", false
 	}
-	return out.String(), consumed
+	if len(value) == len(keyword) {
+		return "", true
+	}
+	next := value[len(keyword)]
+	if next == ' ' || next == '\t' || next == '\r' || next == '\n' || next == '\f' {
+		return value[len(keyword):], true
+	}
+	return "", false
+}
+
+func readCSSFunction(value, name string) (string, string, bool) {
+	prefix := strings.ToLower(name) + "("
+	if !strings.HasPrefix(strings.ToLower(value), prefix) {
+		return "", "", false
+	}
+	depth := 1
+	var quote byte
+	escaped := false
+	start := len(prefix)
+	for i := start; i < len(value); i++ {
+		ch := value[i]
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch ch {
+		case '"', '\'':
+			quote = ch
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return value[start:i], value[i+1:], true
+			}
+		}
+	}
+	return "", "", false
+}
+
+func generatedCounterText(args string, counters *counterState) (string, bool) {
+	parts := splitCSSFunctionArgs(args)
+	if len(parts) == 0 {
+		return "", false
+	}
+	name := cssIdentifierArg(parts[0])
+	if name == "" {
+		return "", false
+	}
+	style := "decimal"
+	if len(parts) > 1 {
+		style = cssIdentifierArg(parts[1])
+	}
+	return formatCounterValue(counters.value(name), style), true
+}
+
+func generatedCountersText(args string, counters *counterState) (string, bool) {
+	parts := splitCSSFunctionArgs(args)
+	if len(parts) < 2 {
+		return "", false
+	}
+	name := cssIdentifierArg(parts[0])
+	separator, ok := cssStringArg(parts[1])
+	if name == "" || !ok {
+		return "", false
+	}
+	style := "decimal"
+	if len(parts) > 2 {
+		style = cssIdentifierArg(parts[2])
+	}
+	values := counters.allValues(name)
+	out := make([]string, len(values))
+	for i, value := range values {
+		out[i] = formatCounterValue(value, style)
+	}
+	return strings.Join(out, separator), true
+}
+
+func splitCSSFunctionArgs(args string) []string {
+	var parts []string
+	start := 0
+	depth := 0
+	var quote rune
+	escaped := false
+	for i, r := range args {
+		switch {
+		case quote != 0:
+			if escaped {
+				escaped = false
+				continue
+			}
+			if r == '\\' {
+				escaped = true
+				continue
+			}
+			if r == quote {
+				quote = 0
+			}
+		default:
+			switch r {
+			case '"', '\'':
+				quote = r
+			case '(':
+				depth++
+			case ')':
+				if depth > 0 {
+					depth--
+				}
+			case ',':
+				if depth == 0 {
+					parts = append(parts, strings.TrimSpace(args[start:i]))
+					start = i + 1
+				}
+			}
+		}
+	}
+	parts = append(parts, strings.TrimSpace(args[start:]))
+	for len(parts) > 0 && parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
+	return parts
+}
+
+func cssIdentifierArg(value string) string {
+	return strings.Trim(strings.TrimSpace(value), `'"`)
+}
+
+func cssStringArg(value string) (string, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", false
+	}
+	if value[0] == '"' || value[0] == '\'' {
+		text, rest, ok := readCSSContentString(value)
+		return text, ok && strings.TrimSpace(rest) == ""
+	}
+	return value, true
 }
 
 func readCSSContentString(value string) (string, string, bool) {

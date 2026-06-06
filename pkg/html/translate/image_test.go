@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
@@ -78,12 +79,23 @@ func TestSafeDefaultResolver_DataURI_SVG(t *testing.T) {
 func TestSelectSrcsetCandidate(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "large.png", selectSrcsetCandidate("fallback.png", "small.png 1x,large.png 2x"))
-	assert.Equal(t, "wide.png", selectSrcsetCandidate("fallback.png", "narrow.png 400w, wide.png 800w"))
-	assert.Equal(t, "fallback.png", selectSrcsetCandidate("fallback.png", ""))
+	assert.Equal(t, "large.png", selectSrcsetCandidate("fallback.png", "small.png 1x,large.png 2x", "", 170))
+	assert.Equal(t, "wide.png", selectSrcsetCandidate("fallback.png", "narrow.png 400w, wide.png 800w", "", 170))
+	assert.Equal(t, "fallback.png", selectSrcsetCandidate("fallback.png", "", "", 170))
 
 	dataURL := "data:image/png;base64,abc"
-	assert.Equal(t, dataURL, selectSrcsetCandidate("fallback.png", dataURL+" 2x, low.png 1x"))
+	assert.Equal(t, dataURL, selectSrcsetCandidate("fallback.png", dataURL+" 2x, low.png 1x", "", 170))
+}
+
+func TestSelectSrcsetCandidate_UsesSizesForWidthDescriptors(t *testing.T) {
+	t.Parallel()
+
+	srcset := "small.png 400w, medium.png 800w, large.png 1200w"
+	assert.Equal(t, "small.png", selectSrcsetCandidate("fallback.png", srcset, "80mm", 170))
+	assert.Equal(t, "medium.png", selectSrcsetCandidate("fallback.png", srcset, "180mm", 170))
+	assert.Equal(t, "large.png", selectSrcsetCandidate("fallback.png", srcset, "500mm", 170))
+	assert.Equal(t, "small.png", selectSrcsetCandidate("fallback.png", srcset, "50%", 170))
+	assert.Equal(t, "small.png", selectSrcsetCandidate("fallback.png", srcset, "50vw", 170))
 }
 
 func TestBaseDirResolver_AllowsInside(t *testing.T) {
@@ -191,6 +203,23 @@ func TestImageRow_SrcsetSelectsHighestDensityCandidate(t *testing.T) {
 	assert.Equal(t, "large.png", calledSrc)
 }
 
+func TestImageRow_SrcsetUsesSizesForWidthDescriptors(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><img src="fallback.png" srcset="small.png 400w, medium.png 800w, large.png 1200w" sizes="80mm" width="10mm" height="10mm"></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "small.png", calledSrc)
+}
+
 func TestPictureRow_UsesFirstSourceSrcsetCandidate(t *testing.T) {
 	t.Parallel()
 	var calledSrc string
@@ -206,6 +235,93 @@ func TestPictureRow_UsesFirstSourceSrcsetCandidate(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "hero-large.png", calledSrc)
+}
+
+func TestPictureRow_SourceSizesDriveWidthDescriptorSelection(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><picture>
+<source media="print" sizes="80mm" srcset="small.png 400w, medium.png 800w, large.png 1200w">
+<img src="fallback.png" sizes="200mm" width="8mm" height="6mm" alt="hero">
+</picture></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "small.png", calledSrc)
+}
+
+func TestPictureRow_SelectsPrintMediaAndSupportedTypeSource(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		if strings.HasSuffix(src, ".svg") {
+			return []byte(minimalSVG), "svg", nil
+		}
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><picture>
+<source media="screen" srcset="screen.png">
+<source type="image/webp" srcset="webp.webp">
+<source media="print" type="image/svg+xml" srcset="print.svg">
+<img src="fallback.png" width="8mm" height="6mm" alt="hero">
+</picture></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "print.svg", calledSrc)
+}
+
+func TestPictureRow_EvaluatesSourceWidthMediaAgainstContentWidth(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><picture>
+<source media="print and (max-width: 500px)" srcset="narrow.png">
+<source media="print and (min-width: 600px)" srcset="wide.png">
+<img src="fallback.png" width="8mm" height="6mm" alt="hero">
+</picture></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "wide.png", calledSrc)
+}
+
+func TestPictureRow_SourceWidthMediaUsesConfiguredContentWidth(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><picture>
+<source media="print and (max-width: 500px)" srcset="narrow.png">
+<source media="print and (min-width: 600px)" srcset="wide.png">
+<img src="fallback.png" width="8mm" height="6mm" alt="hero">
+</picture></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver), WithContentWidth(80))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "narrow.png", calledSrc)
 }
 
 func TestImageRow_CSSDimensionsOverrideAttributes(t *testing.T) {
@@ -391,6 +507,38 @@ func TestInlinePicture_UsesSourceSrcsetCandidate(t *testing.T) {
 	}
 	assert.True(t, found, "expected inline picture to produce image run")
 	assert.Equal(t, "large.png", calledSrc)
+}
+
+func TestInlinePicture_SkipsScreenAndUnsupportedTypeSources(t *testing.T) {
+	t.Parallel()
+	var calledSrc string
+	resolver := func(src string) ([]byte, string, error) {
+		calledSrc = src
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><body><p>A <picture>
+<source media="screen" srcset="screen.png">
+<source type="image/avif" srcset="modern.avif">
+<source media="all" type="image/png" srcset="print.png">
+<img src="fallback.png" width="4mm" height="3mm" alt="hero">
+</picture> B</p></body></html>`)
+	require.NoError(t, err)
+
+	p := firstNodeByTag(doc, "p")
+	require.NotNil(t, p)
+
+	tr := &translator{imageResolver: resolver}
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image != nil {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected inline picture to produce image run")
+	assert.Equal(t, "print.png", calledSrc)
 }
 
 func TestInlineImage_CSSDimensionsFromStylesheet(t *testing.T) {

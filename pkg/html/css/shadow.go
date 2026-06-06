@@ -45,6 +45,87 @@ func ParseShadow(val string) ([]Shadow, error) {
 	return shadows, nil
 }
 
+// ParseFilterDropShadow extracts CSS filter drop-shadow(...) functions and
+// parses them into ordinary shadows for the PDF cell shadow renderer.
+func ParseFilterDropShadow(val string) ([]Shadow, error) {
+	val = strings.TrimSpace(val)
+	if val == "" || strings.EqualFold(val, "none") {
+		return nil, fmt.Errorf("filter: no drop-shadow")
+	}
+	var shadows []Shadow
+	for val != "" {
+		val = strings.TrimLeft(val, " \t\r\n\f")
+		if val == "" {
+			break
+		}
+		nameEnd := strings.IndexByte(val, '(')
+		if nameEnd < 0 {
+			break
+		}
+		name := strings.ToLower(strings.TrimSpace(val[:nameEnd]))
+		args, rest, ok := readFilterFunction(val[nameEnd:])
+		if !ok {
+			return nil, fmt.Errorf("filter: invalid function %q", val)
+		}
+		if name == "drop-shadow" {
+			shadow, err := parseSingleShadow(args)
+			if err != nil {
+				return nil, fmt.Errorf("drop-shadow %q: %w", args, err)
+			}
+			shadow.Spread = 0
+			shadow.Inset = false
+			shadows = append(shadows, shadow)
+			if len(shadows) >= 4 {
+				break
+			}
+		}
+		val = rest
+	}
+	if len(shadows) == 0 {
+		return nil, fmt.Errorf("filter: no drop-shadow")
+	}
+	return shadows, nil
+}
+
+func readFilterFunction(value string) (string, string, bool) {
+	if !strings.HasPrefix(value, "(") {
+		return "", "", false
+	}
+	depth := 1
+	var quote rune
+	escaped := false
+	for i, r := range value[1:] {
+		pos := i + 1
+		switch {
+		case quote != 0:
+			if escaped {
+				escaped = false
+				continue
+			}
+			if r == '\\' {
+				escaped = true
+				continue
+			}
+			if r == quote {
+				quote = 0
+			}
+		default:
+			switch r {
+			case '"', '\'':
+				quote = r
+			case '(':
+				depth++
+			case ')':
+				depth--
+				if depth == 0 {
+					return value[1:pos], value[pos+1:], true
+				}
+			}
+		}
+	}
+	return "", "", false
+}
+
 // parseSingleShadow parses one shadow entry: [inset] <x> <y> [blur] [spread] [color].
 func parseSingleShadow(val string) (Shadow, error) {
 	tokens := strings.Fields(val)

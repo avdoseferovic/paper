@@ -34,12 +34,23 @@ func (tr *translator) inlineRunsStyled(n *dom.Node, style *css.ComputedStyle) []
 }
 
 func (tr *translator) styledRunContext(style *css.ComputedStyle) runContext {
+	counters := tr.counters
+	if counters == nil {
+		counters = newCounterState()
+	}
+	quotes := tr.quotes
+	if quotes == nil {
+		quotes = newQuoteState()
+	}
 	return runContext{
 		handler:        tr.unsupportedHandler,
 		inlineImage:    tr.inlineImage,
 		inlinePicture:  tr.inlinePicture,
 		inlineSVG:      tr.inlineSVG,
+		contentImage:   tr.generatedContentImage,
 		style:          style,
+		counters:       counters,
+		quotes:         quotes,
 		styleResolver:  tr.computeInlineStyle,
 		pseudoResolver: tr.computePseudoStyle,
 	}
@@ -54,6 +65,12 @@ func (tr *translator) computePseudoStyle(n *dom.Node, parent *css.ComputedStyle,
 }
 
 func inlineRunsWithContext(n *dom.Node, ctx runContext) []props.RichRun {
+	if ctx.counters == nil {
+		ctx.counters = newCounterState()
+	}
+	if ctx.quotes == nil {
+		ctx.quotes = newQuoteState()
+	}
 	var runs []props.RichRun
 	if n != nil && n.Tag() != "" {
 		appendGeneratedContent(n, ctx, "before", &runs)
@@ -87,7 +104,10 @@ type runContext struct {
 	inlineImage    func(n *dom.Node) (*props.RichImage, bool)
 	inlinePicture  func(n *dom.Node) (*props.RichImage, bool)
 	inlineSVG      func(n *dom.Node) (*props.RichImage, bool)
+	contentImage   func(src string, style *css.ComputedStyle) (*props.RichImage, bool)
 	style          *css.ComputedStyle
+	counters       *counterState
+	quotes         *quoteState
 	styleResolver  func(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle
 	pseudoResolver func(n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle
 }
@@ -121,6 +141,8 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	if isDisplayNone(n) || (next.style != nil && next.style.Display == "none") {
 		return
 	}
+	counterScope := next.counters.enter(next.style)
+	defer next.counters.exit(counterScope)
 	if tag == "picture" && ctx.inlinePicture != nil {
 		if img, ok := ctx.inlinePicture(n); ok {
 			run := richRunFromContext("", next)
@@ -134,13 +156,12 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	}
 	next = mutateContext(tag, n, next)
 	appendGeneratedContent(n, next, "before", runs)
-	// <q>: wrap children with ASCII quotes.
 	if tag == "q" {
-		*runs = append(*runs, richRunFromContext(`"`, next))
+		*runs = append(*runs, richRunFromContext(next.quotes.open(next.style), next))
 		for _, c := range n.Children() {
 			walkInline(c, next, runs)
 		}
-		*runs = append(*runs, richRunFromContext(`"`, next))
+		*runs = append(*runs, richRunFromContext(next.quotes.close(next.style), next))
 		appendGeneratedContent(n, next, "after", runs)
 		return
 	}
@@ -158,13 +179,15 @@ func appendGeneratedContent(n *dom.Node, ctx runContext, pseudo string, runs *[]
 	if style == nil || style.Content == "" {
 		return
 	}
-	text, ok := generatedContentText(style.Content, n)
-	if !ok || text == "" {
-		return
-	}
+	counterScope := ctx.counters.enter(style)
+	defer ctx.counters.exit(counterScope)
 	pseudoCtx := ctx
 	pseudoCtx.style = style
-	*runs = append(*runs, richRunFromContext(text, pseudoCtx))
+	generated, ok := generatedContentRuns(style.Content, n, pseudoCtx)
+	if !ok || len(generated) == 0 {
+		return
+	}
+	*runs = append(*runs, generated...)
 }
 
 func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
@@ -246,11 +269,11 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 	switch tag {
 	case "b", "strong":
 		next.bold = true
-	case "i", "em", "var", "cite":
+	case "i", "em", "var", "cite", "dfn":
 		next.italic = true
-	case "u":
+	case "u", "ins":
 		next.underline = true
-	case "s", "strike":
+	case "s", "strike", "del":
 		next.strike = true
 	case "sub":
 		next.sub = true

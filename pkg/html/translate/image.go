@@ -181,7 +181,7 @@ func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, boo
 	// a full-width col + tiny Percent avoids the SVG getting visually squashed.
 	cellWidth := tr.contentWidthMM
 	if cellWidth <= 0 {
-		cellWidth = 170.0
+		cellWidth = defaultContentWidthMM
 	}
 	gridSize := tr.gridSize
 	if gridSize <= 0 {
@@ -208,24 +208,37 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 }
 
 func (tr *translator) inlineImageWithSource(n *dom.Node, src string) (*props.RichImage, bool) {
+	style := tr.imageStyle(n)
+	return tr.richImageFromSource(src, style, imageDimensions(n, style), n.Attr("alt"), "img")
+}
+
+func (tr *translator) generatedContentImage(src string, style *css.ComputedStyle) (*props.RichImage, bool) {
+	return tr.richImageFromSource(src, style, imageDimensionsFromStyle(style), "", "content.url")
+}
+
+func (tr *translator) richImageFromSource(
+	src string,
+	style *css.ComputedStyle,
+	dimensions imageDimensionStyle,
+	alt string,
+	unsupportedPrefix string,
+) (*props.RichImage, bool) {
 	resolver := tr.imageResolver
 	if resolver == nil {
 		resolver = safeDefaultResolver
 	}
 	data, ext, err := resolver(src)
 	if err != nil {
-		tr.unsupported("img.src", err.Error())
+		tr.unsupported(unsupportedPrefix+".src", err.Error())
 		return nil, false
 	}
 
-	style := tr.imageStyle(n)
-	dimensions := imageDimensions(n, style)
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	if ext == "svg" {
 		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
 		if rerr != nil {
-			tr.unsupported("img.svg", rerr.Error())
+			tr.unsupported(unsupportedPrefix+".svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
@@ -238,19 +251,24 @@ func (tr *translator) inlineImageWithSource(n *dom.Node, src string) (*props.Ric
 
 	extType := extensionType(ext)
 	if extType == "" {
-		tr.unsupported("img.ext", "unsupported extension: "+ext)
+		tr.unsupported(unsupportedPrefix+".ext", "unsupported extension: "+ext)
 		return nil, false
 	}
 
 	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 4)
+	objectFit, objectPosition := "", ""
+	if style != nil {
+		objectFit = style.ObjectFit
+		objectPosition = style.ObjectPosition
+	}
 	return &props.RichImage{
 		Bytes:          data,
 		Extension:      extType,
 		Width:          widthMM,
 		Height:         heightMM,
-		Alt:            n.Attr("alt"),
-		ObjectFit:      style.ObjectFit,
-		ObjectPosition: style.ObjectPosition,
+		Alt:            alt,
+		ObjectFit:      objectFit,
+		ObjectPosition: objectPosition,
 	}, true
 }
 
@@ -259,7 +277,7 @@ func (tr *translator) inlinePicture(n *dom.Node) (*props.RichImage, bool) {
 	if img == nil {
 		return nil, false
 	}
-	src := pictureSelectedSource(n, strings.TrimSpace(img.Attr("src")))
+	src := tr.pictureSelectedSource(n, img)
 	if src == "" {
 		src = tr.selectedImageSource(img)
 	}
@@ -271,7 +289,7 @@ func (tr *translator) pictureRow(n *dom.Node) []core.Row {
 	if img == nil {
 		return nil
 	}
-	src := pictureSelectedSource(n, strings.TrimSpace(img.Attr("src")))
+	src := tr.pictureSelectedSource(n, img)
 	if src == "" {
 		src = tr.selectedImageSource(img)
 	}
@@ -291,15 +309,24 @@ func pictureFallbackImage(n *dom.Node) *dom.Node {
 }
 
 func (tr *translator) selectedImageSource(n *dom.Node) string {
-	return selectSrcsetCandidate(n.Attr("src"), n.Attr("srcset"))
+	return selectSrcsetCandidate(n.Attr("src"), n.Attr("srcset"), n.Attr("sizes"), tr.availableContentWidth())
 }
 
-func pictureSelectedSource(picture *dom.Node, fallback string) string {
+func (tr *translator) pictureSelectedSource(picture, fallbackImg *dom.Node) string {
+	fallback := strings.TrimSpace(fallbackImg.Attr("src"))
+	fallbackSizes := fallbackImg.Attr("sizes")
 	for _, child := range picture.Children() {
 		if child.Tag() != "source" {
 			continue
 		}
-		if src := selectSrcsetCandidate("", child.Attr("srcset")); src != "" {
+		if !pictureSourceApplies(child, tr.availableContentWidth()) {
+			continue
+		}
+		sizes := child.Attr("sizes")
+		if strings.TrimSpace(sizes) == "" {
+			sizes = fallbackSizes
+		}
+		if src := selectSrcsetCandidate("", child.Attr("srcset"), sizes, tr.availableContentWidth()); src != "" {
 			return src
 		}
 		if src := strings.TrimSpace(child.Attr("src")); src != "" {
@@ -309,6 +336,34 @@ func pictureSelectedSource(picture *dom.Node, fallback string) string {
 	return fallback
 }
 
+func pictureSourceApplies(source *dom.Node, contentWidthMM float64) bool {
+	return pictureSourceTypeSupported(source.Attr("type")) && pictureSourceMediaApplies(source.Attr("media"), contentWidthMM)
+}
+
+func pictureSourceTypeSupported(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return true
+	}
+	if mediaType, _, ok := strings.Cut(value, ";"); ok {
+		value = strings.TrimSpace(mediaType)
+	}
+	switch value {
+	case "image/png", "image/jpeg", "image/jpg", "image/svg+xml":
+		return true
+	default:
+		return false
+	}
+}
+
+func pictureSourceMediaApplies(value string, contentWidthMM float64) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return true
+	}
+	return mediaAppliesToPrintAtWidth(value, contentWidthMM)
+}
+
 type srcsetCandidate struct {
 	src     string
 	density float64
@@ -316,11 +371,16 @@ type srcsetCandidate struct {
 	order   int
 }
 
-func selectSrcsetCandidate(src, srcset string) string {
+func selectSrcsetCandidate(src, srcset, sizes string, contentWidthMM float64) string {
 	fallback := strings.TrimSpace(src)
 	candidates := parseSrcset(srcset)
 	if len(candidates) == 0 {
 		return fallback
+	}
+	if slotWidthPx := sourceSizePx(sizes, contentWidthMM); slotWidthPx > 0 {
+		if selected := selectWidthDescriptorCandidate(candidates, slotWidthPx); selected != "" {
+			return selected
+		}
 	}
 	best := candidates[0]
 	for _, candidate := range candidates[1:] {
@@ -332,6 +392,150 @@ func selectSrcsetCandidate(src, srcset string) string {
 		return fallback
 	}
 	return best.src
+}
+
+func selectWidthDescriptorCandidate(candidates []srcsetCandidate, slotWidthPx float64) string {
+	var best *srcsetCandidate
+	for i := range candidates {
+		candidate := &candidates[i]
+		if candidate.width <= 0 || candidate.src == "" {
+			continue
+		}
+		if candidate.width >= slotWidthPx {
+			if best == nil || best.width < slotWidthPx || candidate.width < best.width || (candidate.width == best.width && candidate.order < best.order) {
+				best = candidate
+			}
+			continue
+		}
+		if best == nil || best.width < slotWidthPx && candidate.width > best.width {
+			best = candidate
+		}
+	}
+	if best == nil {
+		return ""
+	}
+	return best.src
+}
+
+func sourceSizePx(sizes string, contentWidthMM float64) float64 {
+	sizeMM := sourceSizeMM(sizes, contentWidthMM)
+	if sizeMM <= 0 {
+		return 0
+	}
+	return sizeMM / 0.264583
+}
+
+func sourceSizeMM(sizes string, contentWidthMM float64) float64 {
+	if contentWidthMM <= 0 {
+		contentWidthMM = defaultContentWidthMM
+	}
+	for _, raw := range splitSizesList(sizes) {
+		size, ok := parseSourceSize(raw, contentWidthMM)
+		if ok && size > 0 {
+			return size
+		}
+	}
+	return 0
+}
+
+func splitSizesList(sizes string) []string {
+	var parts []string
+	start := 0
+	depth := 0
+	var quote rune
+	for i, r := range sizes {
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		default:
+			switch r {
+			case '"', '\'':
+				quote = r
+			case '(':
+				depth++
+			case ')':
+				if depth > 0 {
+					depth--
+				}
+			case ',':
+				if depth == 0 {
+					parts = append(parts, strings.TrimSpace(sizes[start:i]))
+					start = i + 1
+				}
+			}
+		}
+	}
+	if tail := strings.TrimSpace(sizes[start:]); tail != "" {
+		parts = append(parts, tail)
+	}
+	return parts
+}
+
+func parseSourceSize(value string, contentWidthMM float64) (float64, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	lengthStart := lastSourceSizeLengthStart(value)
+	if lengthStart < 0 {
+		return 0, false
+	}
+	media := strings.TrimSpace(value[:lengthStart])
+	if media != "" && !mediaAppliesToPrintAtWidth(media, contentWidthMM) {
+		return 0, false
+	}
+	length := strings.TrimSpace(value[lengthStart:])
+	return parseSourceSizeLength(length, contentWidthMM)
+}
+
+func lastSourceSizeLengthStart(value string) int {
+	depth := 0
+	var quote rune
+	for i := len(value) - 1; i >= 0; i-- {
+		r := rune(value[i])
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		default:
+			switch r {
+			case '"', '\'':
+				quote = r
+			case ')':
+				depth++
+			case '(':
+				if depth > 0 {
+					depth--
+				}
+			case ' ', '\t', '\r', '\n', '\f':
+				if depth == 0 {
+					return i + 1
+				}
+			}
+		}
+	}
+	return 0
+}
+
+func parseSourceSizeLength(length string, contentWidthMM float64) (float64, bool) {
+	length = strings.TrimSpace(length)
+	if length == "" || strings.EqualFold(length, "auto") {
+		return 0, false
+	}
+	if strings.HasSuffix(strings.ToLower(length), "vw") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(length[:len(length)-2]), 64)
+		if err != nil {
+			return 0, false
+		}
+		return contentWidthMM * v / 100, true
+	}
+	if strings.Contains(length, "%") || strings.Contains(length, "calc(") {
+		return css.ParseLengthCtx(length, 0, contentWidthMM), true
+	}
+	return css.ParseLength(length, 0), true
 }
 
 func parseSrcset(srcset string) []srcsetCandidate {
@@ -408,7 +612,7 @@ func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {
 
 	cellWidth := tr.contentWidthMM
 	if cellWidth <= 0 {
-		cellWidth = 170.0
+		cellWidth = defaultContentWidthMM
 	}
 	gridSize := tr.gridSize
 	if gridSize <= 0 {
@@ -511,7 +715,7 @@ func (tr *translator) availableContentWidth() float64 {
 	if tr.contentWidthMM > 0 {
 		return tr.contentWidthMM
 	}
-	return 170.0
+	return defaultContentWidthMM
 }
 
 type imageDimensionStyle struct {
@@ -528,6 +732,14 @@ func imageDimensions(n *dom.Node, style *css.ComputedStyle) imageDimensionStyle 
 		width:  parseImageDimension(n.Attr("width")),
 		height: parseImageDimension(n.Attr("height")),
 	}
+	return applyImageDimensionStyle(dimensions, style)
+}
+
+func imageDimensionsFromStyle(style *css.ComputedStyle) imageDimensionStyle {
+	return applyImageDimensionStyle(imageDimensionStyle{}, style)
+}
+
+func applyImageDimensionStyle(dimensions imageDimensionStyle, style *css.ComputedStyle) imageDimensionStyle {
 	if style != nil {
 		if style.Width > 0 {
 			dimensions.width = style.Width

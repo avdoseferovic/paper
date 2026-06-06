@@ -24,6 +24,12 @@ func (s *ComputedStyle) applyTypographyProperty(ctx computedPropertyContext) boo
 		s.VerticalAlign = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "content":
 		s.Content = strings.TrimSpace(ctx.val)
+	case "counter-reset":
+		s.CounterReset = strings.TrimSpace(ctx.val)
+	case "counter-increment":
+		s.CounterIncrement = strings.TrimSpace(ctx.val)
+	case "quotes":
+		s.Quotes = strings.TrimSpace(ctx.val)
 	default:
 		return false
 	}

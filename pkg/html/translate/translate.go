@@ -16,6 +16,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+const defaultContentWidthMM = 170.0
+
 // Option configures translator behaviour.
 type Option func(*translator)
 
@@ -49,6 +51,8 @@ type translator struct {
 	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
 	loadedFonts        []loadedFont        // @font-face fonts (Task 10)
 	rootStyle          *css.ComputedStyle  // seed for body-level cascade (:root vars)
+	counters           *counterState       // document-order CSS counter state
+	quotes             *quoteState         // document-order CSS quote depth
 }
 
 // WithStylesheetBaseDir scopes the default stylesheet resolver to a single
@@ -111,7 +115,7 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 		combined = append(combined, '\n')
 	}
 	combined = append(combined, []byte(inlineCSS)...)
-	tr.sheet = parseStylesheet(string(combined))
+	tr.sheet = parseStylesheetWithContentWidth(string(combined), tr.availableContentWidth())
 
 	// Process @font-face declarations: resolve src URLs via the stylesheet
 	// resolver and emit a fontRegistration row that registers the bytes via
@@ -134,9 +138,13 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	// is parsed but never inherited because computeNodeStyle is called with
 	// parent=nil for top-level body children.
 	tr.rootStyle = tr.seedRootStyle(doc)
+	tr.counters = newCounterState()
+	tr.quotes = newQuoteState()
+	rootCounters := tr.counters.enter(tr.rootStyle)
 	for _, child := range body.Children() {
 		rows = append(rows, tr.blockRows(child)...)
 	}
+	tr.counters.exit(rootCounters)
 	return rows, nil
 }
 
@@ -190,6 +198,8 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 			return nil
 		}
 	}
+	counterScope := tr.counters.enter(style)
+	defer tr.counters.exit(counterScope)
 
 	rows := tr.dispatchBlockRows(n)
 	// If the element has an id, wrap its first row in an anchorTarget so the

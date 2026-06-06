@@ -36,6 +36,16 @@ func (s *ComputedStyle) applyEffectsProperty(ctx computedPropertyContext) bool {
 		s.BackgroundRepeat = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "opacity":
 		s.applyOpacity(ctx.val)
+	case "filter":
+		shadows, err := ParseFilterDropShadow(ctx.val)
+		if err == nil && len(shadows) > 0 {
+			s.BoxShadow = append(s.BoxShadow, shadows...)
+			if len(s.BoxShadow) > 4 {
+				s.BoxShadow = s.BoxShadow[:4]
+			}
+		} else if s.unsupportedHandler != nil {
+			s.unsupportedHandler(ctx.prop, ctx.val)
+		}
 	default:
 		return false
 	}

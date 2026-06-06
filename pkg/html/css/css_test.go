@@ -96,6 +96,17 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		assert.Equal(t, s.TextShadows[0], *s.TextShadow)
 		assert.InDelta(t, 2.0, s.TextShadows[1].OffsetX, 0.001)
 	})
+	t.Run("filter drop-shadow populates BoxShadow field", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("filter", "blur(2px) drop-shadow(2mm 3mm 4mm rgba(0,0,0,0.5))", nil)
+		require.Len(t, s.BoxShadow, 1)
+		assert.InDelta(t, 2.0, s.BoxShadow[0].OffsetX, 0.001)
+		assert.InDelta(t, 3.0, s.BoxShadow[0].OffsetY, 0.001)
+		assert.InDelta(t, 4.0, s.BoxShadow[0].BlurRadius, 0.001)
+		require.NotNil(t, s.BoxShadow[0].Color)
+		assert.InDelta(t, 0.5, s.BoxShadow[0].Color.A, 0.001)
+	})
 	t.Run("vertical-align is stored", func(t *testing.T) {
 		t.Parallel()
 		s := css.NewComputedStyle()
@@ -107,6 +118,20 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		s := css.NewComputedStyle()
 		s.Apply("content", `"* " attr(data-label)`, nil)
 		assert.Equal(t, `"* " attr(data-label)`, s.Content)
+	})
+	t.Run("counter properties are stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("counter-reset", "section 0 figure 4", nil)
+		s.Apply("counter-increment", "section figure 2", nil)
+		assert.Equal(t, "section 0 figure 4", s.CounterReset)
+		assert.Equal(t, "section figure 2", s.CounterIncrement)
+	})
+	t.Run("quotes property is stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("quotes", `"<<" ">>" "<" ">"`, nil)
+		assert.Equal(t, `"<<" ">>" "<" ">"`, s.Quotes)
 	})
 	t.Run("background-image url populates BackgroundImageURL", func(t *testing.T) {
 		t.Parallel()

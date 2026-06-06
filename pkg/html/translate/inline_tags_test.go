@@ -32,6 +32,7 @@ func parseInlineRuns(t *testing.T, htmlStr string) []runEntry {
 			family:        r.Family,
 			style:         string(r.Style),
 			underline:     r.Underline,
+			strike:        r.Strikethrough,
 			bg:            r.Background,
 			hasBg:         r.Background != nil,
 			hasAnchor:     r.LocalAnchor != "",
@@ -48,6 +49,7 @@ type runEntry struct {
 	family        string
 	style         string
 	underline     bool
+	strike        bool
 	bg            interface{}
 	hasBg         bool
 	hasAnchor     bool
@@ -178,17 +180,49 @@ func TestInlineTag_Cite_Italic(t *testing.T) {
 	}
 }
 
-func TestInlineTag_Q_AsciiQuotes(t *testing.T) {
+func TestInlineTag_Dfn_Italic(t *testing.T) {
 	t.Parallel()
-	runs := parseInlineRuns(t, `<p><q>quoted</q></p>`)
+	runs := parseInlineRuns(t, `<p><dfn>term</dfn></p>`)
 	require.NotEmpty(t, runs)
-	// First and last runs should be quote chars.
+	for _, r := range runs {
+		if r.text == "term" {
+			assert.Equal(t, "I", r.style)
+		}
+	}
+}
+
+func TestInlineTag_Ins_Underline(t *testing.T) {
+	t.Parallel()
+	runs := parseInlineRuns(t, `<p><ins>added</ins></p>`)
+	require.NotEmpty(t, runs)
+	for _, r := range runs {
+		if r.text == "added" {
+			assert.True(t, r.underline)
+		}
+	}
+}
+
+func TestInlineTag_Del_Strikethrough(t *testing.T) {
+	t.Parallel()
+	runs := parseInlineRuns(t, `<p><del>removed</del></p>`)
+	require.NotEmpty(t, runs)
+	for _, r := range runs {
+		if r.text == "removed" {
+			assert.True(t, r.strike)
+		}
+	}
+}
+
+func TestInlineTag_Q_NestedQuotes(t *testing.T) {
+	t.Parallel()
+	runs := parseInlineRuns(t, `<p><q>outer <q>inner</q></q></p>`)
+	require.NotEmpty(t, runs)
 	var concatenated strings.Builder
 	for _, r := range runs {
 		concatenated.WriteString(r.text)
 	}
 	full := concatenated.String()
-	assert.Contains(t, full, `"quoted"`)
+	assert.Equal(t, `"outer 'inner'"`, full)
 }
 
 func TestInlineTag_Abbr_TitleSurfacedViaHandler(t *testing.T) {

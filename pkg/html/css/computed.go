@@ -107,12 +107,15 @@ type ComputedStyle struct {
 	Opacity float64
 
 	// Typography
-	LetterSpacing float64 // mm; applied via SetCharSpacing
-	TextTransform string  // "none" | "uppercase" | "lowercase" | "capitalize"
-	TextIndent    float64 // mm; first-line indent
-	WhiteSpace    string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
-	VerticalAlign string  // "baseline" | "sub" | "super" | "sup"
-	Content       string  // generated content for ::before/::after
+	LetterSpacing    float64 // mm; applied via SetCharSpacing
+	TextTransform    string  // "none" | "uppercase" | "lowercase" | "capitalize"
+	TextIndent       float64 // mm; first-line indent
+	WhiteSpace       string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
+	VerticalAlign    string  // "baseline" | "sub" | "super" | "sup"
+	Content          string  // generated content for ::before/::after
+	CounterReset     string  // raw counter-reset value, evaluated by the translator
+	CounterIncrement string  // raw counter-increment value, evaluated by the translator
+	Quotes           string  // raw quotes value, evaluated by generated content
 
 	// Page break hints.
 	PageBreakBefore string // "always" | "avoid" | "auto"

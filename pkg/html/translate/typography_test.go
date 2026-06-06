@@ -1,12 +1,14 @@
 package translate
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -178,6 +180,127 @@ func TestTypography_PseudoElementContentSupportsAttr(t *testing.T) {
 	assert.Equal(t, "Weight (kg)", text)
 }
 
+func TestTypography_PseudoElementContentSupportsURLImage(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(minimalPNG(t))
+	runs := runsFromHTML(t, `<style>
+p::before { content:url("`+uri+`") " "; width:2mm; height:3mm }
+</style><p>Label</p>`)
+	require.Len(t, runs, 3)
+	require.NotNil(t, runs[0].Image)
+	assert.Equal(t, extension.Png, runs[0].Image.Extension)
+	assert.InDelta(t, 2.0, runs[0].Image.Width, 0.001)
+	assert.InDelta(t, 3.0, runs[0].Image.Height, 0.001)
+	assert.Equal(t, " ", runs[1].Text)
+	assert.Equal(t, "Label", runs[2].Text)
+}
+
+func TestTypography_PseudoElementContentSupportsURLSVG(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(minimalSVG))
+	runs := runsFromHTML(t, `<style>
+p::before { content:url("`+uri+`") " "; width:3mm; height:3mm }
+</style><p>Vector</p>`)
+	require.Len(t, runs, 3)
+	require.NotNil(t, runs[0].Image)
+	assert.Equal(t, extension.Png, runs[0].Image.Extension)
+	assert.InDelta(t, 3.0, runs[0].Image.Width, 0.001)
+	assert.InDelta(t, 3.0, runs[0].Image.Height, 0.001)
+	assert.Equal(t, "Vector", runs[2].Text)
+}
+
+func TestTypography_PseudoElementContentSupportsQuoteTokens(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+p { quotes:"<<" ">>" "<" ">" }
+.quote::before { content:open-quote }
+.quote::after { content:close-quote }
+</style><p><span class="quote">Outer <span class="quote">Inner</span></span></p>`)
+	require.NotEmpty(t, runs)
+
+	var text string
+	for _, run := range runs {
+		text += run.Text
+	}
+	assert.Equal(t, "<<Outer <Inner>>>", text)
+}
+
+func TestTypography_QElementUsesCSSQuotes(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+p { quotes:"<<" ">>" "<" ">" }
+</style><p><q>Outer <q>Inner</q></q></p>`)
+	require.NotEmpty(t, runs)
+
+	var text string
+	for _, run := range runs {
+		text += run.Text
+	}
+	assert.Equal(t, "<<Outer <Inner>>>", text)
+}
+
+func TestTypography_PseudoElementContentSupportsCounter(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>
+body { counter-reset: section }
+h2 { counter-increment: section }
+h2::before { content:"Section " counter(section) ": " }
+</style></head><body><h2>Intro</h2><h2>Usage</h2></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"Section 1: Intro", "Section 2: Usage"}, richTextValues(rows))
+}
+
+func TestTypography_PseudoElementCanIncrementCounter(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>
+body { counter-reset: note }
+p::before { counter-increment: note; content: counter(note, decimal-leading-zero) ". " }
+</style></head><body><p>First</p><p>Second</p></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"01. First", "02. Second"}, richTextValues(rows))
+}
+
+func TestTypography_CountersAreScopedToResetElement(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>
+body { counter-reset: section }
+section { counter-increment: section; counter-reset: item }
+h2::before { content: counter(section, upper-roman) ". " }
+p.item { counter-increment: item }
+p.item::before { content: counter(section) "." counter(item) " " }
+</style></head><body>
+<section><h2>First</h2><p class="item">One</p><p class="item">Two</p></section>
+<section><h2>Second</h2><p class="item">One</p></section>
+</body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{
+		"I. First",
+		"1.1 One",
+		"1.2 Two",
+		"II. Second",
+		"2.1 One",
+	}, richTextValues(rows))
+}
+
 func TestTypography_PseudoElementSelectorSpecificity(t *testing.T) {
 	t.Parallel()
 
@@ -188,6 +311,20 @@ p.note::before { content:"specific " }
 	require.NotEmpty(t, runs)
 
 	assert.Equal(t, "specific ", runs[0].Text)
+}
+
+func richTextValues(rows []core.Row) []string {
+	var values []string
+	for _, r := range rows {
+		walkStructure(r.GetStructure(), func(s core.Structure) {
+			if s.Type == "richtext" {
+				if value, ok := s.Value.(string); ok {
+					values = append(values, value)
+				}
+			}
+		})
+	}
+	return values
 }
 
 func TestTypography_TextIndent_Stored(t *testing.T) {

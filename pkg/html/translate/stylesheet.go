@@ -2,17 +2,19 @@ package translate
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/andybalholm/cascadia"
 	"github.com/avdoseferovic/paper/pkg/html/css"
+	douceurcss "github.com/aymerick/douceur/css"
 	"github.com/aymerick/douceur/parser"
 	"golang.org/x/net/html"
 )
 
 // stylesheet holds parsed CSS rules from <style> blocks with pre-compiled selectors.
-// @font-face AtRules are collected separately on fontFaces; other AtRules
-// (@media, @keyframes, …) are dropped silently.
+// @font-face AtRules are collected separately on fontFaces. @media print/all
+// rules are flattened into the normal rule stream; other AtRules are skipped.
 type stylesheet struct {
 	rules     []compiledRule
 	pseudos   []compiledPseudoRule
@@ -54,57 +56,187 @@ caption { padding: 1mm 0; text-align: center }
 // Invalid selectors are skipped silently. The built-in Paper stylesheet is
 // always prepended so its rules are applied first (and overridable by user CSS).
 func parseStylesheet(text string) *stylesheet {
+	return parseStylesheetWithContentWidth(text, defaultContentWidthMM)
+}
+
+func parseStylesheetWithContentWidth(text string, contentWidthMM float64) *stylesheet {
 	ss := &stylesheet{}
 	text = builtinCSS + "\n" + text
 	sheet, err := parser.Parse(text)
 	if err != nil || sheet == nil {
 		return ss
 	}
+	order := 0
 	for _, rule := range sheet.Rules {
-		if rule == nil {
-			continue
-		}
-		// AtRules: only @font-face is admitted; @media/@keyframes/… are skipped.
-		// douceur encodes Name as "@font-face" (with the @ prefix).
-		if rule.Kind != 0 {
-			if rule.Name == "@font-face" {
-				if face, ok := extractFontFace(rule); ok {
-					ss.fontFaces = append(ss.fontFaces, face)
-				}
-			}
-			continue
-		}
-		decls := make(map[string]string, len(rule.Declarations))
-		for _, d := range rule.Declarations {
-			if d == nil || d.Property == "" {
-				continue
-			}
-			decls[d.Property] = d.Value
-		}
-		decls = css.ExpandShorthands(decls)
-		for _, sel := range rule.Selectors {
-			baseSelector, pseudo := splitPseudoElementSelector(sel)
-			m, err := cascadia.Parse(baseSelector)
-			if err != nil {
-				continue
-			}
-			compiled := compiledRule{
-				matcher:      m,
-				declarations: decls,
-				order:        len(ss.rules),
-			}
-			if pseudo != "" {
-				compiled.order = len(ss.rules) + len(ss.pseudos)
-				ss.pseudos = append(ss.pseudos, compiledPseudoRule{
-					compiledRule: compiled,
-					pseudo:       pseudo,
-				})
-				continue
-			}
-			ss.rules = append(ss.rules, compiled)
-		}
+		ss.addParsedRule(rule, &order, contentWidthMM)
 	}
 	return ss
+}
+
+func (s *stylesheet) addParsedRule(rule *douceurcss.Rule, order *int, contentWidthMM float64) {
+	if rule == nil {
+		return
+	}
+	if rule.Kind == douceurcss.AtRule {
+		switch rule.Name {
+		case "@font-face":
+			if face, ok := extractFontFace(rule); ok {
+				s.fontFaces = append(s.fontFaces, face)
+			}
+		case "@media":
+			if mediaAppliesToPrintAtWidth(rule.Prelude, contentWidthMM) {
+				for _, nested := range rule.Rules {
+					s.addParsedRule(nested, order, contentWidthMM)
+				}
+			}
+		}
+		return
+	}
+	if rule.Kind != douceurcss.QualifiedRule {
+		return
+	}
+	decls := make(map[string]string, len(rule.Declarations))
+	for _, d := range rule.Declarations {
+		if d == nil || d.Property == "" {
+			continue
+		}
+		decls[d.Property] = d.Value
+	}
+	decls = css.ExpandShorthands(decls)
+	for _, sel := range rule.Selectors {
+		baseSelector, pseudo := splitPseudoElementSelector(sel)
+		m, err := cascadia.Parse(baseSelector)
+		if err != nil {
+			continue
+		}
+		compiled := compiledRule{
+			matcher:      m,
+			declarations: decls,
+			order:        *order,
+		}
+		*order = *order + 1
+		if pseudo != "" {
+			s.pseudos = append(s.pseudos, compiledPseudoRule{
+				compiledRule: compiled,
+				pseudo:       pseudo,
+			})
+			continue
+		}
+		s.rules = append(s.rules, compiled)
+	}
+}
+
+func mediaAppliesToPrint(prelude string) bool {
+	return mediaAppliesToPrintAtWidth(prelude, defaultContentWidthMM)
+}
+
+func mediaAppliesToPrintAtWidth(prelude string, contentWidthMM float64) bool {
+	for _, query := range strings.Split(prelude, ",") {
+		if mediaQueryAppliesToPrintAtWidth(query, contentWidthMM) {
+			return true
+		}
+	}
+	return false
+}
+
+func mediaQueryAppliesToPrint(query string) bool {
+	return mediaQueryAppliesToPrintAtWidth(query, defaultContentWidthMM)
+}
+
+func mediaQueryAppliesToPrintAtWidth(query string, contentWidthMM float64) bool {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" || strings.HasPrefix(query, "not ") {
+		return false
+	}
+	query = strings.TrimSpace(strings.TrimPrefix(query, "only "))
+	mediaType := "all"
+	conditions := query
+	if !strings.HasPrefix(query, "(") {
+		mediaType, conditions = splitMediaType(query)
+		if mediaType != "print" && mediaType != "all" {
+			return false
+		}
+	}
+	for _, condition := range mediaConditions(conditions) {
+		ok, supported := mediaConditionMatches(condition, contentWidthMM)
+		if !supported || !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func splitMediaType(query string) (string, string) {
+	fields := strings.Fields(query)
+	if len(fields) == 0 {
+		return "", ""
+	}
+	mediaType := fields[0]
+	rest := strings.TrimSpace(query[len(mediaType):])
+	rest = strings.TrimSpace(strings.TrimPrefix(rest, "and"))
+	return mediaType, rest
+}
+
+func mediaConditions(query string) []string {
+	var conditions []string
+	depth := 0
+	start := -1
+	for i, r := range query {
+		switch r {
+		case '(':
+			if depth == 0 {
+				start = i + 1
+			}
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+				if depth == 0 && start >= 0 {
+					conditions = append(conditions, strings.TrimSpace(query[start:i]))
+					start = -1
+				}
+			}
+		}
+	}
+	return conditions
+}
+
+func mediaConditionMatches(condition string, contentWidthMM float64) (bool, bool) {
+	prop, value, ok := strings.Cut(condition, ":")
+	if !ok {
+		return false, false
+	}
+	widthMM := parseMediaQueryLength(value, contentWidthMM)
+	if widthMM <= 0 {
+		return false, false
+	}
+	contentWidthPx := contentWidthMM / 0.264583
+	targetPx := widthMM / 0.264583
+	switch strings.TrimSpace(prop) {
+	case "min-width":
+		return contentWidthPx >= targetPx, true
+	case "max-width":
+		return contentWidthPx <= targetPx, true
+	case "width":
+		return contentWidthPx == targetPx, true
+	default:
+		return false, false
+	}
+}
+
+func parseMediaQueryLength(value string, contentWidthMM float64) float64 {
+	value = strings.TrimSpace(value)
+	if strings.HasSuffix(value, "vw") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(value[:len(value)-2]), 64)
+		if err != nil {
+			return 0
+		}
+		return contentWidthMM * v / 100
+	}
+	if strings.Contains(value, "%") || strings.Contains(value, "calc(") {
+		return css.ParseLengthCtx(value, 0, contentWidthMM)
+	}
+	return css.ParseLength(value, 0)
 }
 
 func splitPseudoElementSelector(selector string) (baseSelector, pseudo string) {
