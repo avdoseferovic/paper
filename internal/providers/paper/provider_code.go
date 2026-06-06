@@ -74,7 +74,7 @@ func (g *provider) GetDimensionsByMatrixCode(code string) (*entity.Dimensions, e
 		return nil, err
 	}
 
-	dimensions, _ := g.image.GetImageDimensions(img, extension.Png)
+	dimensions := g.image.GetImageDimensions(img, extension.Png)
 
 	if dimensions == nil {
 		return nil, ErrCannotReadImageOptions
@@ -90,7 +90,7 @@ func (g *provider) GetDimensionsByQrCode(code string) (*entity.Dimensions, error
 		return nil, err
 	}
 
-	dimensions, _ := g.image.GetImageDimensions(img, extension.Png)
+	dimensions := g.image.GetImageDimensions(img, extension.Png)
 	if dimensions == nil {
 		return nil, ErrCannotReadImageOptions
 	}

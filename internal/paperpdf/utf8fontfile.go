@@ -96,6 +96,8 @@ type sbixStrike struct {
 	ppi    int
 }
 
+const bitmapEmojiResolutionScale = 4.0
+
 type utf8FontFile struct {
 	fileReader           *fileReader
 	fontOffset           int
@@ -1317,7 +1319,7 @@ func (utf *utf8FontFile) sbixGlyphImage(glyphID int, sizePt float64) *bitmapGlyp
 }
 
 func betterBitmapStrike(candidate, current int, sizePt float64) bool {
-	target := int(sizePt + 0.5)
+	target := bitmapGlyphTargetPPEm(sizePt)
 	if target < 1 {
 		target = 1
 	}
@@ -1331,6 +1333,10 @@ func betterBitmapStrike(candidate, current int, sizePt float64) bool {
 		return candidate > current
 	}
 	return false
+}
+
+func bitmapGlyphTargetPPEm(sizePt float64) int {
+	return int(sizePt*bitmapEmojiResolutionScale + 0.5)
 }
 
 func pngSize(data []byte) (int, int) {

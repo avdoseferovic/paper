@@ -72,7 +72,7 @@ func (g *provider) GetDimensionsByImage(file string) (*entity.Dimensions, error)
 		return nil, err
 	}
 
-	dimensions, _ := g.image.GetImageDimensions(img, extension.Type(extensionStr))
+	dimensions := g.image.GetImageDimensions(img, extension.Type(extensionStr))
 
 	if dimensions == nil {
 		return nil, ErrCannotReadImageOptions
@@ -88,7 +88,7 @@ func (g *provider) GetDimensionsByImageByte(bytes []byte, extension extension.Ty
 		return nil, err
 	}
 
-	dimensions, _ := g.image.GetImageDimensions(img, extension)
+	dimensions := g.image.GetImageDimensions(img, extension)
 	if dimensions == nil {
 		return nil, ErrCannotReadImageOptions
 	}

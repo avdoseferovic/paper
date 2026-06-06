@@ -241,7 +241,7 @@ func (s *Text) translateUnicode(text, family string) string {
 	switch strings.ToLower(family) {
 	case fontfamily.Arial, fontfamily.Helvetica, fontfamily.Symbol,
 		fontfamily.ZapBats, fontfamily.Courier:
-		return s.pdf.UnicodeTranslatorFromDescriptor("")(text)
+		return s.translateDefaultCodePage(text)
 	default:
 		return text
 	}

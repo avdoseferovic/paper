@@ -476,6 +476,24 @@ func TestMeasureString(t *testing.T) {
 	})
 }
 
+func TestMeasureStringCachesDefaultCodePageTranslator(t *testing.T) {
+	t.Parallel()
+
+	textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+	font := mocks.NewFont(t)
+	font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0).Twice()
+
+	pdf := mocks.NewFpdf(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Once()
+	pdf.EXPECT().GetStringWidth("hello").Return(20.0).Once()
+	pdf.EXPECT().GetStringWidth("world").Return(25.0).Once()
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+	assert.Equal(t, 20.0, sut.MeasureString("hello", textProp))
+	assert.Equal(t, 25.0, sut.MeasureString("world", textProp))
+}
+
 func TestAddTextAt(t *testing.T) {
 	t.Parallel()
 	t.Run("should set font and render text at absolute position", func(t *testing.T) {

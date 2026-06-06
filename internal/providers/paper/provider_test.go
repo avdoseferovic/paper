@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/avdoseferovic/paper/pkg/consts/barcode"
-	"github.com/google/uuid"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/internal/merror"
@@ -1148,7 +1147,7 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1180,7 +1179,7 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		cfg := &entity.Config{Margins: &entity.Margins{Left: 10, Top: 10, Right: 10, Bottom: 10}}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1253,7 +1252,7 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1292,7 +1291,7 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1350,7 +1349,7 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(img, nil)
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(img, extension.Jpg).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(img, extension.Jpg).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1395,7 +1394,7 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 		// Arrange
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(&img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}, uuid.UUID{})
+		image.EXPECT().GetImageDimensions(&img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
 
 		dep := &gofpdf.Dependencies{
 			Image: image,

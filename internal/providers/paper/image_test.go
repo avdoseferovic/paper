@@ -102,6 +102,45 @@ func TestImage_Add(t *testing.T) {
 		// Assert
 		assert.Nil(t, err)
 	})
+	t.Run("when image is measured and reused, should register image only once", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := fixture.CellEntity()
+		margins := fixture.MarginsEntity()
+		rect := fixture.RectProp()
+		img := fixture.ImageEntity()
+		options := gofpdf.ImageOptions{
+			ReadDpi:   false,
+			ImageType: string(img.Extension),
+		}
+		registeredNames := make([]string, 0, 2)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).
+			Return(&gofpdf.ImageInfoType{}).
+			Once()
+		pdf.EXPECT().Image(mock.Anything, 30.0, 35.0, 98.0, mock.Anything, true, "", 0, "").
+			Run(func(imageName string, _ float64, _ float64, _ float64, _ float64, _ bool, _ string, _ int, _ string) {
+				registeredNames = append(registeredNames, imageName)
+			}).
+			Twice()
+
+		m := math.New()
+
+		image := gofpdf2.NewImage(pdf, m)
+
+		// Act
+		dimensions := image.GetImageDimensions(&img, img.Extension)
+		err1 := image.Add(&img, &cell, &margins, &rect, img.Extension, true)
+		err2 := image.Add(&img, &cell, &margins, &rect, img.Extension, true)
+
+		// Assert
+		assert.NotNil(t, dimensions)
+		assert.Nil(t, err1)
+		assert.Nil(t, err2)
+		assert.Len(t, registeredNames, 2)
+		assert.Equal(t, registeredNames[0], registeredNames[1])
+	})
 }
 
 func TestImage_GetImageDimensions(t *testing.T) {
@@ -121,7 +160,7 @@ func TestImage_GetImageDimensions(t *testing.T) {
 		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))
 
 		// Act
-		dimensions, _ := image.GetImageDimensions(&img, img.Extension)
+		dimensions := image.GetImageDimensions(&img, img.Extension)
 
 		// Assert
 		assert.Nil(t, dimensions)
@@ -142,7 +181,7 @@ func TestImage_GetImageDimensions(t *testing.T) {
 		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))
 
 		// Act
-		dimensions, _ := image.GetImageDimensions(&img, img.Extension)
+		dimensions := image.GetImageDimensions(&img, img.Extension)
 
 		// Assert
 		assert.NotNil(t, dimensions)

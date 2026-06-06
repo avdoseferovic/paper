@@ -261,6 +261,8 @@ func TestUTF8FontFileSBIXBitmapGlyphImage(t *testing.T) {
 	sbix := buildTestSBIXTable(8, 7, []testSBIXStrike{
 		{ppem: 20, ppi: 72, width: 21, height: 22, originX: -2, originY: 3},
 		{ppem: 64, ppi: 72, width: 31, height: 32, originX: 4, originY: -5},
+		{ppem: 96, ppi: 72, width: 41, height: 42, originX: 5, originY: -6},
+		{ppem: 160, ppi: 72, width: 51, height: 52, originX: 6, originY: -7},
 	})
 	utf := &utf8FontFile{
 		fileReader:        &fileReader{array: sbix},
@@ -268,30 +270,47 @@ func TestUTF8FontFileSBIXBitmapGlyphImage(t *testing.T) {
 	}
 
 	utf.parseSBIXTable(8)
-	if len(utf.sbixStrikes) != 2 {
-		t.Fatalf("expected two sbix strikes, got %d", len(utf.sbixStrikes))
+	if len(utf.sbixStrikes) != 4 {
+		t.Fatalf("expected four sbix strikes, got %d", len(utf.sbixStrikes))
 	}
-	if utf.sbixStrikes[0].ppem != 20 || utf.sbixStrikes[1].ppem != 64 {
+	if utf.sbixStrikes[0].ppem != 20 || utf.sbixStrikes[1].ppem != 64 || utf.sbixStrikes[2].ppem != 96 || utf.sbixStrikes[3].ppem != 160 {
 		t.Fatalf("unexpected strike ppems: %+v", utf.sbixStrikes)
 	}
 
-	small := utf.bitmapGlyphImage(7, 18)
-	if small == nil {
-		t.Fatal("expected small sbix bitmap glyph image")
+	medium := utf.bitmapGlyphImage(7, 18)
+	if medium == nil {
+		t.Fatal("expected medium sbix bitmap glyph image")
 	}
-	if small.width != 21 || small.height != 22 || small.originOffsetX != -2 || small.originOffsetY != 3 {
-		t.Fatalf("unexpected small strike glyph: %+v", small)
+	if medium.width != 41 || medium.height != 42 || medium.originOffsetX != 5 || medium.originOffsetY != -6 {
+		t.Fatalf("unexpected medium strike glyph: %+v", medium)
 	}
 
 	large := utf.bitmapGlyphImage(7, 24)
 	if large == nil {
 		t.Fatal("expected large sbix bitmap glyph image")
 	}
-	if large.width != 31 || large.height != 32 || large.originOffsetX != 4 || large.originOffsetY != -5 {
+	if large.width != 41 || large.height != 42 || large.originOffsetX != 5 || large.originOffsetY != -6 {
 		t.Fatalf("unexpected large strike glyph: %+v", large)
 	}
 	if utf.err != nil {
 		t.Fatalf("expected no parse error, got %v", utf.err)
+	}
+}
+
+func TestBetterBitmapStrikePrefersHighResolutionEmojiStrikes(t *testing.T) {
+	t.Parallel()
+
+	if target := bitmapGlyphTargetPPEm(24); target != 96 {
+		t.Fatalf("expected 24pt emoji to target a 96 ppem bitmap strike, got %d", target)
+	}
+	if !betterBitmapStrike(96, 64, 18) {
+		t.Fatal("expected 18pt emoji to prefer the first strike above the high-resolution target")
+	}
+	if betterBitmapStrike(160, 96, 18) {
+		t.Fatal("expected 18pt emoji to keep the smallest strike that satisfies the high-resolution target")
+	}
+	if !betterBitmapStrike(160, 96, 48) {
+		t.Fatal("expected 48pt emoji to prefer a larger available strike")
 	}
 }
 

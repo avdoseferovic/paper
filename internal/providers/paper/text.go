@@ -16,17 +16,29 @@ import (
 )
 
 type Text struct {
-	pdf  gofpdfwrapper.Fpdf
-	math core.Math
-	font core.Font
+	pdf                   gofpdfwrapper.Fpdf
+	math                  core.Math
+	font                  core.Font
+	layoutCache           map[textLayoutKey][]string
+	defaultCodeTranslator func(string) string
+}
+
+type textLayoutKey struct {
+	text     string
+	family   string
+	style    string
+	size     float64
+	width    float64
+	strategy string
 }
 
 // NewText create a Text.
 func NewText(pdf gofpdfwrapper.Fpdf, math core.Math, font core.Font) *Text {
 	return &Text{
-		pdf,
-		math,
-		font,
+		pdf:         pdf,
+		math:        math,
+		font:        font,
+		layoutCache: make(map[textLayoutKey][]string),
 	}
 }
 
@@ -82,10 +94,9 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	var lines []string
 
 	if textProp.BreakLineStrategy == breakline.EmptySpaceStrategy {
-		words := strings.Split(unicodeText, " ")
-		lines = s.getLinesBreakingLineFromSpace(words, width)
+		lines = s.getCachedLines(unicodeText, textProp, width)
 	} else {
-		lines = s.getLinesBreakingLineWithDash(unicodeText, width)
+		lines = s.getCachedLines(unicodeText, textProp, width)
 	}
 
 	accumulateOffsetY := 0.0
@@ -107,10 +118,45 @@ func (s *Text) GetLinesQuantity(text string, textProp *props.Text, colWidth floa
 	textTranslated := s.textToUnicode(text, textProp)
 
 	if textProp.BreakLineStrategy == breakline.DashStrategy {
-		return len(s.getLinesBreakingLineWithDash(text, colWidth))
+		lines := s.getLinesBreakingLineWithDash(text, colWidth)
+		s.setCachedLines(textTranslated, textProp, colWidth, lines)
+		return len(lines)
 	}
 
-	return len(s.getLinesBreakingLineFromSpace(strings.Split(textTranslated, " "), colWidth))
+	lines := s.getLinesBreakingLineFromSpace(strings.Split(textTranslated, " "), colWidth)
+	s.setCachedLines(textTranslated, textProp, colWidth, lines)
+	return len(lines)
+}
+
+func (s *Text) getCachedLines(text string, textProp *props.Text, width float64) []string {
+	key := s.textLayoutKey(text, textProp, width)
+	if lines, ok := s.layoutCache[key]; ok {
+		return lines
+	}
+
+	var lines []string
+	if textProp.BreakLineStrategy == breakline.DashStrategy {
+		lines = s.getLinesBreakingLineWithDash(text, width)
+	} else {
+		lines = s.getLinesBreakingLineFromSpace(strings.Split(text, " "), width)
+	}
+	s.layoutCache[key] = lines
+	return lines
+}
+
+func (s *Text) setCachedLines(text string, textProp *props.Text, width float64, lines []string) {
+	s.layoutCache[s.textLayoutKey(text, textProp, width)] = lines
+}
+
+func (s *Text) textLayoutKey(text string, textProp *props.Text, width float64) textLayoutKey {
+	return textLayoutKey{
+		text:     text,
+		family:   textProp.Family,
+		style:    string(textProp.Style),
+		size:     textProp.Size,
+		width:    width,
+		strategy: string(textProp.BreakLineStrategy),
+	}
 }
 
 func (s *Text) getLinesBreakingLineFromSpace(words []string, colWidth float64) []string {
@@ -243,11 +289,17 @@ func (s *Text) textToUnicode(txt string, props *props.Text) string {
 		props.Family == fontfamily.Symbol ||
 		props.Family == fontfamily.ZapBats ||
 		props.Family == fontfamily.Courier {
-		translator := s.pdf.UnicodeTranslatorFromDescriptor("")
-		return translator(txt)
+		return s.translateDefaultCodePage(txt)
 	}
 
 	return txt
+}
+
+func (s *Text) translateDefaultCodePage(txt string) string {
+	if s.defaultCodeTranslator == nil {
+		s.defaultCodeTranslator = s.pdf.UnicodeTranslatorFromDescriptor("")
+	}
+	return s.defaultCodeTranslator(txt)
 }
 
 func isIncorrectSpaceWidth(textWidth, spaceWidth, defaultSpaceWidth float64, text string) bool {

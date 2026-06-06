@@ -5,7 +5,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/google/uuid"
 )
 
 // Math is the abstraction which deals with useful calc.
@@ -24,7 +23,7 @@ type Code interface {
 // Image is the abstraction which deals of how to add images in a PDF.
 type Image interface {
 	Add(img *entity.Image, cell *entity.Cell, margins *entity.Margins, prop *props.Rect, extension extension.Type, flow bool) error
-	GetImageDimensions(img *entity.Image, extension extension.Type) (*entity.Dimensions, uuid.UUID)
+	GetImageDimensions(img *entity.Image, extension extension.Type) *entity.Dimensions
 }
 
 type Line interface {
