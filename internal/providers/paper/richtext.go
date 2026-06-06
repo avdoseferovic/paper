@@ -62,6 +62,9 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 		if rr.Size == 0 {
 			rr.Size = origSize
 		}
+		if rr.SizeScale > 0 {
+			rr.Size *= rr.SizeScale
+		}
 		// rr.Style may legitimately be "" (Normal), so don't override.
 		resolved[i] = resolvedRun{RichRun: rr}
 	}
@@ -78,6 +81,9 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	lineMultiplier := prop.LineHeight
 	if lineMultiplier <= 0 {
 		lineMultiplier = 1.0
+	}
+	if imageHeight := maxRichRunImageHeight(resolved); imageHeight > lineHeight*lineMultiplier {
+		lineMultiplier = imageHeight / lineHeight
 	}
 
 	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
@@ -109,12 +115,24 @@ type rtToken struct {
 	skipAtLineStart bool
 }
 
+func (t rtToken) isImage(run resolvedRun) bool {
+	return run.Image != nil && t.text == "" && !t.isBreak
+}
+
 // tokeniseRuns splits the resolved run sequence into renderable text spans,
 // preserving or collapsing whitespace according to CSS white-space semantics.
 func tokeniseRuns(runs []resolvedRun, whiteSpace string) []rtToken {
 	var out []rtToken
 	pendingCollapsedSpace := false
 	for i, r := range runs {
+		if r.Image != nil {
+			if pendingCollapsedSpace && hasTextOnCurrentLine(out) {
+				out = append(out, rtToken{text: " ", runIdx: i, skipAtLineStart: true})
+			}
+			pendingCollapsedSpace = false
+			out = append(out, rtToken{runIdx: i})
+			continue
+		}
 		switch whiteSpace {
 		case richTextWhiteSpacePre, "pre-wrap":
 			out = append(out, tokenisePreservedText(r.Text, i)...)
@@ -223,6 +241,16 @@ func normalizeRichTextWhiteSpace(value string) string {
 	default:
 		return "normal"
 	}
+}
+
+func maxRichRunImageHeight(runs []resolvedRun) float64 {
+	maxHeight := 0.0
+	for _, run := range runs {
+		if run.Image != nil && run.Image.Height > maxHeight {
+			maxHeight = run.Image.Height
+		}
+	}
+	return maxHeight
 }
 
 // styleWithUnderline appends "U" to the gofpdf style string when underline is set.

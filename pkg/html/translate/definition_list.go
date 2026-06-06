@@ -17,16 +17,16 @@ func (tr *translator) definitionListRows(n *dom.Node) []core.Row {
 	for _, c := range n.Children() {
 		switch c.Tag() {
 		case "dt":
-			rows = append(rows, dtRow(c))
+			rows = append(rows, tr.dtRow(c))
 		case "dd":
-			rows = append(rows, ddRow(c))
+			rows = append(rows, tr.ddRow(c))
 		}
 	}
 	return rows
 }
 
-func dtRow(n *dom.Node) core.Row {
-	runs := inlineRuns(n)
+func (tr *translator) dtRow(n *dom.Node) core.Row {
+	runs := tr.inlineRuns(n)
 	for i := range runs {
 		if runs[i].Style == fontstyle.Normal {
 			runs[i].Style = fontstyle.Bold
@@ -39,8 +39,8 @@ func dtRow(n *dom.Node) core.Row {
 	return row.New().Add(col.New().Add(rt))
 }
 
-func ddRow(n *dom.Node) core.Row {
-	runs := inlineRuns(n)
+func (tr *translator) ddRow(n *dom.Node) core.Row {
+	runs := tr.inlineRuns(n)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}

@@ -56,3 +56,29 @@ func TestLayoutRichTextTokensAddsLetterSpacingToMeasuredWidth(t *testing.T) {
 	assert.Equal(t, 4.0, tokens[0].width)
 	assert.Equal(t, 4.0, lineWidths[0])
 }
+
+func TestLayoutRichTextTokensTreatsOnlyEmptyImageTokenAsImage(t *testing.T) {
+	t.Parallel()
+
+	runs := []resolvedRun{
+		{RichRun: props.RichRun{Text: "A "}},
+		{RichRun: props.RichRun{Image: &props.RichImage{Width: 4, Height: 3}}},
+	}
+	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
+		prop:       &props.RichText{Align: align.Left},
+		width:      20,
+		whiteSpace: "normal",
+		measure: func(_ resolvedRun, text string) (string, float64) {
+			return text, float64(len(text))
+		},
+	})
+
+	require.Len(t, tokens, 3)
+	assert.Equal(t, "A", tokens[0].text)
+	assert.Equal(t, " ", tokens[1].text)
+	assert.False(t, tokens[1].isImage(runs[tokens[1].runIdx]))
+	assert.True(t, tokens[2].isImage(runs[tokens[2].runIdx]))
+	assert.Equal(t, 1.0, tokens[1].width)
+	assert.Equal(t, 4.0, tokens[2].width)
+	assert.Equal(t, 6.0, lineWidths[0])
+}

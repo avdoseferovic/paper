@@ -17,8 +17,19 @@ func inlineRuns(n *dom.Node) []props.RichRun {
 // information (e.g. <abbr title="…"> tooltip text, <time datetime="…">) via
 // the given unsupportedHandler. nil handler disables side-channel reporting.
 func inlineRunsWithHandler(n *dom.Node, h func(thing, value string)) []props.RichRun {
+	return inlineRunsWithContext(n, runContext{handler: h})
+}
+
+func (tr *translator) inlineRuns(n *dom.Node) []props.RichRun {
+	return inlineRunsWithContext(n, runContext{
+		handler:     tr.unsupportedHandler,
+		inlineImage: tr.inlineImage,
+	})
+}
+
+func inlineRunsWithContext(n *dom.Node, ctx runContext) []props.RichRun {
 	var runs []props.RichRun
-	walkInline(n, runContext{handler: h}, &runs)
+	walkInline(n, ctx, &runs)
 	return runs
 }
 
@@ -39,6 +50,7 @@ type runContext struct {
 	background     *css.RGBColor // run-level background fill
 	familyOverride string
 	handler        func(thing, value string) // optional unsupportedHandler for side-channel data
+	inlineImage    func(n *dom.Node) (*props.RichImage, bool)
 }
 
 func (c runContext) toStyle() fontstyle.Type {
@@ -86,6 +98,11 @@ func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	if text == "" {
 		return
 	}
+	run := richRunFromContext(text, ctx)
+	*runs = append(*runs, run)
+}
+
+func richRunFromContext(text string, ctx runContext) props.RichRun {
 	run := props.RichRun{
 		Text:          text,
 		Family:        ctx.familyOverride,
@@ -94,6 +111,7 @@ func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 		Strikethrough: ctx.strike,
 		Hyperlink:     ctx.hyperlink,
 		LocalAnchor:   ctx.localAnchor,
+		SizeScale:     ctx.sizeScale,
 		VerticalAlign: vAlign(ctx),
 	}
 	if ctx.monospace && run.Family == "" {
@@ -110,7 +128,7 @@ func appendTextRun(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 			run.Background.Alpha = &a
 		}
 	}
-	*runs = append(*runs, run)
+	return run
 }
 
 // handleSelfClosing handles tags that emit a run directly without recursion.
@@ -121,8 +139,16 @@ func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.Ri
 		*runs = append(*runs, props.RichRun{Text: "\n", Style: ctx.toStyle()})
 		return true
 	case "img":
+		if ctx.inlineImage != nil {
+			if img, ok := ctx.inlineImage(n); ok {
+				run := richRunFromContext("", ctx)
+				run.Image = img
+				*runs = append(*runs, run)
+				return true
+			}
+		}
 		if alt := n.Attr("alt"); alt != "" {
-			*runs = append(*runs, props.RichRun{Text: alt, Style: ctx.toStyle()})
+			*runs = append(*runs, richRunFromContext(alt, ctx))
 		}
 		return true
 	}
@@ -143,8 +169,10 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		next.strike = true
 	case "sub":
 		next.sub = true
+		next.sizeScale = scaledRunSize(next.sizeScale, 0.75)
 	case "sup":
 		next.sup = true
+		next.sizeScale = scaledRunSize(next.sizeScale, 0.75)
 	case "a":
 		if href := n.Attr("href"); href != "" {
 			if len(href) > 0 && href[0] == '#' {
@@ -160,7 +188,7 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 	case "small":
 		// Render at 0.85x of the parent size. runContext keeps a scale; the
 		// absolute size is applied when the parent's computed font-size is known.
-		next.sizeScale = 0.85
+		next.sizeScale = scaledRunSize(next.sizeScale, 0.85)
 	case "code", "kbd", "samp":
 		next.monospace = true
 		if tag != "samp" {
@@ -183,6 +211,13 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		}
 	}
 	return next
+}
+
+func scaledRunSize(current, factor float64) float64 {
+	if current == 0 {
+		return factor
+	}
+	return current * factor
 }
 
 func vAlign(ctx runContext) string {

@@ -28,28 +28,32 @@ func parseInlineRuns(t *testing.T, htmlStr string) []runEntry {
 	out := make([]runEntry, len(runs))
 	for i, r := range runs {
 		out[i] = runEntry{
-			text:        r.Text,
-			family:      r.Family,
-			style:       string(r.Style),
-			underline:   r.Underline,
-			bg:          r.Background,
-			hasBg:       r.Background != nil,
-			hasAnchor:   r.LocalAnchor != "",
-			localAnchor: r.LocalAnchor,
+			text:          r.Text,
+			family:        r.Family,
+			style:         string(r.Style),
+			underline:     r.Underline,
+			bg:            r.Background,
+			hasBg:         r.Background != nil,
+			hasAnchor:     r.LocalAnchor != "",
+			localAnchor:   r.LocalAnchor,
+			sizeScale:     r.SizeScale,
+			verticalAlign: r.VerticalAlign,
 		}
 	}
 	return out
 }
 
 type runEntry struct {
-	text        string
-	family      string
-	style       string
-	underline   bool
-	bg          interface{}
-	hasBg       bool
-	hasAnchor   bool
-	localAnchor string
+	text          string
+	family        string
+	style         string
+	underline     bool
+	bg            interface{}
+	hasBg         bool
+	hasAnchor     bool
+	localAnchor   string
+	sizeScale     float64
+	verticalAlign string
 }
 
 func TestInlineTag_Mark_YellowBackground(t *testing.T) {
@@ -70,6 +74,43 @@ func TestInlineTag_Small_NoError(t *testing.T) {
 	t.Parallel()
 	runs := parseInlineRuns(t, `<p>normal <small>tiny</small></p>`)
 	assert.NotEmpty(t, runs)
+}
+
+func TestInlineTag_Small_ScalesFontSize(t *testing.T) {
+	t.Parallel()
+	runs := parseInlineRuns(t, `<p>normal <small>tiny</small></p>`)
+	require.NotEmpty(t, runs)
+	var found bool
+	for _, r := range runs {
+		if strings.TrimSpace(r.text) == "tiny" {
+			assert.InDelta(t, 0.85, r.sizeScale, 0.001)
+			found = true
+		}
+	}
+	assert.True(t, found)
+}
+
+func TestInlineTag_SubSup_SetsVerticalAlignAndScalesFontSize(t *testing.T) {
+	t.Parallel()
+	runs := parseInlineRuns(t, `<p>H<sub>2</sub>O x<sup>2</sup></p>`)
+	require.NotEmpty(t, runs)
+
+	var foundSub, foundSuper bool
+	for _, r := range runs {
+		switch strings.TrimSpace(r.text) {
+		case "2":
+			if r.verticalAlign == "sub" {
+				assert.InDelta(t, 0.75, r.sizeScale, 0.001)
+				foundSub = true
+			}
+			if r.verticalAlign == "super" {
+				assert.InDelta(t, 0.75, r.sizeScale, 0.001)
+				foundSuper = true
+			}
+		}
+	}
+	assert.True(t, foundSub, "expected <sub> run")
+	assert.True(t, foundSuper, "expected <sup> run")
 }
 
 func TestInlineTag_Code_MonospaceFamily(t *testing.T) {

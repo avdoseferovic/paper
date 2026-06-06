@@ -39,6 +39,8 @@ rows, err := html.FromString(htmlString)
 
 **Inline:** `span, a, strong, b, em, i, u, s, strike, sub, sup, br, mark, small, abbr, code, kbd, samp, var, cite, q, time`
 
+`sub` and `sup` render with browser-like smaller text and baseline offsets. `small` renders at a reduced font size.
+
 **Tables:** `table, thead, tbody, tfoot, tr, th, td, caption` — with `colspan` and `rowspan` attributes. `colgroup`/`col` are recognised; explicit column widths are not honoured yet (logged via `unsupportedHandler`).
 
 **Lists:** `ul, ol, li, dl, dt, dd` — `ol` supports `type="a|A|i|I"` for alpha/roman markers. Nested lists supported. `<dl>`/`<dt>`/`<dd>` render as definition lists with bold term and indented definition.
@@ -47,7 +49,7 @@ rows, err := html.FromString(htmlString)
 
 **Anchors:** `id="…"` on any element registers a PDF named destination; `<a href="#id">` produces an internal PDF link that jumps to it. Forward references (link before target) are supported via a pre-pass.
 
-**Images:** `img` — block-level `<img src="…" width="…" height="…" alt="…">` renders PNG, JPG, and SVG (rasterised via oksvg+rasterx). Inline `<img>` inside paragraphs still renders as alt text. See [Images](#images) below.
+**Images:** `img` — block-level and inline `<img src="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG (rasterised via oksvg+rasterx). See [Images](#images) below.
 
 ## Supported CSS properties
 
@@ -104,10 +106,6 @@ These are intentional limitations — most can be worked around. They are not bu
 ### Container backgrounds spanning page breaks
 
 Now **supported** via `core.Splittable` on `blockContainer`. When a styled `<div>` is too tall for the remaining page space, `paper.addRow()` calls `SplitAt(remainingHeight)` to slice the container; the first slice renders on the current page with the original top corners rounded and a flat bottom, the second slice renders on the next page with a flat top and the original bottom corners. Background and border are repainted on each slice. Set `break-inside: avoid` on the container to push the whole thing to the next page instead.
-
-### Inline `<img>` splits the surrounding paragraph
-
-Block-level `<img>` is fully supported (see [Images](#images)). The translator does not yet flow text around an inline `<img>` inside a paragraph; Paper renders the inline form as alt text. Image-in-paragraph flow is deferred.
 
 ### Rounded outer corners on `<table>`
 
@@ -264,10 +262,11 @@ The conversion is purely additive — your existing Paper code continues to work
 
 ## Images
 
-Block-level `<img src="…" width="…" height="…" alt="…">` produces a row containing the image. PNG and JPG are passed through directly; SVG sources are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
+Block-level `<img src="…" width="…" height="…" alt="…">` produces a row containing the image. Inline `<img>` participates as an atomic RichText run inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
 
 ```html
 <img src="logo.svg" width="20mm" height="20mm" alt="company logo">
+<p>Text before <img src="icon.svg" width="5mm" height="5mm" alt="icon"> text after.</p>
 ```
 
 ### Safe-by-default resolver

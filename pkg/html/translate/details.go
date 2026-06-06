@@ -26,7 +26,7 @@ func (tr *translator) detailsRows(n *dom.Node) []core.Row {
 
 	var rows []core.Row
 	if summary != nil {
-		rows = append(rows, summaryRow(summary))
+		rows = append(rows, tr.summaryRow(summary))
 	}
 	for _, c := range body {
 		rows = append(rows, tr.blockRows(c)...)
@@ -34,8 +34,8 @@ func (tr *translator) detailsRows(n *dom.Node) []core.Row {
 	return rows
 }
 
-func summaryRow(n *dom.Node) core.Row {
-	runs := inlineRuns(n)
+func (tr *translator) summaryRow(n *dom.Node) core.Row {
+	runs := tr.inlineRuns(n)
 	for i := range runs {
 		if runs[i].Style == fontstyle.Normal {
 			runs[i].Style = fontstyle.Bold

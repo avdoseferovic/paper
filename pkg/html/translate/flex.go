@@ -247,7 +247,7 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 	}
 
 	if isLeafFlexItem(n) {
-		runs := inlineRuns(n)
+		runs := tr.inlineRuns(n)
 		if len(runs) == 0 {
 			return nil
 		}

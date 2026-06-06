@@ -3,16 +3,28 @@ package props
 import (
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
+// RichImage is an inline image embedded in a RichText paragraph.
+// Width and Height are measured in millimetres.
+type RichImage struct {
+	Bytes     []byte
+	Extension extension.Type
+	Width     float64
+	Height    float64
+	Alt       string
+}
+
 // RichRun is a single styled segment within a RichText paragraph.
-// It deliberately has no image field — inline images are split into separate rows by the HTML translator.
 type RichRun struct {
 	Text          string
+	Image         *RichImage
 	Family        string
 	Style         fontstyle.Type
 	Size          float64
+	SizeScale     float64 // multiplier applied after Size/default font resolution; 0 = unchanged
 	Color         *Color
 	Underline     bool
 	Strikethrough bool
@@ -91,6 +103,11 @@ func NormalizeRichRun(run RichRun, font *Font) RichRun {
 	}
 	run.Color = CloneColor(run.Color)
 	run.Background = CloneColor(run.Background)
+	if run.Image != nil {
+		image := *run.Image
+		image.Bytes = append([]byte(nil), run.Image.Bytes...)
+		run.Image = &image
+	}
 	if run.Hyperlink != nil {
 		hyperlink := *run.Hyperlink
 		run.Hyperlink = &hyperlink

@@ -274,7 +274,7 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 // edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
 	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
-	runs := inlineRunsWithHandler(n, tr.unsupportedHandler)
+	runs := tr.inlineRuns(n)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}

@@ -1,6 +1,12 @@
 package paper
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
+
+	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -34,11 +40,48 @@ func (s *Text) renderRichTextTokens(
 		}
 		x := cell.X + prop.Left + alignmentOffset(prop.Align, width, lineWidths[t.lineY]) + t.x + left
 		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
+		y += richRunBaselineOffset(r, lineHeight)
 
+		if t.isImage(r) {
+			s.renderTokenImage(r, x, y)
+			s.renderTokenLinks(r, prop, x, y, t.width, r.Image.Height)
+			continue
+		}
 		s.renderTokenBackground(r, x, y, t.width, lineHeight)
 		s.renderTokenShadow(r, origColor, x, y, t.translated)
 		s.renderTokenText(r, x, y, t.translated)
 		s.renderTokenLinks(r, prop, x, y, t.width, lineHeight)
+	}
+}
+
+func (s *Text) renderTokenImage(r resolvedRun, x, baselineY float64) {
+	if r.Image == nil || len(r.Image.Bytes) == 0 || r.Image.Width <= 0 || r.Image.Height <= 0 {
+		return
+	}
+	digest := sha256.Sum256(r.Image.Bytes)
+	name := "rich-image-" + hex.EncodeToString(digest[:16])
+	info := s.pdf.RegisterImageOptionsReader(
+		name,
+		gofpdf.ImageOptions{
+			ReadDpi:   false,
+			ImageType: string(r.Image.Extension),
+		},
+		bytes.NewReader(r.Image.Bytes),
+	)
+	if info == nil {
+		return
+	}
+	s.pdf.Image(name, x, baselineY-r.Image.Height, r.Image.Width, r.Image.Height, false, "", 0, "")
+}
+
+func richRunBaselineOffset(r resolvedRun, lineHeight float64) float64 {
+	switch strings.ToLower(r.VerticalAlign) {
+	case "sub":
+		return lineHeight * 0.2
+	case "super", "sup":
+		return -lineHeight * 0.35
+	default:
+		return 0
 	}
 }
 

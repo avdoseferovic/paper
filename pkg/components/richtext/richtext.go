@@ -137,6 +137,9 @@ func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 		lineMultiplier = 1.0
 	}
 	lineHeight := fontHeight * lineMultiplier
+	if imageHeight := maxRichRunImageHeight(r.runs); imageHeight > lineHeight {
+		lineHeight = imageHeight
+	}
 	h := float64(totalLines)*lineHeight + r.prop.Top + r.prop.Bottom
 
 	r.cachedHeight = h
@@ -240,15 +243,20 @@ func (r *RichText) totalTextLen() int {
 // fontPropForFirstRun builds a props.Text from the first run (or config default).
 func (r *RichText) fontPropForFirstRun() *props.Text {
 	tp := &props.Text{}
+	sizeScale := 0.0
 	if len(r.runs) > 0 {
 		run := r.runs[0]
 		tp.Family = run.Family
 		tp.Style = run.Style
 		tp.Size = run.Size
 		tp.Color = run.Color
+		sizeScale = run.SizeScale
 	}
 	if r.config != nil {
 		tp.MakeValid(r.config.DefaultFont)
+	}
+	if sizeScale > 0 {
+		tp.Size *= sizeScale
 	}
 	return tp
 }
@@ -296,4 +304,14 @@ func countExplicitLines(text string) int {
 		return 1
 	}
 	return strings.Count(text, "\n") + 1
+}
+
+func maxRichRunImageHeight(runs []props.RichRun) float64 {
+	maxHeight := 0.0
+	for _, run := range runs {
+		if run.Image != nil && run.Image.Height > maxHeight {
+			maxHeight = run.Image.Height
+		}
+	}
+	return maxHeight
 }

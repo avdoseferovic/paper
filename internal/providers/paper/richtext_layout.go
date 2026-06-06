@@ -19,6 +19,10 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 			continue
 		}
 		r := runs[tokens[i].runIdx]
+		if tokens[i].isImage(r) {
+			tokens[i].width = r.Image.Width
+			continue
+		}
 		translated, width := input.measure(r, tokens[i].text)
 		tokens[i].translated = translated
 		tokens[i].width = width

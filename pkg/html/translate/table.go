@@ -43,7 +43,7 @@ func (tr *translator) tableRows(n *dom.Node) []core.Row {
 
 // captionRow renders a <caption> as a centred row above the table.
 func (tr *translator) captionRow(n *dom.Node) core.Row {
-	runs := inlineRuns(n)
+	runs := tr.inlineRuns(n)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
@@ -101,7 +101,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
-	runs := inlineRuns(td)
+	runs := tr.inlineRuns(td)
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}

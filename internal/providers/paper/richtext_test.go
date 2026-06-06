@@ -1,11 +1,14 @@
 package paper_test
 
 import (
+	"bytes"
 	"testing"
 
+	paperpdf "github.com/avdoseferovic/paper/internal/paperpdf"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 	"github.com/avdoseferovic/paper/mocks"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -303,6 +306,82 @@ func TestAddRichText_Align(t *testing.T) {
 			assert.Equal(t, tt.wantX, xs[0])
 		})
 	}
+}
+
+func TestAddRichText_VerticalAlign(t *testing.T) {
+	t.Parallel()
+
+	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+	var sizes []float64
+
+	font := mocks.NewFont(t)
+	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetColor().Return(origColor)
+	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).
+		Run(func(_ string, _ fontstyle.Type, size float64) {
+			sizes = append(sizes, size)
+		}).Maybe()
+	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+	textY := map[string]float64{}
+	pdf := mocks.NewFpdf(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(2.0).Maybe()
+	pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+	pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+		Run(func(_ float64, y float64, text string) {
+			textY[text] = y
+		}).Maybe()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "base", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10},
+		{Text: "sub", Family: fontfamily.Arial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "sub"},
+		{Text: "super", Family: fontfamily.Arial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "super"},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+	sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+
+	require.Contains(t, textY, "base")
+	require.Contains(t, textY, "sub")
+	require.Contains(t, textY, "super")
+	assert.Greater(t, textY["sub"], textY["base"])
+	assert.Less(t, textY["super"], textY["base"])
+	assert.Contains(t, sizes, 7.5)
+}
+
+func TestAddRichText_InlineImage(t *testing.T) {
+	t.Parallel()
+
+	pdf, font := baseRichTextSetup(t)
+	imageBytes := []byte("\x89PNG\r\n\x1a\ninline")
+	options := paperpdf.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+
+	pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
+		Return(&paperpdf.ImageInfoType{}).
+		Once()
+	pdf.EXPECT().Image(mock.AnythingOfType("string"), 18.0, 1.0, 4.0, 3.0, false, "", 0, "").
+		Once()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "A "},
+		{
+			Image: &props.RichImage{
+				Bytes:     imageBytes,
+				Extension: extension.Png,
+				Width:     4,
+				Height:    3,
+			},
+		},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+	sut.AddRichText(runs, &entity.Cell{X: 2, Y: 0, Width: 50, Height: 20}, prop)
 }
 
 func TestAddRichText_Background(t *testing.T) {

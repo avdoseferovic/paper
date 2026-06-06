@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	goimage "image"
+	_ "image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -201,6 +203,82 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: 100, Center: true})
 	c := col.New(imgCols).Add(img)
 	return row.New(heightMM).Add(c), true
+}
+
+func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
+	src := strings.TrimSpace(n.Attr("src"))
+	if src == "" {
+		return nil, false
+	}
+	resolver := tr.imageResolver
+	if resolver == nil {
+		resolver = safeDefaultResolver
+	}
+	data, ext, err := resolver(src)
+	if err != nil {
+		tr.unsupported("img.src", err.Error())
+		return nil, false
+	}
+
+	widthMM := parseImageDimension(n.Attr("width"))
+	heightMM := parseImageDimension(n.Attr("height"))
+	intrinsicWidth, intrinsicHeight := 0.0, 0.0
+
+	if ext == "svg" {
+		pngBytes, w, h, rerr := rasteriseSVG(data, widthMM, heightMM)
+		if rerr != nil {
+			tr.unsupported("img.svg", rerr.Error())
+			return nil, false
+		}
+		data = pngBytes
+		ext = "png"
+		intrinsicWidth = mmFromPx(w)
+		intrinsicHeight = mmFromPx(h)
+	} else {
+		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
+	}
+
+	extType := extensionType(ext)
+	if extType == "" {
+		tr.unsupported("img.ext", "unsupported extension: "+ext)
+		return nil, false
+	}
+
+	widthMM, heightMM = resolveInlineImageDimensions(widthMM, heightMM, intrinsicWidth, intrinsicHeight)
+	return &props.RichImage{
+		Bytes:     data,
+		Extension: extType,
+		Width:     widthMM,
+		Height:    heightMM,
+		Alt:       n.Attr("alt"),
+	}, true
+}
+
+func rasterImageSizeMM(data []byte) (float64, float64) {
+	cfg, _, err := goimage.DecodeConfig(bytes.NewReader(data))
+	if err != nil || cfg.Width <= 0 || cfg.Height <= 0 {
+		return 0, 0
+	}
+	return css.ParseLength(strconv.Itoa(cfg.Width)+"px", 0), css.ParseLength(strconv.Itoa(cfg.Height)+"px", 0)
+}
+
+func resolveInlineImageDimensions(widthMM, heightMM, intrinsicWidth, intrinsicHeight float64) (float64, float64) {
+	switch {
+	case widthMM > 0 && heightMM > 0:
+		return widthMM, heightMM
+	case widthMM > 0 && intrinsicWidth > 0 && intrinsicHeight > 0:
+		return widthMM, widthMM * intrinsicHeight / intrinsicWidth
+	case heightMM > 0 && intrinsicWidth > 0 && intrinsicHeight > 0:
+		return heightMM * intrinsicWidth / intrinsicHeight, heightMM
+	case widthMM > 0:
+		return widthMM, widthMM
+	case heightMM > 0:
+		return heightMM, heightMM
+	case intrinsicWidth > 0 && intrinsicHeight > 0:
+		return intrinsicWidth, intrinsicHeight
+	default:
+		return 4, 4
+	}
 }
 
 // unsupported reports a rendering issue back through the optional handler.

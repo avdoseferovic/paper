@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -165,4 +166,69 @@ func TestImageRow_UnsupportedSVGFallsBackToAlt(t *testing.T) {
 	require.NoError(t, err)
 	// alt fallback → one text row.
 	require.Len(t, rows, 1)
+}
+
+func TestInlineImage_DataURIProducesRichImageRun(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	doc, err := dom.Parse(`<html><body><p>A <img src="` + uri + `" width="4mm" height="3mm" alt="logo"> B</p></body></html>`)
+	require.NoError(t, err)
+
+	var p *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == "p" {
+			p = n
+		}
+		return true
+	})
+	require.NotNil(t, p)
+
+	tr := &translator{}
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		assert.Equal(t, "logo", run.Image.Alt)
+		assert.InDelta(t, 4.0, run.Image.Width, 0.001)
+		assert.InDelta(t, 3.0, run.Image.Height, 0.001)
+		found = true
+	}
+	assert.True(t, found, "expected inline image run")
+}
+
+func TestInlineImage_SVGRasterisesToRichImageRun(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(minimalSVG))
+	doc, err := dom.Parse(`<html><body><p>Icon <img src="` + uri + `" width="5mm" height="5mm" alt="svg icon"></p></body></html>`)
+	require.NoError(t, err)
+
+	var p *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == "p" {
+			p = n
+		}
+		return true
+	})
+	require.NotNil(t, p)
+
+	tr := &translator{}
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		assert.Equal(t, "svg icon", run.Image.Alt)
+		assert.Equal(t, extension.Png, run.Image.Extension)
+		assert.NotEmpty(t, run.Image.Bytes)
+		found = true
+	}
+	assert.True(t, found, "expected inline SVG image run")
 }
