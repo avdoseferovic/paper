@@ -109,6 +109,16 @@ func TestCIDWidthRunsHonorsLastRuneBoundary(t *testing.T) {
 	}
 }
 
+func TestCIDWidthRunsUsesOriginalRuneWidthForRemappedCID(t *testing.T) {
+	font := cidWidthTestFont(0xE000, map[int]int{0x1F600: 900}, map[int]int{0xE000: 0x1F600})
+
+	got := formatCIDWidthRuns(font, 0xE000)
+	want := " 57344 57344 900"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func TestGenerateCIDFontMapWritesWidthObjectEntry(t *testing.T) {
 	font := cidWidthTestFont(10, map[int]int{10: 500}, nil)
 	f := &Fpdf{}
@@ -121,16 +131,29 @@ func TestGenerateCIDFontMapWritesWidthObjectEntry(t *testing.T) {
 	}
 }
 
+func TestBuildToUnicodeCMapMapsRemappedEmojiCID(t *testing.T) {
+	got := buildToUnicodeCMap(map[int]int{0xE000: 0x1F600})
+	if !strings.Contains(got, "<E000> <D83DDE00>") {
+		t.Fatalf("expected remapped emoji CID in ToUnicode CMap, got %q", got)
+	}
+}
+
 func cidWidthTestFont(lastRune int, widths map[int]int, usedRunes map[int]int) *fontDefType {
 	cw := make([]int, lastRune+1)
+	cwExtra := make(map[int]int)
 	for cid, width := range widths {
-		cw[cid] = width
+		if cid < len(cw) {
+			cw[cid] = width
+		} else {
+			cwExtra[cid] = width
+		}
 	}
 	if usedRunes == nil {
 		usedRunes = map[int]int{}
 	}
 	return &fontDefType{
 		Cw:        cw,
+		CwExtra:   cwExtra,
 		usedRunes: usedRunes,
 	}
 }

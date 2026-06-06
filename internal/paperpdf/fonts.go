@@ -115,7 +115,6 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 			return
 		}
 		originalSize := ttfStat.Size()
-		Type := "UTF8"
 		var utf8Bytes []byte
 		utf8Bytes, err = os.ReadFile(fileStr)
 		if err != nil {
@@ -129,6 +128,7 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 			f.SetError(err)
 			return
 		}
+		Type := utf8FontType(utf8File)
 
 		desc := FontDescType{
 			Ascent:       int(utf8File.ascent),
@@ -148,15 +148,21 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 			sbarr = makeSubsetRange(32)
 		}
 		def := fontDefType{
-			Tp:        Type,
-			Name:      fontKey,
-			Desc:      desc,
-			Up:        int(round(utf8File.underlinePosition)),
-			Ut:        round(utf8File.underlineThickness),
-			Cw:        utf8File.charWidths,
-			usedRunes: sbarr,
-			File:      fileStr,
-			utf8File:  utf8File,
+			Tp:             Type,
+			Name:           fontKey,
+			Desc:           desc,
+			Up:             int(round(utf8File.underlinePosition)),
+			Ut:             round(utf8File.underlineThickness),
+			Cw:             utf8File.charWidths,
+			CwExtra:        utf8File.charWidthExtra,
+			usedRunes:      sbarr,
+			File:           fileStr,
+			utf8File:       utf8File,
+			runeToCID:      make(map[int]int),
+			hasColorGlyphs: utf8File.hasColorGlyphs,
+		}
+		for cid, r := range sbarr {
+			def.runeToCID[r] = cid
 		}
 		def.i, _ = generateFontID(def)
 		f.fonts[fontKey] = def
@@ -253,7 +259,6 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 
 	if utf8Bytes != nil {
 
-		Type := "UTF8"
 		reader := fileReader{readerPosition: 0, array: utf8Bytes}
 
 		utf8File := newUTF8Font(&reader)
@@ -263,6 +268,7 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 			f.SetError(fmt.Errorf("get font metrics: %w", err))
 			return
 		}
+		Type := utf8FontType(utf8File)
 		desc := FontDescType{
 			Ascent:       int(utf8File.ascent),
 			Descent:      int(utf8File.descent),
@@ -281,14 +287,20 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 			sbarr = makeSubsetRange(32)
 		}
 		def := fontDefType{
-			Tp:        Type,
-			Name:      fontkey,
-			Desc:      desc,
-			Up:        int(round(utf8File.underlinePosition)),
-			Ut:        round(utf8File.underlineThickness),
-			Cw:        utf8File.charWidths,
-			utf8File:  utf8File,
-			usedRunes: sbarr,
+			Tp:             Type,
+			Name:           fontkey,
+			Desc:           desc,
+			Up:             int(round(utf8File.underlinePosition)),
+			Ut:             round(utf8File.underlineThickness),
+			Cw:             utf8File.charWidths,
+			CwExtra:        utf8File.charWidthExtra,
+			utf8File:       utf8File,
+			usedRunes:      sbarr,
+			runeToCID:      make(map[int]int),
+			hasColorGlyphs: utf8File.hasColorGlyphs,
+		}
+		for cid, r := range sbarr {
+			def.runeToCID[r] = cid
 		}
 		def.i, _ = generateFontID(def)
 		f.fonts[fontkey] = def
@@ -347,6 +359,13 @@ func (f *Fpdf) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFile
 
 		f.fonts[fontkey] = info
 	}
+}
+
+func utf8FontType(utf8File *utf8FontFile) string {
+	if utf8File != nil && utf8File.hasBitmapGlyphs && !utf8File.hasOutlineTables() {
+		return "UTF8Bitmap"
+	}
+	return "UTF8"
 }
 
 // getFontKey is used by AddFontFromReader and GetFontDesc
@@ -512,7 +531,7 @@ func (f *Fpdf) SetFont(familyStr, styleStr string, size float64) {
 	f.fontSizePt = size
 	f.fontSize = size / f.k
 	f.currentFont = f.fonts[fontKey]
-	if f.currentFont.Tp == "UTF8" {
+	if f.currentFont.Tp == "UTF8" || f.currentFont.Tp == "UTF8Bitmap" {
 		f.isCurrentUTF8 = true
 	} else {
 		f.isCurrentUTF8 = false
@@ -740,7 +759,14 @@ func (f *Fpdf) putfonts() {
 				s.printf("/FontFile%s %d 0 R>>", suffix, f.fontFiles[font.File].n)
 				f.out(s.String())
 				f.out("endobj")
-			case "UTF8":
+			case "UTF8", "UTF8Bitmap":
+				if tp == "UTF8Bitmap" {
+					f.newobj()
+					f.out("<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>")
+					f.out("endobj")
+					continue
+				}
+
 				fontName := "utf8" + font.Name
 				usedRunes := font.usedRunes
 				delete(usedRunes, 0)
@@ -771,9 +797,10 @@ func (f *Fpdf) putfonts() {
 				f.out("/CIDToGIDMap " + strconv.Itoa(f.n+4) + " 0 R>>")
 				f.out("endobj")
 
+				toUnicodeMap := buildToUnicodeCMap(font.usedRunes)
 				f.newobj()
-				f.out("<</Length " + strconv.Itoa(len(toUnicode)) + ">>")
-				f.putstream([]byte(toUnicode))
+				f.out("<</Length " + strconv.Itoa(len(toUnicodeMap)) + ">>")
+				f.putstream([]byte(toUnicodeMap))
 				f.out("endobj")
 
 				f.newobj()
@@ -846,6 +873,51 @@ func (f *Fpdf) loadFontFile(name string) ([]byte, error) {
 	return os.ReadFile(path.Join(f.fontpath, name))
 }
 
+func buildToUnicodeCMap(usedRunes map[int]int) string {
+	var b fmtBuffer
+	b.WriteString("/CIDInit /ProcSet findresource begin\n")
+	b.WriteString("12 dict begin\nbegincmap\n")
+	b.WriteString("/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n")
+	b.WriteString("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n")
+	b.WriteString("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n")
+
+	cids := keySortInt(usedRunes)
+	const chunkSize = 100
+	for start := 0; start < len(cids); {
+		end := min(start+chunkSize, len(cids))
+		count := 0
+		for _, cid := range cids[start:end] {
+			if cid > 0 && cid <= 0xFFFF && usedRunes[cid] > 0 {
+				count++
+			}
+		}
+		if count > 0 {
+			b.printf("%d beginbfchar\n", count)
+			for _, cid := range cids[start:end] {
+				r := usedRunes[cid]
+				if cid <= 0 || cid > 0xFFFF || r <= 0 {
+					continue
+				}
+				b.printf("<%04X> <%s>\n", cid, utf16Hex(rune(r)))
+			}
+			b.WriteString("endbfchar\n")
+		}
+		start = end
+	}
+
+	b.WriteString("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend")
+	return b.String()
+}
+
+func utf16Hex(r rune) string {
+	encoded := []byte(utf8toutf16(string(r), false))
+	var b strings.Builder
+	for _, c := range encoded {
+		b.WriteString(fmt.Sprintf("%02X", c))
+	}
+	return b.String()
+}
+
 type cidWidthRun struct {
 	start    int
 	widths   []int
@@ -878,8 +950,12 @@ func buildCIDWidthRuns(font *fontDefType, lastRune int) cidWidthRuns {
 	prevWidth := -1
 	interval := false
 
-	for cid := 1; cid <= lastRune && cid < len(font.Cw); cid++ {
-		width := font.Cw[cid]
+	for cid := 1; cid <= lastRune; cid++ {
+		runa := cid
+		if used, ok := font.usedRunes[cid]; ok {
+			runa = used
+		}
+		width := fontWidth(font, runa)
 		if width == 0 {
 			continue
 		}
@@ -927,6 +1003,16 @@ func buildCIDWidthRuns(font *fontDefType, lastRune int) cidWidthRuns {
 	}
 
 	return runs
+}
+
+func fontWidth(font *fontDefType, runa int) int {
+	if font == nil {
+		return 0
+	}
+	if runa >= 0 && runa < len(font.Cw) {
+		return font.Cw[runa]
+	}
+	return font.CwExtra[runa]
 }
 
 func mergeCIDWidthRuns(runs cidWidthRuns) cidWidthRuns {

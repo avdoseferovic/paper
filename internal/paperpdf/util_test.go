@@ -31,6 +31,16 @@ func TestRemoveIntPreservesSliceWhenValueIsMissing(t *testing.T) {
 	}
 }
 
+func TestUTF8ToUTF16SupplementaryPlaneUsesSurrogatePair(t *testing.T) {
+	t.Parallel()
+
+	got := []byte(utf8toutf16("😀", false))
+	want := []byte{0xD8, 0x3D, 0xDE, 0x00}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+}
+
 func TestTemplateKeyListSortsWhenRequested(t *testing.T) {
 	t.Parallel()
 

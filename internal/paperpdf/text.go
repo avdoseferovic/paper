@@ -44,16 +44,7 @@ func (f *Fpdf) GetStringSymbolWidth(s string) int {
 	if f.isCurrentUTF8 {
 		unicode := []rune(s)
 		for _, char := range unicode {
-			intChar := int(char)
-			if len(f.currentFont.Cw) >= intChar && f.currentFont.Cw[intChar] > 0 {
-				if f.currentFont.Cw[intChar] != 65535 {
-					w += f.currentFont.Cw[intChar]
-				}
-			} else if f.currentFont.Desc.MissingWidth != 0 {
-				w += f.currentFont.Desc.MissingWidth
-			} else {
-				w += 500
-			}
+			w += f.currentRuneWidth(char)
 		}
 	} else {
 		for _, ch := range []byte(s) {
@@ -66,21 +57,49 @@ func (f *Fpdf) GetStringSymbolWidth(s string) int {
 	return w
 }
 
+func (f *Fpdf) currentRuneWidth(r rune) int {
+	char := int(r)
+	if char >= 0 && char < len(f.currentFont.Cw) {
+		width := f.currentFont.Cw[char]
+		if width > 0 {
+			if width == 65535 {
+				return 0
+			}
+			return width
+		}
+	}
+	if width := f.currentFont.CwExtra[char]; width > 0 {
+		if width == 65535 {
+			return 0
+		}
+		return width
+	}
+	if f.currentFont.Desc.MissingWidth != 0 {
+		return f.currentFont.Desc.MissingWidth
+	}
+	return 500
+}
+
 // Text prints a character string. The origin (x, y) is on the left of the
 // first character at the baseline. This method permits a string to be placed
 // precisely on the page, but it is usually easier to use Cell(), MultiCell()
 // or Write() which are the standard methods to print text.
 func (f *Fpdf) Text(x, y float64, txtStr string) {
+	if f.isCurrentUTF8 && f.HasColorEmoji() && f.textContainsColorEmoji(txtStr) {
+		f.textWithColorEmoji(x, y, txtStr)
+		return
+	}
+	if f.isCurrentUTF8 && f.currentFont.Tp == "UTF8Bitmap" {
+		return
+	}
+
 	var txt2 string
 	if f.isCurrentUTF8 {
 		if f.isRTL {
 			txtStr = reverseText(txtStr)
 			x -= f.GetStringWidth(txtStr)
 		}
-		txt2 = f.escape(utf8toutf16(txtStr, false))
-		for _, uni := range []rune(txtStr) {
-			f.currentFont.usedRunes[int(uni)] = int(uni)
-		}
+		txt2 = f.escape(f.stringToCIDs(txtStr))
 	} else {
 		txt2 = f.escape(txtStr)
 	}
@@ -272,10 +291,7 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 				txtStr = reverseText(txtStr)
 			}
 			wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
-			for _, uni := range []rune(txtStr) {
-				f.currentFont.usedRunes[int(uni)] = int(uni)
-			}
-			space := f.escape(utf8toutf16(" ", false))
+			space := f.escape(f.stringToCIDs(" "))
 			strSize := f.GetStringSymbolWidth(txtStr)
 			s.printf("BT 0 Tw %.2f %.2f Td [", (f.x+dx)*k, (f.h-(f.y+.5*h+.3*f.fontSize))*k)
 			t := strings.Split(txtStr, " ")
@@ -283,7 +299,7 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 			numt := len(t)
 			for i := 0; i < numt; i++ {
 				tx := t[i]
-				tx = "(" + f.escape(utf8toutf16(tx, false)) + ")"
+				tx = "(" + f.escape(f.stringToCIDs(tx)) + ")"
 				s.printf("%s ", tx)
 				if (i + 1) < numt {
 					s.printf("%.3f(%s) ", -shift, space)
@@ -296,10 +312,7 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 				if f.isRTL {
 					txtStr = reverseText(txtStr)
 				}
-				txt2 = f.escape(utf8toutf16(txtStr, false))
-				for _, uni := range []rune(txtStr) {
-					f.currentFont.usedRunes[int(uni)] = int(uni)
-				}
+				txt2 = f.escape(f.stringToCIDs(txtStr))
 			} else {
 
 				txt2 = strings.Replace(txtStr, "\\", "\\\\", -1)
@@ -451,7 +464,6 @@ func (f *Fpdf) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill 
 	if alignStr == "" {
 		alignStr = "J"
 	}
-	cw := f.currentFont.Cw
 	if w == 0 {
 		w = f.w - f.rMargin - f.x
 	}
@@ -550,15 +562,7 @@ func (f *Fpdf) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill 
 			ls = l
 			ns++
 		}
-		if int(c) >= len(cw) {
-			f.err = fmt.Errorf("character outside the supported range: %s", string(c))
-			return
-		}
-		if cw[int(c)] == 0 {
-			l += f.currentFont.Desc.MissingWidth
-		} else if cw[int(c)] != 65535 {
-			l += cw[int(c)]
-		}
+		l += f.currentRuneWidth(c)
 		if l > wmax {
 
 			if sep == -1 {
@@ -638,7 +642,6 @@ func blankCount(str string) (count int) {
 // write outputs text in flowing mode
 func (f *Fpdf) write(h float64, txtStr string, link int, linkStr string) {
 
-	cw := f.currentFont.Cw
 	w := f.w - f.rMargin - f.x
 	wmax := (w - 2*f.cMargin) * 1000 / f.fontSize
 	s := strings.Replace(txtStr, "\r", "", -1)
@@ -687,7 +690,7 @@ func (f *Fpdf) write(h float64, txtStr string, link int, linkStr string) {
 		if c == ' ' {
 			sep = i
 		}
-		l += float64(cw[int(c)])
+		l += float64(f.currentRuneWidth(c))
 		if l > wmax {
 
 			if sep == -1 {
@@ -938,7 +941,6 @@ func (f *Fpdf) putbookmarks() {
 // function can be used to determine the total height of wrapped text for
 // vertical placement purposes.
 func (f *Fpdf) SplitText(txt string, w float64) (lines []string) {
-	cw := f.currentFont.Cw
 	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
 	s := []rune(txt)
 	nb := len(s)
@@ -952,7 +954,7 @@ func (f *Fpdf) SplitText(txt string, w float64) (lines []string) {
 	l := 0
 	for i < nb {
 		c := s[i]
-		l += cw[c]
+		l += f.currentRuneWidth(c)
 		if unicode.IsSpace(c) || isChinese(c) {
 			sep = i
 		}

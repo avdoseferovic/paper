@@ -17,8 +17,11 @@
 package paperpdf
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
+	"strings"
 )
 
 // flags
@@ -31,8 +34,71 @@ const symbol2x2 = 1 << 7
 // CID map Init
 const toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend"
 
+type colorRecord struct {
+	r, g, b, a byte
+}
+
+type colorLayerRecord struct {
+	glyphID      uint16
+	paletteIndex uint16
+}
+
+type colorBaseGlyphRecord struct {
+	glyphID       uint16
+	firstLayerIdx uint16
+	numLayers     uint16
+}
+
+type colrTable struct {
+	version             uint16
+	baseGlyphRecords    []colorBaseGlyphRecord
+	layerRecords        []colorLayerRecord
+	baseGlyphListOffset int
+	layerListOffset     int
+	clipListOffset      int
+}
+
+type cpalTable struct {
+	colorRecords []colorRecord
+}
+
+type bitmapGlyphLocation struct {
+	dataOffset  int
+	dataLength  int
+	imageFormat int
+	ppemX       int
+	ppemY       int
+	hasMetrics  bool
+	width       int
+	height      int
+	bearingX    int
+	bearingY    int
+	advance     int
+}
+
+type bitmapGlyphImage struct {
+	data          []byte
+	imageType     string
+	width         int
+	height        int
+	bearingX      int
+	bearingY      int
+	advance       int
+	ppemX         int
+	ppemY         int
+	originOffsetX int
+	originOffsetY int
+}
+
+type sbixStrike struct {
+	offset int
+	ppem   int
+	ppi    int
+}
+
 type utf8FontFile struct {
 	fileReader           *fileReader
+	fontOffset           int
 	lastRune             int
 	tableDescriptions    map[string]*tableDescription
 	outTablesData        map[string][]byte
@@ -49,10 +115,17 @@ type utf8FontFile struct {
 	underlinePosition    float64
 	underlineThickness   float64
 	charWidths           []int
+	charWidthExtra       map[int]int
 	defaultWidth         float64
 	symbolData           map[int]map[string][]int
 	codeSymbolDictionary map[int]int
 	err                  error
+	colrTable            *colrTable
+	cpalTable            *cpalTable
+	cbdtGlyphs           map[int][]bitmapGlyphLocation
+	sbixStrikes          []sbixStrike
+	hasColorGlyphs       bool
+	hasBitmapGlyphs      bool
 }
 
 type tableDescription struct {
@@ -87,7 +160,10 @@ func (utf *utf8FontFile) parseFile() error {
 		return fmt.Errorf("unsupported OpenType CFF font")
 	}
 	if codeType == 0x74746366 {
-		return fmt.Errorf("unsupported TrueType collection font")
+		if err := utf.selectTTCFont(); err != nil {
+			return err
+		}
+		codeType = uint32(utf.readUint32())
 	}
 	if codeType != 0x00010000 && codeType != 0x74727565 {
 		return fmt.Errorf("not a TrueType font: codeType=%d", codeType)
@@ -98,6 +174,32 @@ func (utf *utf8FontFile) parseFile() error {
 	}
 	utf.parseTables()
 	utf.setError(utf.fileReader.err)
+	return utf.err
+}
+
+func (utf *utf8FontFile) hasOutlineTables() bool {
+	return utf.tableDescriptions["glyf"] != nil && utf.tableDescriptions["loca"] != nil
+}
+
+func (utf *utf8FontFile) selectTTCFont() error {
+	_ = utf.readUint16() // major version
+	_ = utf.readUint16() // minor version
+	fontCount := utf.readUint32()
+	if utf.err != nil {
+		return utf.err
+	}
+	if fontCount < 1 {
+		return fmt.Errorf("TrueType collection has no fonts")
+	}
+	fontOffset := utf.readUint32()
+	if utf.err != nil {
+		return utf.err
+	}
+	if fontOffset <= 0 || fontOffset+4 > len(utf.fileReader.array) {
+		return fmt.Errorf("TrueType collection font offset is invalid")
+	}
+	utf.fontOffset = fontOffset
+	utf.seek(fontOffset)
 	return utf.err
 }
 
@@ -141,6 +243,16 @@ func (utf *utf8FontFile) readTableName() string {
 func (utf *utf8FontFile) readUint16() int {
 	s := utf.readBytes(2)
 	return (int(s[0]) << 8) + int(s[1])
+}
+
+func (utf *utf8FontFile) readByte() int {
+	s := utf.readBytes(1)
+	return int(s[0])
+}
+
+func (utf *utf8FontFile) readOffset24() int {
+	s := utf.readBytes(3)
+	return (int(s[0]) << 16) + (int(s[1]) << 8) + int(s[2])
 }
 
 func (utf *utf8FontFile) readUint32() int {
@@ -231,6 +343,11 @@ func (utf *utf8FontFile) getUint16(pos int) int {
 	utf.seek(pos)
 	s := utf.readBytes(2)
 	return (int(s[0]) << 8) + int(s[1])
+}
+
+func (utf *utf8FontFile) getUint32(pos int) int {
+	utf.seek(pos)
+	return utf.readUint32()
 }
 
 func (utf *utf8FontFile) splice(stream []byte, offset int, value []byte) []byte {
@@ -339,7 +456,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 	return format
 }
 
-func (utf *utf8FontFile) parseHEADTable() {
+func (utf *utf8FontFile) parseHEADTable() int {
 	utf.seekTable("head", 0)
 	utf.skip(18)
 	utf.fontElementSize = utf.readUint16()
@@ -351,12 +468,13 @@ func (utf *utf8FontFile) parseHEADTable() {
 	yMax := utf.readInt16()
 	utf.bbox = fontBoxType{int(float64(xMin) * scale), int(float64(yMin) * scale), int(float64(xMax) * scale), int(float64(yMax) * scale)}
 	utf.skip(3 * 2)
-	_ = utf.readUint16()
+	indexToLocFormat := utf.readUint16()
 	symbolDataFormat := utf.readUint16()
 	if symbolDataFormat != 0 {
 		utf.setErrorf("unknown symbol data format %d", symbolDataFormat)
-		return
+		return 0
 	}
+	return indexToLocFormat
 }
 
 func (utf *utf8FontFile) parseHHEATable() int {
@@ -463,13 +581,14 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 		coded := utf.readUint16()
 		position := utf.readUint32()
 		oldReaderPosition := utf.fileReader.readerPosition
-		if (system == 3 && coded == 1) || system == 0 { // Microsoft, Unicode
+		if (system == 3 && (coded == 1 || coded == 10)) || system == 0 { // Microsoft, Unicode
 			format = utf.getUint16(cmapPosition + position)
-			if format == 4 {
-				if cidCMAPPosition == 0 {
-					cidCMAPPosition = cmapPosition + position
-				}
+			if format == 12 {
+				cidCMAPPosition = cmapPosition + position
 				break
+			}
+			if format == 4 {
+				cidCMAPPosition = cmapPosition + position
 			}
 		}
 		utf.seek(int(oldReaderPosition))
@@ -481,12 +600,752 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 	return cidCMAPPosition
 }
 
+func (utf *utf8FontFile) parseCOLRTable() {
+	desc := utf.tableDescriptions["COLR"]
+	if desc == nil {
+		return
+	}
+
+	tableStart := desc.position
+	utf.seek(tableStart)
+	version := uint16(utf.readUint16())
+	if version > 1 {
+		return
+	}
+
+	numBaseGlyphRecords := utf.readUint16()
+	baseGlyphRecordsOffset := utf.readUint32()
+	layerRecordsOffset := utf.readUint32()
+	numLayerRecords := utf.readUint16()
+	if utf.err != nil {
+		return
+	}
+
+	colr := &colrTable{
+		version:          version,
+		baseGlyphRecords: make([]colorBaseGlyphRecord, numBaseGlyphRecords),
+		layerRecords:     make([]colorLayerRecord, numLayerRecords),
+	}
+	if version == 1 {
+		colr.baseGlyphListOffset = utf.readUint32()
+		colr.layerListOffset = utf.readUint32()
+		colr.clipListOffset = utf.readUint32()
+	}
+
+	if baseGlyphRecordsOffset != 0 {
+		utf.seek(tableStart + baseGlyphRecordsOffset)
+		for i := 0; i < int(numBaseGlyphRecords); i++ {
+			colr.baseGlyphRecords[i] = colorBaseGlyphRecord{
+				glyphID:       uint16(utf.readUint16()),
+				firstLayerIdx: uint16(utf.readUint16()),
+				numLayers:     uint16(utf.readUint16()),
+			}
+		}
+		if utf.err != nil {
+			return
+		}
+	}
+
+	if layerRecordsOffset != 0 {
+		utf.seek(tableStart + layerRecordsOffset)
+		for i := 0; i < int(numLayerRecords); i++ {
+			colr.layerRecords[i] = colorLayerRecord{
+				glyphID:      uint16(utf.readUint16()),
+				paletteIndex: uint16(utf.readUint16()),
+			}
+		}
+		if utf.err != nil {
+			return
+		}
+	}
+
+	utf.colrTable = colr
+}
+
+func (utf *utf8FontFile) parseCPALTable() {
+	desc := utf.tableDescriptions["CPAL"]
+	if desc == nil {
+		return
+	}
+
+	tableStart := desc.position
+	utf.seek(tableStart)
+	_ = utf.readUint16() // version
+	_ = utf.readUint16() // numPaletteEntries
+	_ = utf.readUint16() // numPalettes
+	numColorRecords := utf.readUint16()
+	colorRecordsArrayOffset := utf.readUint32()
+	if utf.err != nil {
+		return
+	}
+
+	cpal := &cpalTable{
+		colorRecords: make([]colorRecord, numColorRecords),
+	}
+	utf.seek(tableStart + colorRecordsArrayOffset)
+	for i := 0; i < int(numColorRecords); i++ {
+		data := utf.fileReader.Read(4)
+		if utf.err != nil || len(data) < 4 {
+			return
+		}
+		cpal.colorRecords[i] = colorRecord{
+			b: data[0],
+			g: data[1],
+			r: data[2],
+			a: data[3],
+		}
+	}
+
+	utf.cpalTable = cpal
+}
+
+func (utf *utf8FontFile) colorGlyphLayers(glyphID uint16) []colorLayerRecord {
+	if utf.colrTable == nil {
+		return nil
+	}
+	records := utf.colrTable.baseGlyphRecords
+	lo, hi := 0, len(records)-1
+	for lo <= hi {
+		mid := (lo + hi) / 2
+		record := records[mid]
+		switch {
+		case record.glyphID == glyphID:
+			start := int(record.firstLayerIdx)
+			end := start + int(record.numLayers)
+			if start < 0 || end > len(utf.colrTable.layerRecords) {
+				return nil
+			}
+			return utf.colrTable.layerRecords[start:end]
+		case record.glyphID < glyphID:
+			lo = mid + 1
+		default:
+			hi = mid - 1
+		}
+	}
+	if utf.colrTable.version == 1 && utf.colrTable.baseGlyphListOffset != 0 {
+		return utf.colorGlyphLayersV1(glyphID, 0)
+	}
+	return nil
+}
+
+func (utf *utf8FontFile) paletteColor(paletteIndex uint16) colorRecord {
+	if utf.cpalTable == nil || int(paletteIndex) >= len(utf.cpalTable.colorRecords) {
+		return colorRecord{a: 255}
+	}
+	return utf.cpalTable.colorRecords[paletteIndex]
+}
+
+func (utf *utf8FontFile) colorGlyphLayersV1(glyphID uint16, depth int) []colorLayerRecord {
+	if depth > 16 {
+		return nil
+	}
+
+	colrStart := utf.tableDescriptions["COLR"].position
+	listStart := colrStart + utf.colrTable.baseGlyphListOffset
+
+	utf.seek(listStart)
+	numRecords := utf.readUint32()
+	lo, hi := 0, numRecords-1
+	for lo <= hi {
+		mid := (lo + hi) / 2
+		utf.seek(listStart + 4 + mid*6)
+		recordGlyphID := uint16(utf.readUint16())
+		paintOffset := utf.readUint32()
+		if utf.err != nil {
+			return nil
+		}
+
+		switch {
+		case recordGlyphID == glyphID:
+			return utf.parseCOLRV1Paint(listStart+paintOffset, depth+1)
+		case recordGlyphID < glyphID:
+			lo = mid + 1
+		default:
+			hi = mid - 1
+		}
+	}
+	return nil
+}
+
+func (utf *utf8FontFile) parseCOLRV1Paint(offset, depth int) []colorLayerRecord {
+	if depth > 16 || offset <= 0 {
+		return nil
+	}
+
+	utf.seek(offset)
+	format := utf.readByte()
+	if utf.err != nil {
+		return nil
+	}
+
+	switch format {
+	case 1:
+		layerCount := int(utf.readByte())
+		firstLayerIndex := utf.readUint32()
+		layerListStart := utf.tableDescriptions["COLR"].position + utf.colrTable.layerListOffset
+		utf.seek(layerListStart)
+		totalLayers := utf.readUint32()
+		if utf.err != nil || firstLayerIndex < 0 || firstLayerIndex+layerCount > totalLayers {
+			return nil
+		}
+
+		layers := make([]colorLayerRecord, 0, layerCount)
+		for i := 0; i < layerCount; i++ {
+			utf.seek(layerListStart + 4 + (firstLayerIndex+i)*4)
+			paintOffset := utf.readUint32()
+			layers = append(layers, utf.parseCOLRV1Paint(layerListStart+paintOffset, depth+1)...)
+		}
+		return layers
+	case 10:
+		paintOffset := utf.readOffset24()
+		glyphID := uint16(utf.readUint16())
+		paletteIndex := utf.parseCOLRV1Color(offset+paintOffset, depth+1)
+		if utf.err != nil {
+			return nil
+		}
+		return []colorLayerRecord{{
+			glyphID:      glyphID,
+			paletteIndex: paletteIndex,
+		}}
+	case 11:
+		reusedGlyphID := uint16(utf.readUint16())
+		return utf.colorGlyphLayersV1(reusedGlyphID, depth+1)
+	case 12, 14, 16, 24, 26, 28, 30:
+		paintOffset := utf.readOffset24()
+		return utf.parseCOLRV1Paint(offset+paintOffset, depth+1)
+	case 13:
+		paintOffset := utf.readOffset24()
+		return utf.parseCOLRV1Paint(offset+paintOffset, depth+1)
+	case 15:
+		paintOffset := utf.readOffset24()
+		return utf.parseCOLRV1Paint(offset+paintOffset, depth+1)
+	case 17, 18, 19, 20, 21, 22, 23, 25, 27, 29, 31:
+		paintOffset := utf.readOffset24()
+		return utf.parseCOLRV1Paint(offset+paintOffset, depth+1)
+	case 32:
+		sourceOffset := utf.readOffset24()
+		_ = utf.readByte() // composite mode
+		backdropOffset := utf.readOffset24()
+		layers := utf.parseCOLRV1Paint(offset+backdropOffset, depth+1)
+		layers = append(layers, utf.parseCOLRV1Paint(offset+sourceOffset, depth+1)...)
+		return layers
+	default:
+		return nil
+	}
+}
+
+func (utf *utf8FontFile) parseCOLRV1Color(offset, depth int) uint16 {
+	if depth > 16 || offset <= 0 {
+		return 0xFFFF
+	}
+
+	utf.seek(offset)
+	format := utf.readByte()
+	if utf.err != nil {
+		return 0xFFFF
+	}
+
+	switch format {
+	case 2:
+		return uint16(utf.readUint16())
+	case 3:
+		return uint16(utf.readUint16())
+	case 4, 5, 6, 7, 8, 9:
+		colorLineOffset := utf.readOffset24()
+		return utf.firstPaletteIndexInColorLine(offset + colorLineOffset)
+	case 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31:
+		paintOffset := utf.readOffset24()
+		return utf.parseCOLRV1Color(offset+paintOffset, depth+1)
+	default:
+		return 0xFFFF
+	}
+}
+
+func (utf *utf8FontFile) firstPaletteIndexInColorLine(offset int) uint16 {
+	utf.seek(offset)
+	_ = utf.readByte() // extend
+	stopCount := utf.readUint16()
+	if utf.err != nil || stopCount == 0 {
+		return 0xFFFF
+	}
+	_ = utf.readUint16() // stop offset
+	return uint16(utf.readUint16())
+}
+
+func (utf *utf8FontFile) parseBitmapTables(numGlyphs int) {
+	utf.parseCBLCTable()
+	utf.parseSBIXTable(numGlyphs)
+	utf.hasBitmapGlyphs = len(utf.cbdtGlyphs) > 0 || len(utf.sbixStrikes) > 0
+}
+
+func (utf *utf8FontFile) parseCBLCTable() {
+	cblc := utf.tableDescriptions["CBLC"]
+	cbdt := utf.tableDescriptions["CBDT"]
+	if cblc == nil || cbdt == nil {
+		return
+	}
+
+	utf.seek(cblc.position)
+	_ = utf.readUint32() // version
+	strikeCount := utf.readUint32()
+	if utf.err != nil {
+		return
+	}
+
+	utf.cbdtGlyphs = make(map[int][]bitmapGlyphLocation)
+	for strikeIndex := 0; strikeIndex < strikeCount; strikeIndex++ {
+		strikeOffset := cblc.position + 8 + strikeIndex*48
+		utf.seek(strikeOffset)
+		indexSubTableArrayOffset := utf.readUint32()
+		_ = utf.readUint32() // indexTablesSize
+		subTableCount := utf.readUint32()
+		_ = utf.readUint32() // colorRef
+		utf.skip(24)         // horizontal and vertical SbitLineMetrics
+		_ = utf.readUint16() // startGlyphIndex
+		_ = utf.readUint16() // endGlyphIndex
+		ppemX := utf.readByte()
+		ppemY := utf.readByte()
+		_ = utf.readByte() // bitDepth
+		_ = utf.readByte() // flags
+		if utf.err != nil {
+			return
+		}
+
+		arrayStart := cblc.position + indexSubTableArrayOffset
+		for i := 0; i < subTableCount; i++ {
+			utf.seek(arrayStart + i*8)
+			firstGlyph := utf.readUint16()
+			lastGlyph := utf.readUint16()
+			subtableOffset := utf.readUint32()
+			if utf.err != nil {
+				return
+			}
+			utf.parseCBLCIndexSubTable(cblc.position+indexSubTableArrayOffset+subtableOffset, firstGlyph, lastGlyph, ppemX, ppemY)
+		}
+	}
+}
+
+func (utf *utf8FontFile) parseCBLCIndexSubTable(offset, firstGlyph, lastGlyph, ppemX, ppemY int) {
+	if lastGlyph < firstGlyph {
+		return
+	}
+
+	utf.seek(offset)
+	indexFormat := utf.readUint16()
+	imageFormat := utf.readUint16()
+	imageDataOffset := utf.readUint32()
+	if utf.err != nil {
+		return
+	}
+	if !isCBDTPNGImageFormat(imageFormat) {
+		return
+	}
+
+	cbdt := utf.tableDescriptions["CBDT"]
+	if cbdt == nil {
+		return
+	}
+	imageDataStart := cbdt.position + imageDataOffset
+	glyphCount := lastGlyph - firstGlyph + 1
+
+	switch indexFormat {
+	case 1:
+		offsets := make([]int, glyphCount+1)
+		for i := range offsets {
+			offsets[i] = utf.readUint32()
+		}
+		if utf.err != nil {
+			return
+		}
+		utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+	case 2:
+		imageSize := utf.readUint32()
+		metrics := utf.readBigGlyphMetrics()
+		if utf.err != nil || imageSize <= 0 {
+			return
+		}
+		for glyphID := firstGlyph; glyphID <= lastGlyph; glyphID++ {
+			idx := glyphID - firstGlyph
+			utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
+				dataOffset:  imageDataStart + idx*imageSize,
+				dataLength:  imageSize,
+				imageFormat: imageFormat,
+				ppemX:       ppemX,
+				ppemY:       ppemY,
+				hasMetrics:  true,
+				width:       metrics.width,
+				height:      metrics.height,
+				bearingX:    metrics.bearingX,
+				bearingY:    metrics.bearingY,
+				advance:     metrics.advance,
+			})
+		}
+	case 3:
+		offsets := make([]int, glyphCount+1)
+		for i := range offsets {
+			offsets[i] = utf.readUint16()
+		}
+		if utf.err != nil {
+			return
+		}
+		utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+	case 4:
+		pairCount := utf.readUint32()
+		if utf.err != nil || pairCount < 1 {
+			return
+		}
+		pairs := make([]bitmapGlyphOffsetPair, pairCount+1)
+		for i := range pairs {
+			pairs[i] = bitmapGlyphOffsetPair{
+				glyphID: utf.readUint16(),
+				offset:  utf.readUint16(),
+			}
+		}
+		if utf.err != nil {
+			return
+		}
+		for i := 0; i < pairCount; i++ {
+			dataLength := pairs[i+1].offset - pairs[i].offset
+			if dataLength <= 0 {
+				continue
+			}
+			utf.addCBDTGlyphLocation(pairs[i].glyphID, bitmapGlyphLocation{
+				dataOffset:  imageDataStart + pairs[i].offset,
+				dataLength:  dataLength,
+				imageFormat: imageFormat,
+				ppemX:       ppemX,
+				ppemY:       ppemY,
+			})
+		}
+	case 5:
+		imageSize := utf.readUint32()
+		metrics := utf.readBigGlyphMetrics()
+		sparseGlyphCount := utf.readUint32()
+		if utf.err != nil || imageSize <= 0 {
+			return
+		}
+		for i := 0; i < sparseGlyphCount; i++ {
+			glyphID := utf.readUint16()
+			utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
+				dataOffset:  imageDataStart + i*imageSize,
+				dataLength:  imageSize,
+				imageFormat: imageFormat,
+				ppemX:       ppemX,
+				ppemY:       ppemY,
+				hasMetrics:  true,
+				width:       metrics.width,
+				height:      metrics.height,
+				bearingX:    metrics.bearingX,
+				bearingY:    metrics.bearingY,
+				advance:     metrics.advance,
+			})
+		}
+	}
+}
+
+type bitmapGlyphOffsetPair struct {
+	glyphID int
+	offset  int
+}
+
+type bitmapGlyphMetrics struct {
+	width    int
+	height   int
+	bearingX int
+	bearingY int
+	advance  int
+}
+
+func isCBDTPNGImageFormat(imageFormat int) bool {
+	return imageFormat == 17 || imageFormat == 18 || imageFormat == 19
+}
+
+func (utf *utf8FontFile) addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY int, offsets []int, metrics *bitmapGlyphMetrics) {
+	for idx := 0; idx+1 < len(offsets); idx++ {
+		dataLength := offsets[idx+1] - offsets[idx]
+		if dataLength <= 0 {
+			continue
+		}
+		location := bitmapGlyphLocation{
+			dataOffset:  imageDataStart + offsets[idx],
+			dataLength:  dataLength,
+			imageFormat: imageFormat,
+			ppemX:       ppemX,
+			ppemY:       ppemY,
+		}
+		if metrics != nil {
+			location.hasMetrics = true
+			location.width = metrics.width
+			location.height = metrics.height
+			location.bearingX = metrics.bearingX
+			location.bearingY = metrics.bearingY
+			location.advance = metrics.advance
+		}
+		utf.addCBDTGlyphLocation(firstGlyph+idx, location)
+	}
+}
+
+func (utf *utf8FontFile) addCBDTGlyphLocation(glyphID int, location bitmapGlyphLocation) {
+	utf.cbdtGlyphs[glyphID] = append(utf.cbdtGlyphs[glyphID], location)
+}
+
+func (utf *utf8FontFile) readBigGlyphMetrics() bitmapGlyphMetrics {
+	height := utf.readByte()
+	width := utf.readByte()
+	bearingX := int(int8(byte(utf.readByte())))
+	bearingY := int(int8(byte(utf.readByte())))
+	advance := utf.readByte()
+	_ = utf.readByte() // vertBearingX
+	_ = utf.readByte() // vertBearingY
+	_ = utf.readByte() // vertAdvance
+	return bitmapGlyphMetrics{
+		width:    width,
+		height:   height,
+		bearingX: bearingX,
+		bearingY: bearingY,
+		advance:  advance,
+	}
+}
+
+func (utf *utf8FontFile) parseSBIXTable(numGlyphs int) {
+	sbix := utf.tableDescriptions["sbix"]
+	if sbix == nil || numGlyphs < 1 {
+		return
+	}
+
+	utf.seek(sbix.position)
+	_ = utf.readUint16() // version
+	_ = utf.readUint16() // flags
+	strikeCount := utf.readUint32()
+	if utf.err != nil {
+		return
+	}
+
+	utf.sbixStrikes = make([]sbixStrike, 0, strikeCount)
+	strikeOffsets := make([]int, strikeCount)
+	for i := range strikeOffsets {
+		strikeOffsets[i] = utf.readUint32()
+		if utf.err != nil {
+			return
+		}
+	}
+
+	for _, strikeOffset := range strikeOffsets {
+		strikeStart := sbix.position + strikeOffset
+		if strikeStart+4 > sbix.position+sbix.size {
+			continue
+		}
+		utf.seek(strikeStart)
+		ppem := utf.readUint16()
+		ppi := utf.readUint16()
+		if utf.err != nil {
+			return
+		}
+		if strikeStart+4+(numGlyphs+1)*4 > sbix.position+sbix.size {
+			continue
+		}
+		utf.sbixStrikes = append(utf.sbixStrikes, sbixStrike{
+			offset: strikeOffset,
+			ppem:   ppem,
+			ppi:    ppi,
+		})
+	}
+}
+
+func (utf *utf8FontFile) bitmapGlyphImage(glyphID uint16, sizePt float64) *bitmapGlyphImage {
+	if glyph := utf.cbdtGlyphImage(int(glyphID), sizePt); glyph != nil {
+		return glyph
+	}
+	return utf.sbixGlyphImage(int(glyphID), sizePt)
+}
+
+func (utf *utf8FontFile) cbdtGlyphImage(glyphID int, sizePt float64) *bitmapGlyphImage {
+	locations := utf.cbdtGlyphs[glyphID]
+	if len(locations) == 0 {
+		return nil
+	}
+	location := locations[0]
+	for _, candidate := range locations[1:] {
+		if betterBitmapStrike(candidate.ppemY, location.ppemY, sizePt) {
+			location = candidate
+		}
+	}
+	if !isCBDTPNGImageFormat(location.imageFormat) || location.dataLength < 4 {
+		return nil
+	}
+	raw := utf.getRange(location.dataOffset, location.dataLength)
+	if utf.err != nil {
+		return nil
+	}
+
+	metrics, pngData := cbdtPNGImageData(location, raw)
+	if len(pngData) == 0 {
+		return nil
+	}
+	if !bytes.HasPrefix(pngData, []byte("\x89PNG\r\n\x1a\n")) {
+		return nil
+	}
+	return &bitmapGlyphImage{
+		data:      append([]byte(nil), pngData...),
+		imageType: "png",
+		width:     metrics.width,
+		height:    metrics.height,
+		bearingX:  metrics.bearingX,
+		bearingY:  metrics.bearingY,
+		advance:   metrics.advance,
+		ppemX:     location.ppemX,
+		ppemY:     location.ppemY,
+	}
+}
+
+func cbdtPNGImageData(location bitmapGlyphLocation, raw []byte) (bitmapGlyphMetrics, []byte) {
+	switch location.imageFormat {
+	case 17:
+		if len(raw) < 9 {
+			return bitmapGlyphMetrics{}, nil
+		}
+		metrics := bitmapGlyphMetrics{
+			height:   int(raw[0]),
+			width:    int(raw[1]),
+			bearingX: int(int8(raw[2])),
+			bearingY: int(int8(raw[3])),
+			advance:  int(raw[4]),
+		}
+		return metrics, sizedPNGData(raw, 5)
+	case 18:
+		if len(raw) < 12 {
+			return bitmapGlyphMetrics{}, nil
+		}
+		metrics := bitmapGlyphMetrics{
+			height:   int(raw[0]),
+			width:    int(raw[1]),
+			bearingX: int(int8(raw[2])),
+			bearingY: int(int8(raw[3])),
+			advance:  int(raw[4]),
+		}
+		return metrics, sizedPNGData(raw, 8)
+	case 19:
+		if !location.hasMetrics {
+			return bitmapGlyphMetrics{}, nil
+		}
+		metrics := bitmapGlyphMetrics{
+			width:    location.width,
+			height:   location.height,
+			bearingX: location.bearingX,
+			bearingY: location.bearingY,
+			advance:  location.advance,
+		}
+		return metrics, sizedPNGData(raw, 0)
+	default:
+		return bitmapGlyphMetrics{}, nil
+	}
+}
+
+func sizedPNGData(raw []byte, offset int) []byte {
+	if offset < 0 || offset+4 > len(raw) {
+		return nil
+	}
+	dataLength := int(binary.BigEndian.Uint32(raw[offset : offset+4]))
+	dataOffset := offset + 4
+	if dataLength < 0 || dataOffset+dataLength > len(raw) {
+		return nil
+	}
+	return raw[dataOffset : dataOffset+dataLength]
+}
+
+func (utf *utf8FontFile) sbixGlyphImage(glyphID int, sizePt float64) *bitmapGlyphImage {
+	if len(utf.sbixStrikes) == 0 {
+		return nil
+	}
+	strike := utf.sbixStrikes[0]
+	for _, candidate := range utf.sbixStrikes[1:] {
+		if betterBitmapStrike(candidate.ppem, strike.ppem, sizePt) {
+			strike = candidate
+		}
+	}
+
+	sbix := utf.tableDescriptions["sbix"]
+	if sbix == nil {
+		return nil
+	}
+	strikeStart := sbix.position + strike.offset
+	glyphOffsetPos := strikeStart + 4 + glyphID*4
+	nextGlyphOffsetPos := glyphOffsetPos + 4
+	if nextGlyphOffsetPos+4 > sbix.position+sbix.size {
+		return nil
+	}
+	glyphOffset := utf.getUint32(glyphOffsetPos)
+	nextGlyphOffset := utf.getUint32(nextGlyphOffsetPos)
+	if utf.err != nil || nextGlyphOffset <= glyphOffset || glyphOffset < 4 {
+		return nil
+	}
+	dataOffset := strikeStart + glyphOffset
+	dataLength := nextGlyphOffset - glyphOffset
+	if dataLength < 8 || dataOffset+dataLength > sbix.position+sbix.size {
+		return nil
+	}
+	raw := utf.getRange(dataOffset, dataLength)
+	if utf.err != nil || len(raw) < 8 {
+		return nil
+	}
+	originOffsetX := int(int16(binary.BigEndian.Uint16(raw[0:2])))
+	originOffsetY := int(int16(binary.BigEndian.Uint16(raw[2:4])))
+	imageType := strings.TrimSpace(string(raw[4:8]))
+	imageData := raw[8:]
+	switch imageType {
+	case "png":
+		if !bytes.HasPrefix(imageData, []byte("\x89PNG\r\n\x1a\n")) {
+			return nil
+		}
+	default:
+		return nil
+	}
+	width, height := pngSize(imageData)
+	if width == 0 || height == 0 {
+		return nil
+	}
+	return &bitmapGlyphImage{
+		data:          append([]byte(nil), imageData...),
+		imageType:     imageType,
+		width:         width,
+		height:        height,
+		ppemX:         strike.ppem,
+		ppemY:         strike.ppem,
+		originOffsetX: originOffsetX,
+		originOffsetY: originOffsetY,
+	}
+}
+
+func betterBitmapStrike(candidate, current int, sizePt float64) bool {
+	target := int(sizePt + 0.5)
+	if target < 1 {
+		target = 1
+	}
+	if current < target && candidate >= target {
+		return true
+	}
+	if current >= target && candidate >= target {
+		return candidate < current
+	}
+	if current < target && candidate < target {
+		return candidate > current
+	}
+	return false
+}
+
+func pngSize(data []byte) (int, int) {
+	if len(data) < 24 || !bytes.HasPrefix(data, []byte("\x89PNG\r\n\x1a\n")) {
+		return 0, 0
+	}
+	return int(binary.BigEndian.Uint32(data[16:20])), int(binary.BigEndian.Uint32(data[20:24]))
+}
+
 func (utf *utf8FontFile) parseTables() {
 	f := utf.parseNAMETable()
 	if utf.err != nil {
 		return
 	}
-	utf.parseHEADTable()
+	locaFormat := utf.parseHEADTable()
 	if utf.err != nil {
 		return
 	}
@@ -507,16 +1366,33 @@ func (utf *utf8FontFile) parseTables() {
 		return
 	}
 
+	utf.parseCOLRTable()
+	utf.parseCPALTable()
+
 	utf.seekTable("maxp", 0)
 	utf.skip(4)
 	numSymbols := utf.readUint16()
+	if utf.err != nil {
+		return
+	}
+	utf.parseBitmapTables(numSymbols)
+	utf.hasColorGlyphs = (utf.colrTable != nil && utf.cpalTable != nil) || utf.hasBitmapGlyphs
 
 	symbolCharDictionary := make(map[int][]int)
 	charSymbolDictionary := make(map[int]int)
 	utf.generateSCCSDictionaries(runeCMAPPosition, symbolCharDictionary, charSymbolDictionary)
+	utf.charSymbolDictionary = charSymbolDictionary
 
 	scale := 1000.0 / float64(utf.fontElementSize)
 	utf.parseHMTXTable(n, numSymbols, symbolCharDictionary, scale)
+	if utf.err != nil {
+		return
+	}
+	if utf.tableDescriptions["loca"] != nil && utf.tableDescriptions["glyf"] != nil {
+		utf.parseLOCATable(locaFormat, numSymbols)
+	} else if !utf.hasBitmapGlyphs {
+		utf.setErrorf("required font table %q is missing", "loca")
+	}
 }
 
 func (utf *utf8FontFile) generateCMAP() map[int][]int {
@@ -529,11 +1405,14 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 		coder := utf.readUint16()
 		position := utf.readUint32()
 		oldPosition := utf.fileReader.readerPosition
-		if (system == 3 && coder == 1) || system == 0 {
+		if (system == 3 && (coder == 1 || coder == 10)) || system == 0 {
 			format := utf.getUint16(cmapPosition + position)
-			if format == 4 {
+			if format == 12 {
 				runeCmapPosition = cmapPosition + position
 				break
+			}
+			if format == 4 {
+				runeCmapPosition = cmapPosition + position
 			}
 		}
 		utf.seek(int(oldPosition))
@@ -556,13 +1435,21 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[int]int, map[int]int, []int) {
 	symbolCollection := map[int]int{0: 0}
 	charSymbolPairCollection := make(map[int]int)
-	for _, char := range usedRunes {
+	for cid, char := range usedRunes {
 		if _, OK := utf.charSymbolDictionary[char]; OK {
-			symbolCollection[utf.charSymbolDictionary[char]] = char
-			charSymbolPairCollection[char] = utf.charSymbolDictionary[char]
-
+			glyphID := utf.charSymbolDictionary[char]
+			symbolCollection[glyphID] = char
+			charSymbolPairCollection[cid] = glyphID
+			if utf.hasColorGlyphs {
+				for _, layer := range utf.colorGlyphLayers(uint16(glyphID)) {
+					layerGlyphID := int(layer.glyphID)
+					if _, exists := symbolCollection[layerGlyphID]; !exists {
+						symbolCollection[layerGlyphID] = 0
+					}
+				}
+			}
 		}
-		utf.lastRune = max(utf.lastRune, char)
+		utf.lastRune = max(utf.lastRune, cid)
 	}
 
 	begin := utf.tableDescriptions["glyf"].position
@@ -662,7 +1549,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 
 // generateCutFont fill utf8FontFile from .utf file, only with runes from usedRunes
 func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
-	utf.fileReader.readerPosition = 0
+	utf.fileReader.readerPosition = int64(utf.fontOffset)
 	utf.fileReader.err = nil
 	utf.err = nil
 	utf.symbolPosition = make([]int, 0)
@@ -677,6 +1564,9 @@ func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
 	if utf.err != nil {
 		return nil
 	}
+	utf.parseCOLRTable()
+	utf.parseCPALTable()
+	utf.hasColorGlyphs = utf.colrTable != nil && utf.cpalTable != nil
 
 	utf.seekTable("head", 0)
 	utf.skip(50)
@@ -948,6 +1838,7 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 	arrayWidths := 0
 	var arr []int
 	utf.charWidths = make([]int, 256*256)
+	utf.charWidthExtra = make(map[int]int)
 	charCount := 0
 	arr = unpackUint16Array(utf.getRange(start, numberOfHMetrics*4))
 	if utf.err != nil {
@@ -974,10 +1865,8 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 					if widths == 0 {
 						widths = 65535
 					}
-					if char < 196608 {
-						utf.charWidths[char] = widths
-						charCount++
-					}
+					utf.setCharWidth(char, widths)
+					charCount++
 				}
 			}
 		}
@@ -992,15 +1881,24 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 					if widths == 0 {
 						widths = 65535
 					}
-					if char < 196608 {
-						utf.charWidths[char] = widths
-						charCount++
-					}
+					utf.setCharWidth(char, widths)
+					charCount++
 				}
 			}
 		}
 	}
 	utf.charWidths[0] = charCount
+}
+
+func (utf *utf8FontFile) setCharWidth(char, width int) {
+	if char >= 0 && char < len(utf.charWidths) {
+		utf.charWidths[char] = width
+		return
+	}
+	if utf.charWidthExtra == nil {
+		utf.charWidthExtra = make(map[int]int)
+	}
+	utf.charWidthExtra[char] = width
 }
 
 func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
@@ -1053,6 +1951,29 @@ func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 }
 
 func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCharDictionary map[int][]int, charSymbolDictionary map[int]int) {
+	utf.seek(runeCmapPosition)
+	format := utf.readUint16()
+	if format == 12 {
+		utf.skip(2)
+		_ = utf.readUint32()
+		utf.skip(4)
+		groupCount := utf.readUint32()
+		for i := 0; i < groupCount; i++ {
+			startCharCode := utf.readUint32()
+			endCharCode := utf.readUint32()
+			startGlyphID := utf.readUint32()
+			if utf.err != nil {
+				return
+			}
+			for char := startCharCode; char <= endCharCode; char++ {
+				symbol := startGlyphID + (char - startCharCode)
+				charSymbolDictionary[char] = symbol
+				symbolCharDictionary[symbol] = append(symbolCharDictionary[symbol], char)
+			}
+		}
+		return
+	}
+
 	maxRune := 0
 	utf.seek(runeCmapPosition + 2)
 	size := utf.readUint16()
