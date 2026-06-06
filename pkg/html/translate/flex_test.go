@@ -306,22 +306,22 @@ func TestFlexDirection(t *testing.T) {
 		assert.Len(t, rows, 3)
 	})
 
-	t.Run("row-reverse renders same as row (limitation)", func(t *testing.T) {
+	t.Run("row-reverse orders children right to left", func(t *testing.T) {
 		t.Parallel()
-		docA := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row"><div>a</div><div>b</div></div></body></html>`)
-		rowsA, _ := translate.Translate(docA)
-		docB := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row-reverse"><div>a</div><div>b</div></div></body></html>`)
-		rowsB, _ := translate.Translate(docB)
-		require.Len(t, rowsA, 1)
-		require.Len(t, rowsB, 1)
-		assert.Equal(t, len(rowsA[0].GetColumns()), len(rowsB[0].GetColumns()))
+		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row-reverse"><div>a</div><div>b</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		assert.Equal(t, []string{"b", "a"}, richTextValues(rows[0]))
 	})
 
-	t.Run("column-reverse renders same as column (limitation)", func(t *testing.T) {
+	t.Run("column-reverse stacks children in reverse order", func(t *testing.T) {
 		t.Parallel()
-		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column-reverse"><div>a</div><div>b</div></div></body></html>`)
-		rows, _ := translate.Translate(doc)
-		assert.Len(t, rows, 2)
+		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column-reverse"><div>a</div><div>b</div><div>c</div></div></body></html>`)
+		rows, err := translate.Translate(doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 3)
+		assert.Equal(t, []string{"c", "b", "a"}, richTextValues(rows...))
 	})
 
 	t.Run("column direction with row-gap produces 5 rows for 3 children", func(t *testing.T) {
@@ -491,7 +491,6 @@ func TestFlexReverse(t *testing.T) {
 
 	t.Run("row-reverse reverses item order", func(t *testing.T) {
 		t.Parallel()
-		// We can't easily check visual order via structure; verify the row count is still 1.
 		doc := parseDoc(t, `<html><body>
 		<div style="display:flex;flex-direction:row-reverse">
 		  <div>a</div><div>b</div><div>c</div>
@@ -499,8 +498,23 @@ func TestFlexReverse(t *testing.T) {
 		rows, err := translate.Translate(doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
-		assert.Len(t, rows[0].GetColumns(), 3)
+		assert.Equal(t, []string{"c", "b", "a"}, richTextValues(rows[0]))
 	})
+}
+
+func richTextValues(rows ...core.Row) []string {
+	var values []string
+	for _, r := range rows {
+		walk(r.GetStructure(), func(s core.Structure) {
+			if s.Type != "richtext" {
+				return
+			}
+			if text, ok := s.Value.(string); ok {
+				values = append(values, text)
+			}
+		})
+	}
+	return values
 }
 
 // ── align-self per-item alignment ────────────────────────────────────────────
@@ -518,6 +532,7 @@ func TestFlexAlignSelf(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 1)
+		assert.True(t, hasCrossAxisAlign(rows[0], "flex-end"))
 	})
 
 	t.Run("align-self auto falls back to container align-items", func(t *testing.T) {
@@ -530,7 +545,18 @@ func TestFlexAlignSelf(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 1)
+		assert.True(t, hasCrossAxisAlign(rows[0], "center"))
 	})
+}
+
+func hasCrossAxisAlign(r core.Row, align string) bool {
+	found := false
+	walk(r.GetStructure(), func(s core.Structure) {
+		if s.Type == "cross_axis_box" && s.Details["align"] == align {
+			found = true
+		}
+	})
+	return found
 }
 
 // ── Golden tests: single-row computeFlexSizes preservation ───────────────────

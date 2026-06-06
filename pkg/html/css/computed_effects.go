@@ -21,7 +21,8 @@ func (s *ComputedStyle) applyEffectsProperty(ctx computedPropertyContext) bool {
 	case "text-shadow":
 		shadows, err := ParseShadow(ctx.val)
 		if err == nil && len(shadows) > 0 {
-			s.TextShadow = &shadows[0]
+			s.TextShadows = shadows
+			s.TextShadow = &s.TextShadows[0]
 		} else if s.unsupportedHandler != nil {
 			s.unsupportedHandler(ctx.prop, ctx.val)
 		}

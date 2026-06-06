@@ -99,9 +99,10 @@ func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
 	shadowColor := &props.Color{Red: 10, Green: 11, Blue: 12}
 	defaultFont := &props.Font{Family: fontfamily.Helvetica, Style: fontstyle.Italic, Size: 13, Color: fontColor}
 	run := props.NormalizeRichRun(props.RichRun{
-		Color:      fontColor,
-		Background: background,
-		TextShadow: &props.Shadow{Color: shadowColor},
+		Color:       fontColor,
+		Background:  background,
+		TextShadow:  &props.Shadow{Color: shadowColor},
+		TextShadows: []props.Shadow{{Color: shadowColor}},
 	}, defaultFont)
 	assert.Equal(t, fontfamily.Helvetica, run.Family)
 	assert.Equal(t, fontstyle.Italic, run.Style)
@@ -109,10 +110,12 @@ func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
 	assert.NotSame(t, fontColor, run.Color)
 	assert.NotSame(t, background, run.Background)
 	assert.NotSame(t, shadowColor, run.TextShadow.Color)
+	assert.NotSame(t, shadowColor, run.TextShadows[0].Color)
 	background.Red = 99
 	shadowColor.Red = 99
 	assert.Equal(t, 7, run.Background.Red)
 	assert.Equal(t, 10, run.TextShadow.Color.Red)
+	assert.Equal(t, 10, run.TextShadows[0].Color.Red)
 }
 
 func TestNormalizeRichTextAndCloneCellCopyNestedPointers(t *testing.T) {

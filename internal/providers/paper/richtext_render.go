@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"strings"
 
 	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
@@ -48,7 +49,7 @@ func (s *Text) renderRichTextTokens(
 			continue
 		}
 		s.renderTokenBackground(r, x, y, t.width, lineHeight)
-		s.renderTokenShadow(r, origColor, x, y, t.translated)
+		s.renderTokenShadows(r, origColor, x, y, t.translated)
 		s.renderTokenText(r, x, y, t.translated)
 		s.renderTokenLinks(r, prop, x, y, t.width, lineHeight)
 	}
@@ -71,7 +72,30 @@ func (s *Text) renderTokenImage(r resolvedRun, x, baselineY float64) {
 	if info == nil {
 		return
 	}
+	if usesRichImageObjectBox(r.Image) {
+		boxX := x
+		boxY := baselineY - r.Image.Height
+		imageWidth, imageHeight := validImageInfoSize(info, r.Image.Width, r.Image.Height)
+		rect := objectImageRect(r.Image.ObjectFit, r.Image.ObjectPosition, imageWidth, imageHeight, boxX, boxY, r.Image.Width, r.Image.Height)
+		s.pdf.ClipRect(boxX, boxY, r.Image.Width, r.Image.Height, false)
+		s.pdf.Image(name, rect.X, rect.Y, rect.Width, rect.Height, false, "", 0, "")
+		s.pdf.ClipEnd()
+		return
+	}
 	s.pdf.Image(name, x, baselineY-r.Image.Height, r.Image.Width, r.Image.Height, false, "", 0, "")
+}
+
+func usesRichImageObjectBox(image *props.RichImage) bool {
+	return image != nil && (strings.TrimSpace(image.ObjectFit) != "" || strings.TrimSpace(image.ObjectPosition) != "")
+}
+
+func validImageInfoSize(info *gofpdf.ImageInfoType, fallbackWidth, fallbackHeight float64) (float64, float64) {
+	width := info.Width()
+	height := info.Height()
+	if width <= 0 || height <= 0 || math.IsNaN(width) || math.IsNaN(height) || math.IsInf(width, 0) || math.IsInf(height, 0) {
+		return fallbackWidth, fallbackHeight
+	}
+	return width, height
 }
 
 func richRunBaselineOffset(r resolvedRun, lineHeight float64) float64 {
@@ -100,13 +124,27 @@ func (s *Text) renderTokenBackground(r resolvedRun, x, y, width, lineHeight floa
 	s.pdf.SetFillColor(255, 255, 255)
 }
 
-func (s *Text) renderTokenShadow(r resolvedRun, origColor *props.Color, x, y float64, translated string) {
-	if r.TextShadow == nil || r.TextShadow.Color == nil {
+func (s *Text) renderTokenShadows(r resolvedRun, origColor *props.Color, x, y float64, translated string) {
+	shadows := r.TextShadows
+	if len(shadows) == 0 && r.TextShadow != nil {
+		shadows = []props.Shadow{*r.TextShadow}
+	}
+	if len(shadows) == 0 {
 		return
 	}
-	sc := r.TextShadow.Color
-	s.pdf.SetTextColor(sc.Red, sc.Green, sc.Blue)
-	s.pdf.Text(x+r.TextShadow.OffsetX, y+r.TextShadow.OffsetY, translated)
+	painted := false
+	for _, shadow := range shadows {
+		if shadow.Color == nil {
+			continue
+		}
+		sc := shadow.Color
+		s.pdf.SetTextColor(sc.Red, sc.Green, sc.Blue)
+		s.pdf.Text(x+shadow.OffsetX, y+shadow.OffsetY, translated)
+		painted = true
+	}
+	if !painted {
+		return
+	}
 	// Restore run colour before drawing normal text.
 	if r.Color != nil {
 		s.pdf.SetTextColor(r.Color.Red, r.Color.Green, r.Color.Blue)

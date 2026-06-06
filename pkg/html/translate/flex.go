@@ -143,6 +143,7 @@ func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) [
 			used += sizes[i]
 			c := col.New(sizes[i])
 			if comp := tr.flexItemContent(child, rowItemStyles[i]); comp != nil {
+				comp = flexItemCrossAxisBox(comp, containerStyle, rowItemStyles[i])
 				if visualGap > 0 && i > 0 {
 					comp = &marginBox{child: comp, marginLeft: visualGap}
 				}
@@ -200,6 +201,9 @@ func (tr *translator) flexColumnRows(n *dom.Node, containerStyle *css.ComputedSt
 	if len(children) == 0 {
 		return nil
 	}
+	if containerStyle.FlexDirection == "column-reverse" {
+		children = reverseNodes(children)
+	}
 	gapMM := containerStyle.RowGap
 	var out []core.Row
 	for i, child := range children {
@@ -209,6 +213,14 @@ func (tr *translator) flexColumnRows(n *dom.Node, containerStyle *css.ComputedSt
 		}
 	}
 	return out
+}
+
+func reverseNodes(nodes []*dom.Node) []*dom.Node {
+	reversed := make([]*dom.Node, len(nodes))
+	for i, n := range nodes {
+		reversed[len(nodes)-1-i] = n
+	}
+	return reversed
 }
 
 // spacerRow returns an empty row of the given height in mm.

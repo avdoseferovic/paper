@@ -5,6 +5,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ── ComputedStyle ─────────────────────────────────────────────────────────────
@@ -86,6 +87,15 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		s.Apply("box-shadow", "0 4mm 6mm rgba(0,0,0,0.2)", nil)
 		assert.Len(t, s.BoxShadow, 1)
 	})
+	t.Run("text-shadow stores all shadows and first-shadow compatibility field", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("text-shadow", "1mm 1mm red, 2mm 2mm blue", nil)
+		require.Len(t, s.TextShadows, 2)
+		require.NotNil(t, s.TextShadow)
+		assert.Equal(t, s.TextShadows[0], *s.TextShadow)
+		assert.InDelta(t, 2.0, s.TextShadows[1].OffsetX, 0.001)
+	})
 	t.Run("background-image url populates BackgroundImageURL", func(t *testing.T) {
 		t.Parallel()
 		s := css.NewComputedStyle()
@@ -107,6 +117,14 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		assert.Equal(t, "cover", s.BackgroundSize)
 		assert.Equal(t, "center right", s.BackgroundPosition)
 		assert.Equal(t, "no-repeat", s.BackgroundRepeat)
+	})
+	t.Run("object fit longhands are stored", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("object-fit", "Cover", nil)
+		s.Apply("object-position", "Right Bottom", nil)
+		assert.Equal(t, "cover", s.ObjectFit)
+		assert.Equal(t, "right bottom", s.ObjectPosition)
 	})
 }
 

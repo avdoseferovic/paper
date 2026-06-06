@@ -184,6 +184,46 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
 		assert.Zero(t, textColorCalls)
 	})
+
+	t.Run("run with TextShadows draws every shadow before normal text", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+		font.EXPECT().GetColor().Return(origColor).Maybe()
+		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+		var textCalls []string
+		var colorCalls int
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().SetTextColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
+			Run(func(_, _, _ int) { colorCalls++ }).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
+			Run(func(_, _ float64, s string) { textCalls = append(textCalls, s) }).Maybe()
+
+		runs := []props.RichRun{{
+			Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10,
+			TextShadows: []props.Shadow{
+				{OffsetX: 1, OffsetY: 1, Color: &props.Color{Red: 255, Green: 0, Blue: 0}},
+				{OffsetX: 2, OffsetY: 2, Color: &props.Color{Red: 0, Green: 0, Blue: 255}},
+			},
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+
+		assert.Equal(t, []string{"hello", "hello", "hello"}, textCalls)
+		assert.Equal(t, 3, colorCalls, "two shadow colors plus restore before normal text")
+	})
 }
 
 func TestAddRichText_WhiteSpace(t *testing.T) {
@@ -376,6 +416,41 @@ func TestAddRichText_InlineImage(t *testing.T) {
 				Extension: extension.Png,
 				Width:     4,
 				Height:    3,
+			},
+		},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+	sut.AddRichText(runs, &entity.Cell{X: 2, Y: 0, Width: 50, Height: 20}, prop)
+}
+
+func TestAddRichText_InlineImageObjectFitClipsToImageBox(t *testing.T) {
+	t.Parallel()
+
+	pdf, font := baseRichTextSetup(t)
+	imageBytes := []byte("\x89PNG\r\n\x1a\ninline")
+	options := paperpdf.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+
+	pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
+		Return(&paperpdf.ImageInfoType{}).
+		Once()
+	pdf.EXPECT().ClipRect(18.0, 1.0, 4.0, 3.0, false).Once()
+	pdf.EXPECT().Image(mock.AnythingOfType("string"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), false, "", 0, "").
+		Once()
+	pdf.EXPECT().ClipEnd().Once()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "A "},
+		{
+			Image: &props.RichImage{
+				Bytes:          imageBytes,
+				Extension:      extension.Png,
+				Width:          4,
+				Height:         3,
+				ObjectFit:      "cover",
+				ObjectPosition: "left top",
 			},
 		},
 	}

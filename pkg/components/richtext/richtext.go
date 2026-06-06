@@ -99,6 +99,7 @@ func (r *RichText) GetStructure() *node.Node[core.Structure] {
 	}
 	str := core.Structure{
 		Type:    "richtext",
+		Value:   r.allText(),
 		Details: details,
 	}
 	return node.New(str)

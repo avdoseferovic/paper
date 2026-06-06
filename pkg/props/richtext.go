@@ -10,11 +10,13 @@ import (
 // RichImage is an inline image embedded in a RichText paragraph.
 // Width and Height are measured in millimetres.
 type RichImage struct {
-	Bytes     []byte
-	Extension extension.Type
-	Width     float64
-	Height    float64
-	Alt       string
+	Bytes          []byte
+	Extension      extension.Type
+	Width          float64
+	Height         float64
+	Alt            string
+	ObjectFit      string
+	ObjectPosition string
 }
 
 // RichRun is a single styled segment within a RichText paragraph.
@@ -42,8 +44,12 @@ type RichRun struct {
 	LocalAnchor string
 
 	// TextShadow, when non-nil, draws a shadow behind the run text. Only the
-	// first shadow is rendered (CSS multi-shadow on text is a known limitation).
+	// first shadow is stored here for compatibility. TextShadows stores the full
+	// CSS comma-separated list when available.
 	TextShadow *Shadow
+	// TextShadows, when non-empty, draws every shadow behind the run text in
+	// order before the normal text is painted.
+	TextShadows []Shadow
 }
 
 // RichText holds paragraph-level properties for a RichText component.
@@ -115,6 +121,13 @@ func NormalizeRichRun(run RichRun, font *Font) RichRun {
 	if run.TextShadow != nil {
 		shadow := CloneShadow(*run.TextShadow)
 		run.TextShadow = &shadow
+	}
+	if run.TextShadows != nil {
+		shadows := make([]Shadow, len(run.TextShadows))
+		for i, shadow := range run.TextShadows {
+			shadows[i] = CloneShadow(shadow)
+		}
+		run.TextShadows = shadows
 	}
 	return run
 }

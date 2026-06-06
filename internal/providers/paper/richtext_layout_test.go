@@ -57,6 +57,34 @@ func TestLayoutRichTextTokensAddsLetterSpacingToMeasuredWidth(t *testing.T) {
 	assert.Equal(t, 4.0, lineWidths[0])
 }
 
+func TestLayoutRichTextTokensJustifiesWrappedLines(t *testing.T) {
+	t.Parallel()
+
+	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb cc"}}}
+	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
+		prop:       &props.RichText{Align: align.Justify},
+		width:      5.5,
+		whiteSpace: "normal",
+		measure: func(_ resolvedRun, text string) (string, float64) {
+			return text, float64(len(text))
+		},
+	})
+
+	require.Len(t, tokens, 5)
+	assert.Equal(t, "aa", tokens[0].text)
+	assert.Equal(t, 0.0, tokens[0].x)
+	assert.Equal(t, " ", tokens[1].text)
+	assert.Equal(t, 1.5, tokens[1].width)
+	assert.Equal(t, "bb", tokens[2].text)
+	assert.Equal(t, 3.5, tokens[2].x)
+	assert.True(t, tokens[3].skip, "space before wrapped line should not be rendered")
+	assert.Equal(t, "cc", tokens[4].text)
+	assert.Equal(t, 1, tokens[4].lineY)
+	assert.Equal(t, 0.0, tokens[4].x, "last line remains left aligned")
+	assert.Equal(t, 5.5, lineWidths[0])
+	assert.Equal(t, 2.0, lineWidths[1])
+}
+
 func TestLayoutRichTextTokensTreatsOnlyEmptyImageTokenAsImage(t *testing.T) {
 	t.Parallel()
 

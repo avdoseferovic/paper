@@ -24,6 +24,7 @@ func (tr *translator) inlineRuns(n *dom.Node) []props.RichRun {
 	return inlineRunsWithContext(n, runContext{
 		handler:     tr.unsupportedHandler,
 		inlineImage: tr.inlineImage,
+		inlineSVG:   tr.inlineSVG,
 	})
 }
 
@@ -51,6 +52,7 @@ type runContext struct {
 	familyOverride string
 	handler        func(thing, value string) // optional unsupportedHandler for side-channel data
 	inlineImage    func(n *dom.Node) (*props.RichImage, bool)
+	inlineSVG      func(n *dom.Node) (*props.RichImage, bool)
 }
 
 func (c runContext) toStyle() fontstyle.Type {
@@ -149,6 +151,16 @@ func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.Ri
 		}
 		if alt := n.Attr("alt"); alt != "" {
 			*runs = append(*runs, richRunFromContext(alt, ctx))
+		}
+		return true
+	case "svg":
+		if ctx.inlineSVG != nil {
+			if img, ok := ctx.inlineSVG(n); ok {
+				run := richRunFromContext("", ctx)
+				run.Image = img
+				*runs = append(*runs, run)
+				return true
+			}
 		}
 		return true
 	}

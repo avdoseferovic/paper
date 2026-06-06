@@ -24,6 +24,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
+	"golang.org/x/net/html"
 )
 
 // dpiForRaster is the DPI used when rasterising SVG to PNG for PDF embedding.
@@ -182,19 +183,14 @@ func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
 	if gridSize <= 0 {
 		gridSize = defaultGridSize
 	}
-	mmPerCol := cellWidth / float64(gridSize)
-	imgCols := gridSize
-	if widthMM > 0 && mmPerCol > 0 {
-		imgCols = int(widthMM/mmPerCol + 0.5)
-		if imgCols < 1 {
-			imgCols = 1
-		}
-		if imgCols > gridSize {
-			imgCols = gridSize
-		}
-	}
+	imgCols := imageCols(widthMM, cellWidth, gridSize)
 
-	img := imagecomp.NewFromBytes(data, extType, props.Rect{Percent: 100, Center: true})
+	rect := props.Rect{Percent: 100, Center: true}
+	if style != nil {
+		rect.ObjectFit = style.ObjectFit
+		rect.ObjectPosition = style.ObjectPosition
+	}
+	img := imagecomp.NewFromBytes(data, extType, rect)
 	c := col.New(imgCols).Add(img)
 	return row.New(heightMM).Add(c), true
 }
@@ -240,12 +236,81 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 
 	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 4)
 	return &props.RichImage{
-		Bytes:     data,
-		Extension: extType,
-		Width:     widthMM,
-		Height:    heightMM,
-		Alt:       n.Attr("alt"),
+		Bytes:          data,
+		Extension:      extType,
+		Width:          widthMM,
+		Height:         heightMM,
+		Alt:            n.Attr("alt"),
+		ObjectFit:      style.ObjectFit,
+		ObjectPosition: style.ObjectPosition,
 	}, true
+}
+
+func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {
+	data, ok := svgElementBytes(n)
+	if !ok {
+		return nil, false
+	}
+	style := tr.imageStyle(n)
+	dimensions := imageDimensions(n, style)
+	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
+	if err != nil {
+		tr.unsupported("svg", err.Error())
+		return nil, false
+	}
+	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 10)
+
+	cellWidth := tr.contentWidthMM
+	if cellWidth <= 0 {
+		cellWidth = 170.0
+	}
+	gridSize := tr.gridSize
+	if gridSize <= 0 {
+		gridSize = defaultGridSize
+	}
+	rect := props.Rect{Percent: 100, Center: true}
+	if style != nil {
+		rect.ObjectFit = style.ObjectFit
+		rect.ObjectPosition = style.ObjectPosition
+	}
+	img := imagecomp.NewFromBytes(pngBytes, extension.Png, rect)
+	return row.New(heightMM).Add(col.New(imageCols(widthMM, cellWidth, gridSize)).Add(img)), true
+}
+
+func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
+	data, ok := svgElementBytes(n)
+	if !ok {
+		return nil, false
+	}
+	style := tr.imageStyle(n)
+	dimensions := imageDimensions(n, style)
+	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
+	if err != nil {
+		tr.unsupported("svg", err.Error())
+		return nil, false
+	}
+	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 4)
+	return &props.RichImage{
+		Bytes:          pngBytes,
+		Extension:      extension.Png,
+		Width:          widthMM,
+		Height:         heightMM,
+		ObjectFit:      style.ObjectFit,
+		ObjectPosition: style.ObjectPosition,
+	}, true
+}
+
+func svgElementBytes(n *dom.Node) ([]byte, bool) {
+	if n == nil || n.Tag() != "svg" {
+		return nil, false
+	}
+	var buf bytes.Buffer
+	if err := html.Render(&buf, n.RawNode()); err != nil {
+		return nil, false
+	}
+	data := buf.Bytes()
+	data = bytes.ReplaceAll(data, []byte(" viewbox="), []byte(" viewBox="))
+	return data, len(bytes.TrimSpace(data)) > 0
 }
 
 func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackgroundImage {
@@ -414,6 +479,27 @@ func altRow(n *dom.Node) []core.Row {
 	rt := richtext.New([]props.RichRun{{Text: alt}})
 	c := col.New().Add(rt)
 	return []core.Row{row.New().Add(c)}
+}
+
+func imageCols(widthMM, cellWidth float64, gridSize int) int {
+	if gridSize <= 0 {
+		gridSize = defaultGridSize
+	}
+	if widthMM <= 0 || cellWidth <= 0 {
+		return gridSize
+	}
+	mmPerCol := cellWidth / float64(gridSize)
+	if mmPerCol <= 0 {
+		return gridSize
+	}
+	cols := int(widthMM/mmPerCol + 0.5)
+	if cols < 1 {
+		return 1
+	}
+	if cols > gridSize {
+		return gridSize
+	}
+	return cols
 }
 
 // parseImageDimension parses a CSS length string (px/pt/mm/cm) into mm.

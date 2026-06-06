@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/stretchr/testify/assert"
@@ -186,6 +187,53 @@ func TestImageRow_MaxWidthClampsAutoHeight(t *testing.T) {
 	assert.InDelta(t, 20.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
 }
 
+func TestImageRow_ObjectFitAndPositionMappedFromCSS(t *testing.T) {
+	t.Parallel()
+
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "photo.png", src)
+		return minimalPNG(t), "png", nil
+	}
+
+	doc, err := dom.Parse(`<html><head><style>.photo { width: 40mm; height: 20mm; object-fit: cover; object-position: right bottom }</style></head><body><img class="photo" src="photo.png"></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, "cover", details["prop_object_fit"])
+	assert.Equal(t, "right bottom", details["prop_object_position"])
+}
+
+func TestSVGElement_BlockRendersAsImageRow(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>.mark { width: 12mm; height: 6mm }</style></head><body><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 16"><rect width="32" height="16" fill="red"/></svg></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.InDelta(t, 6.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
+
+	var found bool
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			found = true
+			assert.Equal(t, extension.Png, s.Details["extension"])
+		}
+	})
+	assert.True(t, found, "expected SVG element to become a raster image component")
+}
+
 func TestImageRow_UnsupportedSVGFallsBackToAlt(t *testing.T) {
 	t.Parallel()
 	// oksvg's IgnoreErrorMode lets junk parse-but-render-nothing; we still
@@ -294,6 +342,63 @@ func TestInlineImage_MinWidthClampsAutoHeight(t *testing.T) {
 		found = true
 	}
 	assert.True(t, found, "expected inline image run")
+}
+
+func TestInlineImage_ObjectFitAndPositionMappedFromCSS(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	doc, err := dom.Parse(`<html><head><style>.icon { width: 8mm; height: 4mm; object-fit: cover; object-position: left top }</style></head><body><p>A <img class="icon" src="` + uri + `" alt="logo"> B</p></body></html>`)
+	require.NoError(t, err)
+
+	inlineCSS, _ := doc.StyleSources()
+	tr := &translator{
+		sheet:          parseStylesheet(inlineCSS),
+		contentWidthMM: 80,
+	}
+	p := firstNodeByTag(doc, "p")
+	require.NotNil(t, p)
+
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		assert.Equal(t, "cover", run.Image.ObjectFit)
+		assert.Equal(t, "left top", run.Image.ObjectPosition)
+		assert.InDelta(t, 8.0, run.Image.Width, 0.001)
+		assert.InDelta(t, 4.0, run.Image.Height, 0.001)
+		found = true
+	}
+	assert.True(t, found, "expected inline image run")
+}
+
+func TestInlineSVGElement_RendersAsRichImageRun(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><p>A <svg xmlns="http://www.w3.org/2000/svg" width="4mm" height="3mm" viewBox="0 0 40 30"><rect width="40" height="30" fill="red"/></svg> B</p></body></html>`)
+	require.NoError(t, err)
+
+	p := firstNodeByTag(doc, "p")
+	require.NotNil(t, p)
+
+	tr := &translator{}
+	runs := tr.inlineRuns(p)
+
+	var found bool
+	for _, run := range runs {
+		if run.Image == nil {
+			continue
+		}
+		found = true
+		assert.Equal(t, extension.Png, run.Image.Extension)
+		assert.InDelta(t, 4.0, run.Image.Width, 0.001)
+		assert.InDelta(t, 3.0, run.Image.Height, 0.001)
+	}
+	assert.True(t, found, "expected inline SVG element to become a RichImage run")
 }
 
 func TestInlineImage_SVGRasterisesToRichImageRun(t *testing.T) {

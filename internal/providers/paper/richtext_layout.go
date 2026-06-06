@@ -1,6 +1,9 @@
 package paper
 
-import "github.com/avdoseferovic/paper/pkg/props"
+import (
+	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/props"
+)
 
 type richTextMeasureFunc func(run resolvedRun, text string) (translated string, width float64)
 
@@ -44,6 +47,7 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 	for i := range tokens {
 		t := &tokens[i]
 		if t.isBreak {
+			t.lineY = lineY
 			lineY++
 			curX = firstXForLine(lineY, firstLineIndent)
 			continue
@@ -67,7 +71,11 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 		t.lineY = lineY
 	}
 
-	return tokens, lineWidths(tokens)
+	lineWidths := lineWidths(tokens)
+	if input.prop != nil && input.prop.Align == align.Justify {
+		justifyRichTextLines(tokens, lineWidths, input.width)
+	}
+	return tokens, lineWidths
 }
 
 func lineWidths(tokens []rtToken) map[int]float64 {
@@ -81,4 +89,78 @@ func lineWidths(tokens []rtToken) map[int]float64 {
 		}
 	}
 	return lineWidths
+}
+
+func justifyRichTextLines(tokens []rtToken, lineWidths map[int]float64, targetWidth float64) {
+	if targetWidth <= 0 {
+		return
+	}
+	lastLine := lastRenderableLine(tokens)
+	forcedBreaks := forcedBreakLines(tokens)
+	for lineY, lineWidth := range lineWidths {
+		if lineY == lastLine || forcedBreaks[lineY] {
+			continue
+		}
+		slack := targetWidth - lineWidth
+		if slack <= 0 {
+			continue
+		}
+		spaceCount := justifySpaceCount(tokens, lineY)
+		if spaceCount == 0 {
+			continue
+		}
+		expandRichTextLine(tokens, lineY, slack/float64(spaceCount))
+		lineWidths[lineY] = targetWidth
+	}
+}
+
+func lastRenderableLine(tokens []rtToken) int {
+	last := 0
+	for _, t := range tokens {
+		if t.isBreak || t.skip {
+			continue
+		}
+		if t.lineY > last {
+			last = t.lineY
+		}
+	}
+	return last
+}
+
+func forcedBreakLines(tokens []rtToken) map[int]bool {
+	lines := make(map[int]bool)
+	for _, t := range tokens {
+		if t.isBreak {
+			lines[t.lineY] = true
+		}
+	}
+	return lines
+}
+
+func justifySpaceCount(tokens []rtToken, lineY int) int {
+	count := 0
+	for _, t := range tokens {
+		if t.lineY == lineY && isJustifiableSpace(t) {
+			count++
+		}
+	}
+	return count
+}
+
+func expandRichTextLine(tokens []rtToken, lineY int, extraPerSpace float64) {
+	offset := 0.0
+	for i := range tokens {
+		if tokens[i].lineY != lineY || tokens[i].isBreak || tokens[i].skip {
+			continue
+		}
+		tokens[i].x += offset
+		if isJustifiableSpace(tokens[i]) {
+			tokens[i].width += extraPerSpace
+			offset += extraPerSpace
+		}
+	}
+}
+
+func isJustifiableSpace(t rtToken) bool {
+	return !t.isBreak && !t.skip && t.text == " "
 }

@@ -1,5 +1,7 @@
 package css
 
+import "strings"
+
 func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 	switch ctx.prop {
 	case "padding-top":
@@ -36,6 +38,10 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 		s.MinHeight = ParseLength(ctx.val, 0)
 	case "max-height":
 		s.MaxHeight = ParseLength(ctx.val, 0)
+	case "object-fit":
+		s.ObjectFit = strings.ToLower(strings.TrimSpace(ctx.val))
+	case "object-position":
+		s.ObjectPosition = strings.ToLower(strings.TrimSpace(ctx.val))
 	default:
 		return false
 	}

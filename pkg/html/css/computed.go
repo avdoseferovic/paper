@@ -53,7 +53,8 @@ type ComputedStyle struct {
 	BackgroundPosition string
 	BackgroundRepeat   string
 	BoxShadow          []Shadow // parsed box-shadow value (up to 4)
-	TextShadow         *Shadow  // text-shadow (first shadow only rendered)
+	TextShadow         *Shadow  // text-shadow compatibility field; points at first TextShadows entry
+	TextShadows        []Shadow // parsed text-shadow value (up to 4)
 
 	// Outline (mm / style / color / offset) — drawn outside the cell box.
 	OutlineWidth  float64
@@ -69,13 +70,15 @@ type ComputedStyle struct {
 	BorderRadiusBottomRight float64
 
 	// Layout
-	Display   string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
-	Width     float64
-	Height    float64
-	MinWidth  float64
-	MaxWidth  float64
-	MinHeight float64
-	MaxHeight float64
+	Display        string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
+	Width          float64
+	Height         float64
+	MinWidth       float64
+	MaxWidth       float64
+	MinHeight      float64
+	MaxHeight      float64
+	ObjectFit      string
+	ObjectPosition string
 
 	// Flex container properties
 	FlexDirection  string // "row" | "column" | "row-reverse" | "column-reverse"

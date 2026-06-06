@@ -49,13 +49,13 @@ rows, err := html.FromString(htmlString)
 
 **Anchors:** `id="…"` on any element registers a PDF named destination; `<a href="#id">` produces an internal PDF link that jumps to it. Forward references (link before target) are supported via a pre-pass.
 
-**Images:** `img` — block-level and inline `<img src="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG (rasterised via oksvg+rasterx). See [Images](#images) below.
+**Images:** `img`, `svg` — block-level and inline `<img src="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. Inline `<svg>...</svg>` elements are rasterised via oksvg+rasterx. See [Images](#images) below.
 
 ## Supported CSS properties
 
 **Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space`
 
-`text-align` supports `left`, `center`, and `right` for RichText paragraphs. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs.
+`text-align` supports `left`, `center`, `right`, and `justify` for RichText paragraphs. Justified text expands collapsed spaces on wrapped lines; the final line remains left-aligned. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs.
 
 **Opacity:** `opacity` (0–1 or 0%–100%), multiplies into every descendant colour's alpha during the cascade.
 
@@ -67,9 +67,9 @@ rows, err := html.FromString(htmlString)
 
 **Background:** `background-color`, `background-image: url(...)`, `linear-gradient(...)`, and `radial-gradient(...)`; `background-size`, `background-position`, and `background-repeat`. URL backgrounds support PNG, JPG, and SVG via the same safe resolver as `<img>`; SVG and gradients are rasterised to PNG and embedded.
 
-**Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `text-shadow` (per-run, first shadow only), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
+**Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `text-shadow` (1–4 shadows, comma-separated, per run), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
 
-**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`
+**Layout:** `display: block|inline|inline-block|none|flex|inline-flex`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `object-fit`, `object-position`
 
 **Flex:** `flex-direction` (incl. `row-reverse`/`column-reverse`), `flex-wrap` (`nowrap`/`wrap`/`wrap-reverse`), `flex` (shorthand), `flex-grow`, `flex-shrink`, `flex-basis`, `order`, `align-self`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap` — see [CSS Flex](#css-flex) below.
 
@@ -90,11 +90,8 @@ rows, err := html.FromString(htmlString)
 These remain partially supported or deferred — most are visual-quality trade-offs of the pure-Go pipeline.
 
 - `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement. Performance scales with character count, not word count.
-- `text-align: justify` currently degrades to left alignment for RichText paragraphs.
-- `align-self` is parsed and stored on `ComputedStyle` but the visual cross-axis offset requires knowing the row's max child height at render time. Currently a structural no-op; full visual alignment is deferred (blocked on explicit container height support).
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
 - `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
-- `text-shadow` renders only the first shadow when comma-separated multi-shadows are provided.
 - `background-image: url(...)` supports `contain`, `cover`, one/two-value sizes, keyword/percentage positions, and `repeat|no-repeat|repeat-x|repeat-y`. Multiple layered background images are not implemented yet.
 - `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.
 - Conic gradients (`conic-gradient`) are not implemented. `filter: drop-shadow(...)` is not implemented.
@@ -191,8 +188,8 @@ Basic flexbox layout is supported, with some limitations driven by Paper's grid 
 | `display: inline-flex`        | Treated as `display: flex`                                            |
 | `flex-direction: row`         | Default — children render as columns of a single row                  |
 | `flex-direction: column`      | Children stack as separate rows                                       |
-| `flex-direction: row-reverse` | Accepted but **does not** reverse order (limitation)                  |
-| `flex-direction: column-reverse` | Accepted but **does not** reverse order (limitation)              |
+| `flex-direction: row-reverse` | Children render in reverse row order                                 |
+| `flex-direction: column-reverse` | Children stack in reverse column order                            |
 | `flex: <grow> <shrink> <basis>` | Shorthand. Also accepts `auto`, `none`, `initial`, single number    |
 | `flex-grow`                   | Proportional growth weight                                            |
 | `flex-shrink`                 | Parsed but no independent effect (quantizer prevents overflow)        |
@@ -200,7 +197,8 @@ Basic flexbox layout is supported, with some limitations driven by Paper's grid 
 | `flex-basis: <percent>`       | Converted to fraction of grid (e.g. `25%` → 3 cols at gridSize=12)    |
 | `flex-basis: auto`            | Item participates as a default grow item                              |
 | `justify-content`             | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`   |
-| `align-items`                 | Accepted but cross-axis alignment is limited (see below)              |
+| `align-items`                 | `flex-start`, `center`, `flex-end`                                    |
+| `align-self`                  | Per-item override; `auto` falls back to container `align-items`        |
 | `gap`, `column-gap`           | Reserves integer spacer cols between items                            |
 | `row-gap`                     | Reserves spacer rows between items in `flex-direction:column`         |
 
@@ -222,12 +220,11 @@ Paper's grid is **12 columns wide** by default (configurable via `config.WithMax
 
 - **`flex-wrap`** — `wrap` and `wrap-reverse` are supported with greedy line packing based on `flex-basis`.
 - **`order`** — supported; equal order values preserve DOM order.
-- **`align-self`** — per-item cross-axis override not supported (use container-level `align-items`).
+- **`align-self` / `align-items`** — `flex-start`, `center`, and `flex-end` offset items within the row's resolved height. `stretch` follows Paper's existing row-height behaviour and is best-effort rather than full browser stretching.
 - **`align-content`** — N/A without wrap.
 - **`flex-shrink`** — parsed but no independent effect. Hamilton's quantizer always sums exactly to the grid total, so overflow is impossible.
-- **`flex-direction: row-reverse`** — supported. `column-reverse` is accepted as valid CSS but currently renders like `column`.
+- **`flex-direction: row-reverse` / `column-reverse`** — supported.
 - **`space-between` with no slack** — silently degrades to `flex-start` when item widths sum to the grid. Workaround: use non-equal flex weights, or ensure `gap` reserves spacer cols.
-- **`align-items: center`/`flex-end`** — best-effort within Paper's row model. Cross-axis alignment in PDF is bounded by the row's auto-height behaviour.
 
 ### Configurable grid + content width
 
@@ -263,11 +260,12 @@ The conversion is purely additive — your existing Paper code continues to work
 
 ## Images
 
-Block-level `<img src="…" width="…" height="…" alt="…">` produces a row containing the image. Inline `<img>` participates as an atomic RichText run inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
+Block-level `<img src="…" width="…" height="…" alt="…">` and `<svg>...</svg>` produce a row containing the image. Inline `<img>` and `<svg>` participate as atomic RichText runs inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources and elements are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
 
 ```html
 <img src="logo.svg" width="20mm" height="20mm" alt="company logo">
 <p>Text before <img src="icon.svg" width="5mm" height="5mm" alt="icon"> text after.</p>
+<p>Inline SVG <svg width="5mm" height="5mm" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5"/></svg></p>
 ```
 
 ### Safe-by-default resolver
@@ -289,7 +287,9 @@ The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `
 
 `width` and `height` attributes and CSS properties accept `px`, `pt`, `mm`, and `cm`. CSS `width`, `min-width`, and `max-width` also accept `%` when a content width is known. Bare HTML attribute numbers (`width="20"`) are treated as pixels. CSS dimensions override width/height attributes, and min/max constraints preserve aspect ratio when the opposite dimension is automatic.
 
-If only one of width/height is given for an SVG, the intrinsic aspect ratio from the `viewBox` fills the other.
+If only one of width/height is given for an SVG image or element, the intrinsic aspect ratio from the `viewBox` fills the other.
+
+Block-level and inline images support `object-fit: contain|cover|fill|none|scale-down` and `object-position` keywords, percentages, and basic lengths. `cover`, `none`, and overflowing positioned images are clipped to the CSS image box.
 
 ### Image failure handling
 

@@ -15,6 +15,10 @@ type Rect struct {
 	JustReferenceWidth bool
 	// Center define that the barcode will be vertically and horizontally centralized.
 	Center bool
+	// ObjectFit defines how an image should fit into its content box.
+	ObjectFit string
+	// ObjectPosition defines the image alignment inside its content box.
+	ObjectPosition string
 }
 
 // ToMap from Rect will return a map representation from Rect.
@@ -39,6 +43,12 @@ func (r *Rect) ToMap() map[string]any {
 
 	if r.JustReferenceWidth {
 		m["prop_just_reference_width"] = r.JustReferenceWidth
+	}
+	if r.ObjectFit != "" {
+		m["prop_object_fit"] = r.ObjectFit
+	}
+	if r.ObjectPosition != "" {
+		m["prop_object_position"] = r.ObjectPosition
 	}
 	return m
 }

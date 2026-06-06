@@ -238,7 +238,12 @@ func applyInlineStyleToRuns(style *css.ComputedStyle, runs []props.RichRun) {
 		if style.TextTransform != "" && style.TextTransform != "none" {
 			runs[i].Text = css.ApplyTextTransform(runs[i].Text, style.TextTransform)
 		}
-		if style.TextShadow != nil && runs[i].TextShadow == nil {
+		if len(style.TextShadows) > 0 && len(runs[i].TextShadows) == 0 && runs[i].TextShadow == nil {
+			runs[i].TextShadows = cssShadowsToProps(style.TextShadows)
+			if len(runs[i].TextShadows) > 0 {
+				runs[i].TextShadow = &runs[i].TextShadows[0]
+			}
+		} else if style.TextShadow != nil && runs[i].TextShadow == nil {
 			runs[i].TextShadow = cssShadowToProps(style.TextShadow)
 		}
 	}

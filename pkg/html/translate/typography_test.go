@@ -66,6 +66,17 @@ func TestTypography_LetterSpacing_Propagated(t *testing.T) {
 	assert.InDelta(t, 0.176389, runs[0].LetterSpacing, 0.001)
 }
 
+func TestTypography_TextShadow_PropagatesMultipleShadows(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<p style="text-shadow:1mm 1mm red, 2mm 2mm blue">shadowed</p>`)
+	require.NotEmpty(t, runs)
+	require.Len(t, runs[0].TextShadows, 2)
+	require.NotNil(t, runs[0].TextShadow)
+	assert.Equal(t, runs[0].TextShadows[0], *runs[0].TextShadow)
+	assert.InDelta(t, 2.0, runs[0].TextShadows[1].OffsetX, 0.001)
+}
+
 func TestTypography_TextIndent_Stored(t *testing.T) {
 	t.Parallel()
 	// text-indent value is stored on ComputedStyle (validated via the
@@ -116,4 +127,24 @@ two</p></body></html>`)
 	assert.Equal(t, 5.0, details["first_line_indent"])
 	assert.Equal(t, align.Right, details["align"])
 	assert.Zero(t, details["left"], "text-indent should not shift every line through left padding")
+}
+
+func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><p style="text-align:justify">one two three</p></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "richtext" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, align.Type(align.Justify), details["align"])
 }

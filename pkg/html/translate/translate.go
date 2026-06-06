@@ -235,6 +235,11 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 			return []core.Row{r}
 		}
 		return altRow(n)
+	case "svg":
+		if r, ok := tr.svgRow(n); ok {
+			return []core.Row{r}
+		}
+		return nil
 	case "br":
 		return nil // top-level <br> is a no-op
 	default:
