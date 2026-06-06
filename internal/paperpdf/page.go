@@ -346,7 +346,6 @@ func (f *Fpdf) AddPageFormat(orientationStr string, size SizeType) {
 	}
 	f.color.text = tc
 	f.colorFlag = cf
-	return
 }
 
 // AddPage adds a new page to the document. If a page is already present, the
@@ -369,7 +368,6 @@ func (f *Fpdf) AddPage() {
 	}
 
 	f.AddPageFormat(f.defOrientation, f.defPageSize)
-	return
 }
 
 // PageNo returns the current page number.
@@ -443,7 +441,7 @@ func (f *Fpdf) beginpage(orientationStr string, size SizeType) {
 		f.pageBoxes[f.page][box] = pb
 	}
 	f.pages = append(f.pages, bytes.NewBufferString(""))
-	f.pageLinks = append(f.pageLinks, make([]linkType, 0, 0))
+	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
 	f.pageAttachments = append(f.pageAttachments, []annotationAttach{})
 	f.state = 2
 	f.x = f.lMargin
@@ -473,7 +471,6 @@ func (f *Fpdf) beginpage(orientationStr string, size SizeType) {
 	if orientationStr != f.defOrientation || size.Wd != f.defPageSize.Wd || size.Ht != f.defPageSize.Ht {
 		f.pageSizes[f.page] = SizeType{f.wPt, f.hPt}
 	}
-	return
 }
 
 func (f *Fpdf) endpage() {

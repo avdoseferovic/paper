@@ -352,7 +352,6 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	} else {
 		f.x += w
 	}
-	return
 }
 
 // Revert string to use in RTL languages

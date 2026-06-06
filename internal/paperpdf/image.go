@@ -161,7 +161,6 @@ func (f *Fpdf) ImageOptions(imageNameStr string, x, y, w, h float64, flow bool, 
 		return
 	}
 	f.imageOut(info, x, y, w, h, options.AllowNegativePosition, flow, link, linkStr)
-	return
 }
 
 // RegisterImageReader registers an image, reading it from Reader r, adding it

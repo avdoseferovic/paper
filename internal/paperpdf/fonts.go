@@ -423,7 +423,6 @@ func (f *Fpdf) AddFontFromReader(familyStr, styleStr string, r io.Reader) {
 		}
 	}
 	f.fonts[fontkey] = info
-	return
 }
 
 // GetFontDesc returns the font descriptor, which can be used for
@@ -539,7 +538,6 @@ func (f *Fpdf) SetFont(familyStr, styleStr string, size float64) {
 	if f.page > 0 {
 		f.outf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
 	}
-	return
 }
 
 // SetFontStyle sets the style of the current font. See also SetFont()
@@ -852,7 +850,6 @@ func (f *Fpdf) putfonts() {
 			}
 		}
 	}
-	return
 }
 
 func (f *Fpdf) generateCIDFontMap(font *fontDefType, LastRune int) {

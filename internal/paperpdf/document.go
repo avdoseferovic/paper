@@ -529,7 +529,6 @@ func (f *Fpdf) enddoc() {
 	f.outf("%d", o)
 	f.out("%%EOF")
 	f.state = 3
-	return
 }
 
 func (f *Fpdf) putxobjectdict() {
@@ -649,7 +648,6 @@ func (f *Fpdf) putresources() {
 		f.out(">>")
 		f.out("endobj")
 	}
-	return
 }
 
 // ImportObjects imports objects from gofpdi into current document

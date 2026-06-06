@@ -73,7 +73,7 @@ func fpdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType)
 	f.importedTplIDs = make(map[string]int, 0)
 	f.images = make(map[string]*ImageInfoType)
 	f.pageLinks = make([][]linkType, 0, 8)
-	f.pageLinks = append(f.pageLinks, make([]linkType, 0, 0))
+	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
 	f.links = make([]intLinkType, 0, 8)
 	f.links = append(f.links, intLinkType{})
 	f.pageAttachments = make([][]annotationAttach, 0, 8)
@@ -281,7 +281,6 @@ func (f *Fpdf) Close() {
 	f.endpage()
 
 	f.enddoc()
-	return
 }
 
 type coreFontSet map[string]bool
