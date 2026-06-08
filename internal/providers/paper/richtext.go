@@ -53,38 +53,14 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	}()
 
 	// Resolve each run's font fields against the original/default once.
-	resolved := make([]resolvedRun, len(runs))
-	for i, r := range runs {
-		rr := r
-		if rr.Family == "" {
-			rr.Family = origFamily
-		}
-		if rr.Size == 0 {
-			rr.Size = origSize
-		}
-		if rr.SizeScale > 0 {
-			rr.Size *= rr.SizeScale
-		}
-		// rr.Style may legitimately be "" (Normal), so don't override.
-		resolved[i] = resolvedRun{RichRun: rr}
-	}
+	resolved := resolveRichTextRuns(runs, origFamily, origSize)
 
 	width := cell.Width - prop.Left - prop.Right
 	if width <= 0 {
 		return
 	}
 
-	// Determine line height up front using the first run's resolved font.
-	first := resolved[0]
-	s.font.SetFont(first.Family, first.styleWithUnderline(), first.Size)
-	lineHeight := s.font.GetHeight(first.Family, first.styleWithUnderline(), first.Size)
-	lineMultiplier := prop.LineHeight
-	if lineMultiplier <= 0 {
-		lineMultiplier = 1.0
-	}
-	if imageHeight := maxRichRunImageHeight(resolved); imageHeight > lineHeight*lineMultiplier {
-		lineMultiplier = imageHeight / lineHeight
-	}
+	lineHeight, lineMultiplier := s.richTextLineMetrics(resolved, prop)
 
 	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
 
@@ -100,6 +76,101 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	})
 
 	s.renderRichTextTokens(tokens, lineWidths, resolved, cell, prop, lineHeight, lineMultiplier, origColor)
+}
+
+// MeasureRichText returns the height AddRichText would need for the same runs,
+// cell, and paragraph properties without drawing anything.
+func (s *Text) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64 {
+	if len(runs) == 0 || cell == nil {
+		return 0
+	}
+	if prop == nil {
+		prop = &props.RichText{}
+	}
+
+	origFamily, origStyle, origSize := s.font.GetFont()
+	defer s.font.SetFont(origFamily, origStyle, origSize)
+
+	resolved := resolveRichTextRuns(runs, origFamily, origSize)
+	width := cell.Width - prop.Left - prop.Right
+	if width <= 0 {
+		return 0
+	}
+
+	lineHeight, lineMultiplier := s.richTextLineMetrics(resolved, prop)
+	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
+	tokens, _ := layoutRichTextTokens(resolved, richTextLayoutInput{
+		prop:       prop,
+		width:      width,
+		whiteSpace: whiteSpace,
+		measure: func(r resolvedRun, text string) (string, float64) {
+			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
+			translated := s.translateUnicode(text, r.Family)
+			return translated, s.pdf.GetStringWidth(translated)
+		},
+	})
+
+	return float64(richTextLineCount(tokens))*lineHeight*lineMultiplier + prop.Top + prop.Bottom
+}
+
+func resolveRichTextRuns(runs []props.RichRun, defaultFamily string, defaultSize float64) []resolvedRun {
+	resolved := make([]resolvedRun, len(runs))
+	for i, r := range runs {
+		rr := r
+		if rr.Family == "" {
+			rr.Family = defaultFamily
+		}
+		if rr.Size == 0 {
+			rr.Size = defaultSize
+		}
+		if rr.SizeScale > 0 {
+			rr.Size *= rr.SizeScale
+		}
+		// rr.Style may legitimately be "" (Normal), so don't override.
+		resolved[i] = resolvedRun{RichRun: rr}
+	}
+	return resolved
+}
+
+func (s *Text) richTextLineMetrics(resolved []resolvedRun, prop *props.RichText) (float64, float64) {
+	lineHeight := 0.0
+	for _, run := range resolved {
+		h := s.font.GetHeight(run.Family, run.styleWithUnderline(), run.Size)
+		if h > lineHeight {
+			lineHeight = h
+		}
+	}
+	if lineHeight <= 0 {
+		lineHeight = 1
+	}
+
+	lineMultiplier := 1.0
+	if prop != nil && prop.LineHeight > 0 {
+		lineMultiplier = prop.LineHeight
+	}
+	if imageHeight := maxRichRunImageHeight(resolved); imageHeight > lineHeight*lineMultiplier {
+		lineMultiplier = imageHeight / lineHeight
+	}
+	return lineHeight, lineMultiplier
+}
+
+func richTextLineCount(tokens []rtToken) int {
+	maxLine := 0
+	for _, t := range tokens {
+		if t.isBreak {
+			if nextLine := t.lineY + 1; nextLine > maxLine {
+				maxLine = nextLine
+			}
+			continue
+		}
+		if t.skip {
+			continue
+		}
+		if t.lineY > maxLine {
+			maxLine = t.lineY
+		}
+	}
+	return maxLine + 1
 }
 
 // rtToken is the per-word state used by AddRichText's three-pass layout.

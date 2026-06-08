@@ -195,7 +195,7 @@ func (b *pageBuilder) fitInCurrentPage(heightNewLine float64) bool {
 
 func (b *pageBuilder) registerHeader(rows ...core.Row) error {
 	height := b.getRowsHeight(rows...)
-	if height+b.footerHeight > b.config.Dimensions.Height {
+	if height+b.footerHeight > b.cell.Height {
 		return ErrHeaderHeightIsGreaterThanUsefulArea
 	}
 
@@ -211,7 +211,7 @@ func (b *pageBuilder) registerHeader(rows ...core.Row) error {
 
 func (b *pageBuilder) registerFooter(rows ...core.Row) error {
 	height := b.getRowsHeight(rows...)
-	if height > b.config.Dimensions.Height {
+	if height+b.headerHeight > b.cell.Height {
 		return ErrFooterHeightIsGreaterThanUsefulArea
 	}
 

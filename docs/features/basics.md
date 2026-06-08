@@ -6,7 +6,7 @@ Paper can generate PDFs directly from HTML with `paper.FromHTML`. Use the grid-b
 doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
 ```
 
-Every page in the manual layout API is divided into a fixed number of columns (default: 12) and an unlimited number of rows. Components such as text, images, barcodes and lines are placed inside columns, and columns are grouped into rows.
+Every page in the manual layout API is divided into a configured number of columns (default: 12, set with `WithMaxGridSize`) and an unlimited number of rows. Components such as text, images, barcodes and lines are placed inside columns, and columns are grouped into rows. Vertical layout uses the useful page area: page height after margins, headers, and footers are reserved.
 
 The entry point is `paper.New()`, which accepts an optional `*entity.Config` produced by `config.NewBuilder()`. Once the document is configured, content is added via `AddRow`, `AddRows`, `AddAutoRow`, or `AddPages`. Finally, `Generate()` returns a `Document` that can be saved to disk or exported as bytes.
 

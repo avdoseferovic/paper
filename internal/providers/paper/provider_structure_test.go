@@ -19,10 +19,11 @@ func TestProviderGoOnlyContainsProviderConstruction(t *testing.T) {
 	require.NoError(t, err)
 
 	allowed := map[string]bool{
-		"New":           true,
-		"MeasureString": true,
-		"AddTextAt":     true,
-		"AddRichText":   true,
+		"New":             true,
+		"MeasureString":   true,
+		"AddTextAt":       true,
+		"AddRichText":     true,
+		"MeasureRichText": true,
 	}
 	var unexpected []string
 	for _, decl := range file.Decls {

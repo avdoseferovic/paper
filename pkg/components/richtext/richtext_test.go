@@ -182,6 +182,43 @@ func TestRichText_GetHeight(t *testing.T) {
 
 		assert.Equal(t, 10.0, sut.GetHeight(provider, cell))
 	})
+
+	t.Run("uses rich text measurer when provider supports exact layout", func(t *testing.T) {
+		t.Parallel()
+		provider := &richTextMeasureProviderFake{
+			richTextProviderFake: richTextProviderFake{Provider: mocks.NewProvider(t)},
+			height:               17,
+		}
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+		provider.EXPECT().GetLinesQuantity(
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("*props.Text"),
+			mock.AnythingOfType("float64"),
+		).Return(1).Maybe()
+
+		cell := &entity.Cell{Width: 50, Height: 100}
+		sut := richtext.New([]props.RichRun{{Text: "wide", LetterSpacing: 20}})
+		sut.SetConfig(defaultConfig())
+
+		assert.Equal(t, 17.0, sut.GetHeight(provider, cell))
+		assert.Equal(t, 1, provider.calls)
+	})
+
+	t.Run("caches exact measured height per width", func(t *testing.T) {
+		t.Parallel()
+		provider := &richTextMeasureProviderFake{
+			richTextProviderFake: richTextProviderFake{Provider: mocks.NewProvider(t)},
+			heightByWidth:        map[float64]float64{50: 10, 20: 25},
+		}
+
+		sut := richtext.New([]props.RichRun{{Text: "wrap sensitive"}})
+		sut.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, sut.GetHeight(provider, &entity.Cell{Width: 50, Height: 100}))
+		assert.Equal(t, 10.0, sut.GetHeight(provider, &entity.Cell{Width: 50, Height: 100}))
+		assert.Equal(t, 25.0, sut.GetHeight(provider, &entity.Cell{Width: 20, Height: 100}))
+		assert.Equal(t, 2, provider.calls)
+	})
 }
 
 func TestRichText_Render(t *testing.T) {
@@ -257,4 +294,19 @@ func (f *richTextProviderFake) AddTextAt(_, _ float64, _ string, _ *props.Text) 
 func (f *richTextProviderFake) AddRichText(runs []props.RichRun, _ *entity.Cell, prop *props.RichText) {
 	f.runs = runs
 	f.prop = prop
+}
+
+type richTextMeasureProviderFake struct {
+	richTextProviderFake
+	height        float64
+	heightByWidth map[float64]float64
+	calls         int
+}
+
+func (f *richTextMeasureProviderFake) MeasureRichText(_ []props.RichRun, cell *entity.Cell, _ *props.RichText) float64 {
+	f.calls++
+	if f.heightByWidth != nil {
+		return f.heightByWidth[cell.Width]
+	}
+	return f.height
 }

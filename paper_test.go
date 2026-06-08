@@ -206,7 +206,7 @@ func TestMaroto_AddRow(t *testing.T) {
 		sut := paper.New()
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -257,7 +257,7 @@ func TestMaroto_AddRows(t *testing.T) {
 		sut := paper.New()
 
 		// Act
-		for i := 0; i < 20; i++ {
+		for range 20 {
 			sut.AddRows(row.New(15).Add(col.New(12)))
 		}
 
@@ -271,7 +271,7 @@ func TestMaroto_AddRows(t *testing.T) {
 		sut := paper.New()
 
 		// Act
-		for i := 0; i < 20; i++ {
+		for range 20 {
 			sut.AddRows(row.New().Add(text.NewCol(12, "teste")))
 		}
 
@@ -288,7 +288,7 @@ func TestMaroto_AddAutoRow(t *testing.T) {
 		sut := paper.New()
 
 		// Act
-		for i := 0; i < 150; i++ {
+		for range 150 {
 			sut.AddAutoRow(text.NewCol(12, "teste"))
 		}
 
@@ -337,7 +337,7 @@ func TestMaroto_AddPages(t *testing.T) {
 		// Arrange
 		sut := paper.New()
 		var rows []core.Row
-		for i := 0; i < 15; i++ {
+		for range 15 {
 			rows = append(rows, row.New(20).Add(col.New(12)))
 		}
 
@@ -381,7 +381,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New()
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -399,7 +399,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -418,7 +418,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRows(text.NewRow(10, "protected concurrent"))
 		}
 
@@ -438,7 +438,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -457,7 +457,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRows(text.NewRow(10, "protected low memory"))
 		}
 
@@ -477,7 +477,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -493,7 +493,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -509,7 +509,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -525,7 +525,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 		initialGoroutines := runtime.NumGoroutine()
@@ -550,7 +550,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut := paper.New(cfg)
 
 		// Act
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
 
@@ -621,7 +621,7 @@ func assertRepeatedGenerateStable(t *testing.T, cfg *coreentity.Config) {
 	t.Helper()
 
 	sut := paper.New(cfg)
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		sut.AddRow(10, col.New(12))
 	}
 
@@ -714,7 +714,7 @@ func TestMaroto_FitlnCurrentPage(t *testing.T) {
 			Build())
 
 		var rows []core.Row
-		for i := 0; i < 26; i++ {
+		for range 26 {
 			rows = append(rows, row.New(10).Add(col.New(12)))
 		}
 
@@ -728,7 +728,7 @@ func TestMaroto_FitlnCurrentPage(t *testing.T) {
 			Build())
 
 		var rows []core.Row
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			rows = append(rows, row.New(10).Add(col.New(12)))
 		}
 
@@ -743,7 +743,7 @@ func TestMaroto_FitlnCurrentPage(t *testing.T) {
 				Build())
 
 			var rows []core.Row
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				rows = append(rows, row.New().Add(text.NewCol(12, "teste")))
 			}
 
@@ -806,6 +806,36 @@ func TestMaroto_RegisterHeader(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Equal(t, "header height is greater than page useful area", err.Error())
 	})
+	t.Run("when margins make header larger than useful area, should return error", func(t *testing.T) {
+		t.Parallel()
+		sut := paper.New(config.NewBuilder().
+			WithDimensions(100, 100).
+			WithTopMargin(20).
+			WithBottomMargin(20).
+			WithLeftMargin(0).
+			WithRightMargin(0).
+			Build())
+
+		err := sut.RegisterHeader(row.New(70))
+
+		assert.ErrorIs(t, err, paper.ErrHeaderHeightIsGreaterThanUsefulArea)
+	})
+	t.Run("when header plus registered footer exceeds useful area, should return error", func(t *testing.T) {
+		t.Parallel()
+		sut := paper.New(config.NewBuilder().
+			WithDimensions(100, 100).
+			WithTopMargin(20).
+			WithBottomMargin(20).
+			WithLeftMargin(0).
+			WithRightMargin(0).
+			Build())
+
+		assert.NoError(t, sut.RegisterFooter(row.New(40)))
+
+		err := sut.RegisterHeader(row.New(30))
+
+		assert.ErrorIs(t, err, paper.ErrHeaderHeightIsGreaterThanUsefulArea)
+	})
 	t.Run("when header size is correct, should not return error and apply header", func(t *testing.T) {
 		t.Parallel()
 		sut := paper.New()
@@ -813,7 +843,7 @@ func TestMaroto_RegisterHeader(t *testing.T) {
 		err := sut.RegisterHeader(code.NewBarRow(10, "header"))
 
 		var rows []core.Row
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			rows = append(rows, row.New(100).Add(col.New(12)))
 		}
 
@@ -830,7 +860,7 @@ func TestMaroto_RegisterHeader(t *testing.T) {
 		err := sut.RegisterHeader(text.NewAutoRow("header"))
 
 		var rows []core.Row
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			rows = append(rows, row.New(100).Add(col.New(12)))
 		}
 
@@ -854,6 +884,36 @@ func TestMaroto_RegisterFooter(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Equal(t, "footer height is greater than page useful area", err.Error())
 	})
+	t.Run("when margins make footer larger than useful area, should return error", func(t *testing.T) {
+		t.Parallel()
+		sut := paper.New(config.NewBuilder().
+			WithDimensions(100, 100).
+			WithTopMargin(20).
+			WithBottomMargin(20).
+			WithLeftMargin(0).
+			WithRightMargin(0).
+			Build())
+
+		err := sut.RegisterFooter(row.New(70))
+
+		assert.ErrorIs(t, err, paper.ErrFooterHeightIsGreaterThanUsefulArea)
+	})
+	t.Run("when footer plus registered header exceeds useful area, should return error", func(t *testing.T) {
+		t.Parallel()
+		sut := paper.New(config.NewBuilder().
+			WithDimensions(100, 100).
+			WithTopMargin(20).
+			WithBottomMargin(20).
+			WithLeftMargin(0).
+			WithRightMargin(0).
+			Build())
+
+		assert.NoError(t, sut.RegisterHeader(row.New(40)))
+
+		err := sut.RegisterFooter(row.New(30))
+
+		assert.ErrorIs(t, err, paper.ErrFooterHeightIsGreaterThanUsefulArea)
+	})
 	t.Run("when header size is correct, should not return error and apply header", func(t *testing.T) {
 		t.Parallel()
 		sut := paper.New()
@@ -861,7 +921,7 @@ func TestMaroto_RegisterFooter(t *testing.T) {
 		err := sut.RegisterFooter(code.NewBarRow(10, "footer"))
 
 		var rows []core.Row
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			rows = append(rows, row.New(100).Add(col.New(12)))
 		}
 
@@ -878,7 +938,7 @@ func TestMaroto_RegisterFooter(t *testing.T) {
 		err := sut.RegisterFooter(text.NewAutoRow("header"))
 
 		var rows []core.Row
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			rows = append(rows, row.New(100).Add(col.New(12)))
 		}
 

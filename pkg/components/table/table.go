@@ -30,13 +30,14 @@ type Option func(*Table)
 
 // Table is a core.Component that renders a grid with span support.
 type Table struct {
-	declared     [][]Cell // original declaration
-	grid         [][]int  // normalized: flat index into declared cells; -1 = occupied by span
-	rowCount     int
-	colCount     int
-	columnWidths []float64 // normalized fractions; nil means equal-width columns
-	config       *entity.Config
-	rowHeights   []float64 // computed by two-pass algorithm
+	declared       [][]Cell // original declaration
+	grid           [][]int  // normalized: flat index into declared cells; -1 = occupied by span
+	rowCount       int
+	colCount       int
+	columnWidths   []float64 // normalized fractions; nil means equal-width columns
+	config         *entity.Config
+	rowHeights     []float64 // computed by two-pass algorithm
+	rowHeightWidth float64   // cell width rowHeights were computed for
 }
 
 // New validates spans, normalises the grid, and builds the Table component.
@@ -97,6 +98,8 @@ func (t *Table) ColumnWidths() []float64 {
 // SetConfig propagates Paper config to all cell components.
 func (t *Table) SetConfig(config *entity.Config) {
 	t.config = config
+	t.rowHeights = nil
+	t.rowHeightWidth = 0
 	for _, row := range t.declared {
 		for _, c := range row {
 			if c.Content != nil {

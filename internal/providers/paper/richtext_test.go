@@ -154,6 +154,63 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 	})
 }
 
+func TestMeasureRichText_UsesTokenLayoutForLetterSpacing(t *testing.T) {
+	t.Parallel()
+
+	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+	font := mocks.NewFont(t)
+	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetColor().Return(origColor).Maybe()
+	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+	pdf := mocks.NewFpdf(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+	pdf.EXPECT().GetStringWidth("x").Return(4.0).Maybe()
+	pdf.EXPECT().GetStringWidth(" ").Return(1.0).Maybe()
+	pdf.EXPECT().GetStringWidth("ab").Return(2.0).Maybe()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{{
+		Text:          "x ab",
+		Family:        fontfamily.Arial,
+		Style:         fontstyle.Normal,
+		Size:          10,
+		LetterSpacing: 20,
+	}}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+	assert.Equal(t, 8.0, sut.MeasureRichText(runs, &entity.Cell{Width: 20, Height: 100}, prop))
+}
+
+func TestMeasureRichText_UsesTallestRunLineHeight(t *testing.T) {
+	t.Parallel()
+
+	font := mocks.NewFont(t)
+	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(4.0).Maybe()
+	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Bold, 20.0).Return(9.0).Maybe()
+
+	pdf := mocks.NewFpdf(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(1.0).Maybe()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "small", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10},
+		{Text: "big", Family: fontfamily.Arial, Style: fontstyle.Bold, Size: 20},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+	assert.Equal(t, 9.0, sut.MeasureRichText(runs, &entity.Cell{Width: 100, Height: 100}, prop))
+}
+
 func TestAddRichText_TextShadow(t *testing.T) {
 	t.Parallel()
 

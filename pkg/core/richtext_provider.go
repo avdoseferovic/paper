@@ -15,3 +15,10 @@ type RichTextProvider interface {
 	AddTextAt(x, y float64, text string, prop *props.Text)
 	AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText)
 }
+
+// RichTextMeasurer is an optional provider capability for exact rich text
+// height calculation. Components that only receive Provider can type-assert to
+// this interface and still fall back to Provider.GetLinesQuantity when absent.
+type RichTextMeasurer interface {
+	MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64
+}

@@ -5,9 +5,9 @@
 ## Usage notes
 
 - `RegisterFooter` accepts one or more `core.Row` values; they are stacked in the order given.
-- The footer rows consume vertical space — paper deducts their total height from the usable page area so that body content never overlaps the footer.
+- The footer rows consume vertical space — paper deducts their total height from the useful page area so that body content never overlaps the footer. The useful area is the page height after top and bottom margins are removed.
 - Call `RegisterFooter` once before generating any content; calling it again replaces the previous footer.
-- Returns an error if the footer height exceeds the page's usable height.
+- Returns an error if the footer rows, together with any registered header, exceed the page's useful height.
 
 ## GoDoc
 * [paper : RegisterFooter](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterFooter)

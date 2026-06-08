@@ -194,6 +194,54 @@ func TestTable_GetHeight(t *testing.T) {
 
 		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
 	})
+
+	t.Run("caches row heights per measured width", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 100 && cell.Height == 200
+		})).Return(10.0).Once()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 50 && cell.Height == 200
+		})).Return(20.0).Once()
+
+		tbl, err := table.New([][]table.Cell{{{Content: component}}})
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+		assert.Equal(t, 20.0, tbl.GetHeight(provider, &entity.Cell{Width: 50, Height: 200}))
+	})
+
+	t.Run("set config invalidates cached row heights", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return().Twice()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 100 && cell.Height == 200
+		})).Return(10.0).Once()
+		component.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 100 && cell.Height == 200
+		})).Return(12.0).Once()
+
+		tbl, err := table.New([][]table.Cell{{{Content: component}}})
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 12.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+	})
 }
 
 func TestTable_SetConfig(t *testing.T) {

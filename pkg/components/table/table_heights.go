@@ -8,12 +8,13 @@ import (
 
 // computeRowHeights runs the two-pass rowspan height algorithm and caches results.
 func (t *Table) computeRowHeights(provider core.Provider, cell *entity.Cell) {
-	if len(t.rowHeights) == t.rowCount {
+	if len(t.rowHeights) == t.rowCount && t.rowHeightWidth == cell.Width {
 		return
 	}
 	heights := t.passOne(provider, cell)
 	t.passTwo(provider, cell, heights)
 	t.rowHeights = heights
+	t.rowHeightWidth = cell.Width
 }
 
 // passOne computes heights for single-row cells.

@@ -19,6 +19,9 @@ var _ core.RenderIssueProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.RichTextProvider.
 var _ core.RichTextProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.RichTextMeasurer.
+var _ core.RichTextMeasurer = (*provider)(nil)
+
 // compile-time assertion: *provider satisfies core.ShapeProvider.
 var _ core.ShapeProvider = (*provider)(nil)
 
@@ -96,4 +99,11 @@ func (g *provider) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *pr
 		return
 	}
 	g.richText.AddRichText(runs, cell, prop)
+}
+
+func (g *provider) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64 {
+	if g.richText == nil {
+		return 0
+	}
+	return g.richText.MeasureRichText(runs, cell, prop)
 }

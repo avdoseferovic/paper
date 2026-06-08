@@ -116,6 +116,15 @@ func (r *RichText) GetHeight(provider core.Provider, cell *entity.Cell) float64 
 		return r.cachedHeight
 	}
 
+	if measurer, ok := provider.(core.RichTextMeasurer); ok {
+		prop := r.prop
+		h := measurer.MeasureRichText(r.runsWithDefaultFont(), cell, &prop)
+		r.cachedHeight = h
+		r.cachedCellWidth = cell.Width
+		r.cachedConfigKey = key
+		return h
+	}
+
 	colWidth := cell.Width - r.prop.Left - r.prop.Right
 	if colWidth <= 0 {
 		return 0

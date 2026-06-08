@@ -60,11 +60,11 @@ This is part of the [billing example](examples/billing?id=billing).
 
 ### Columns
 
-- **Grid System**: Paper's layout is based on a 12-unit grid system. This means the width of each page is effectively divided into 12 equal parts (or "grid spaces").
-- **Column Width**: When creating a column (using col.New(colSize)), the colSize parameter specifies how many of these 12 grid spaces the column should occupy. For example, col.New(1) creates a column that spans 1/12 of the page width, while col.New(6) spans half the page width.
+- **Grid System**: Paper's layout uses a configurable grid system. By default the width of each page is divided into 12 equal parts (or "grid spaces").
+- **Column Width**: When creating a column (using col.New(colSize)), the colSize parameter specifies how many configured grid spaces the column should occupy. With the default grid, col.New(1) spans 1/12 of the page width, while col.New(6) spans half the page width.
 - **Content Placement**: Columns are the primary containers for content such as text, images, and other components. The width of a column determines how much horizontal space its content occupies.
-- **Total Width Constraint**: The sum of the widths of all columns within a single row should not exceed 12 grid spaces, aligning with the full width of the page.
-- **Grid Space Customization**: Is possible to [customize](https://paper.tech/#/features/maxgridsum?id=max-grid-sum) the max grid sum.
+- **Total Width Constraint**: The sum of the widths of all columns within a single row should not exceed the configured grid size. Underfilled rows leave empty space on the right; oversized explicit columns are preserved and are not clamped automatically.
+- **Grid Space Customization**: The max grid sum can be [customized](https://paper.tech/#/features/maxgridsum?id=max-grid-sum).
 
 ### Rows
 
@@ -72,6 +72,7 @@ This is part of the [billing example](examples/billing?id=billing).
 - **Row Height**: The height of a row is defined when it is created (e.g., row.New(20)). This height determines the vertical space allocated for the row. Unlike columns, row height is not based on a grid system but is a relative unit of `mm`.
 - **Sequential Layout**: Rows are added to the document in the order they are defined, creating a top-to-bottom flow of content. Each new row is placed immediately below the preceding row.
 - **Layout Flexibility**: Rows offer flexibility in the layout design, allowing for various configurations of columns within them. From single full-width columns to multiple columns of different widths, rows accommodate diverse layout patterns.
+- **Useful Page Area**: Vertical layout uses the page height after top and bottom margins are removed. Registered headers and footers reserve part of that useful area on every page.
 
 
 ## Conventions

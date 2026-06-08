@@ -96,8 +96,9 @@ func main() {
 ```
 
 Paper uses a grid-based layout model. Rows stack vertically, columns split a row
-across the configured grid width, and new pages are added automatically when
-content exceeds the available page area.
+across the configured grid width (12 columns by default, configurable with
+`WithMaxGridSize`), and new pages are added automatically when content exceeds
+the useful page area after margins, headers, and footers are reserved.
 
 ## Key Features
 

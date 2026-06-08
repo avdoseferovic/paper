@@ -4,8 +4,9 @@
 
 ## Usage notes
 
-- All `col.New(n)` calls in the document must use values relative to the configured grid size; columns wider than the grid size are clamped.
+- All `col.New(n)` calls in the document use values relative to the configured grid size. For example, with `WithMaxGridSize(8)`, `col.New(4)` spans half of the row width.
 - The total column widths in a row should sum to `maxGridSize`. Rows whose columns sum to less than `maxGridSize` leave empty space on the right.
+- Explicit manual column sizes are preserved for compatibility. Columns whose total size exceeds `maxGridSize` can render wider than the row; Paper does not clamp or redistribute them automatically.
 - Change the grid size only at the document level; it cannot be changed per row.
 
 ## GoDoc
