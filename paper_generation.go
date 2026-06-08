@@ -18,8 +18,7 @@ type pageProcessResult struct {
 // Generate is responsible to compute the component tree created by
 // the usage of all other Paper methods, and generate the PDF document.
 func (m *Paper) Generate() (core.Document, error) {
-	m.pageBuilder.fillPageToAddNew()
-	m.pageBuilder.setConfig()
+	m.pageBuilder.finalize()
 
 	if m.config.Protection != nil {
 		return m.generate()
@@ -37,19 +36,20 @@ func (m *Paper) Generate() (core.Document, error) {
 }
 
 func (m *Paper) generate() (core.Document, error) {
+	provider := getProvider(m.cache, m.config)
 	innerCtx := m.pageBuilder.cell.Copy()
 
 	for i, page := range m.pageBuilder.pages {
-		ensureProviderPage(m.provider, i+1)
-		page.Render(m.provider, innerCtx)
+		ensureProviderPage(provider, i+1)
+		page.Render(provider, innerCtx)
 	}
 
-	documentBytes, err := m.provider.GenerateBytes()
+	documentBytes, err := provider.GenerateBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(m.provider))), nil
+	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(provider))), nil
 }
 
 func (m *Paper) generateConcurrently() (core.Document, error) {

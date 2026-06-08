@@ -12,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/avdoseferovic/paper/pkg/test"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestNew(t *testing.T) {
@@ -87,6 +88,18 @@ func TestCol_GetSize(t *testing.T) {
 
 		// Assert
 		assert.Equal(t, 14, size)
+	})
+	t.Run("when size not defined and config max grid size is invalid, should use default max grid size", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		c := col.New()
+		c.SetConfig(&entity.Config{MaxGridSize: 0})
+
+		// Act
+		size := c.GetSize()
+
+		// Assert
+		assert.Equal(t, 12, size)
 	})
 }
 
@@ -172,5 +185,31 @@ func TestCol_GetHeight(t *testing.T) {
 
 		component.AssertNumberOfCalls(t, "GetHeight", 1)
 		assert.Equal(t, 15.0, height)
+	})
+	t.Run("when config max grid size is invalid, should use default grid for height measurement", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := fixture.CellEntity()
+		cell.Width = 120
+		cfg := &entity.Config{MaxGridSize: 0}
+
+		provider := mocks.NewProvider(t)
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().
+			GetHeight(provider, mock.MatchedBy(func(inner *entity.Cell) bool {
+				return inner != nil && inner.Width == 60
+			})).
+			Return(10.0)
+		component.EXPECT().SetConfig(cfg)
+
+		sut := col.New(6).Add(component)
+		sut.SetConfig(cfg)
+
+		// Act
+		height := sut.GetHeight(provider, &cell)
+
+		// Assert
+		assert.Equal(t, 10.0, height)
 	})
 }

@@ -1,8 +1,7 @@
 package translate
 
 import (
-	"sort"
-
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -12,52 +11,7 @@ import (
 // their weights using the largest-remainder method (Hamilton's method).
 // Returns []int{} for empty input; zero-weight inputs get equal split.
 func Hamilton(weights []float64, total int) []int {
-	if len(weights) == 0 {
-		return []int{}
-	}
-
-	sum := 0.0
-	for _, w := range weights {
-		sum += w
-	}
-	if sum <= 0 {
-		w := make([]float64, len(weights))
-		for i := range w {
-			w[i] = 1.0
-		}
-		weights = w
-		sum = float64(len(weights))
-	}
-
-	exact := make([]float64, len(weights))
-	floors := make([]int, len(weights))
-	allocated := 0
-	for i, w := range weights {
-		exact[i] = w / sum * float64(total)
-		floors[i] = int(exact[i])
-		allocated += floors[i]
-	}
-
-	remainder := total - allocated
-
-	type indexFrac struct {
-		idx  int
-		frac float64
-	}
-	fracs := make([]indexFrac, len(weights))
-	for i, e := range exact {
-		fracs[i] = indexFrac{idx: i, frac: e - float64(floors[i])}
-	}
-	sort.Slice(fracs, func(a, b int) bool {
-		return fracs[a].frac > fracs[b].frac
-	})
-
-	result := make([]int, len(weights))
-	copy(result, floors)
-	for i := range remainder {
-		result[fracs[i].idx]++
-	}
-	return result
+	return layout.Hamilton(weights, total)
 }
 
 // computeFlexSizes allocates gridSize integer cells across flex items.
@@ -96,7 +50,7 @@ func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
 	remaining := max(gridSize-fixedTotal, 0)
 
 	if len(growIndices) > 0 && remaining > 0 {
-		growSizes := Hamilton(growWeights, remaining)
+		growSizes := layout.ProportionalUnits(growWeights, remaining)
 		for j, idx := range growIndices {
 			sizes[idx] = growSizes[j]
 		}
@@ -189,28 +143,7 @@ func planSpaceAround(itemCount, slack int) slackPlan {
 // the original total. For each 0 bumped to 1, decrement the largest size by 1.
 // This preserves sum(sizes) == originalTotal so the row never overflows the grid.
 func bumpZerosWithoutOverflow(sizes []int, originalTotal int) []int {
-	out := make([]int, len(sizes))
-	copy(out, sizes)
-	for i := range out {
-		if out[i] != 0 {
-			continue
-		}
-		// Find largest size that can give up one cell (must stay ≥ 2 after donation).
-		largestIdx := -1
-		for j := range out {
-			if out[j] >= 2 && (largestIdx == -1 || out[j] > out[largestIdx]) {
-				largestIdx = j
-			}
-		}
-		if largestIdx == -1 {
-			// No size has slack; leave this position at 0 — caller may choose to drop it.
-			continue
-		}
-		out[i] = 1
-		out[largestIdx]--
-	}
-	_ = originalTotal // signature documents the invariant; sum unchanged by construction
-	return out
+	return layout.BumpZerosWithoutOverflow(sizes, originalTotal)
 }
 
 // assembleFlexCols interleaves item cols with gap+slack spacers and applies

@@ -165,10 +165,10 @@ func (m *Paper) RegisterFooter(rows ...core.Row) error {
 
 func getConfig(configs ...*entity.Config) *entity.Config {
 	if len(configs) > 0 {
-		return configs[0]
+		return config.NormalizeConfig(configs[0])
 	}
 
-	return config.NewBuilder().Build()
+	return config.NormalizeConfig(nil)
 }
 
 func getProvider(cache cache.Cache, cfg *entity.Config) core.Provider {

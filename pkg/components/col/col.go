@@ -2,6 +2,7 @@
 package col
 
 import (
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -35,7 +36,7 @@ func (c *Col) Add(components ...core.Component) core.Col {
 // GetSize returns the size of a core.Col.
 func (c *Col) GetSize() int {
 	if c.isMax {
-		return c.config.MaxGridSize
+		return c.maxGridSize()
 	}
 
 	return c.size
@@ -94,8 +95,8 @@ func (c *Col) WithStyle(style *props.Cell) core.Col {
 // GetHeight returns the height of the column content
 func (c *Col) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	innerCell := cell.Copy()
-	percent := float64(c.GetSize()) / float64(c.config.MaxGridSize)
-	innerCell.Width *= percent
+	plan := layout.ManualUnits([]int{c.GetSize()}, c.maxGridSize())
+	innerCell.Width = layout.UnitWidth(innerCell.Width, plan.Units[0], plan.GridSize)
 
 	greaterHeight := 0.0
 	for _, component := range c.components {
@@ -105,4 +106,11 @@ func (c *Col) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 		}
 	}
 	return greaterHeight
+}
+
+func (c *Col) maxGridSize() int {
+	if c.config == nil {
+		return layout.DefaultGridSize()
+	}
+	return layout.NormalizeGridSize(c.config.MaxGridSize)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/avdoseferovic/paper/pkg/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestNew(t *testing.T) {
@@ -147,6 +148,79 @@ func TestRow_GetStructure(t *testing.T) {
 		col.AssertNumberOfCalls(t, "Render", 1)
 		col.AssertNumberOfCalls(t, "SetConfig", 1)
 	})
+	t.Run("when config max grid size is invalid, should use default grid for render widths", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cfg := &entity.Config{MaxGridSize: 0}
+		cell := fixture.CellEntity()
+		cell.Width = 120
+
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().CreateRow(cell.Height)
+
+		col := mocks.NewCol(t)
+		col.EXPECT().Render(provider, mock.MatchedBy(func(inner entity.Cell) bool {
+			return inner.Width == 60
+		}), true)
+		col.EXPECT().SetConfig(cfg)
+		col.EXPECT().GetSize().Return(6)
+
+		sut := row.New(cell.Height).Add(col)
+		sut.SetConfig(cfg)
+
+		// Act
+		sut.Render(provider, cell)
+
+		// Assert
+		provider.AssertNumberOfCalls(t, "CreateRow", 1)
+		col.AssertNumberOfCalls(t, "Render", 1)
+	})
+}
+
+func TestRow_RenderManualGridWidths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		gridSize  int
+		colSizes  []int
+		wantWidth []float64
+	}{
+		{name: "default grid exact fit", gridSize: 12, colSizes: []int{6, 6}, wantWidth: []float64{60, 60}},
+		{name: "custom grid exact fit", gridSize: 8, colSizes: []int{4, 4}, wantWidth: []float64{60, 60}},
+		{name: "underflow is preserved", gridSize: 12, colSizes: []int{4, 4}, wantWidth: []float64{40, 40}},
+		{name: "overflow is preserved", gridSize: 12, colSizes: []int{8, 8}, wantWidth: []float64{80, 80}},
+		{name: "invalid explicit units render as zero width", gridSize: 12, colSizes: []int{0, -1, 6}, wantWidth: []float64{0, 0, 60}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := &entity.Config{MaxGridSize: tt.gridSize}
+			cell := fixture.CellEntity()
+			cell.Width = 120
+			cell.Height = 10
+			provider := mocks.NewProvider(t)
+
+			for _, width := range tt.wantWidth {
+				provider.EXPECT().CreateCol(width, cell.Height, cfg, (*props.Cell)(nil))
+			}
+			provider.EXPECT().CreateRow(cell.Height)
+
+			cols := make([]core.Col, 0, len(tt.colSizes))
+			for _, size := range tt.colSizes {
+				cols = append(cols, col.New(size))
+			}
+			sut := row.New(cell.Height).Add(cols...)
+			sut.SetConfig(cfg)
+
+			sut.Render(provider, cell)
+
+			provider.AssertNumberOfCalls(t, "CreateCol", len(tt.wantWidth))
+			provider.AssertNumberOfCalls(t, "CreateRow", 1)
+		})
+	}
 }
 
 func TestRow_SetConfig(t *testing.T) {

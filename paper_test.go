@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 	coreentity "github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/test"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper"
 
@@ -557,6 +559,114 @@ func TestMaroto_Generate(t *testing.T) {
 	})
 }
 
+func TestPaper_GetStructureIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	sut := paper.New()
+	sut.AddRow(10, col.New(12))
+
+	firstPageCount := structurePageCount(sut.GetStructure())
+	secondPageCount := structurePageCount(sut.GetStructure())
+
+	assert.Equal(t, 1, firstPageCount)
+	assert.Equal(t, firstPageCount, secondPageCount)
+}
+
+func TestPaper_GetStructureBeforeGenerateDoesNotAddBlankPage(t *testing.T) {
+	t.Parallel()
+
+	sut := paper.New()
+	sut.AddRow(10, col.New(12))
+
+	structurePages := structurePageCount(sut.GetStructure())
+	doc, err := sut.Generate()
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, doc) {
+		assert.Equal(t, structurePages, pdfPageCount(t, doc.GetBytes()))
+	}
+	assert.Equal(t, structurePages, structurePageCount(sut.GetStructure()))
+}
+
+func TestPaper_GenerateRepeatedCallsSequential(t *testing.T) {
+	t.Parallel()
+
+	assertRepeatedGenerateStable(t, config.NewBuilder().WithSequentialMode().Build())
+}
+
+func TestPaper_GenerateRepeatedCallsProtectedSequential(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().
+		WithSequentialMode().
+		WithProtection(protection.None, "user", "owner").
+		Build()
+
+	assertRepeatedGenerateStable(t, cfg)
+}
+
+func TestPaper_GenerateRepeatedCallsConcurrent(t *testing.T) {
+	t.Parallel()
+
+	assertRepeatedGenerateStable(t, config.NewBuilder().WithConcurrentMode(2).Build())
+}
+
+func TestPaper_GenerateRepeatedCallsLowMemory(t *testing.T) {
+	t.Parallel()
+
+	assertRepeatedGenerateStable(t, config.NewBuilder().WithSequentialLowMemoryMode(2).Build())
+}
+
+func assertRepeatedGenerateStable(t *testing.T, cfg *coreentity.Config) {
+	t.Helper()
+
+	sut := paper.New(cfg)
+	for i := 0; i < 30; i++ {
+		sut.AddRow(10, col.New(12))
+	}
+
+	first, err := sut.Generate()
+	assert.NoError(t, err)
+	if !assert.NotNil(t, first) {
+		return
+	}
+
+	second, err := sut.Generate()
+	assert.NoError(t, err)
+	if !assert.NotNil(t, second) {
+		return
+	}
+
+	firstPageCount := pdfPageCount(t, first.GetBytes())
+	secondPageCount := pdfPageCount(t, second.GetBytes())
+	assert.Equal(t, firstPageCount, secondPageCount)
+	assert.Equal(t, firstPageCount, structurePageCount(sut.GetStructure()))
+}
+
+func structurePageCount(tree *node.Node[core.Structure]) int {
+	if tree == nil {
+		return 0
+	}
+	count := 0
+	for _, child := range tree.GetNexts() {
+		if child.GetData().Type == "page" {
+			count++
+		}
+	}
+	return count
+}
+
+var pdfPageRe = regexp.MustCompile(`/Type\s*/Page(?:\s|/|>)`)
+
+func pdfPageCount(t *testing.T, pdfBytes []byte) int {
+	t.Helper()
+
+	assert.True(t, bytes.HasPrefix(pdfBytes, []byte("%PDF-")))
+	count := len(pdfPageRe.FindAll(pdfBytes, -1))
+	assert.Greater(t, count, 0)
+	return count
+}
+
 func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 	t.Run("sequential generation reports image fallback issue", func(t *testing.T) {
 		sut := paper.New()
@@ -652,6 +762,36 @@ func TestMaroto_GetCurrentConfig(t *testing.T) {
 
 		assert.Equal(t, 20, sut.GetCurrentConfig().MaxGridSize)
 	})
+}
+
+func TestPaper_NormalizesCallerSuppliedInvalidMaxGridSize(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithMaxGridSize(8).Build()
+	cfg.MaxGridSize = 0
+
+	sut := paper.New(cfg)
+	cfg.MaxGridSize = 99
+
+	assert.Equal(t, 12, sut.GetCurrentConfig().MaxGridSize)
+}
+
+func TestPaper_InvalidCallerSuppliedMaxGridSizeDoesNotBreakHTMLOrFinalization(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().Build()
+	cfg.MaxGridSize = 0
+	sut := paper.New(cfg)
+
+	err := sut.AddHTML(`<div style="display:flex"><p>A</p><p>B</p></div>`)
+	assert.NoError(t, err)
+
+	doc, err := sut.Generate()
+	assert.NoError(t, err)
+	if assert.NotNil(t, doc) {
+		assert.Equal(t, 1, pdfPageCount(t, doc.GetBytes()))
+		assert.Equal(t, 1, structurePageCount(sut.GetStructure()))
+	}
 }
 
 // nolint:dupl // dupl is good here

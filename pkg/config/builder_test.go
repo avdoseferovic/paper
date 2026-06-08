@@ -428,6 +428,17 @@ func TestBuilder_WithMaxGridSize(t *testing.T) {
 		// Assert
 		assert.Equal(t, 12, cfg.MaxGridSize)
 	})
+	t.Run("when max grid size is zero, should not change the default value", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithMaxGridSize(0).Build()
+
+		// Assert
+		assert.Equal(t, 12, cfg.MaxGridSize)
+	})
 	t.Run("when max grid size is valid, should change the default value", func(t *testing.T) {
 		t.Parallel()
 		// Arrange

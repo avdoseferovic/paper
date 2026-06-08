@@ -2,6 +2,7 @@
 package row
 
 import (
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/avdoseferovic/paper/pkg/tree/node"
@@ -111,13 +112,16 @@ func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 		provider.CreateCol(cell.Width, cell.Height, r.config, r.style)
 	}
 
-	for _, col := range r.cols {
-		size := col.GetSize()
+	units := make([]int, len(r.cols))
+	for i, col := range r.cols {
+		units[i] = col.GetSize()
+	}
+	plan := layout.ManualUnits(units, maxGridSize(r.config))
+
+	for i, col := range r.cols {
 		parentWidth := cell.Width
 
-		percent := float64(size) / float64(r.config.MaxGridSize)
-
-		colDimension := parentWidth * percent
+		colDimension := layout.UnitWidth(parentWidth, plan.Units[i], plan.GridSize)
 		innerCell.Width = colDimension
 
 		col.Render(provider, innerCell, r.style == nil)
@@ -150,4 +154,11 @@ func (r *Row) getBiggestCol(provider core.Provider, cell *entity.Cell) float64 {
 		}
 	}
 	return greaterHeight
+}
+
+func maxGridSize(config *entity.Config) int {
+	if config == nil {
+		return layout.DefaultGridSize()
+	}
+	return layout.NormalizeGridSize(config.MaxGridSize)
 }

@@ -43,7 +43,7 @@ func (b *CfgBuilder) WithDebug(on bool) Builder {
 
 // WithMaxGridSize defines a custom max grid sum which it will change the sum of column sizes.
 func (b *CfgBuilder) WithMaxGridSize(maxGridSize int) Builder {
-	if maxGridSize < 0 {
+	if maxGridSize <= 0 {
 		return b
 	}
 

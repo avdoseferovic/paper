@@ -39,7 +39,7 @@ func newPageBuilder(config *entity.Config, provider core.Provider) *pageBuilder 
 }
 
 func (b *pageBuilder) getStructure() *node.Node[core.Structure] {
-	b.fillPageToAddNew()
+	b.finalize()
 
 	str := core.Structure{
 		Type:    "paper",
@@ -53,6 +53,20 @@ func (b *pageBuilder) getStructure() *node.Node[core.Structure] {
 	}
 
 	return node
+}
+
+func (b *pageBuilder) finalize() {
+	if b.shouldCommitPendingPage() {
+		b.fillPageToAddNew()
+	}
+	b.setConfig()
+}
+
+func (b *pageBuilder) shouldCommitPendingPage() bool {
+	if len(b.pages) == 0 {
+		return true
+	}
+	return len(b.rows) > 0 || b.currentHeight != 0
 }
 
 func (b *pageBuilder) addPages(pages ...core.Page) {
