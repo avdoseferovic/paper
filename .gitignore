@@ -27,3 +27,5 @@ ignore.sh
 node_modules/*
 
 report-test-demo.txt
+
+docs/plans/
