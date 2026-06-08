@@ -51,6 +51,22 @@ Use `paper.FromHTMLReader` when the source HTML is already available as an
 `io.Reader`. For advanced HTML options such as asset base directories, call
 `pkg/html` directly and add the returned rows to a `paper.New(...)` document.
 
+For mixed layouts, HTML fragments can also be used as regular components via
+`github.com/avdoseferovic/paper/pkg/components/html`:
+
+```go
+htmlBlock, err := htmlcomponent.New(`<h2>Terms</h2><p>Rendered from HTML.</p>`)
+if err != nil {
+	log.Fatal(err)
+}
+
+doc := paper.New()
+doc.AddAutoRow(
+	col.New(6).Add(text.New("Direct Paper component")),
+	col.New(6).Add(htmlBlock),
+)
+```
+
 ## Component Layout
 
 Use the row and column API when a document needs manual layout, repeated
@@ -64,6 +80,7 @@ import (
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/components/col"
+	htmlcomponent "github.com/avdoseferovic/paper/pkg/components/html"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -77,9 +94,18 @@ func main() {
 		Build()
 
 	doc := paper.New(cfg)
+	htmlBlock, err := htmlcomponent.New(`<p>HTML fragment inside the grid</p>`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	doc.AddRows(
 		row.New(12).Add(
 			col.New(12).Add(text.New("Invoice", props.Text{Size: 18})),
+		),
+		row.New().Add(
+			col.New(6).Add(text.New("Programmatic content")),
+			col.New(6).Add(htmlBlock),
 		),
 		text.NewRow(8, "Generated with Paper"),
 	)

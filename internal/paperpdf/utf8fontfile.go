@@ -220,7 +220,7 @@ func (utf *utf8FontFile) generateTableDescriptions() {
 	}
 	utf.tableDescriptions = make(map[string]*tableDescription)
 
-	for i := 0; i < tablesCount; i++ {
+	for range tablesCount {
 		record := tableDescription{
 			name:     utf.readTableName(),
 			checksum: []int{utf.readUint16(), utf.readUint16()},
@@ -414,7 +414,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 	stringDataPosition := namePosition + utf.readUint16()
 	names := map[int]string{1: "", 2: "", 3: "", 4: "", 6: ""}
 	counter := len(names)
-	for i := 0; i < nameCount; i++ {
+	for range nameCount {
 		system := utf.readUint16()
 		code := utf.readUint16()
 		local := utf.readUint16()
@@ -578,7 +578,7 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	cidCMAPPosition := 0
-	for i := 0; i < cmapTableCount; i++ {
+	for range cmapTableCount {
 		system := utf.readUint16()
 		coded := utf.readUint16()
 		position := utf.readUint32()
@@ -792,7 +792,7 @@ func (utf *utf8FontFile) parseCOLRV1Paint(offset, depth int) []colorLayerRecord 
 		}
 
 		layers := make([]colorLayerRecord, 0, layerCount)
-		for i := 0; i < layerCount; i++ {
+		for i := range layerCount {
 			utf.seek(layerListStart + 4 + (firstLayerIndex+i)*4)
 			paintOffset := utf.readUint32()
 			layers = append(layers, utf.parseCOLRV1Paint(layerListStart+paintOffset, depth+1)...)
@@ -895,7 +895,7 @@ func (utf *utf8FontFile) parseCBLCTable() {
 	}
 
 	utf.cbdtGlyphs = make(map[int][]bitmapGlyphLocation)
-	for strikeIndex := 0; strikeIndex < strikeCount; strikeIndex++ {
+	for strikeIndex := range strikeCount {
 		strikeOffset := cblc.position + 8 + strikeIndex*48
 		utf.seek(strikeOffset)
 		indexSubTableArrayOffset := utf.readUint32()
@@ -914,7 +914,7 @@ func (utf *utf8FontFile) parseCBLCTable() {
 		}
 
 		arrayStart := cblc.position + indexSubTableArrayOffset
-		for i := 0; i < subTableCount; i++ {
+		for i := range subTableCount {
 			utf.seek(arrayStart + i*8)
 			firstGlyph := utf.readUint16()
 			lastGlyph := utf.readUint16()
@@ -1006,7 +1006,7 @@ func (utf *utf8FontFile) parseCBLCIndexSubTable(offset, firstGlyph, lastGlyph, p
 		if utf.err != nil {
 			return
 		}
-		for i := 0; i < pairCount; i++ {
+		for i := range pairCount {
 			dataLength := pairs[i+1].offset - pairs[i].offset
 			if dataLength <= 0 {
 				continue
@@ -1026,7 +1026,7 @@ func (utf *utf8FontFile) parseCBLCIndexSubTable(offset, firstGlyph, lastGlyph, p
 		if utf.err != nil || imageSize <= 0 {
 			return
 		}
-		for i := 0; i < sparseGlyphCount; i++ {
+		for i := range sparseGlyphCount {
 			glyphID := utf.readUint16()
 			utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
 				dataOffset:  imageDataStart + i*imageSize,
@@ -1319,10 +1319,7 @@ func (utf *utf8FontFile) sbixGlyphImage(glyphID int, sizePt float64) *bitmapGlyp
 }
 
 func betterBitmapStrike(candidate, current int, sizePt float64) bool {
-	target := bitmapGlyphTargetPPEm(sizePt)
-	if target < 1 {
-		target = 1
-	}
+	target := max(bitmapGlyphTargetPPEm(sizePt), 1)
 	if current < target && candidate >= target {
 		return true
 	}
@@ -1406,7 +1403,7 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	runeCmapPosition := 0
-	for i := 0; i < cmapTableCount; i++ {
+	for range cmapTableCount {
 		system := utf.readUint16()
 		coder := utf.readUint16()
 		position := utf.readUint32()
@@ -1854,7 +1851,7 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 		utf.setErrorf("hmtx table is truncated")
 		return
 	}
-	for symbol := 0; symbol < numberOfHMetrics; symbol++ {
+	for symbol := range numberOfHMetrics {
 		arrayWidths = arr[(symbol*2)+1]
 		if _, OK := symbolToChar[symbol]; OK || symbol == 0 {
 
@@ -1878,7 +1875,7 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 		}
 	}
 	diff := numSymbols - numberOfHMetrics
-	for pos := 0; pos < diff; pos++ {
+	for pos := range diff {
 		symbol := pos + numberOfHMetrics
 		if _, OK := symbolToChar[symbol]; OK {
 			for _, char := range symbolToChar[symbol] {
@@ -1964,7 +1961,7 @@ func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCh
 		_ = utf.readUint32()
 		utf.skip(4)
 		groupCount := utf.readUint32()
-		for i := 0; i < groupCount; i++ {
+		for range groupCount {
 			startCharCode := utf.readUint32()
 			endCharCode := utf.readUint32()
 			startGlyphID := utf.readUint32()
@@ -1989,25 +1986,25 @@ func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCh
 	segmentSize := utf.readUint16() / 2
 	utf.skip(6)
 	completers := make([]int, 0)
-	for i := 0; i < segmentSize; i++ {
+	for range segmentSize {
 		completers = append(completers, utf.readUint16())
 	}
 	utf.skip(2)
 	beginners := make([]int, 0)
-	for i := 0; i < segmentSize; i++ {
+	for range segmentSize {
 		beginners = append(beginners, utf.readUint16())
 	}
 	sizes := make([]int, 0)
-	for i := 0; i < segmentSize; i++ {
+	for range segmentSize {
 		sizes = append(sizes, int(utf.readInt16()))
 	}
 	readerPositionStart := utf.fileReader.readerPosition
 	positions := make([]int, 0)
-	for i := 0; i < segmentSize; i++ {
+	for range segmentSize {
 		positions = append(positions, utf.readUint16())
 	}
 	var symbol int
-	for n := 0; n < segmentSize; n++ {
+	for n := range segmentSize {
 		completePosition := completers[n] + 1
 		for char := beginners[n]; char < completePosition; char++ {
 			if positions[n] == 0 {
@@ -2031,13 +2028,6 @@ func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCh
 			symbolCharDictionary[symbol] = append(symbolCharDictionary[symbol], char)
 		}
 	}
-}
-
-func max(i, n int) int {
-	if n > i {
-		return n
-	}
-	return i
 }
 
 func (utf *utf8FontFile) assembleTables() []byte {

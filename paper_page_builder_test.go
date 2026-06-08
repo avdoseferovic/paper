@@ -11,7 +11,7 @@ import (
 func TestPaperDelegatesPaginationStateToPageBuilder(t *testing.T) {
 	t.Parallel()
 
-	paperType := reflect.TypeOf(Paper{})
+	paperType := reflect.TypeFor[Paper]()
 	_, ok := paperType.FieldByName("pageBuilder")
 	require.True(t, ok)
 

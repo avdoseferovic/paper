@@ -2,6 +2,7 @@ package translate
 
 import (
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -83,11 +84,11 @@ func TestTypography_DisplayNoneInlineElementSkipped(t *testing.T) {
 	runs := runsFromHTML(t, `<style>.hidden{display:none}</style><p>A<span class="hidden">hidden</span>B<span hidden>gone</span></p>`)
 	require.NotEmpty(t, runs)
 
-	var text string
+	var text strings.Builder
 	for _, run := range runs {
-		text += run.Text
+		text.WriteString(run.Text)
 	}
-	assert.Equal(t, "AB", text)
+	assert.Equal(t, "AB", text.String())
 }
 
 func TestTypography_VisibilityHiddenMarksRunsWithoutDroppingLayout(t *testing.T) {
@@ -231,11 +232,11 @@ func TestTypography_PseudoElementContentSupportsAttr(t *testing.T) {
 </style><p><span class="field" data-unit="kg">Weight</span></p>`)
 	require.NotEmpty(t, runs)
 
-	var text string
+	var text strings.Builder
 	for _, run := range runs {
-		text += run.Text
+		text.WriteString(run.Text)
 	}
-	assert.Equal(t, "Weight (kg)", text)
+	assert.Equal(t, "Weight (kg)", text.String())
 }
 
 func TestTypography_PseudoElementContentSupportsURLImage(t *testing.T) {
@@ -279,11 +280,11 @@ p { quotes:"<<" ">>" "<" ">" }
 </style><p><span class="quote">Outer <span class="quote">Inner</span></span></p>`)
 	require.NotEmpty(t, runs)
 
-	var text string
+	var text strings.Builder
 	for _, run := range runs {
-		text += run.Text
+		text.WriteString(run.Text)
 	}
-	assert.Equal(t, "<<Outer <Inner>>>", text)
+	assert.Equal(t, "<<Outer <Inner>>>", text.String())
 }
 
 func TestTypography_QElementUsesCSSQuotes(t *testing.T) {
@@ -294,11 +295,11 @@ p { quotes:"<<" ">>" "<" ">" }
 </style><p><q>Outer <q>Inner</q></q></p>`)
 	require.NotEmpty(t, runs)
 
-	var text string
+	var text strings.Builder
 	for _, run := range runs {
-		text += run.Text
+		text.WriteString(run.Text)
 	}
-	assert.Equal(t, "<<Outer <Inner>>>", text)
+	assert.Equal(t, "<<Outer <Inner>>>", text.String())
 }
 
 func TestTypography_PseudoElementContentSupportsCounter(t *testing.T) {

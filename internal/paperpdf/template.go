@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"maps"
 	sortpkg "sort"
 )
 
@@ -378,7 +379,7 @@ func (t *FpdfTpl) GobEncode() ([]byte, error) {
 
 found_continue:
 	for x := 0; x < len(t.templates); x++ {
-		for y := 0; y < len(childrensTemplates); y++ {
+		for y := range childrensTemplates {
 			if childrensTemplates[y].ID() == t.templates[x].ID() {
 				continue found_continue
 			}
@@ -438,9 +439,7 @@ func (t *FpdfTpl) GobDecode(buf []byte) error {
 		err = decoder.Decode(&t.images)
 	}
 
-	for k, v := range firstClassImages {
-		t.images[k] = v
-	}
+	maps.Copy(t.images, firstClassImages)
 
 	if err == nil {
 		err = decoder.Decode(&t.corner)
@@ -487,7 +486,5 @@ func (t *Tpl) loadParamsFromFpdf(f *Fpdf) {
 	t.Fpdf.fontStyle = f.fontStyle
 	t.Fpdf.ws = f.ws
 
-	for key, value := range f.images {
-		t.Fpdf.images[key] = value
-	}
+	maps.Copy(t.Fpdf.images, f.images)
 }

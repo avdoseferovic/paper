@@ -19,6 +19,7 @@ package paperpdf
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"sort"
 	"strings"
@@ -186,7 +187,7 @@ func (f *Fpdf) RegisterAlias(alias, replacement string) {
 }
 
 func (f *Fpdf) replaceAliases() {
-	for mode := 0; mode < 2; mode++ {
+	for mode := range 2 {
 		for alias, replacement := range f.aliasMap {
 			if mode == 1 {
 				alias = utf8toutf16(alias, false)
@@ -652,16 +653,12 @@ func (f *Fpdf) putresources() {
 
 // ImportObjects imports objects from gofpdi into current document
 func (f *Fpdf) ImportObjects(objs map[string][]byte) {
-	for k, v := range objs {
-		f.importedObjs[k] = v
-	}
+	maps.Copy(f.importedObjs, objs)
 }
 
 // ImportObjPos imports object hash positions from gofpdi
 func (f *Fpdf) ImportObjPos(objPos map[string]map[int]string) {
-	for k, v := range objPos {
-		f.importedObjPos[k] = v
-	}
+	maps.Copy(f.importedObjPos, objPos)
 }
 
 // putImportedTemplates writes the imported template objects to the PDF
@@ -703,7 +700,7 @@ func (f *Fpdf) putImportedTemplates() {
 		f.importedTplIDs[hash] = i + nOffset
 	}
 
-	for i = 0; i < len(objsIDData); i++ {
+	for i = range objsIDData {
 		f.newobj()
 		f.out(string(objsIDData[i]))
 	}
@@ -718,9 +715,7 @@ func (f *Fpdf) UseImportedTemplate(tplName string, scaleX float64, scaleY float6
 // ImportTemplates imports gofpdi template names into importedTplObjs for
 // inclusion in the procset dictionary
 func (f *Fpdf) ImportTemplates(tpls map[string]string) {
-	for tplName, tplID := range tpls {
-		f.importedTplObjs[tplName] = tplID
-	}
+	maps.Copy(f.importedTplObjs, tpls)
 }
 
 // GetConversionRatio returns the conversion ratio based on the unit given when

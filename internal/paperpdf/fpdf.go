@@ -19,6 +19,7 @@ package paperpdf
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 )
@@ -307,9 +308,7 @@ var coreFontNames = []string{
 
 func cloneStandardPageSizes() map[string]SizeType {
 	pageSizes := make(map[string]SizeType, len(standardPageSizes))
-	for name, size := range standardPageSizes {
-		pageSizes[name] = size
-	}
+	maps.Copy(pageSizes, standardPageSizes)
 	return pageSizes
 }
 

@@ -41,7 +41,7 @@ func GetPaper() core.Paper {
 	mrt := paper.New(cfg)
 	m := paper.NewMetricsDecorator(mrt)
 
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		m.AddRows(
 			text.NewRow(10, "Dummy text", props.Text{
 				Size: 8,

@@ -305,7 +305,7 @@ func (utf *utf8FontFile) parseSimpleGlyph(data []byte, numContours int, outline 
 	}
 
 	endPtsOfContours := make([]uint16, numContours)
-	for i := 0; i < numContours; i++ {
+	for i := range numContours {
 		endPtsOfContours[i] = binary.BigEndian.Uint16(data[i*2 : i*2+2])
 	}
 	numPoints := int(endPtsOfContours[numContours-1]) + 1
@@ -392,11 +392,11 @@ func (utf *utf8FontFile) parseSimpleGlyph(data []byte, numContours int, outline 
 
 	outline.contours = make([]glyphContour, numContours)
 	pointIdx := 0
-	for c := 0; c < numContours; c++ {
+	for c := range numContours {
 		endPt := int(endPtsOfContours[c])
 		contourLen := endPt - pointIdx + 1
 		contour := make(glyphContour, contourLen)
-		for i := 0; i < contourLen; i++ {
+		for i := range contourLen {
 			contour[i] = glyphPoint{
 				x:       float64(xCoords[pointIdx]),
 				y:       float64(yCoords[pointIdx]),

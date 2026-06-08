@@ -150,7 +150,7 @@ func benchmarkTextRows(count int) []core.Row {
 	}))
 
 	base := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac condimentum sem. "
-	for i := 0; i < count; i++ {
+	for range count {
 		rows = append(rows, text.NewRow(9, strings.Repeat(base, 3), props.Text{
 			Size: 9,
 			Top:  1,
@@ -161,7 +161,7 @@ func benchmarkTextRows(count int) []core.Row {
 
 func benchmarkMixedRows(imageBytes []byte, groups int) []core.Row {
 	rows := make([]core.Row, 0, groups*5)
-	for i := 0; i < groups; i++ {
+	for range groups {
 		rows = append(rows,
 			row.New(14).Add(
 				text.NewCol(4, "Barcode", props.Text{Size: 10, Top: 4, Align: align.Center}),

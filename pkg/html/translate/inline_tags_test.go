@@ -50,7 +50,7 @@ type runEntry struct {
 	style         string
 	underline     bool
 	strike        bool
-	bg            interface{}
+	bg            any
 	hasBg         bool
 	hasAnchor     bool
 	localAnchor   string

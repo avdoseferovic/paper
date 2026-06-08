@@ -23,7 +23,7 @@ import (
 	"crypto/md5"
 	"crypto/rc4"
 	"encoding/binary"
-	"math/rand"
+	"math/rand/v2"
 )
 
 // Advisory bitflag constants that control document activities
@@ -95,7 +95,7 @@ func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr str
 	var ownerPass []byte
 	if ownerPassStr == "" {
 		ownerPass = make([]byte, 8)
-		binary.LittleEndian.PutUint64(ownerPass, uint64(rand.Int63()))
+		binary.LittleEndian.PutUint64(ownerPass, uint64(rand.Int64()))
 	} else {
 		ownerPass = []byte(ownerPassStr)
 	}

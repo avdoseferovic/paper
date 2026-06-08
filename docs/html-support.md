@@ -24,6 +24,29 @@ if err := m.AddHTML(`<h1>Hello</h1><p>World</p>`); err != nil {
 doc, _ := m.Generate()
 ```
 
+Use `pkg/components/html` when an HTML fragment should behave like a regular component inside a row or column:
+
+```go
+import (
+    paper "github.com/avdoseferovic/paper"
+    "github.com/avdoseferovic/paper/pkg/components/col"
+    htmlcomponent "github.com/avdoseferovic/paper/pkg/components/html"
+    "github.com/avdoseferovic/paper/pkg/components/text"
+)
+
+htmlBlock, err := htmlcomponent.New(`<h2>HTML fragment</h2><p>Inside a column.</p>`)
+if err != nil {
+    log.Fatal(err)
+}
+
+m := paper.New()
+m.AddAutoRow(
+    col.New(6).Add(text.New("Direct Paper component")),
+    col.New(6).Add(htmlBlock),
+)
+doc, _ := m.Generate()
+```
+
 Or build rows directly for advanced resolver options:
 
 ```go

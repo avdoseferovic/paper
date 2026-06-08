@@ -297,7 +297,7 @@ func (f *Fpdf) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 			t := strings.Split(txtStr, " ")
 			shift := float64((wmax - strSize)) / float64(len(t)-1)
 			numt := len(t)
-			for i := 0; i < numt; i++ {
+			for i := range numt {
 				tx := t[i]
 				tx = "(" + f.escape(f.stringToCIDs(tx)) + ")"
 				s.printf("%s ", tx)
@@ -630,7 +630,7 @@ func (f *Fpdf) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill 
 
 func blankCount(str string) (count int) {
 	l := len(str)
-	for j := 0; j < l; j++ {
+	for j := range l {
 		if byte(' ') == str[j] {
 			count++
 		}

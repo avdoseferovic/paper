@@ -892,10 +892,7 @@ func (f *Fpdf) arc(x, y, rx, ry, degRotate, degStart, degEnd float64,
 	y = (f.h - y) * f.k
 	rx *= f.k
 	ry *= f.k
-	segments := int(degEnd-degStart) / 60
-	if segments < 2 {
-		segments = 2
-	}
+	segments := max(int(degEnd-degStart)/60, 2)
 	angleStart := degStart * math.Pi / 180
 	angleEnd := degEnd * math.Pi / 180
 	angleTotal := angleEnd - angleStart

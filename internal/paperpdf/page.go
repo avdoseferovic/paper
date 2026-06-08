@@ -19,6 +19,7 @@ package paperpdf
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"strings"
 )
 
@@ -437,9 +438,7 @@ func (f *Fpdf) beginpage(orientationStr string, size SizeType) {
 	f.page++
 
 	f.pageBoxes[f.page] = make(map[string]PageBox)
-	for box, pb := range f.defPageBoxes {
-		f.pageBoxes[f.page][box] = pb
-	}
+	maps.Copy(f.pageBoxes[f.page], f.defPageBoxes)
 	f.pages = append(f.pages, bytes.NewBufferString(""))
 	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
 	f.pageAttachments = append(f.pageAttachments, []annotationAttach{})

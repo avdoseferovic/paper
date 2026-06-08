@@ -199,7 +199,7 @@ func (f *Fpdf) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 
 func makeSubsetRange(end int) map[int]int {
 	answer := make(map[int]int)
-	for i := 0; i < end; i++ {
+	for i := range end {
 		answer[i] = 0
 	}
 	return answer
