@@ -13,36 +13,28 @@ import (
 // Option configures HTML component translation.
 type Option = paperhtml.Option
 
+// Re-exported translation options. These alias pkg/html so the component
+// facade stays in sync with the underlying translator's signatures.
+var (
+	// WithUnsupportedHandler registers a callback invoked for unsupported HTML
+	// tags or CSS properties.
+	WithUnsupportedHandler = paperhtml.WithUnsupportedHandler
+	// WithGridSize overrides the default grid size used for flex quantization.
+	WithGridSize = paperhtml.WithGridSize
+	// WithContentWidth sets the content width in mm for width-aware CSS features.
+	WithContentWidth = paperhtml.WithContentWidth
+	// WithImageBaseDir scopes local image reads to a single directory.
+	WithImageBaseDir = paperhtml.WithImageBaseDir
+	// WithStylesheetBaseDir scopes local stylesheet reads to a single directory.
+	WithStylesheetBaseDir = paperhtml.WithStylesheetBaseDir
+)
+
 // HTML is a core.Component backed by rows produced from an HTML fragment.
 type HTML struct {
-	source string
-	rows   []core.Row
-}
-
-// WithUnsupportedHandler registers a callback invoked for unsupported HTML
-// tags or CSS properties.
-func WithUnsupportedHandler(fn func(thing, value string)) Option {
-	return paperhtml.WithUnsupportedHandler(fn)
-}
-
-// WithGridSize overrides the default grid size used for flex quantization.
-func WithGridSize(n int) Option {
-	return paperhtml.WithGridSize(n)
-}
-
-// WithContentWidth sets the content width in mm for width-aware CSS features.
-func WithContentWidth(mm float64) Option {
-	return paperhtml.WithContentWidth(mm)
-}
-
-// WithImageBaseDir scopes local image reads to a single directory.
-func WithImageBaseDir(dir string) Option {
-	return paperhtml.WithImageBaseDir(dir)
-}
-
-// WithStylesheetBaseDir scopes local stylesheet reads to a single directory.
-func WithStylesheetBaseDir(dir string) Option {
-	return paperhtml.WithStylesheetBaseDir(dir)
+	source       string
+	rows         []core.Row
+	cachedHeight float64
+	cachedWidth  float64
 }
 
 // New converts an HTML string into a component that can be placed inside a
@@ -108,15 +100,23 @@ func (h *HTML) GetStructure() *node.Node[core.Structure] {
 // GetHeight returns the sum of the translated row heights inside the target
 // cell width.
 func (h *HTML) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
+	if h.cachedHeight > 0 && h.cachedWidth == cell.Width {
+		return h.cachedHeight
+	}
 	inner := cell.Copy()
 	total := 0.0
 	for _, r := range h.rows {
 		total += r.GetHeight(provider, &inner)
 	}
+	h.cachedHeight = total
+	h.cachedWidth = cell.Width
 	return total
 }
 
 // Render draws each translated row sequentially inside the component cell.
+// The pen is reset to the row origin before each child Render so cellwriter
+// chain nodes that rely on GetXY draw at the right position, then reset to the
+// cell origin afterwards — matching blockContainer.Render's contract.
 func (h *HTML) Render(provider core.Provider, cell *entity.Cell) {
 	inner := cell.Copy()
 	positioner, _ := provider.(core.PositionProvider)
@@ -130,6 +130,6 @@ func (h *HTML) Render(provider core.Provider, cell *entity.Cell) {
 		inner.Y += height
 	}
 	if positioner != nil {
-		positioner.SetCursor(cell.X+cell.Width, cell.Y)
+		positioner.SetCursor(cell.X, cell.Y)
 	}
 }

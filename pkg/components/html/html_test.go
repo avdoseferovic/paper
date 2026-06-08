@@ -92,7 +92,7 @@ func TestHTMLComponentMixedWithDirectComponentsGeneratesPDF(t *testing.T) {
 	assert.Greater(t, len(pdfBytes), 1000)
 }
 
-func TestHTMLComponentRenderRestoresCursorToCellEnd(t *testing.T) {
+func TestHTMLComponentRenderRestoresCursorToCellOrigin(t *testing.T) {
 	t.Parallel()
 
 	component, err := htmlcomponent.New(`<p>One</p><p>Two</p>`)
@@ -106,7 +106,7 @@ func TestHTMLComponentRenderRestoresCursorToCellEnd(t *testing.T) {
 
 	require.NotEmpty(t, provider.cursors)
 	last := provider.cursors[len(provider.cursors)-1]
-	assert.InDelta(t, 60.0, last.x, 0.001)
+	assert.InDelta(t, 10.0, last.x, 0.001)
 	assert.InDelta(t, 20.0, last.y, 0.001)
 }
 
