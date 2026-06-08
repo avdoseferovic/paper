@@ -21,6 +21,18 @@ func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, parent, root *css.Co
 	return computeNodeStyle(sheet, n, effectiveParent)
 }
 
+func (tr *translator) computeBlockStyle(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+	effectiveParent := parent
+	if effectiveParent == nil {
+		effectiveParent = tr.rootStyle
+	}
+	ctxWidth := tr.availableContentWidth()
+	if effectiveParent != nil && effectiveParent.Width > 0 {
+		ctxWidth = effectiveParent.Width
+	}
+	return computeNodeStyleCtx(tr.sheet, n, effectiveParent, ctxWidth)
+}
+
 // computeNodeStyle resolves the ComputedStyle for a node by:
 //  1. Inheriting font-size and CSS custom properties from the parent
 //  2. Applying matching rules from the provided <style> block stylesheet
@@ -44,6 +56,7 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 	s := css.NewComputedStyle()
 	if parent != nil {
 		s.FontSize = parent.FontSize
+		s.Visibility = parent.Visibility
 		// Inherit CSS custom properties via shallow copy so children don't
 		// pollute parent's map.
 		if len(parent.Vars) > 0 {
@@ -102,6 +115,7 @@ func inheritInlineStyle(parent *css.ComputedStyle) *css.ComputedStyle {
 	s.BackgroundColor = cloneCSSColor(parent.BackgroundColor)
 	s.TextShadow = cloneCSSShadow(parent.TextShadow)
 	s.TextShadows = cloneCSSShadows(parent.TextShadows)
+	s.Visibility = parent.Visibility
 	s.Opacity = parent.Opacity
 	s.LetterSpacing = parent.LetterSpacing
 	s.TextTransform = parent.TextTransform
@@ -205,6 +219,9 @@ func baseBlockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if style == nil {
 		return nil
 	}
+	if isVisibilityHidden(style) {
+		return nil
+	}
 	hasBorder := style.BorderTopWidth > 0 || style.BorderRightWidth > 0 ||
 		style.BorderBottomWidth > 0 || style.BorderLeftWidth > 0
 	hasRadius := style.BorderRadius > 0 || style.BorderRadiusTopLeft > 0 ||
@@ -290,6 +307,14 @@ func cssGradientToProps(g *css.Gradient) *props.Gradient {
 			pg.CY = g.Radial.CY
 			pg.Stops = cssStopsToProps(g.Radial.Stops)
 		}
+	case css.GradientConic:
+		pg.Kind = props.GradientConic
+		if g.Conic != nil {
+			pg.AngleDeg = g.Conic.FromDeg
+			pg.CX = g.Conic.CX
+			pg.CY = g.Conic.CY
+			pg.Stops = cssStopsToProps(g.Conic.Stops)
+		}
 	}
 	return pg
 }
@@ -308,6 +333,11 @@ func cssStopsToProps(stops []css.GradientStop) []props.GradientStop {
 func applyInlineStyleToRun(style *css.ComputedStyle, run *props.RichRun) {
 	if style == nil || run == nil {
 		return
+	}
+	if isVisibilityHidden(style) {
+		run.Hidden = true
+		run.Hyperlink = nil
+		run.LocalAnchor = ""
 	}
 	if family := firstFontFamily(style.FontFamily); family != "" && run.Family == "" {
 		run.Family = family
@@ -342,6 +372,18 @@ func applyInlineStyleToRun(style *css.ComputedStyle, run *props.RichRun) {
 		}
 	} else if style.TextShadow != nil && run.TextShadow == nil {
 		run.TextShadow = cssShadowToProps(style.TextShadow)
+	}
+}
+
+func isVisibilityHidden(style *css.ComputedStyle) bool {
+	if style == nil {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(style.Visibility)) {
+	case "hidden", "collapse":
+		return true
+	default:
+		return false
 	}
 }
 

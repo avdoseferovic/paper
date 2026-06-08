@@ -132,14 +132,22 @@ func extFromFilename(name string) string {
 // imageRow builds a block-level row for <img>. Returns the row and ok=true on
 // success; ok=false signals the caller to fall back to alt text.
 func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
+	return tr.imageRowWithStyle(n, nil)
+}
+
+func (tr *translator) imageRowWithStyle(n *dom.Node, style *css.ComputedStyle) (core.Row, bool) {
 	src := tr.selectedImageSource(n)
 	if src == "" {
 		return nil, false
 	}
-	return tr.imageRowWithSource(n, src)
+	return tr.imageRowWithSourceAndStyle(n, src, style)
 }
 
 func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, bool) {
+	return tr.imageRowWithSourceAndStyle(n, src, nil)
+}
+
+func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style *css.ComputedStyle) (core.Row, bool) {
 	resolver := tr.imageResolver
 	if resolver == nil {
 		resolver = safeDefaultResolver
@@ -150,7 +158,9 @@ func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, boo
 		return nil, false
 	}
 
-	style := tr.imageStyle(n)
+	if style == nil {
+		style = tr.imageStyle(n)
+	}
 	dimensions := imageDimensions(n, style)
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
@@ -188,6 +198,9 @@ func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, boo
 		gridSize = defaultGridSize
 	}
 	imgCols := imageCols(widthMM, cellWidth, gridSize)
+	if isVisibilityHidden(style) {
+		return row.New(heightMM).Add(col.New(imgCols)), true
+	}
 
 	rect := props.Rect{Percent: 100, Center: true}
 	if style != nil {
@@ -285,18 +298,26 @@ func (tr *translator) inlinePicture(n *dom.Node) (*props.RichImage, bool) {
 }
 
 func (tr *translator) pictureRow(n *dom.Node) []core.Row {
+	return tr.pictureRowWithStyle(n, nil)
+}
+
+func (tr *translator) pictureRowWithStyle(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	img := pictureFallbackImage(n)
 	if img == nil {
 		return nil
+	}
+	if style == nil {
+		style = tr.rootStyle
 	}
 	src := tr.pictureSelectedSource(n, img)
 	if src == "" {
 		src = tr.selectedImageSource(img)
 	}
-	if r, ok := tr.imageRowWithSource(img, src); ok {
+	imgStyle := tr.imageStyleWithParent(img, style)
+	if r, ok := tr.imageRowWithSourceAndStyle(img, src, imgStyle); ok {
 		return []core.Row{r}
 	}
-	return altRow(img)
+	return altRowStyled(img, imgStyle)
 }
 
 func pictureFallbackImage(n *dom.Node) *dom.Node {
@@ -597,11 +618,17 @@ func betterSrcsetCandidate(candidate, best srcsetCandidate) bool {
 }
 
 func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {
+	return tr.svgRowWithStyle(n, nil)
+}
+
+func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (core.Row, bool) {
 	data, ok := svgElementBytes(n)
 	if !ok {
 		return nil, false
 	}
-	style := tr.imageStyle(n)
+	if style == nil {
+		style = tr.imageStyle(n)
+	}
 	dimensions := imageDimensions(n, style)
 	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
 	if err != nil {
@@ -618,13 +645,17 @@ func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {
 	if gridSize <= 0 {
 		gridSize = defaultGridSize
 	}
+	imgCols := imageCols(widthMM, cellWidth, gridSize)
+	if isVisibilityHidden(style) {
+		return row.New(heightMM).Add(col.New(imgCols)), true
+	}
 	rect := props.Rect{Percent: 100, Center: true}
 	if style != nil {
 		rect.ObjectFit = style.ObjectFit
 		rect.ObjectPosition = style.ObjectPosition
 	}
 	img := imagecomp.NewFromBytes(pngBytes, extension.Png, rect)
-	return row.New(heightMM).Add(col.New(imageCols(widthMM, cellWidth, gridSize)).Add(img)), true
+	return row.New(heightMM).Add(col.New(imgCols).Add(img)), true
 }
 
 func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
@@ -708,7 +739,11 @@ func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackg
 }
 
 func (tr *translator) imageStyle(n *dom.Node) *css.ComputedStyle {
-	return computeNodeStyleCtx(tr.sheet, n, tr.rootStyle, tr.availableContentWidth())
+	return tr.imageStyleWithParent(n, tr.rootStyle)
+}
+
+func (tr *translator) imageStyleWithParent(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
+	return computeNodeStyleCtx(tr.sheet, n, parent, tr.availableContentWidth())
 }
 
 func (tr *translator) availableContentWidth() float64 {
@@ -830,11 +865,17 @@ func (tr *translator) unsupported(kind, msg string) {
 
 // altRow renders the <img>'s alt text as a paragraph row (fallback path).
 func altRow(n *dom.Node) []core.Row {
+	return altRowStyled(n, nil)
+}
+
+func altRowStyled(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	alt := strings.TrimSpace(n.Attr("alt"))
 	if alt == "" {
 		return nil
 	}
-	rt := richtext.New([]props.RichRun{{Text: alt}})
+	run := props.RichRun{Text: alt}
+	applyInlineStyleToRun(style, &run)
+	rt := richtext.New([]props.RichRun{run})
 	c := col.New().Add(rt)
 	return []core.Row{row.New().Add(c)}
 }

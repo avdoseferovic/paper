@@ -15,6 +15,7 @@ func TestComputedStyle_Defaults(t *testing.T) {
 	s := css.NewComputedStyle()
 	assert.Equal(t, "left", s.TextAlign)
 	assert.Equal(t, "", s.Display) // unset by default; treat as block
+	assert.Equal(t, "visible", s.Visibility)
 	assert.Equal(t, 0.0, s.FontSize)
 }
 
@@ -71,6 +72,13 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		s := css.NewComputedStyle()
 		s.Apply("display", "none", nil)
 		assert.Equal(t, "none", s.Display)
+	})
+
+	t.Run("visibility hidden", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("visibility", "Hidden", nil)
+		assert.Equal(t, "hidden", s.Visibility)
 	})
 
 	t.Run("unsupported property is silently ignored", func(t *testing.T) {
@@ -220,6 +228,40 @@ func TestExpandShorthands(t *testing.T) {
 		t.Parallel()
 		decls := css.ExpandShorthands(map[string]string{"color": "red"})
 		assert.Equal(t, "red", decls["color"])
+	})
+
+	t.Run("background shorthand expands url layer", func(t *testing.T) {
+		t.Parallel()
+		decls := css.ExpandShorthands(map[string]string{"background": `#112233 url("hero.svg") center bottom / cover no-repeat`})
+		assert.Equal(t, "#112233", decls["background-color"])
+		assert.Equal(t, `url("hero.svg")`, decls["background-image"])
+		assert.Equal(t, "center bottom", decls["background-position"])
+		assert.Equal(t, "cover", decls["background-size"])
+		assert.Equal(t, "no-repeat", decls["background-repeat"])
+	})
+
+	t.Run("background shorthand keeps gradient function intact", func(t *testing.T) {
+		t.Parallel()
+		decls := css.ExpandShorthands(map[string]string{"background": `linear-gradient(to right, red, blue) center / 50% 25% repeat-x`})
+		assert.Equal(t, `linear-gradient(to right, red, blue)`, decls["background-image"])
+		assert.Equal(t, "center", decls["background-position"])
+		assert.Equal(t, "50% 25%", decls["background-size"])
+		assert.Equal(t, "repeat-x", decls["background-repeat"])
+	})
+
+	t.Run("background shorthand keeps conic gradient function intact", func(t *testing.T) {
+		t.Parallel()
+		decls := css.ExpandShorthands(map[string]string{"background": `conic-gradient(from 90deg, red, blue) center / cover`})
+		assert.Equal(t, `conic-gradient(from 90deg, red, blue)`, decls["background-image"])
+		assert.Equal(t, "center", decls["background-position"])
+		assert.Equal(t, "cover", decls["background-size"])
+	})
+
+	t.Run("background shorthand leaves multiple layers unsupported", func(t *testing.T) {
+		t.Parallel()
+		decls := css.ExpandShorthands(map[string]string{"background": `url(a.png), url(b.png)`})
+		assert.Equal(t, `url(a.png), url(b.png)`, decls["background"])
+		assert.Empty(t, decls["background-image"])
 	})
 
 	t.Run("flex:1 expands to grow/shrink/basis", func(t *testing.T) {

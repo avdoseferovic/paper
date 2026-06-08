@@ -54,6 +54,9 @@ func (s *ComputedStyle) applyEffectsProperty(ctx computedPropertyContext) bool {
 
 func (s *ComputedStyle) applyBackgroundImage(ctx computedPropertyContext) {
 	switch {
+	case ctx.val == "none":
+		s.BackgroundImageURL = ""
+		s.BackgroundGradient = nil
 	case strings.HasPrefix(ctx.val, "linear-gradient("):
 		g, err := ParseLinearGradient(ctx.val)
 		if err == nil {
@@ -65,6 +68,13 @@ func (s *ComputedStyle) applyBackgroundImage(ctx computedPropertyContext) {
 		g, err := ParseRadialGradient(ctx.val)
 		if err == nil {
 			s.BackgroundGradient = &Gradient{Kind: GradientRadial, Radial: g}
+		} else if s.unsupportedHandler != nil {
+			s.unsupportedHandler(ctx.prop, ctx.val)
+		}
+	case strings.HasPrefix(ctx.val, "conic-gradient("):
+		g, err := ParseConicGradient(ctx.val)
+		if err == nil {
+			s.BackgroundGradient = &Gradient{Kind: GradientConic, Conic: g}
 		} else if s.unsupportedHandler != nil {
 			s.unsupportedHandler(ctx.prop, ctx.val)
 		}

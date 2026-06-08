@@ -74,3 +74,32 @@ func TestParseRadialGradient(t *testing.T) {
 		require.Len(t, g.Stops, 2)
 	})
 }
+
+func TestParseConicGradient(t *testing.T) {
+	t.Parallel()
+
+	t.Run("from angle at center with angle stops", func(t *testing.T) {
+		t.Parallel()
+		g, err := css.ParseConicGradient("conic-gradient(from 0.25turn at center, red 0deg, green 180deg, blue 360deg)")
+		require.NoError(t, err)
+		assert.InDelta(t, 90.0, g.FromDeg, 0.1)
+		assert.InDelta(t, 0.5, g.CX, 0.001)
+		assert.InDelta(t, 0.5, g.CY, 0.001)
+		require.Len(t, g.Stops, 3)
+		assert.InDelta(t, 0.0, g.Stops[0].Position, 0.001)
+		assert.InDelta(t, 0.5, g.Stops[1].Position, 0.001)
+		assert.InDelta(t, 1.0, g.Stops[2].Position, 0.001)
+	})
+
+	t.Run("default prelude distributes implicit stops", func(t *testing.T) {
+		t.Parallel()
+		g, err := css.ParseConicGradient("conic-gradient(red, blue)")
+		require.NoError(t, err)
+		assert.InDelta(t, 0.0, g.FromDeg, 0.1)
+		assert.InDelta(t, 0.5, g.CX, 0.001)
+		assert.InDelta(t, 0.5, g.CY, 0.001)
+		require.Len(t, g.Stops, 2)
+		assert.InDelta(t, 0.0, g.Stops[0].Position, 0.001)
+		assert.InDelta(t, 1.0, g.Stops[1].Position, 0.001)
+	})
+}

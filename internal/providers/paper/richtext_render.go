@@ -43,6 +43,9 @@ func (s *Text) renderRichTextTokens(
 		y := cell.Y + prop.Top + float64(t.lineY)*lineHeight*lineMultiplier + lineHeight + top
 		y += richRunBaselineOffset(r, lineHeight)
 
+		if r.Hidden {
+			continue
+		}
 		if t.isImage(r) {
 			s.renderTokenImage(r, x, y)
 			s.renderTokenLinks(r, prop, x, y, t.width, r.Image.Height)

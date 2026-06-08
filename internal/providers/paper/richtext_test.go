@@ -83,6 +83,38 @@ func TestAddRichText_LocalAnchor(t *testing.T) {
 	})
 }
 
+func TestAddRichText_HiddenRunMeasuresButSkipsPainting(t *testing.T) {
+	t.Parallel()
+
+	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+	font := mocks.NewFont(t)
+	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetColor().Return(origColor)
+	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
+
+	pdf := mocks.NewFpdf(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+	pdf.EXPECT().GetStringWidth("hidden").Return(8.0).Once()
+	pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+
+	link := "https://example.com"
+	runs := []props.RichRun{{
+		Text:      "hidden",
+		Family:    fontfamily.Arial,
+		Style:     fontstyle.Normal,
+		Size:      10,
+		Hidden:    true,
+		Hyperlink: &link,
+	}}
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+	sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+}
+
 func TestAddRichText_LetterSpacing(t *testing.T) {
 	t.Parallel()
 

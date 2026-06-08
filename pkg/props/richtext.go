@@ -32,6 +32,7 @@ type RichRun struct {
 	Strikethrough bool
 	Hyperlink     *string
 	VerticalAlign string // "baseline" | "sub" | "super"
+	Hidden        bool   // preserves layout but skips painting for CSS visibility:hidden
 
 	// LetterSpacing is extra character spacing in mm (0 = default).
 	LetterSpacing float64

@@ -15,6 +15,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -717,6 +718,35 @@ func TestBackgroundImage_URLProducesContainerBackgroundImage(t *testing.T) {
 	assert.Equal(t, "no-repeat", containerRow.container.style.BackgroundImage.Repeat)
 }
 
+func TestBackgroundImage_ShorthandURLProducesContainerBackgroundImage(t *testing.T) {
+	t.Parallel()
+
+	pngBytes := minimalPNG(t)
+	resolver := func(src string) ([]byte, string, error) {
+		assert.Equal(t, "bg.png", src)
+		return pngBytes, "png", nil
+	}
+	doc, err := dom.Parse(`<html><head><style>.bg { background:#112233 url("bg.png") center bottom / cover no-repeat; padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc, WithImageResolver(resolver))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	containerRow, ok := rows[0].(*splittableContainerRow)
+	require.True(t, ok)
+	require.NotNil(t, containerRow.container)
+	require.NotNil(t, containerRow.container.style)
+	require.NotNil(t, containerRow.container.style.BackgroundColor)
+	assert.Equal(t, 0x11, containerRow.container.style.BackgroundColor.Red)
+	require.NotNil(t, containerRow.container.style.BackgroundImage)
+	assert.Equal(t, extension.Png, containerRow.container.style.BackgroundImage.Extension)
+	assert.Equal(t, pngBytes, containerRow.container.style.BackgroundImage.Bytes)
+	assert.Equal(t, "cover", containerRow.container.style.BackgroundImage.Size)
+	assert.Equal(t, "center bottom", containerRow.container.style.BackgroundImage.Position)
+	assert.Equal(t, "no-repeat", containerRow.container.style.BackgroundImage.Repeat)
+}
+
 func TestBackgroundImage_DataURIInlineStyleProducesContainerBackgroundImage(t *testing.T) {
 	t.Parallel()
 
@@ -759,6 +789,28 @@ func TestBackgroundImage_SVGRasterisesToPNG(t *testing.T) {
 	require.NotNil(t, containerRow.container.style.BackgroundImage)
 	assert.Equal(t, extension.Png, containerRow.container.style.BackgroundImage.Extension)
 	assert.NotEmpty(t, containerRow.container.style.BackgroundImage.Bytes)
+}
+
+func TestBackgroundImage_ConicGradientProducesContainerGradient(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>.bg { background:conic-gradient(from 90deg at center, red 0deg, blue 360deg); padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	containerRow, ok := rows[0].(*splittableContainerRow)
+	require.True(t, ok)
+	require.NotNil(t, containerRow.container)
+	require.NotNil(t, containerRow.container.style)
+	require.NotNil(t, containerRow.container.style.BackgroundGradient)
+	assert.Equal(t, props.GradientConic, containerRow.container.style.BackgroundGradient.Kind)
+	assert.InDelta(t, 90.0, containerRow.container.style.BackgroundGradient.AngleDeg, 0.001)
+	assert.InDelta(t, 0.5, containerRow.container.style.BackgroundGradient.CX, 0.001)
+	assert.InDelta(t, 0.5, containerRow.container.style.BackgroundGradient.CY, 0.001)
+	require.Len(t, containerRow.container.style.BackgroundGradient.Stops, 2)
 }
 
 func firstNodeByTag(doc *dom.Document, tag string) *dom.Node {

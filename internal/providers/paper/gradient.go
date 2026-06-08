@@ -97,6 +97,8 @@ func rasteriseGradient(g *props.Gradient, w, h int) image.Image {
 		rasteriseLinear(img, g, w, h)
 	case props.GradientRadial:
 		rasteriseRadial(img, g, w, h)
+	case props.GradientConic:
+		rasteriseConic(img, g, w, h)
 	}
 	return img
 }
@@ -138,6 +140,27 @@ func rasteriseRadial(img *image.RGBA, g *props.Gradient, w, h int) {
 			r := math.Sqrt(dx*dx+dy*dy) / maxR
 			t := clamp01(r)
 			c := interpolateStops(g.Stops, t)
+			img.SetRGBA(px, py, c)
+		}
+	}
+}
+
+func rasteriseConic(img *image.RGBA, g *props.Gradient, w, h int) {
+	for py := range h {
+		for px := range w {
+			nx := (float64(px) + 0.5) / float64(w)
+			ny := (float64(py) + 0.5) / float64(h)
+			dx := nx - g.CX
+			dy := ny - g.CY
+			angleDeg := math.Atan2(dx, -dy) * 180 / math.Pi
+			if angleDeg < 0 {
+				angleDeg += 360
+			}
+			t := math.Mod(angleDeg-g.AngleDeg, 360)
+			if t < 0 {
+				t += 360
+			}
+			c := interpolateStops(g.Stops, t/360)
 			img.SetRGBA(px, py, c)
 		}
 	}

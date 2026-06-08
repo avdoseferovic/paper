@@ -142,7 +142,7 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	tr.quotes = newQuoteState()
 	rootCounters := tr.counters.enter(tr.rootStyle)
 	for _, child := range body.Children() {
-		rows = append(rows, tr.blockRows(child)...)
+		rows = append(rows, tr.blockRowsWithParent(child, tr.rootStyle)...)
 	}
 	tr.counters.exit(rootCounters)
 	return rows, nil
@@ -185,6 +185,10 @@ func findBody(doc *dom.Document) *dom.Node {
 
 // blockRows recursively converts a node into block-level Rows.
 func (tr *translator) blockRows(n *dom.Node) []core.Row {
+	return tr.blockRowsWithParent(n, nil)
+}
+
+func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle) []core.Row {
 	if n == nil {
 		return nil
 	}
@@ -193,15 +197,17 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 	}
 	var style *css.ComputedStyle
 	if n.Tag() != "" {
-		style = computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+		style = tr.computeBlockStyle(n, parent)
 		if style.Display == "none" {
 			return nil
 		}
+	} else {
+		style = parent
 	}
 	counterScope := tr.counters.enter(style)
 	defer tr.counters.exit(counterScope)
 
-	rows := tr.dispatchBlockRows(n)
+	rows := tr.dispatchBlockRowsWithStyle(n, style)
 	// If the element has an id, wrap its first row in an anchorTarget so the
 	// PDF destination registers at the element's actual Y position.
 	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
@@ -222,6 +228,14 @@ func (tr *translator) blockRows(n *dom.Node) []core.Row {
 // dispatchBlockRows is the original blockRows tag switch (split out so the
 // outer blockRows can handle anchor wrapping uniformly).
 func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
+	var style *css.ComputedStyle
+	if n != nil && n.Tag() != "" {
+		style = tr.computeBlockStyle(n, nil)
+	}
+	return tr.dispatchBlockRowsWithStyle(n, style)
+}
+
+func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	tag := n.Tag()
 	// Drop metadata tags that may appear in the body — their text content
 	// (CSS source, script source, meta values) must not render as visible
@@ -233,11 +247,11 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	switch tag {
 	case "":
 		// Text node at block level — wrap into a paragraph-like row.
-		return wrapTextRow(n.TextContent())
+		return wrapTextRowStyled(n.TextContent(), style)
 	case "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre":
-		return []core.Row{tr.paragraphRow(n)}
+		return []core.Row{tr.paragraphRowStyled(n, style)}
 	case "hr":
-		return []core.Row{tr.styledHrRow(n)}
+		return []core.Row{tr.styledHrRowWithStyle(n, style)}
 	case "table":
 		return tr.tableRows(n)
 	case "ul", "ol":
@@ -247,14 +261,14 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	case "details":
 		return tr.detailsRows(n)
 	case "img":
-		if r, ok := tr.imageRow(n); ok {
+		if r, ok := tr.imageRowWithStyle(n, style); ok {
 			return []core.Row{r}
 		}
-		return altRow(n)
+		return altRowStyled(n, style)
 	case "picture":
-		return tr.pictureRow(n)
+		return tr.pictureRowWithStyle(n, style)
 	case "svg":
-		if r, ok := tr.svgRow(n); ok {
+		if r, ok := tr.svgRowWithStyle(n, style); ok {
 			return []core.Row{r}
 		}
 		return nil
@@ -263,7 +277,6 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 	default:
 		// Container (div, section, article, header, footer, nav, etc.).
 		// Compute style to detect class-based display:flex and display:none.
-		style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
 		if style.Display == "none" {
 			return nil
 		}
@@ -280,7 +293,7 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 		// Default: collect children's rows.
 		var rows []core.Row
 		for _, c := range n.Children() {
-			rows = append(rows, tr.blockRows(c)...)
+			rows = append(rows, tr.blockRowsWithParent(c, style)...)
 		}
 		// When the container has background/border/padding, wrap children
 		// in a single styled blockContainer so the styling spans them all.
@@ -296,7 +309,11 @@ func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
 // Top/Right/Bottom/Left offsets so the text is inset from the styled background's
 // edges instead of butting against them.
 func (tr *translator) paragraphRow(n *dom.Node) core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := tr.computeBlockStyle(n, nil)
+	return tr.paragraphRowStyled(n, style)
+}
+
+func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) core.Row {
 	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
@@ -353,7 +370,11 @@ func richTextAlignFromCSS(value string) align.Type {
 // styledHrRow honours border-top-width, border-top-style, color on the <hr>
 // element. Defaults match the original hrRow behaviour when no style is set.
 func (tr *translator) styledHrRow(n *dom.Node) core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := tr.computeBlockStyle(n, nil)
+	return tr.styledHrRowWithStyle(n, style)
+}
+
+func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle) core.Row {
 	lineProp := props.Line{}
 	if style.BorderTopWidth > 0 {
 		lineProp.Thickness = style.BorderTopWidth
@@ -375,11 +396,17 @@ func (tr *translator) styledHrRow(n *dom.Node) core.Row {
 
 // wrapTextRow handles raw text nodes at block level.
 func wrapTextRow(text string) []core.Row {
+	return wrapTextRowStyled(text, nil)
+}
+
+func wrapTextRowStyled(text string, style *css.ComputedStyle) []core.Row {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil
 	}
-	rt := richtext.New([]props.RichRun{{Text: text}})
+	run := props.RichRun{Text: text}
+	applyInlineStyleToRun(style, &run)
+	rt := richtext.New([]props.RichRun{run})
 	c := col.New().Add(rt)
 	return []core.Row{row.New().Add(c)}
 }

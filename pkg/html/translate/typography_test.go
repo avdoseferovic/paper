@@ -90,6 +90,64 @@ func TestTypography_DisplayNoneInlineElementSkipped(t *testing.T) {
 	assert.Equal(t, "AB", text)
 }
 
+func TestTypography_VisibilityHiddenMarksRunsWithoutDroppingLayout(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(minimalPNG(t))
+	runs := runsFromHTML(t, `<p>A<span style="visibility:hidden">hidden<img src="`+uri+`" width="2mm" height="2mm" alt="icon"></span><span style="visibility:visible">shown</span></p>`)
+	require.NotEmpty(t, runs)
+
+	var hiddenText, hiddenImage, visibleText bool
+	for _, run := range runs {
+		switch {
+		case run.Text == "hidden":
+			hiddenText = true
+			assert.True(t, run.Hidden, "visibility:hidden text should preserve the run but skip painting")
+		case run.Image != nil:
+			hiddenImage = true
+			assert.True(t, run.Hidden, "visibility:hidden inline image should preserve dimensions but skip painting")
+			assert.InDelta(t, 2.0, run.Image.Width, 0.001)
+		case run.Text == "shown":
+			visibleText = true
+			assert.False(t, run.Hidden)
+		}
+	}
+	assert.True(t, hiddenText, "expected hidden text run")
+	assert.True(t, hiddenImage, "expected hidden inline image run")
+	assert.True(t, visibleText, "expected visible override run")
+}
+
+func TestTypography_VisibilityInheritedAndOverridable(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><div style="visibility:hidden"><p>secret</p><p style="visibility:visible">shown</p></div></body></html>`)
+	require.NoError(t, err)
+
+	div := findFirstNode(t, doc, "div")
+	var paragraphs []*dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		if n.Tag() == "p" {
+			paragraphs = append(paragraphs, n)
+		}
+		return true
+	})
+	require.Len(t, paragraphs, 2)
+
+	divStyle := computeNodeStyle(nil, div, nil)
+	hiddenStyle := computeNodeStyle(nil, paragraphs[0], divStyle)
+	visibleStyle := computeNodeStyle(nil, paragraphs[1], divStyle)
+	assert.Equal(t, "hidden", hiddenStyle.Visibility)
+	assert.Equal(t, "visible", visibleStyle.Visibility)
+
+	tr := &translator{}
+	hiddenRuns := tr.inlineRunsStyled(paragraphs[0], blockInlineStyle(hiddenStyle))
+	visibleRuns := tr.inlineRunsStyled(paragraphs[1], blockInlineStyle(visibleStyle))
+	require.NotEmpty(t, hiddenRuns)
+	require.NotEmpty(t, visibleRuns)
+	assert.True(t, hiddenRuns[0].Hidden)
+	assert.False(t, visibleRuns[0].Hidden)
+}
+
 func TestTypography_InlineCSSVerticalAlignMappedToRuns(t *testing.T) {
 	t.Parallel()
 

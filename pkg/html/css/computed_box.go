@@ -26,6 +26,8 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 		} else {
 			s.Display = ctx.val
 		}
+	case "visibility":
+		s.Visibility = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "width":
 		s.Width = ParseLengthCtx(ctx.val, ctx.parentFontSize, ctx.ctxWidth)
 	case "height":

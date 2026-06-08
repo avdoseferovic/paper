@@ -71,6 +71,7 @@ type ComputedStyle struct {
 
 	// Layout
 	Display        string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
+	Visibility     string // "visible" | "hidden" | "collapse"
 	Width          float64
 	Height         float64
 	MinWidth       float64
@@ -138,6 +139,7 @@ func NewComputedStyle() *ComputedStyle {
 		FontWeight: "normal",
 		FontStyle:  "normal",
 		Display:    "",
+		Visibility: "visible",
 		LineHeight: 1.0,
 		Opacity:    1.0,
 	}

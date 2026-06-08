@@ -38,9 +38,166 @@ func expandOne(prop, val string) map[string]string {
 		return expandBox("margin", val)
 	case "font":
 		return expandFont(val)
+	case "background":
+		return expandBackground(val)
 	default:
 		return map[string]string{prop: val}
 	}
+}
+
+func expandBackground(val string) map[string]string {
+	val = strings.TrimSpace(val)
+	if val == "" || hasTopLevelComma(val) {
+		return map[string]string{"background": val}
+	}
+	tokens := splitBackgroundTokens(val)
+	if len(tokens) == 0 {
+		return map[string]string{"background": val}
+	}
+	out := map[string]string{}
+	var position []string
+	var size []string
+	afterSlash := false
+	for _, token := range tokens {
+		lower := strings.ToLower(strings.TrimSpace(token))
+		if lower == "" {
+			continue
+		}
+		if lower == "/" {
+			afterSlash = true
+			continue
+		}
+		switch {
+		case isBackgroundImageToken(lower):
+			out["background-image"] = token
+		case lower == "none":
+			out["background-image"] = "none"
+		case ParseColor(token) != nil:
+			out["background-color"] = token
+		case isBackgroundRepeatToken(lower):
+			out["background-repeat"] = lower
+		case isBackgroundBoxToken(lower) || isBackgroundAttachmentToken(lower):
+			// background-origin, background-clip, and background-attachment are
+			// accepted in the shorthand but not represented by the current PDF
+			// renderer.
+			continue
+		case afterSlash:
+			size = append(size, lower)
+		default:
+			position = append(position, lower)
+		}
+	}
+	if len(position) > 0 {
+		out["background-position"] = strings.Join(position, " ")
+	}
+	if len(size) > 0 {
+		out["background-size"] = strings.Join(size, " ")
+	}
+	if len(out) == 0 {
+		return map[string]string{"background": val}
+	}
+	return out
+}
+
+func isBackgroundImageToken(lower string) bool {
+	return strings.HasPrefix(lower, "url(") ||
+		strings.HasPrefix(lower, "linear-gradient(") ||
+		strings.HasPrefix(lower, "radial-gradient(") ||
+		strings.HasPrefix(lower, "conic-gradient(")
+}
+
+func isBackgroundRepeatToken(lower string) bool {
+	switch lower {
+	case "repeat", "no-repeat", "repeat-x", "repeat-y":
+		return true
+	default:
+		return false
+	}
+}
+
+func isBackgroundBoxToken(lower string) bool {
+	switch lower {
+	case "border-box", "padding-box", "content-box":
+		return true
+	default:
+		return false
+	}
+}
+
+func isBackgroundAttachmentToken(lower string) bool {
+	switch lower {
+	case "scroll", "fixed", "local":
+		return true
+	default:
+		return false
+	}
+}
+
+func splitBackgroundTokens(value string) []string {
+	var tokens []string
+	var b strings.Builder
+	depth := 0
+	var quote rune
+	flush := func() {
+		token := strings.TrimSpace(b.String())
+		if token != "" {
+			tokens = append(tokens, token)
+		}
+		b.Reset()
+	}
+	for _, r := range value {
+		switch {
+		case quote != 0:
+			b.WriteRune(r)
+			if r == quote {
+				quote = 0
+			}
+		case r == '\'' || r == '"':
+			quote = r
+			b.WriteRune(r)
+		case r == '(':
+			depth++
+			b.WriteRune(r)
+		case r == ')':
+			if depth > 0 {
+				depth--
+			}
+			b.WriteRune(r)
+		case depth == 0 && (r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f'):
+			flush()
+		case depth == 0 && r == '/':
+			flush()
+			tokens = append(tokens, "/")
+		default:
+			b.WriteRune(r)
+		}
+	}
+	flush()
+	return tokens
+}
+
+func hasTopLevelComma(value string) bool {
+	depth := 0
+	var quote rune
+	for _, r := range value {
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		case r == '\'' || r == '"':
+			quote = r
+		case r == '(':
+			depth++
+		case r == ')':
+			if depth > 0 {
+				depth--
+			}
+		case r == ',' && depth == 0:
+			return true
+		}
+	}
+	return false
 }
 
 // expandBorderAll expands "border: <width> <style> <color>" to all 12 longhands.

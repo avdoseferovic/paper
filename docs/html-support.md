@@ -53,11 +53,11 @@ rows, err := html.FromString(htmlString)
 
 **Images:** `img`, `picture`, `source`, `svg` — block-level and inline `<img src="…" srcset="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. `<picture><source media="…" type="…" srcset="…"><img …></picture>` uses the first print/all-compatible supported source candidate and falls back to the nested `<img>`. Inline `<svg>...</svg>` elements are rasterised via oksvg+rasterx. See [Images](#images) below.
 
-**Hidden content:** The HTML `hidden` attribute and CSS `display:none` suppress block and inline content before PDF rows/runs are created.
+**Hidden content:** The HTML `hidden` attribute and CSS `display:none` suppress block and inline content before PDF rows/runs are created. CSS `visibility:hidden` / `visibility:collapse` preserves layout space but skips painting text, inline images, block images, SVGs, borders, backgrounds, shadows, outlines, and links; descendants can opt back in with `visibility:visible`.
 
 ## Supported CSS properties
 
-**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space, vertical-align, content, counter-reset, counter-increment, quotes`
+**Text:** `color, font-family, font-size, font-weight, font-style, text-align, text-decoration, line-height, letter-spacing, text-transform, text-indent, white-space, vertical-align, visibility, content, counter-reset, counter-increment, quotes`
 
 `text-align` supports `left`, `center`, `right`, and `justify` for RichText paragraphs. Justified text expands collapsed spaces on wrapped lines; the final line remains left-aligned. `text-indent` indents only the first rendered line of a paragraph. `white-space` supports `normal`, `nowrap`, `pre`, `pre-wrap`, and `pre-line`; these modes control whitespace collapsing, explicit line breaks, and automatic wrapping in RichText paragraphs. Inline elements support `vertical-align: sub|super|baseline`; `<sub>` and `<sup>` also apply a smaller browser-like font scale.
 
@@ -69,7 +69,7 @@ rows, err := html.FromString(htmlString)
 
 **Border-radius:** `border-radius` (1–4 values, CSS spec), `border-{top-left,top-right,bottom-left,bottom-right}-radius`. When combined with non-uniform per-side border widths, the renderer uses a single averaged stroke thickness (current limitation).
 
-**Background:** `background-color`, `background-image: url(...)`, `linear-gradient(...)`, and `radial-gradient(...)`; `background-size`, `background-position`, and `background-repeat`. URL backgrounds support PNG, JPG, and SVG via the same safe resolver as `<img>`; SVG and gradients are rasterised to PNG and embedded.
+**Background:** `background-color`, `background-image: url(...)`, `linear-gradient(...)`, `radial-gradient(...)`, and `conic-gradient(...)`; `background-size`, `background-position`, `background-repeat`, and single-layer `background` shorthand. URL backgrounds support PNG, JPG, and SVG via the same safe resolver as `<img>`; SVG and gradients are rasterised to PNG and embedded.
 
 **Effects:** `box-shadow` (1–4 shadows, comma-separated; `<x> <y> [blur] [spread] [color] [inset]`; blur approximated by 3 overlaid translucent rects), `filter: drop-shadow(...)` (mapped to the same shadow renderer), `text-shadow` (1–4 shadows, comma-separated, per run), `outline` + `outline-{width,style,color,offset}` (drawn outside the cell box, does not affect layout).
 
@@ -98,10 +98,10 @@ These remain partially supported or deferred — most are visual-quality trade-o
 - `letter-spacing` is consumed by `AddRichText` via per-character draw with manual x-advancement. Performance scales with character count, not word count.
 - `align-content` is intentionally out of scope — it requires explicit container height which `blockContainer` does not yet honour. Use spacer rows instead.
 - `box-shadow` blur is approximated by 3 overlaid translucent rects (constant-time). True Gaussian blur is deferred.
-- `background-image: url(...)` supports `contain`, `cover`, one/two-value sizes, keyword/percentage positions, and `repeat|no-repeat|repeat-x|repeat-y`. Multiple layered background images are not implemented yet.
+- `background-image: url(...)` and single-layer `background` shorthand support `contain`, `cover`, one/two-value sizes, keyword/percentage positions, and `repeat|no-repeat|repeat-x|repeat-y`. Multiple layered background images/shorthands are not implemented yet.
 - `::before` / `::after` support generated text, images, quote tokens, and CSS counters. Arbitrary `content` tokens are not implemented yet.
 - `outline` is drawn LAST in the cellwriter chain — in dense flex rows with multiple outlined items the right outline edge of each item except the rightmost is overdrawn by the next item's fill. Workaround: use borders instead, or full-row outlined containers.
-- Conic gradients (`conic-gradient`) are not implemented. Other CSS filters besides `drop-shadow(...)` are not implemented.
+- Other CSS filters besides `drop-shadow(...)` are not implemented.
 - Inset `box-shadow` with `border-radius`: the inset shadow does NOT clip to the rounded corners (rectangular). Round-corner inset clipping is deferred.
 
 ## Documented limitations

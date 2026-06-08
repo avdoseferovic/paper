@@ -13,6 +13,7 @@ type GradientKind int
 const (
 	GradientLinear GradientKind = iota
 	GradientRadial
+	GradientConic
 )
 
 // Gradient is a union of LinearGradient and RadialGradient. Only the field
@@ -21,6 +22,7 @@ type Gradient struct {
 	Kind   GradientKind
 	Linear *LinearGradient
 	Radial *RadialGradient
+	Conic  *ConicGradient
 }
 
 // GradientStop is a single color+position stop in a gradient.
@@ -40,6 +42,13 @@ type RadialGradient struct {
 	Circle bool
 	CX, CY float64 // centre as fraction of width/height (0.5 = center)
 	Stops  []GradientStop
+}
+
+// ConicGradient holds a parsed conic-gradient().
+type ConicGradient struct {
+	FromDeg float64
+	CX, CY  float64 // centre as fraction of width/height (0.5 = center)
+	Stops   []GradientStop
 }
 
 // ParseLinearGradient parses a CSS linear-gradient(...) function string,
@@ -79,6 +88,25 @@ func ParseRadialGradient(s string) (*RadialGradient, error) {
 	}
 	distributeStops(stops)
 	return &RadialGradient{Circle: circle, CX: cx, CY: cy, Stops: stops}, nil
+}
+
+// ParseConicGradient parses a CSS conic-gradient(...) function string.
+func ParseConicGradient(s string) (*ConicGradient, error) {
+	inner, err := extractFuncArgs("conic-gradient", s)
+	if err != nil {
+		return nil, err
+	}
+	parts := splitTopLevel(inner, ',')
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("conic-gradient: need at least 2 parts, got %q", inner)
+	}
+	fromDeg, cx, cy, stopParts := parseConicPrelude(parts)
+	stops, err := parseStops(stopParts)
+	if err != nil {
+		return nil, fmt.Errorf("conic-gradient stops: %w", err)
+	}
+	distributeStops(stops)
+	return &ConicGradient{FromDeg: fromDeg, CX: cx, CY: cy, Stops: stops}, nil
 }
 
 // extractFuncArgs strips "funcName(" prefix and trailing ")" and returns the
@@ -200,6 +228,32 @@ func parseRadialPosition(pos string) (cx, cy float64) {
 	}
 }
 
+func parseConicPrelude(parts []string) (fromDeg, cx, cy float64, stopParts []string) {
+	fromDeg, cx, cy = 0, 0.5, 0.5
+	first := strings.ToLower(strings.TrimSpace(parts[0]))
+	if !(strings.HasPrefix(first, "from ") || strings.HasPrefix(first, "at ") || strings.Contains(first, " at ")) {
+		return fromDeg, cx, cy, parts
+	}
+	fields := strings.Fields(first)
+	for i := 0; i < len(fields); i++ {
+		switch fields[i] {
+		case "from":
+			if i+1 < len(fields) {
+				if deg, ok := parseAngleDeg(fields[i+1]); ok {
+					fromDeg = deg
+				}
+				i++
+			}
+		case "at":
+			if i+1 < len(fields) {
+				cx, cy = parseRadialPosition(strings.Join(fields[i+1:], " "))
+			}
+			i = len(fields)
+		}
+	}
+	return fromDeg, cx, cy, parts[1:]
+}
+
 // parseStops converts each comma-separated token into a GradientStop.
 func parseStops(parts []string) ([]GradientStop, error) {
 	if len(parts) < 2 {
@@ -221,12 +275,12 @@ func parseStops(parts []string) ([]GradientStop, error) {
 		}
 		pos := -1.0
 		if posStr != "" {
-			if strings.HasSuffix(posStr, "%") {
-				v, err := strconv.ParseFloat(strings.TrimSuffix(posStr, "%"), 64)
-				if err != nil {
-					return nil, fmt.Errorf("bad stop position %q: %w", posStr, err)
-				}
-				pos = v / 100.0
+			parsed, ok, err := parseGradientStopPosition(posStr)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				pos = parsed
 			}
 		}
 		stops = append(stops, GradientStop{Color: *c, Position: pos})
@@ -244,12 +298,49 @@ func splitColorAndPosition(s string) (colorStr, posStr string) {
 	}
 	last := fields[len(fields)-1]
 	if strings.HasSuffix(last, "%") ||
+		strings.HasSuffix(last, "deg") || strings.HasSuffix(last, "turn") ||
+		strings.HasSuffix(last, "rad") ||
 		strings.HasSuffix(last, "px") || strings.HasSuffix(last, "mm") ||
 		strings.HasSuffix(last, "pt") || strings.HasSuffix(last, "em") {
 		colorStr = strings.TrimSpace(strings.Join(fields[:len(fields)-1], " "))
 		return colorStr, last
 	}
 	return s, ""
+}
+
+func parseGradientStopPosition(posStr string) (float64, bool, error) {
+	switch {
+	case strings.HasSuffix(posStr, "%"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(posStr, "%"), 64)
+		if err != nil {
+			return 0, false, fmt.Errorf("bad stop position %q: %w", posStr, err)
+		}
+		return v / 100.0, true, nil
+	case strings.HasSuffix(posStr, "deg") || strings.HasSuffix(posStr, "turn") || strings.HasSuffix(posStr, "rad"):
+		deg, ok := parseAngleDeg(posStr)
+		if !ok {
+			return 0, false, fmt.Errorf("bad stop angle %q", posStr)
+		}
+		return deg / 360.0, true, nil
+	default:
+		return -1, false, nil
+	}
+}
+
+func parseAngleDeg(value string) (float64, bool) {
+	switch {
+	case strings.HasSuffix(value, "deg"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(value, "deg"), 64)
+		return v, err == nil
+	case strings.HasSuffix(value, "turn"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(value, "turn"), 64)
+		return v * 360, err == nil
+	case strings.HasSuffix(value, "rad"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(value, "rad"), 64)
+		return v * 180 / math.Pi, err == nil
+	default:
+		return 0, false
+	}
 }
 
 // distributeStops fills in -1 positions evenly between known anchors.
