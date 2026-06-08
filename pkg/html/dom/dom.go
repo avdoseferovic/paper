@@ -2,6 +2,7 @@
 package dom
 
 import (
+	"fmt"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -18,7 +19,7 @@ type Document struct {
 func Parse(src string) (*Document, error) {
 	root, err := html.Parse(strings.NewReader(src))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("html: parsing document: %w", err)
 	}
 	doc := &Document{root: root}
 	doc.styleText, doc.linkHrefs = extractStylesAndLinks(root)
@@ -34,7 +35,7 @@ func (d *Document) StyleText() string { return d.styleText }
 // ordered list of <link rel="stylesheet"> href values (in DOM order).
 // External stylesheet content is NOT loaded here; the caller is responsible
 // for resolving each href via a safe resolver.
-func (d *Document) StyleSources() (inlineCSS string, linkHrefs []string) {
+func (d *Document) StyleSources() (string, []string) {
 	return d.styleText, d.linkHrefs
 }
 

@@ -114,7 +114,7 @@ func (s *stylesheet) addParsedRule(rule *douceurcss.Rule, order *int, contentWid
 			declarations: decls,
 			order:        *order,
 		}
-		*order = *order + 1
+		*order++
 		if pseudo != "" {
 			s.pseudos = append(s.pseudos, compiledPseudoRule{
 				compiledRule: compiled,
@@ -126,21 +126,13 @@ func (s *stylesheet) addParsedRule(rule *douceurcss.Rule, order *int, contentWid
 	}
 }
 
-func mediaAppliesToPrint(prelude string) bool {
-	return mediaAppliesToPrintAtWidth(prelude, defaultContentWidthMM)
-}
-
 func mediaAppliesToPrintAtWidth(prelude string, contentWidthMM float64) bool {
-	for _, query := range strings.Split(prelude, ",") {
+	for query := range strings.SplitSeq(prelude, ",") {
 		if mediaQueryAppliesToPrintAtWidth(query, contentWidthMM) {
 			return true
 		}
 	}
 	return false
-}
-
-func mediaQueryAppliesToPrint(query string) bool {
-	return mediaQueryAppliesToPrintAtWidth(query, defaultContentWidthMM)
 }
 
 func mediaQueryAppliesToPrintAtWidth(query string, contentWidthMM float64) bool {
@@ -149,13 +141,13 @@ func mediaQueryAppliesToPrintAtWidth(query string, contentWidthMM float64) bool 
 		return false
 	}
 	query = strings.TrimSpace(strings.TrimPrefix(query, "only "))
-	mediaType := "all"
 	conditions := query
 	if !strings.HasPrefix(query, "(") {
-		mediaType, conditions = splitMediaType(query)
+		mediaType, mediaConditions := splitMediaType(query)
 		if mediaType != "print" && mediaType != "all" {
 			return false
 		}
+		conditions = mediaConditions
 	}
 	for _, condition := range mediaConditions(conditions) {
 		ok, supported := mediaConditionMatches(condition, contentWidthMM)
@@ -239,7 +231,7 @@ func parseMediaQueryLength(value string, contentWidthMM float64) float64 {
 	return css.ParseLength(value, 0)
 }
 
-func splitPseudoElementSelector(selector string) (baseSelector, pseudo string) {
+func splitPseudoElementSelector(selector string) (string, string) {
 	trimmed := strings.TrimSpace(selector)
 	lower := strings.ToLower(trimmed)
 	for _, suffix := range []struct {
@@ -294,7 +286,13 @@ func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, pare
 	}
 }
 
-func (s *stylesheet) applyPseudoToNodeCtx(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle, ctxWidth float64, pseudo string) {
+func (s *stylesheet) applyPseudoToNodeCtx(
+	n *html.Node,
+	style *css.ComputedStyle,
+	parent *css.ComputedStyle,
+	ctxWidth float64,
+	pseudo string,
+) {
 	if s == nil || len(s.pseudos) == 0 {
 		return
 	}

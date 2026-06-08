@@ -20,6 +20,8 @@ const defaultGridSize = 12
 // flexRows handles flex-wrap, order, and *-reverse, returning one []core.Row
 // per visual flex line. When flex-wrap is off (default) it returns exactly one
 // row.
+//
+//nolint:gocognit // Flex row construction is organized as ordered layout phases in one pass.
 func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
 	children := flexItems(n)
 	if len(children) == 0 {

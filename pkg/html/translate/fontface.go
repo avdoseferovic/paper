@@ -140,7 +140,7 @@ func extractFontFace(rule *css.Rule) (fontFaceRule, bool) {
 //	url("./foo.woff") format("woff")
 //	local("Foo")
 func parseFontFaceSrc(value string) (string, bool) {
-	for _, descriptor := range strings.Split(value, ",") {
+	for descriptor := range strings.SplitSeq(value, ",") {
 		d := strings.TrimSpace(descriptor)
 		if !strings.HasPrefix(d, "url(") {
 			continue

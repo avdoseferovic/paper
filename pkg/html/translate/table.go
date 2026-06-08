@@ -44,7 +44,7 @@ func (tr *translator) tableRows(n *dom.Node) []core.Row {
 }
 
 func (tr *translator) tableColumnWidths(n *dom.Node) []float64 {
-	tableStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	tableStyle := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	refWidth := tableStyle.Width
 	if refWidth <= 0 {
 		refWidth = tr.contentWidthMM
@@ -110,7 +110,7 @@ func tableColumnWidth(n *dom.Node, style *css.ComputedStyle, refWidth float64) f
 
 // captionRow renders a <caption> as a centred row above the table.
 func (tr *translator) captionRow(n *dom.Node) core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
@@ -120,7 +120,7 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 }
 
 func (tr *translator) buildTableMatrix(n *dom.Node) [][]table.Cell {
-	tableStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	tableStyle := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	var matrix [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {

@@ -51,6 +51,7 @@ type calcToken struct {
 	value float64 // pre-resolved value in mm for num tokens
 }
 
+//nolint:gocognit // Tokenizing CSS calc() is a compact state machine with several token classes.
 func tokenizeCalc(expr string) ([]calcToken, bool) {
 	var out []calcToken
 	i := 0
@@ -133,7 +134,8 @@ func parseCalcNum(text string, parentFontSize, contextWidthMM float64) (float64,
 	v := ParseLength(text, parentFontSize)
 	if v == 0 {
 		// Could be 0 OR could be a bare number; try parsing directly.
-		if n, err := strconv.ParseFloat(text, 64); err == nil {
+		n, err := strconv.ParseFloat(text, 64)
+		if err == nil {
 			return n, true
 		}
 	}

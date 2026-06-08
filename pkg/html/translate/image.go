@@ -42,6 +42,13 @@ var ErrImageResolverRefused = errors.New(
 	"html: default resolver refuses local file reads; configure html.WithImageBaseDir or translate.WithImageResolver",
 )
 
+var (
+	errDataURIInvalid       = errors.New("html: invalid data URI")
+	errAbsolutePathRefused  = errors.New("html: absolute path refused outside base dir")
+	errPathEscapesBaseDir   = errors.New("html: path escapes base dir")
+	errSVGHasZeroDimensions = errors.New("html: svg has zero dimensions")
+)
+
 // safeDefaultResolver only accepts data: URIs. It refuses any other src to
 // prevent path-traversal attacks on user-controlled HTML.
 func safeDefaultResolver(src string) ([]byte, string, error) {
@@ -56,17 +63,15 @@ func safeDefaultResolver(src string) ([]byte, string, error) {
 func decodeDataURI(uri string) ([]byte, string, error) {
 	// data:<mediatype>;base64,<payload>
 	prefix := strings.TrimPrefix(uri, "data:")
-	commaIdx := strings.IndexByte(prefix, ',')
-	if commaIdx < 0 {
-		return nil, "", fmt.Errorf("html: invalid data URI")
+	header, payload, ok := strings.Cut(prefix, ",")
+	if !ok {
+		return nil, "", errDataURIInvalid
 	}
-	header := prefix[:commaIdx]
-	payload := prefix[commaIdx+1:]
 	mediaType := header
 	isB64 := false
-	if semi := strings.IndexByte(header, ';'); semi >= 0 {
-		mediaType = header[:semi]
-		if strings.Contains(header[semi+1:], "base64") {
+	if before, after, ok := strings.Cut(header, ";"); ok {
+		mediaType = before
+		if strings.Contains(after, "base64") {
 			isB64 = true
 		}
 	}
@@ -80,14 +85,14 @@ func decodeDataURI(uri string) ([]byte, string, error) {
 	} else {
 		data = []byte(payload)
 	}
-	ext := "png"
+	ext := imageExtPNG
 	switch mediaType {
 	case "image/png":
-		ext = "png"
+		ext = imageExtPNG
 	case "image/jpeg", "image/jpg":
-		ext = "jpg"
+		ext = imageExtJPG
 	case "image/svg+xml":
-		ext = "svg"
+		ext = imageExtSVG
 	}
 	return data, ext, nil
 }
@@ -102,18 +107,18 @@ func baseDirResolver(dir string) ImageResolver {
 		}
 		// Reject absolute paths immediately.
 		if filepath.IsAbs(src) {
-			return nil, "", fmt.Errorf("html: absolute path %q refused outside base dir", src)
+			return nil, "", fmt.Errorf("%w: %q", errAbsolutePathRefused, src)
 		}
 		full, err := filepath.Abs(filepath.Join(cleanBase, src))
 		if err != nil {
-			return nil, "", err
+			return nil, "", fmt.Errorf("html: resolving image path: %w", err)
 		}
 		if !strings.HasPrefix(full, cleanBase+string(filepath.Separator)) && full != cleanBase {
-			return nil, "", fmt.Errorf("html: path %q escapes base dir", src)
+			return nil, "", fmt.Errorf("%w: %q", errPathEscapesBaseDir, src)
 		}
 		data, err := os.ReadFile(full)
 		if err != nil {
-			return nil, "", err
+			return nil, "", fmt.Errorf("html: reading image: %w", err)
 		}
 		return data, extFromFilename(src), nil
 	}
@@ -123,7 +128,7 @@ func extFromFilename(name string) string {
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
 	switch ext {
 	case "jpeg":
-		return "jpg"
+		return imageExtJPG
 	default:
 		return ext
 	}
@@ -131,20 +136,12 @@ func extFromFilename(name string) string {
 
 // imageRow builds a block-level row for <img>. Returns the row and ok=true on
 // success; ok=false signals the caller to fall back to alt text.
-func (tr *translator) imageRow(n *dom.Node) (core.Row, bool) {
-	return tr.imageRowWithStyle(n, nil)
-}
-
 func (tr *translator) imageRowWithStyle(n *dom.Node, style *css.ComputedStyle) (core.Row, bool) {
 	src := tr.selectedImageSource(n)
 	if src == "" {
 		return nil, false
 	}
 	return tr.imageRowWithSourceAndStyle(n, src, style)
-}
-
-func (tr *translator) imageRowWithSource(n *dom.Node, src string) (core.Row, bool) {
-	return tr.imageRowWithSourceAndStyle(n, src, nil)
 }
 
 func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style *css.ComputedStyle) (core.Row, bool) {
@@ -164,14 +161,14 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	dimensions := imageDimensions(n, style)
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
-	if ext == "svg" {
+	if ext == imageExtSVG {
 		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported("img.svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
-		ext = "png"
+		ext = imageExtPNG
 		intrinsicWidth = mmFromPx(w)
 		intrinsicHeight = mmFromPx(h)
 	} else {
@@ -222,7 +219,7 @@ func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
 
 func (tr *translator) inlineImageWithSource(n *dom.Node, src string) (*props.RichImage, bool) {
 	style := tr.imageStyle(n)
-	return tr.richImageFromSource(src, style, imageDimensions(n, style), n.Attr("alt"), "img")
+	return tr.richImageFromSource(src, style, imageDimensions(n, style), n.Attr("alt"), tagImg)
 }
 
 func (tr *translator) generatedContentImage(src string, style *css.ComputedStyle) (*props.RichImage, bool) {
@@ -248,14 +245,14 @@ func (tr *translator) richImageFromSource(
 
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
-	if ext == "svg" {
+	if ext == imageExtSVG {
 		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported(unsupportedPrefix+".svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
-		ext = "png"
+		ext = imageExtPNG
 		intrinsicWidth = mmFromPx(w)
 		intrinsicHeight = mmFromPx(h)
 	} else {
@@ -297,10 +294,6 @@ func (tr *translator) inlinePicture(n *dom.Node) (*props.RichImage, bool) {
 	return tr.inlineImageWithSource(img, src)
 }
 
-func (tr *translator) pictureRow(n *dom.Node) []core.Row {
-	return tr.pictureRowWithStyle(n, nil)
-}
-
 func (tr *translator) pictureRowWithStyle(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	img := pictureFallbackImage(n)
 	if img == nil {
@@ -322,7 +315,7 @@ func (tr *translator) pictureRowWithStyle(n *dom.Node, style *css.ComputedStyle)
 
 func pictureFallbackImage(n *dom.Node) *dom.Node {
 	for _, child := range n.Children() {
-		if child.Tag() == "img" {
+		if child.Tag() == tagImg {
 			return child
 		}
 	}
@@ -423,7 +416,7 @@ func selectWidthDescriptorCandidate(candidates []srcsetCandidate, slotWidthPx fl
 			continue
 		}
 		if candidate.width >= slotWidthPx {
-			if best == nil || best.width < slotWidthPx || candidate.width < best.width || (candidate.width == best.width && candidate.order < best.order) {
+			if bestWidthCandidate(candidate, best, slotWidthPx) {
 				best = candidate
 			}
 			continue
@@ -436,6 +429,13 @@ func selectWidthDescriptorCandidate(candidates []srcsetCandidate, slotWidthPx fl
 		return ""
 	}
 	return best.src
+}
+
+func bestWidthCandidate(candidate *srcsetCandidate, best *srcsetCandidate, slotWidthPx float64) bool {
+	return best == nil ||
+		best.width < slotWidthPx ||
+		candidate.width < best.width ||
+		candidate.width == best.width && candidate.order < best.order
 }
 
 func sourceSizePx(sizes string, contentWidthMM float64) float64 {
@@ -543,7 +543,7 @@ func lastSourceSizeLengthStart(value string) int {
 
 func parseSourceSizeLength(length string, contentWidthMM float64) (float64, bool) {
 	length = strings.TrimSpace(length)
-	if length == "" || strings.EqualFold(length, "auto") {
+	if length == "" || strings.EqualFold(length, cssValueAuto) {
 		return 0, false
 	}
 	if strings.HasSuffix(strings.ToLower(length), "vw") {
@@ -569,13 +569,15 @@ func parseSrcset(srcset string) []srcsetCandidate {
 		candidate := srcsetCandidate{src: fields[0], density: 1, order: i}
 		for _, descriptor := range fields[1:] {
 			if value, ok := strings.CutSuffix(descriptor, "x"); ok {
-				if density, err := strconv.ParseFloat(value, 64); err == nil && density > 0 {
+				density, err := strconv.ParseFloat(value, 64)
+				if err == nil && density > 0 {
 					candidate.density = density
 				}
 				continue
 			}
 			if value, ok := strings.CutSuffix(descriptor, "w"); ok {
-				if width, err := strconv.ParseFloat(value, 64); err == nil && width > 0 {
+				width, err := strconv.ParseFloat(value, 64)
+				if err == nil && width > 0 {
 					candidate.width = width
 				}
 			}
@@ -617,10 +619,6 @@ func betterSrcsetCandidate(candidate, best srcsetCandidate) bool {
 	}
 }
 
-func (tr *translator) svgRow(n *dom.Node) (core.Row, bool) {
-	return tr.svgRowWithStyle(n, nil)
-}
-
 func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (core.Row, bool) {
 	data, ok := svgElementBytes(n)
 	if !ok {
@@ -632,7 +630,7 @@ func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (co
 	dimensions := imageDimensions(n, style)
 	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
 	if err != nil {
-		tr.unsupported("svg", err.Error())
+		tr.unsupported(tagSVG, err.Error())
 		return nil, false
 	}
 	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 10)
@@ -667,7 +665,7 @@ func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
 	dimensions := imageDimensions(n, style)
 	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
 	if err != nil {
-		tr.unsupported("svg", err.Error())
+		tr.unsupported(tagSVG, err.Error())
 		return nil, false
 	}
 	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 4)
@@ -682,11 +680,12 @@ func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
 }
 
 func svgElementBytes(n *dom.Node) ([]byte, bool) {
-	if n == nil || n.Tag() != "svg" {
+	if n == nil || n.Tag() != tagSVG {
 		return nil, false
 	}
 	var buf bytes.Buffer
-	if err := html.Render(&buf, n.RawNode()); err != nil {
+	err := html.Render(&buf, n.RawNode())
+	if err != nil {
 		return nil, false
 	}
 	data := buf.Bytes()
@@ -712,14 +711,14 @@ func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackg
 		tr.unsupported("background-image.src", err.Error())
 		return nil
 	}
-	if ext == "svg" {
+	if ext == imageExtSVG {
 		pngBytes, _, _, rerr := rasteriseSVG(data, 0, 0)
 		if rerr != nil {
 			tr.unsupported("background-image.svg", rerr.Error())
 			return nil
 		}
 		data = pngBytes
-		ext = "png"
+		ext = imageExtPNG
 	}
 	extType := extensionType(ext)
 	if extType == "" {
@@ -824,7 +823,11 @@ func resolveImageDimensions(dimensions imageDimensionStyle, intrinsicWidth, intr
 	return constrainImageDimensions(widthMM, heightMM, widthExplicit, heightExplicit, dimensions)
 }
 
-func constrainImageDimensions(widthMM, heightMM float64, widthExplicit, heightExplicit bool, dimensions imageDimensionStyle) (float64, float64) {
+func constrainImageDimensions(
+	widthMM, heightMM float64,
+	widthExplicit, heightExplicit bool,
+	dimensions imageDimensionStyle,
+) (float64, float64) {
 	aspect := 1.0
 	if widthMM > 0 {
 		aspect = heightMM / widthMM
@@ -864,10 +867,6 @@ func (tr *translator) unsupported(kind, msg string) {
 }
 
 // altRow renders the <img>'s alt text as a paragraph row (fallback path).
-func altRow(n *dom.Node) []core.Row {
-	return altRowStyled(n, nil)
-}
-
 func altRowStyled(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	alt := strings.TrimSpace(n.Attr("alt"))
 	if alt == "" {
@@ -932,7 +931,7 @@ func rasteriseSVG(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int,
 	}
 	pxW, pxH := svgTargetPixels(icon, widthMM, heightMM)
 	if pxW <= 0 || pxH <= 0 {
-		return nil, 0, 0, fmt.Errorf("html: svg has zero dimensions")
+		return nil, 0, 0, errSVGHasZeroDimensions
 	}
 	icon.SetTarget(0, 0, float64(pxW), float64(pxH))
 	rgba := goimage.NewRGBA(goimage.Rect(0, 0, pxW, pxH))
@@ -941,7 +940,8 @@ func rasteriseSVG(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int,
 	icon.Draw(dasher, 1.0)
 
 	var buf bytes.Buffer
-	if err := png.Encode(&buf, rgba); err != nil {
+	err = png.Encode(&buf, rgba)
+	if err != nil {
 		return nil, 0, 0, fmt.Errorf("html: png encode: %w", err)
 	}
 	return buf.Bytes(), pxW, pxH, nil
@@ -978,10 +978,7 @@ func svgTargetPixels(icon *oksvg.SvgIcon, widthMM, heightMM float64) (int, int) 
 // pxFromMM converts millimetres to pixels at dpiForRaster.
 func pxFromMM(mm float64) int {
 	px := int(mm / 25.4 * dpiForRaster)
-	if px < 1 {
-		px = 1
-	}
-	return px
+	return max(px, 1)
 }
 
 // mmFromPx converts pixels back to millimetres at dpiForRaster.
@@ -991,9 +988,9 @@ func mmFromPx(px int) float64 {
 
 func extensionType(ext string) extension.Type {
 	switch strings.ToLower(ext) {
-	case "png":
+	case imageExtPNG:
 		return extension.Png
-	case "jpg", "jpeg":
+	case imageExtJPG, "jpeg":
 		return extension.Jpg
 	default:
 		return ""

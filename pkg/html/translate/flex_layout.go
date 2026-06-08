@@ -130,9 +130,9 @@ type slackPlan struct {
 // computeSlackPlan derives lead/trail/between distribution from justify-content.
 func computeSlackPlan(justify string, itemCount, slack int) slackPlan {
 	switch justify {
-	case "flex-end":
+	case flexAlignEnd:
 		return slackPlan{lead: slack}
-	case "center":
+	case flexAlignCenter:
 		lead := slack / 2
 		return slackPlan{lead: lead, trail: slack - lead}
 	case "space-between":

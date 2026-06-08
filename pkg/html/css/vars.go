@@ -88,10 +88,10 @@ func resolveVarsWithVisited(value string, scope map[string]string, visited map[s
 
 // splitVarArgs splits the contents of a var(...) expression on the FIRST
 // comma so fallbacks containing commas are preserved.
-func splitVarArgs(s string) (name, fallback string) {
-	idx := strings.Index(s, ",")
-	if idx < 0 {
+func splitVarArgs(s string) (string, string) {
+	name, fallback, ok := strings.Cut(s, ",")
+	if !ok {
 		return s, ""
 	}
-	return s[:idx], s[idx+1:]
+	return name, fallback
 }

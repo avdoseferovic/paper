@@ -95,7 +95,7 @@ func (c *counterState) allValues(name string) []int {
 
 func parseCounterMutations(value string, defaultValue int) []counterMutation {
 	value = strings.TrimSpace(value)
-	if value == "" || strings.EqualFold(value, "none") {
+	if value == "" || strings.EqualFold(value, cssValueNone) {
 		return nil
 	}
 	fields := strings.Fields(value)
@@ -127,7 +127,7 @@ func parseCounterInteger(value string) (int, bool) {
 
 func isCounterKeyword(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "none", "inherit", "initial", "unset", "revert":
+	case cssValueNone, "inherit", "initial", "unset", "revert":
 		return true
 	default:
 		return false
@@ -136,7 +136,7 @@ func isCounterKeyword(value string) bool {
 
 func formatCounterValue(value int, style string) string {
 	switch strings.ToLower(strings.Trim(strings.TrimSpace(style), `'"`)) {
-	case "", "decimal":
+	case "", listStyleDecimal:
 		return strconv.Itoa(value)
 	case "decimal-leading-zero":
 		if value >= 0 && value < 10 {
@@ -185,9 +185,18 @@ func formatRomanCounter(value int, upper bool) string {
 		upper string
 		lower string
 	}{
-		{1000, "M", "m"}, {900, "CM", "cm"}, {500, "D", "d"}, {400, "CD", "cd"},
-		{100, "C", "c"}, {90, "XC", "xc"}, {50, "L", "l"}, {40, "XL", "xl"},
-		{10, "X", "x"}, {9, "IX", "ix"}, {5, "V", "v"}, {4, "IV", "iv"},
+		{1000, "M", "m"},
+		{900, "CM", "cm"},
+		{500, "D", "d"},
+		{400, "CD", "cd"},
+		{100, "C", "c"},
+		{90, "XC", "xc"},
+		{50, "L", "l"},
+		{40, "XL", "xl"},
+		{10, "X", "x"},
+		{9, "IX", "ix"},
+		{5, "V", "v"},
+		{4, "IV", "iv"},
 		{1, "I", "i"},
 	}
 	var out strings.Builder

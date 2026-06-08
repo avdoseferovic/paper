@@ -91,13 +91,7 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 		return
 	}
 
-	var lines []string
-
-	if textProp.BreakLineStrategy == breakline.EmptySpaceStrategy {
-		lines = s.getCachedLines(unicodeText, textProp, width)
-	} else {
-		lines = s.getCachedLines(unicodeText, textProp, width)
-	}
+	lines := s.getCachedLines(unicodeText, textProp, width)
 
 	accumulateOffsetY := 0.0
 

@@ -13,7 +13,7 @@ import (
 
 // listRows converts <ul>/<ol> into a single row containing an HTMLList component.
 func (tr *translator) listRows(n *dom.Node) []core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	list := tr.buildList(n)
 	if list == nil {
 		return nil
@@ -41,7 +41,7 @@ func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 		start = atoiOr(n.Attr("start"), 0)
 		reversed = hasAttr(n, "reversed")
 	}
-	cssStyle := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	cssStyle := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	if s, ok := listStyleFromCSS(cssStyle.ListStyleType); ok {
 		style = s
 	}
@@ -66,11 +66,11 @@ func listStyleFromCSS(val string) (htmllist.StyleType, bool) {
 	switch val {
 	case "":
 		return "", false
-	case "none":
+	case cssValueNone:
 		return htmllist.None, true
 	case "disc", "circle", "square":
 		return htmllist.Bullet, true
-	case "decimal":
+	case listStyleDecimal:
 		return htmllist.Decimal, true
 	case "decimal-circle":
 		return htmllist.DecimalCircle, true

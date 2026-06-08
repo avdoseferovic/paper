@@ -48,7 +48,7 @@ func (s *ComputedStyle) applyFlexProperty(ctx computedPropertyContext) bool {
 
 func (s *ComputedStyle) applyFlexBasis(val string, parentFontSize float64) {
 	switch val {
-	case "auto":
+	case cssValueAuto:
 		s.FlexBasisAuto = true
 		s.FlexBasis = 0
 		s.FlexBasisPct = 0

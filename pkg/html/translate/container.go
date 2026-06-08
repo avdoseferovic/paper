@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"maps"
+
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -101,9 +103,7 @@ func (b *blockContainer) SetConfig(config *entity.Config) {
 func (b *blockContainer) GetStructure() *node.Node[core.Structure] {
 	details := map[string]any{"rows": len(b.rows)}
 	if b.style != nil {
-		for k, v := range b.style.ToMap() {
-			details[k] = v
-		}
+		maps.Copy(details, b.style.ToMap())
 	}
 	str := core.Structure{Type: "container", Details: details}
 	n := node.New(str)
@@ -222,9 +222,11 @@ func (s *splittableContainerRow) SetConfig(cfg *entity.Config) { s.inner.SetConf
 func (s *splittableContainerRow) GetStructure() *node.Node[core.Structure] {
 	return s.inner.GetStructure()
 }
+
 func (s *splittableContainerRow) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	return s.inner.GetHeight(provider, cell)
 }
+
 func (s *splittableContainerRow) Render(provider core.Provider, cell entity.Cell) {
 	s.inner.Render(provider, cell)
 }
@@ -236,7 +238,7 @@ func (s *splittableContainerRow) GetColumns() []core.Col           { return s.in
 // the point where cumulative row heights would exceed remainingHeight.
 // Returns (nil, self, true) when no child rows fit (push whole container to
 // next page). Returns (self, nil, false) when the container fits entirely.
-func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64) (first, rest core.Row, didSplit bool) {
+func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64) (core.Row, core.Row, bool) {
 	if s.container == nil {
 		return nil, nil, false
 	}

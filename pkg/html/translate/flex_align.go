@@ -46,17 +46,17 @@ func (c *crossAxisBox) Render(provider core.Provider, cell *entity.Cell) {
 	childCell := cell.Copy()
 	childHeight := c.child.GetHeight(provider, &childCell)
 	switch c.align {
-	case "center":
+	case flexAlignCenter:
 		if cell.Height > childHeight {
 			childCell.Y += (cell.Height - childHeight) / 2
 			childCell.Height = childHeight
 		}
-	case "flex-end":
+	case flexAlignEnd:
 		if cell.Height > childHeight {
 			childCell.Y += cell.Height - childHeight
 			childCell.Height = childHeight
 		}
-	case "flex-start":
+	case flexAlignStart:
 		if childHeight > 0 {
 			childCell.Height = childHeight
 		}
@@ -67,7 +67,7 @@ func (c *crossAxisBox) Render(provider core.Provider, cell *entity.Cell) {
 func flexItemCrossAxisBox(child core.Component, containerStyle, itemStyle *css.ComputedStyle) core.Component {
 	align := effectiveCrossAxisAlign(containerStyle, itemStyle)
 	switch align {
-	case "center", "flex-end", "flex-start":
+	case flexAlignCenter, flexAlignEnd, flexAlignStart:
 		return &crossAxisBox{child: child, align: align}
 	default:
 		return child
@@ -79,7 +79,7 @@ func effectiveCrossAxisAlign(containerStyle, itemStyle *css.ComputedStyle) strin
 	if itemStyle != nil {
 		align = normalizeCrossAxisAlign(itemStyle.AlignSelf)
 	}
-	if align == "" || align == "auto" {
+	if align == "" || align == cssValueAuto {
 		if containerStyle != nil {
 			align = normalizeCrossAxisAlign(containerStyle.AlignItems)
 		}
@@ -90,9 +90,9 @@ func effectiveCrossAxisAlign(containerStyle, itemStyle *css.ComputedStyle) strin
 func normalizeCrossAxisAlign(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "start", "self-start":
-		return "flex-start"
+		return flexAlignStart
 	case "end", "self-end":
-		return "flex-end"
+		return flexAlignEnd
 	default:
 		return strings.ToLower(strings.TrimSpace(value))
 	}

@@ -13,6 +13,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
+const whiteSpacePre = "pre"
+
 // anchorResolverIface is a narrow interface satisfied by the HTML translator's
 // anchorRegistry. It is defined here to avoid an import cycle between the
 // richtext component package and the translate package.
@@ -201,7 +203,7 @@ func (r *RichText) countLines(provider core.Provider, fontProp *props.Text, colW
 	total := 0
 	mode := normalizeWhiteSpace(r.prop.WhiteSpace)
 	text := textForWhiteSpace(r.allText(), mode)
-	if mode == "nowrap" || mode == "pre" {
+	if mode == "nowrap" || mode == whiteSpacePre {
 		return countExplicitLines(text)
 	}
 	firstLineIndent := r.prop.FirstLineIndent
@@ -278,7 +280,7 @@ func (r *RichText) invalidateCache() {
 
 func normalizeWhiteSpace(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "nowrap", "pre", "pre-wrap", "pre-line":
+	case "nowrap", whiteSpacePre, "pre-wrap", "pre-line":
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
 		return "normal"
@@ -287,7 +289,7 @@ func normalizeWhiteSpace(value string) string {
 
 func textForWhiteSpace(text, mode string) string {
 	switch mode {
-	case "pre", "pre-wrap":
+	case whiteSpacePre, "pre-wrap":
 		return text
 	case "pre-line":
 		parts := strings.Split(text, "\n")

@@ -66,7 +66,7 @@ func (s *ComputedStyle) applyBorderProperty(ctx computedPropertyContext) bool {
 func parseOutlineShorthand(val string, s *ComputedStyle, parentFontSize float64) {
 	styleKeywords := map[string]bool{
 		"solid": true, "dashed": true, "dotted": true,
-		"none": true, "hidden": true, "double": true,
+		cssValueNone: true, "hidden": true, "double": true,
 		"groove": true, "ridge": true, "inset": true, "outset": true,
 	}
 	for token := range strings.FieldsSeq(val) {

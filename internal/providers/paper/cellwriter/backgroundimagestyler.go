@@ -14,6 +14,15 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+const (
+	backgroundAuto   = "auto"
+	backgroundBottom = "bottom"
+	backgroundCenter = "center"
+	backgroundLeft   = "left"
+	backgroundRight  = "right"
+	backgroundTop    = "top"
+)
+
 type backgroundImageStyler struct {
 	stylerTemplate
 }
@@ -68,7 +77,13 @@ func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64,
 	b.drawTiles(name, ix, iy, x, y, width, height, w, h, repeatX, repeatY)
 }
 
-func (b *backgroundImageStyler) drawTiles(name string, imageX, imageY, cellX, cellY, cellWidth, cellHeight, imageWidth, imageHeight float64, repeatX, repeatY bool) {
+func (b *backgroundImageStyler) drawTiles(
+	name string,
+	imageX, imageY float64,
+	cellX, cellY, cellWidth, cellHeight float64,
+	imageWidth, imageHeight float64,
+	repeatX, repeatY bool,
+) {
 	if imageWidth <= 0 || imageHeight <= 0 {
 		return
 	}
@@ -95,11 +110,11 @@ func (b *backgroundImageStyler) drawTiles(name string, imageX, imageY, cellX, ce
 	}
 }
 
-func tileStart(start, min, size float64) float64 {
-	if size <= 0 || start <= min {
+func tileStart(start, minValue, size float64) float64 {
+	if size <= 0 || start <= minValue {
 		return start
 	}
-	steps := math.Ceil((start - min) / size)
+	steps := math.Ceil((start - minValue) / size)
 	return start - steps*size
 }
 
@@ -108,7 +123,7 @@ func backgroundImageSize(value string, imageWidth, imageHeight, cellWidth, cellH
 		return 0, 0
 	}
 	tokens := strings.Fields(strings.ToLower(strings.TrimSpace(value)))
-	if len(tokens) == 0 || tokens[0] == "auto" {
+	if len(tokens) == 0 || tokens[0] == backgroundAuto {
 		return imageWidth, imageHeight
 	}
 	aspect := imageHeight / imageWidth
@@ -123,15 +138,15 @@ func backgroundImageSize(value string, imageWidth, imageHeight, cellWidth, cellH
 
 	width := imageWidth
 	height := imageHeight
-	if tokens[0] != "auto" {
+	if tokens[0] != backgroundAuto {
 		width = parseBackgroundLength(tokens[0], cellWidth)
 	}
-	if len(tokens) > 1 && tokens[1] != "auto" {
+	if len(tokens) > 1 && tokens[1] != backgroundAuto {
 		height = parseBackgroundLength(tokens[1], cellHeight)
-	} else if tokens[0] != "auto" {
+	} else if tokens[0] != backgroundAuto {
 		height = width * aspect
 	}
-	if len(tokens) > 1 && tokens[0] == "auto" && tokens[1] != "auto" && aspect > 0 {
+	if len(tokens) > 1 && tokens[0] == backgroundAuto && tokens[1] != backgroundAuto && aspect > 0 {
 		width = height / aspect
 	}
 	if width <= 0 || height <= 0 {
@@ -150,15 +165,15 @@ func backgroundImagePosition(value string, cellX, cellY, cellWidth, cellHeight, 
 	if len(tokens) == 1 {
 		token := tokens[0]
 		switch token {
-		case "left":
+		case backgroundLeft:
 			return cellX, cellY + spaceY/2
-		case "right":
+		case backgroundRight:
 			return cellX + spaceX, cellY + spaceY/2
-		case "top":
+		case backgroundTop:
 			return cellX + spaceX/2, cellY
-		case "bottom":
+		case backgroundBottom:
 			return cellX + spaceX/2, cellY + spaceY
-		case "center":
+		case backgroundCenter:
 			return cellX + spaceX/2, cellY + spaceY/2
 		default:
 			return cellX + parseBackgroundOffset(token, spaceX), cellY + spaceY/2
@@ -170,8 +185,8 @@ func backgroundImagePosition(value string, cellX, cellY, cellWidth, cellHeight, 
 }
 
 func normalizeBackgroundPositionTokens(first, second string) (string, string) {
-	isVertical := func(v string) bool { return v == "top" || v == "bottom" }
-	isHorizontal := func(v string) bool { return v == "left" || v == "right" }
+	isVertical := func(v string) bool { return v == backgroundTop || v == backgroundBottom }
+	isHorizontal := func(v string) bool { return v == backgroundLeft || v == backgroundRight }
 	if isVertical(first) || isHorizontal(second) {
 		return second, first
 	}
@@ -180,15 +195,15 @@ func normalizeBackgroundPositionTokens(first, second string) (string, string) {
 
 func parseBackgroundOffset(value string, freeSpace float64) float64 {
 	switch value {
-	case "left", "top":
+	case backgroundLeft, backgroundTop:
 		return 0
-	case "center":
+	case backgroundCenter:
 		return freeSpace / 2
-	case "right", "bottom":
+	case backgroundRight, backgroundBottom:
 		return freeSpace
 	}
-	if strings.HasSuffix(value, "%") {
-		v, ok := parseFloat(strings.TrimSuffix(value, "%"))
+	if percent, ok := strings.CutSuffix(value, "%"); ok {
+		v, ok := parseFloat(percent)
 		if !ok {
 			return 0
 		}
@@ -197,7 +212,7 @@ func parseBackgroundOffset(value string, freeSpace float64) float64 {
 	return parseBackgroundLength(value, freeSpace)
 }
 
-func backgroundImageRepeat(value string) (repeatX, repeatY bool) {
+func backgroundImageRepeat(value string) (bool, bool) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "repeat":
 		return true, true

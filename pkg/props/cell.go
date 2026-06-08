@@ -164,23 +164,23 @@ func (c *Cell) HasBorderRadius() bool {
 
 // EffectiveRadii returns the four corner radii (top-left, top-right, bottom-right, bottom-left)
 // applying the precedence: per-corner > uniform > 0.
-func (c *Cell) EffectiveRadii() (tl, tr, br, bl float64) {
+func (c *Cell) EffectiveRadii() (float64, float64, float64, float64) {
 	if c == nil {
 		return 0, 0, 0, 0
 	}
-	tl = c.BorderRadiusTopLeft
+	tl := c.BorderRadiusTopLeft
 	if tl == 0 {
 		tl = c.BorderRadius
 	}
-	tr = c.BorderRadiusTopRight
+	tr := c.BorderRadiusTopRight
 	if tr == 0 {
 		tr = c.BorderRadius
 	}
-	br = c.BorderRadiusBottomRight
+	br := c.BorderRadiusBottomRight
 	if br == 0 {
 		br = c.BorderRadius
 	}
-	bl = c.BorderRadiusBottomLeft
+	bl := c.BorderRadiusBottomLeft
 	if bl == 0 {
 		bl = c.BorderRadius
 	}

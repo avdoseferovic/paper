@@ -54,7 +54,7 @@ func (s *ComputedStyle) applyEffectsProperty(ctx computedPropertyContext) bool {
 
 func (s *ComputedStyle) applyBackgroundImage(ctx computedPropertyContext) {
 	switch {
-	case ctx.val == "none":
+	case ctx.val == cssValueNone:
 		s.BackgroundImageURL = ""
 		s.BackgroundGradient = nil
 	case strings.HasPrefix(ctx.val, "linear-gradient("):

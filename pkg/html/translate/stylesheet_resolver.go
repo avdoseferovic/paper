@@ -16,6 +16,11 @@ type StylesheetResolver func(href string) ([]byte, error)
 // to load a non-data: URI without an explicit WithStylesheetBaseDir.
 var ErrStylesheetResolverRefused = errors.New("html: default stylesheet resolver refuses local file reads; configure WithStylesheetBaseDir")
 
+var (
+	errStylesheetBaseDirEmpty   = errors.New("html: stylesheet base dir is empty; refusing all reads")
+	errStylesheetBaseDirInvalid = errors.New("html: stylesheet base dir is invalid")
+)
+
 // safeDefaultStylesheetResolver only accepts data: URIs.
 func safeDefaultStylesheetResolver(href string) ([]byte, error) {
 	if strings.HasPrefix(href, "data:") {
@@ -27,17 +32,15 @@ func safeDefaultStylesheetResolver(href string) ([]byte, error) {
 // decodeCSSDataURI handles data:text/css,... data:text/css;base64,...
 func decodeCSSDataURI(uri string) ([]byte, error) {
 	prefix := strings.TrimPrefix(uri, "data:")
-	commaIdx := strings.IndexByte(prefix, ',')
-	if commaIdx < 0 {
-		return nil, fmt.Errorf("html: invalid data URI")
+	header, payload, ok := strings.Cut(prefix, ",")
+	if !ok {
+		return nil, errDataURIInvalid
 	}
-	header := prefix[:commaIdx]
-	payload := prefix[commaIdx+1:]
 	if strings.Contains(header, "base64") {
 		// Use the existing image data-URI decoder for consistency.
 		dec, _, err := decodeDataURI(uri)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("html: decoding stylesheet data URI: %w", err)
 		}
 		return dec, nil
 	}
@@ -54,13 +57,16 @@ func decodeCSSDataURI(uri string) ([]byte, error) {
 func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 	if dir == "" {
 		return func(string) ([]byte, error) {
-			return nil, fmt.Errorf("html: stylesheet base dir is empty; refusing all reads")
+			return nil, errStylesheetBaseDirEmpty
 		}
 	}
 	cleanBase, err := filepath.Abs(filepath.Clean(dir))
 	if err != nil || cleanBase == "" {
 		return func(string) ([]byte, error) {
-			return nil, fmt.Errorf("html: stylesheet base dir %q is invalid: %v", dir, err)
+			if err != nil {
+				return nil, fmt.Errorf("%w: %q: %w", errStylesheetBaseDirInvalid, dir, err)
+			}
+			return nil, fmt.Errorf("%w: %q", errStylesheetBaseDirInvalid, dir)
 		}
 	}
 	return func(href string) ([]byte, error) {
@@ -68,18 +74,18 @@ func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 			return decodeCSSDataURI(href)
 		}
 		if filepath.IsAbs(href) {
-			return nil, fmt.Errorf("html: absolute path %q refused outside base dir", href)
+			return nil, fmt.Errorf("%w: %q", errAbsolutePathRefused, href)
 		}
 		full, err := filepath.Abs(filepath.Clean(filepath.Join(cleanBase, href)))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("html: resolving stylesheet path: %w", err)
 		}
 		if !strings.HasPrefix(full, cleanBase+string(filepath.Separator)) && full != cleanBase {
-			return nil, fmt.Errorf("html: path %q escapes base dir", href)
+			return nil, fmt.Errorf("%w: %q", errPathEscapesBaseDir, href)
 		}
 		data, err := os.ReadFile(full)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("html: reading stylesheet: %w", err)
 		}
 		return data, nil
 	}
@@ -88,16 +94,22 @@ func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 // safeLoadStylesheet wraps a resolver call in defer/recover so a malformed
 // URI or panicking resolver never crashes the caller. Returns the bytes
 // (nil on failure) and a flag indicating whether the load succeeded.
-func safeLoadStylesheet(resolver StylesheetResolver, href string) (data []byte, ok bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			data = nil
-			ok = false
+func safeLoadStylesheet(resolver StylesheetResolver, href string) ([]byte, bool) {
+	var data []byte
+	ok := false
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				data = nil
+				ok = false
+			}
+		}()
+		d, err := resolver(href)
+		if err != nil {
+			return
 		}
+		data = d
+		ok = true
 	}()
-	d, err := resolver(href)
-	if err != nil {
-		return nil, false
-	}
-	return d, true
+	return data, ok
 }

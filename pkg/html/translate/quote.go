@@ -68,10 +68,10 @@ func quotePairs(style *css.ComputedStyle) []quotePair {
 		return defaultQuotePairs()
 	}
 	value := strings.TrimSpace(style.Quotes)
-	if value == "" || strings.EqualFold(value, "auto") {
+	if value == "" || strings.EqualFold(value, cssValueAuto) {
 		return defaultQuotePairs()
 	}
-	if strings.EqualFold(value, "none") {
+	if strings.EqualFold(value, cssValueNone) {
 		return []quotePair{{}}
 	}
 	pairs, ok := parseQuotePairs(value)
@@ -106,11 +106,11 @@ func parseQuotePairs(value string) ([]quotePair, bool) {
 		if rest == "" || (rest[0] != '"' && rest[0] != '\'') {
 			return nil, false
 		}
-		close, rest, ok := readCSSContentString(rest)
+		closeText, rest, ok := readCSSContentString(rest)
 		if !ok {
 			return nil, false
 		}
-		pairs = append(pairs, quotePair{open: open, close: close})
+		pairs = append(pairs, quotePair{open: open, close: closeText})
 		value = rest
 	}
 }

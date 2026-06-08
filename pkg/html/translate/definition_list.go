@@ -26,7 +26,7 @@ func (tr *translator) definitionListRows(n *dom.Node) []core.Row {
 }
 
 func (tr *translator) dtRow(n *dom.Node) core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	for i := range runs {
 		if runs[i].Style == fontstyle.Normal {
@@ -41,7 +41,7 @@ func (tr *translator) dtRow(n *dom.Node) core.Row {
 }
 
 func (tr *translator) ddRow(n *dom.Node) core.Row {
-	style := computeNodeStyleRooted(tr.sheet, n, nil, tr.rootStyle)
+	style := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
 	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}

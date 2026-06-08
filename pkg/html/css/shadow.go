@@ -1,8 +1,18 @@
 package css
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+)
+
+var (
+	errShadowEmpty        = errors.New("shadow value is empty")
+	errShadowNoValidEntry = errors.New("shadow has no valid entries")
+	errDropShadowMissing  = errors.New("filter has no drop-shadow")
+	errFilterInvalidFunc  = errors.New("filter has an invalid function")
+	errShadowEntryEmpty   = errors.New("shadow entry is empty")
+	errShadowOffsets      = errors.New("shadow needs at least x and y offsets")
 )
 
 // Shadow holds the parsed values of a single CSS shadow entry (box-shadow or text-shadow).
@@ -21,9 +31,9 @@ type Shadow struct {
 func ParseShadow(val string) ([]Shadow, error) {
 	val = strings.TrimSpace(val)
 	if val == "" {
-		return nil, fmt.Errorf("shadow: empty value")
+		return nil, errShadowEmpty
 	}
-	parts := splitTopLevel(val, ',')
+	parts := splitTopLevel(val)
 	var shadows []Shadow
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
@@ -40,7 +50,7 @@ func ParseShadow(val string) ([]Shadow, error) {
 		}
 	}
 	if len(shadows) == 0 {
-		return nil, fmt.Errorf("shadow: no valid shadows in %q", val)
+		return nil, fmt.Errorf("%w: %q", errShadowNoValidEntry, val)
 	}
 	return shadows, nil
 }
@@ -49,8 +59,8 @@ func ParseShadow(val string) ([]Shadow, error) {
 // parses them into ordinary shadows for the PDF cell shadow renderer.
 func ParseFilterDropShadow(val string) ([]Shadow, error) {
 	val = strings.TrimSpace(val)
-	if val == "" || strings.EqualFold(val, "none") {
-		return nil, fmt.Errorf("filter: no drop-shadow")
+	if val == "" || strings.EqualFold(val, cssValueNone) {
+		return nil, errDropShadowMissing
 	}
 	var shadows []Shadow
 	for val != "" {
@@ -65,7 +75,7 @@ func ParseFilterDropShadow(val string) ([]Shadow, error) {
 		name := strings.ToLower(strings.TrimSpace(val[:nameEnd]))
 		args, rest, ok := readFilterFunction(val[nameEnd:])
 		if !ok {
-			return nil, fmt.Errorf("filter: invalid function %q", val)
+			return nil, fmt.Errorf("%w: %q", errFilterInvalidFunc, val)
 		}
 		if name == "drop-shadow" {
 			shadow, err := parseSingleShadow(args)
@@ -82,7 +92,7 @@ func ParseFilterDropShadow(val string) ([]Shadow, error) {
 		val = rest
 	}
 	if len(shadows) == 0 {
-		return nil, fmt.Errorf("filter: no drop-shadow")
+		return nil, errDropShadowMissing
 	}
 	return shadows, nil
 }
@@ -130,7 +140,7 @@ func readFilterFunction(value string) (string, string, bool) {
 func parseSingleShadow(val string) (Shadow, error) {
 	tokens := strings.Fields(val)
 	if len(tokens) == 0 {
-		return Shadow{}, fmt.Errorf("empty shadow entry")
+		return Shadow{}, errShadowEntryEmpty
 	}
 
 	var s Shadow
@@ -157,7 +167,7 @@ func parseSingleShadow(val string) (Shadow, error) {
 	}
 
 	if len(lengths) < 2 {
-		return Shadow{}, fmt.Errorf("shadow needs at least x and y offsets, got %q", val)
+		return Shadow{}, fmt.Errorf("%w: got %q", errShadowOffsets, val)
 	}
 
 	s.OffsetX = ParseLength(lengths[0], 0)

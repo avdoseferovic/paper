@@ -1,10 +1,21 @@
 package css
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
+)
+
+var (
+	errLinearGradientParts = errors.New("linear-gradient needs at least 2 parts")
+	errRadialGradientParts = errors.New("radial-gradient needs at least 2 parts")
+	errConicGradientParts  = errors.New("conic-gradient needs at least 2 parts")
+	errInvalidGradientFunc = errors.New("invalid gradient function")
+	errGradientStopCount   = errors.New("gradient needs at least 2 stops")
+	errGradientStopColor   = errors.New("unknown color in gradient stop")
+	errGradientStopAngle   = errors.New("bad gradient stop angle")
 )
 
 // GradientKind identifies the type of gradient.
@@ -58,9 +69,9 @@ func ParseLinearGradient(s string) (*LinearGradient, error) {
 	if err != nil {
 		return nil, err
 	}
-	parts := splitTopLevel(inner, ',')
+	parts := splitTopLevel(inner)
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("linear-gradient: need at least 2 parts, got %q", inner)
+		return nil, fmt.Errorf("%w: got %q", errLinearGradientParts, inner)
 	}
 	angleDeg, stopParts := parseLinearDirection(parts)
 	stops, err := parseStops(stopParts)
@@ -77,9 +88,9 @@ func ParseRadialGradient(s string) (*RadialGradient, error) {
 	if err != nil {
 		return nil, err
 	}
-	parts := splitTopLevel(inner, ',')
+	parts := splitTopLevel(inner)
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("radial-gradient: need at least 2 parts, got %q", inner)
+		return nil, fmt.Errorf("%w: got %q", errRadialGradientParts, inner)
 	}
 	circle, cx, cy, stopParts := parseRadialShape(parts)
 	stops, err := parseStops(stopParts)
@@ -96,9 +107,9 @@ func ParseConicGradient(s string) (*ConicGradient, error) {
 	if err != nil {
 		return nil, err
 	}
-	parts := splitTopLevel(inner, ',')
+	parts := splitTopLevel(inner)
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("conic-gradient: need at least 2 parts, got %q", inner)
+		return nil, fmt.Errorf("%w: got %q", errConicGradientParts, inner)
 	}
 	fromDeg, cx, cy, stopParts := parseConicPrelude(parts)
 	stops, err := parseStops(stopParts)
@@ -115,13 +126,13 @@ func extractFuncArgs(name, s string) (string, error) {
 	s = strings.TrimSpace(s)
 	prefix := name + "("
 	if !strings.HasPrefix(s, prefix) || !strings.HasSuffix(s, ")") {
-		return "", fmt.Errorf("not a %s() call: %q", name, s)
+		return "", fmt.Errorf("%w: expected %s(): %q", errInvalidGradientFunc, name, s)
 	}
 	return strings.TrimSpace(s[len(prefix) : len(s)-1]), nil
 }
 
-// splitTopLevel splits s on sep, but not when inside parentheses.
-func splitTopLevel(s string, sep rune) []string {
+// splitTopLevel splits s on commas, but not when inside parentheses.
+func splitTopLevel(s string) []string {
 	var out []string
 	depth := 0
 	start := 0
@@ -131,7 +142,7 @@ func splitTopLevel(s string, sep rune) []string {
 			depth++
 		case ')':
 			depth--
-		case sep:
+		case ',':
 			if depth == 0 {
 				out = append(out, strings.TrimSpace(s[start:i]))
 				start = i + 1
@@ -144,7 +155,7 @@ func splitTopLevel(s string, sep rune) []string {
 
 // parseLinearDirection extracts the angle from the first part and returns the
 // remaining parts (colour stops).
-func parseLinearDirection(parts []string) (angleDeg float64, stopParts []string) {
+func parseLinearDirection(parts []string) (float64, []string) {
 	first := strings.ToLower(strings.TrimSpace(parts[0]))
 	switch first {
 	case "to right":
@@ -164,20 +175,20 @@ func parseLinearDirection(parts []string) (angleDeg float64, stopParts []string)
 	case "to top left", "to left top":
 		return 315, parts[1:]
 	default:
-		if strings.HasSuffix(first, "deg") {
-			v, err := strconv.ParseFloat(strings.TrimSuffix(first, "deg"), 64)
+		if value, ok := strings.CutSuffix(first, "deg"); ok {
+			v, err := strconv.ParseFloat(value, 64)
 			if err == nil {
 				return v, parts[1:]
 			}
 		}
-		if strings.HasSuffix(first, "turn") {
-			v, err := strconv.ParseFloat(strings.TrimSuffix(first, "turn"), 64)
+		if value, ok := strings.CutSuffix(first, "turn"); ok {
+			v, err := strconv.ParseFloat(value, 64)
 			if err == nil {
 				return v * 360, parts[1:]
 			}
 		}
-		if strings.HasSuffix(first, "rad") {
-			v, err := strconv.ParseFloat(strings.TrimSuffix(first, "rad"), 64)
+		if value, ok := strings.CutSuffix(first, "rad"); ok {
+			v, err := strconv.ParseFloat(value, 64)
 			if err == nil {
 				return v * 180 / math.Pi, parts[1:]
 			}
@@ -188,13 +199,13 @@ func parseLinearDirection(parts []string) (angleDeg float64, stopParts []string)
 }
 
 // parseRadialShape extracts optional "circle at X" from the first part.
-func parseRadialShape(parts []string) (circle bool, cx, cy float64, stopParts []string) {
+func parseRadialShape(parts []string) (bool, float64, float64, []string) {
 	first := strings.ToLower(strings.TrimSpace(parts[0]))
 	if strings.HasPrefix(first, "circle") || strings.HasPrefix(first, "ellipse") {
-		circle = strings.HasPrefix(first, "circle")
-		cx, cy = 0.5, 0.5 // default centre
-		if idx := strings.Index(first, "at "); idx >= 0 {
-			pos := strings.TrimSpace(first[idx+3:])
+		circle := strings.HasPrefix(first, "circle")
+		cx, cy := 0.5, 0.5 // default centre
+		if _, pos, ok := strings.Cut(first, "at "); ok {
+			pos = strings.TrimSpace(pos)
 			cx, cy = parseRadialPosition(pos)
 		}
 		return circle, cx, cy, parts[1:]
@@ -203,9 +214,9 @@ func parseRadialShape(parts []string) (circle bool, cx, cy float64, stopParts []
 	return true, 0.5, 0.5, parts
 }
 
-func parseRadialPosition(pos string) (cx, cy float64) {
+func parseRadialPosition(pos string) (float64, float64) {
 	switch pos {
-	case "center", "center center":
+	case "center", "center " + "center":
 		return 0.5, 0.5
 	case "top":
 		return 0.5, 0.0
@@ -228,10 +239,10 @@ func parseRadialPosition(pos string) (cx, cy float64) {
 	}
 }
 
-func parseConicPrelude(parts []string) (fromDeg, cx, cy float64, stopParts []string) {
-	fromDeg, cx, cy = 0, 0.5, 0.5
+func parseConicPrelude(parts []string) (float64, float64, float64, []string) {
+	fromDeg, cx, cy := 0.0, 0.5, 0.5
 	first := strings.ToLower(strings.TrimSpace(parts[0]))
-	if !(strings.HasPrefix(first, "from ") || strings.HasPrefix(first, "at ") || strings.Contains(first, " at ")) {
+	if !strings.HasPrefix(first, "from ") && !strings.HasPrefix(first, "at ") && !strings.Contains(first, " at ") {
 		return fromDeg, cx, cy, parts
 	}
 	fields := strings.Fields(first)
@@ -257,7 +268,7 @@ func parseConicPrelude(parts []string) (fromDeg, cx, cy float64, stopParts []str
 // parseStops converts each comma-separated token into a GradientStop.
 func parseStops(parts []string) ([]GradientStop, error) {
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("gradient needs at least 2 stops")
+		return nil, errGradientStopCount
 	}
 	var stops []GradientStop
 	for _, p := range parts {
@@ -271,7 +282,7 @@ func parseStops(parts []string) ([]GradientStop, error) {
 		colorStr, posStr := splitColorAndPosition(p)
 		c := ParseColor(colorStr)
 		if c == nil {
-			return nil, fmt.Errorf("unknown color in stop: %q", colorStr)
+			return nil, fmt.Errorf("%w: %q", errGradientStopColor, colorStr)
 		}
 		pos := -1.0
 		if posStr != "" {
@@ -290,7 +301,7 @@ func parseStops(parts []string) ([]GradientStop, error) {
 
 // splitColorAndPosition separates "red 25%" into ("red", "25%").
 // When no position token is present, returns (s, "").
-func splitColorAndPosition(s string) (colorStr, posStr string) {
+func splitColorAndPosition(s string) (string, string) {
 	// Look for trailing "NNN%" or "NNNpx" or "NNNmm" token.
 	fields := strings.Fields(s)
 	if len(fields) < 2 {
@@ -302,7 +313,7 @@ func splitColorAndPosition(s string) (colorStr, posStr string) {
 		strings.HasSuffix(last, "rad") ||
 		strings.HasSuffix(last, "px") || strings.HasSuffix(last, "mm") ||
 		strings.HasSuffix(last, "pt") || strings.HasSuffix(last, "em") {
-		colorStr = strings.TrimSpace(strings.Join(fields[:len(fields)-1], " "))
+		colorStr := strings.TrimSpace(strings.Join(fields[:len(fields)-1], " "))
 		return colorStr, last
 	}
 	return s, ""
@@ -319,7 +330,7 @@ func parseGradientStopPosition(posStr string) (float64, bool, error) {
 	case strings.HasSuffix(posStr, "deg") || strings.HasSuffix(posStr, "turn") || strings.HasSuffix(posStr, "rad"):
 		deg, ok := parseAngleDeg(posStr)
 		if !ok {
-			return 0, false, fmt.Errorf("bad stop angle %q", posStr)
+			return 0, false, fmt.Errorf("%w: %q", errGradientStopAngle, posStr)
 		}
 		return deg / 360.0, true, nil
 	default:

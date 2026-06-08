@@ -1,7 +1,7 @@
 package htmllist
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -10,11 +10,13 @@ func FormatMarker(style StyleType, idx int) string {
 	switch style {
 	case None:
 		return ""
+	case Bullet:
+		return "•"
 	case Decimal:
-		return fmt.Sprintf("%d.", idx+1)
+		return strconv.Itoa(idx+1) + "."
 	case DecimalCircle:
 		// Circle markers render the bare number (no trailing period) centred in a disc.
-		return fmt.Sprintf("%d", idx+1)
+		return strconv.Itoa(idx + 1)
 	case LowerAlpha:
 		return toAlpha(idx, false) + "."
 	case UpperAlpha:
@@ -23,7 +25,7 @@ func FormatMarker(style StyleType, idx int) string {
 		return toRoman(idx+1, false) + "."
 	case UpperRoman:
 		return toRoman(idx+1, true) + "."
-	default: // Bullet and unknown
+	default: // Unknown styles render as bullets.
 		return "•"
 	}
 }
@@ -54,9 +56,19 @@ var romanNumerals = []struct {
 	sym  string
 	lsym string
 }{
-	{1000, "M", "m"}, {900, "CM", "cm"}, {500, "D", "d"}, {400, "CD", "cd"},
-	{100, "C", "c"}, {90, "XC", "xc"}, {50, "L", "l"}, {40, "XL", "xl"},
-	{10, "X", "x"}, {9, "IX", "ix"}, {5, "V", "v"}, {4, "IV", "iv"}, {1, "I", "i"},
+	{1000, "M", "m"},
+	{900, "CM", "cm"},
+	{500, "D", "d"},
+	{400, "CD", "cd"},
+	{100, "C", "c"},
+	{90, "XC", "xc"},
+	{50, "L", "l"},
+	{40, "XL", "xl"},
+	{10, "X", "x"},
+	{9, "IX", "ix"},
+	{5, "V", "v"},
+	{4, "IV", "iv"},
+	{1, "I", "i"},
 }
 
 // toRoman converts a positive integer to a Roman numeral string.

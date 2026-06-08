@@ -198,7 +198,7 @@ func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle
 	var style *css.ComputedStyle
 	if n.Tag() != "" {
 		style = tr.computeBlockStyle(n, parent)
-		if style.Display == "none" {
+		if style.Display == displayNone {
 			return nil
 		}
 	} else {
@@ -227,14 +227,6 @@ func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle
 
 // dispatchBlockRows is the original blockRows tag switch (split out so the
 // outer blockRows can handle anchor wrapping uniformly).
-func (tr *translator) dispatchBlockRows(n *dom.Node) []core.Row {
-	var style *css.ComputedStyle
-	if n != nil && n.Tag() != "" {
-		style = tr.computeBlockStyle(n, nil)
-	}
-	return tr.dispatchBlockRowsWithStyle(n, style)
-}
-
 func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.ComputedStyle) []core.Row {
 	tag := n.Tag()
 	// Drop metadata tags that may appear in the body — their text content
@@ -252,7 +244,7 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 		return []core.Row{tr.paragraphRowStyled(n, style)}
 	case "hr":
 		return []core.Row{tr.styledHrRowWithStyle(n, style)}
-	case "table":
+	case tagTable:
 		return tr.tableRows(n)
 	case "ul", "ol":
 		return tr.listRows(n)
@@ -260,14 +252,14 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 		return tr.definitionListRows(n)
 	case "details":
 		return tr.detailsRows(n)
-	case "img":
+	case tagImg:
 		if r, ok := tr.imageRowWithStyle(n, style); ok {
 			return []core.Row{r}
 		}
 		return altRowStyled(n, style)
 	case "picture":
 		return tr.pictureRowWithStyle(n, style)
-	case "svg":
+	case tagSVG:
 		if r, ok := tr.svgRowWithStyle(n, style); ok {
 			return []core.Row{r}
 		}
@@ -277,10 +269,10 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 	default:
 		// Container (div, section, article, header, footer, nav, etc.).
 		// Compute style to detect class-based display:flex and display:none.
-		if style.Display == "none" {
+		if style.Display == displayNone {
 			return nil
 		}
-		if style.Display == "flex" {
+		if style.Display == displayFlex {
 			if isColumnDirection(style.FlexDirection) {
 				return tr.flexColumnRows(n, style)
 			}
@@ -308,11 +300,6 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 // When the computed style sets CSS padding, it is passed through as the richtext's
 // Top/Right/Bottom/Left offsets so the text is inset from the styled background's
 // edges instead of butting against them.
-func (tr *translator) paragraphRow(n *dom.Node) core.Row {
-	style := tr.computeBlockStyle(n, nil)
-	return tr.paragraphRowStyled(n, style)
-}
-
 func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) core.Row {
 	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
 	if len(runs) == 0 {
@@ -356,7 +343,7 @@ func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {
 
 func richTextAlignFromCSS(value string) align.Type {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "center":
+	case flexAlignCenter:
 		return align.Center
 	case "right", "end":
 		return align.Right
@@ -369,11 +356,6 @@ func richTextAlignFromCSS(value string) align.Type {
 
 // styledHrRow honours border-top-width, border-top-style, color on the <hr>
 // element. Defaults match the original hrRow behaviour when no style is set.
-func (tr *translator) styledHrRow(n *dom.Node) core.Row {
-	style := tr.computeBlockStyle(n, nil)
-	return tr.styledHrRowWithStyle(n, style)
-}
-
 func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle) core.Row {
 	lineProp := props.Line{}
 	if style.BorderTopWidth > 0 {
@@ -395,10 +377,6 @@ func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle
 }
 
 // wrapTextRow handles raw text nodes at block level.
-func wrapTextRow(text string) []core.Row {
-	return wrapTextRowStyled(text, nil)
-}
-
 func wrapTextRowStyled(text string, style *css.ComputedStyle) []core.Row {
 	text = strings.TrimSpace(text)
 	if text == "" {

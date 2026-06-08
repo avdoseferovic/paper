@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
@@ -13,12 +14,8 @@ import (
 // computeNodeStyleRooted is computeNodeStyle with an explicit root style seed.
 // When parent is nil and root is non-nil, root is used as the inheritance
 // source so :root / html-level CSS variables propagate into body descendants.
-func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, parent, root *css.ComputedStyle) *css.ComputedStyle {
-	effectiveParent := parent
-	if effectiveParent == nil {
-		effectiveParent = root
-	}
-	return computeNodeStyle(sheet, n, effectiveParent)
+func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, root *css.ComputedStyle) *css.ComputedStyle {
+	return computeNodeStyle(sheet, n, root)
 }
 
 func (tr *translator) computeBlockStyle(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
@@ -61,9 +58,7 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 		// pollute parent's map.
 		if len(parent.Vars) > 0 {
 			s.Vars = make(map[string]string, len(parent.Vars))
-			for k, v := range parent.Vars {
-				s.Vars[k] = v
-			}
+			maps.Copy(s.Vars, parent.Vars)
 		}
 	}
 	if sheet != nil && n.RawNode() != nil {
@@ -123,9 +118,7 @@ func inheritInlineStyle(parent *css.ComputedStyle) *css.ComputedStyle {
 	s.Quotes = parent.Quotes
 	if len(parent.Vars) > 0 {
 		s.Vars = make(map[string]string, len(parent.Vars))
-		for k, v := range parent.Vars {
-			s.Vars[k] = v
-		}
+		maps.Copy(s.Vars, parent.Vars)
 	}
 	return s
 }
@@ -362,7 +355,7 @@ func applyInlineStyleToRun(style *css.ComputedStyle, run *props.RichRun) {
 	if align := richRunVerticalAlignFromCSS(style.VerticalAlign); align != "" {
 		run.VerticalAlign = align
 	}
-	if style.TextTransform != "" && style.TextTransform != "none" {
+	if style.TextTransform != "" && style.TextTransform != cssValueNone {
 		run.Text = css.ApplyTextTransform(run.Text, style.TextTransform)
 	}
 	if len(style.TextShadows) > 0 && len(run.TextShadows) == 0 && run.TextShadow == nil {
@@ -422,7 +415,7 @@ func mergeCSSFontStyle(existing fontstyle.Type, weight, style string) fontstyle.
 
 func applyTextDecoration(value string, run *props.RichRun) {
 	value = strings.ToLower(strings.TrimSpace(value))
-	if value == "" || value == "none" {
+	if value == "" || value == cssValueNone {
 		return
 	}
 	if strings.Contains(value, "underline") {
@@ -435,33 +428,22 @@ func applyTextDecoration(value string, run *props.RichRun) {
 
 func richRunVerticalAlignFromCSS(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "baseline":
-		return "baseline"
-	case "sub":
-		return "sub"
-	case "super", "sup":
-		return "super"
+	case verticalAlignBaseline:
+		return verticalAlignBaseline
+	case verticalAlignSub:
+		return verticalAlignSub
+	case verticalAlignSuper, "sup":
+		return verticalAlignSuper
 	default:
 		return ""
 	}
 }
 
-func generatedContentText(value string, n *dom.Node, counters *counterState) (string, bool) {
-	runs, ok := generatedContentRuns(value, n, runContext{counters: counters})
-	if !ok {
-		return "", false
-	}
-	var out strings.Builder
-	for _, run := range runs {
-		out.WriteString(run.Text)
-	}
-	return out.String(), len(runs) > 0
-}
-
+//nolint:gocognit // CSS content parsing has several independent function and keyword forms.
 func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 	value = strings.TrimSpace(value)
 	switch strings.ToLower(value) {
-	case "", "normal", "none":
+	case "", "normal", cssValueNone:
 		return nil, false
 	}
 
@@ -523,21 +505,9 @@ func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.Ri
 			continue
 		}
 		if strings.HasPrefix(lower, "url(") {
-			args, rest, ok := readCSSFunction(value, "url")
+			rest, ok := appendGeneratedImageRun(value, ctx, flushText, &runs)
 			if !ok {
 				return nil, false
-			}
-			src, ok := cssStringArg(args)
-			if !ok || src == "" {
-				return nil, false
-			}
-			if ctx.contentImage != nil {
-				if img, ok := ctx.contentImage(src, ctx.style); ok {
-					flushText()
-					run := richRunFromContext("", ctx)
-					run.Image = img
-					runs = append(runs, run)
-				}
 			}
 			value = rest
 			consumed = true
@@ -581,6 +551,34 @@ func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.Ri
 	}
 	flushText()
 	return runs, consumed
+}
+
+func appendGeneratedImageRun(
+	value string,
+	ctx runContext,
+	flushText func(),
+	runs *[]props.RichRun,
+) (string, bool) {
+	args, rest, ok := readCSSFunction(value, "url")
+	if !ok {
+		return "", false
+	}
+	src, ok := cssStringArg(args)
+	if !ok || src == "" {
+		return "", false
+	}
+	if ctx.contentImage == nil {
+		return rest, true
+	}
+	img, ok := ctx.contentImage(src, ctx.style)
+	if !ok {
+		return rest, true
+	}
+	flushText()
+	run := richRunFromContext("", ctx)
+	run.Image = img
+	*runs = append(*runs, run)
+	return rest, true
 }
 
 func consumeContentKeyword(value, keyword string) (string, bool) {
@@ -646,7 +644,7 @@ func generatedCounterText(args string, counters *counterState) (string, bool) {
 	if name == "" {
 		return "", false
 	}
-	style := "decimal"
+	style := listStyleDecimal
 	if len(parts) > 1 {
 		style = cssIdentifierArg(parts[1])
 	}
@@ -663,7 +661,7 @@ func generatedCountersText(args string, counters *counterState) (string, bool) {
 	if name == "" || !ok {
 		return "", false
 	}
-	style := "decimal"
+	style := listStyleDecimal
 	if len(parts) > 2 {
 		style = cssIdentifierArg(parts[2])
 	}

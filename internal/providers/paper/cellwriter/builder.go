@@ -22,8 +22,8 @@ func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer)
 	borderRadius := NewBorderRadiusStyler(fpdf)
 	backgroundImageStyler := NewBackgroundImageStyler(fpdf)
 
-	// Chain order (first applied → last):
-	//   shadow → perSideBorder → borderRadius → borderThickness → borderLine → borderColor → fillColor → backgroundImage → outline → cellWriter
+	// Chain order starts with shadow, then borders/fills/background image,
+	// then outline, then cellWriter.
 	// shadow: draws behind all decorations.
 	// outline: LAST before cellWriter — draws outside the cell box after all fills.
 	outlineStyle := NewOutlineStyler(fpdf)

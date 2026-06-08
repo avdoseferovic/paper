@@ -70,8 +70,8 @@ func expandBackground(val string) map[string]string {
 		switch {
 		case isBackgroundImageToken(lower):
 			out["background-image"] = token
-		case lower == "none":
-			out["background-image"] = "none"
+		case lower == cssValueNone:
+			out["background-image"] = cssValueNone
 		case ParseColor(token) != nil:
 			out["background-color"] = token
 		case isBackgroundRepeatToken(lower):
@@ -227,7 +227,7 @@ func expandBorderSide(side, val string) map[string]string {
 func parseBorderTriple(val string) (string, string, string) {
 	parts := strings.Fields(val)
 	borderStyles := map[string]bool{
-		"none": true, "hidden": true, "dotted": true, "dashed": true,
+		cssValueNone: true, "hidden": true, "dotted": true, "dashed": true,
 		"solid": true, "double": true, "groove": true, "ridge": true,
 		"inset": true, "outset": true,
 	}
@@ -246,7 +246,7 @@ func parseBorderTriple(val string) (string, string, string) {
 		width = "medium"
 	}
 	if style == "" {
-		style = "none"
+		style = cssValueNone
 	}
 	if colorVal == "" {
 		colorVal = "currentColor"
@@ -341,19 +341,19 @@ func isLengthValue(s string) bool {
 // isBasisToken returns true when the token is a valid flex-basis value
 // (length, percentage, or the keyword "auto").
 func isBasisToken(s string) bool {
-	return s == "auto" || isLengthValue(s)
+	return s == cssValueAuto || isLengthValue(s)
 }
 
 // expandFlex expands the CSS flex shorthand into flex-grow, flex-shrink, flex-basis.
 // Supports: none | auto | initial | <number> | <number> <basis> | <number> <number> | <grow> <shrink> <basis>
 func expandFlex(val string) map[string]string {
 	switch val {
-	case "none":
-		return map[string]string{"flex-grow": "0", "flex-shrink": "0", "flex-basis": "auto"}
-	case "auto":
-		return map[string]string{"flex-grow": "1", "flex-shrink": "1", "flex-basis": "auto"}
+	case cssValueNone:
+		return map[string]string{"flex-grow": "0", "flex-shrink": "0", "flex-basis": cssValueAuto}
+	case cssValueAuto:
+		return map[string]string{"flex-grow": "1", "flex-shrink": "1", "flex-basis": cssValueAuto}
 	case "initial":
-		return map[string]string{"flex-grow": "0", "flex-shrink": "1", "flex-basis": "auto"}
+		return map[string]string{"flex-grow": "0", "flex-shrink": "1", "flex-basis": cssValueAuto}
 	}
 
 	parts := strings.Fields(val)

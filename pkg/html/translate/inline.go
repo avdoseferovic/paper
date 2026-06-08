@@ -138,7 +138,7 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	if ctx.styleResolver != nil {
 		next.style = ctx.styleResolver(n, ctx.style)
 	}
-	if isDisplayNone(n) || (next.style != nil && next.style.Display == "none") {
+	if isDisplayNone(n) || (next.style != nil && next.style.Display == displayNone) {
 		return
 	}
 	counterScope := next.counters.enter(next.style)
@@ -236,7 +236,7 @@ func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.Ri
 	case "br":
 		*runs = append(*runs, props.RichRun{Text: "\n", Style: ctx.toStyle()})
 		return true
-	case "img":
+	case tagImg:
 		if ctx.inlineImage != nil {
 			if img, ok := ctx.inlineImage(n); ok {
 				run := richRunFromContext("", ctx)
@@ -249,7 +249,7 @@ func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.Ri
 			*runs = append(*runs, richRunFromContext(alt, ctx))
 		}
 		return true
-	case "svg":
+	case tagSVG:
 		if ctx.inlineSVG != nil {
 			if img, ok := ctx.inlineSVG(n); ok {
 				run := richRunFromContext("", ctx)
@@ -275,7 +275,7 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		next.underline = true
 	case "s", "strike", "del":
 		next.strike = true
-	case "sub":
+	case verticalAlignSub:
 		next.sub = true
 		next.sizeScale = scaledRunSize(next.sizeScale, 0.75)
 	case "sup":
@@ -330,10 +330,10 @@ func scaledRunSize(current, factor float64) float64 {
 
 func vAlign(ctx runContext) string {
 	if ctx.sub {
-		return "sub"
+		return verticalAlignSub
 	}
 	if ctx.sup {
-		return "super"
+		return verticalAlignSuper
 	}
-	return "baseline"
+	return verticalAlignBaseline
 }

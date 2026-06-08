@@ -234,8 +234,8 @@ func objectPositionOffset(value string, freeSpace float64) float64 {
 	case "center":
 		return freeSpace / 2
 	}
-	if strings.HasSuffix(value, "%") {
-		pct, err := strconv.ParseFloat(strings.TrimSuffix(value, "%"), 64)
+	if pctValue, ok := strings.CutSuffix(value, "%"); ok {
+		pct, err := strconv.ParseFloat(pctValue, 64)
 		if err == nil {
 			return freeSpace * pct / 100
 		}
@@ -259,8 +259,8 @@ func parseObjectPositionLength(value string) (float64, bool) {
 		"px": 0.264583,
 	}
 	for suffix, factor := range units {
-		if strings.HasSuffix(value, suffix) {
-			n, err := strconv.ParseFloat(strings.TrimSuffix(value, suffix), 64)
+		if trimmed, ok := strings.CutSuffix(value, suffix); ok {
+			n, err := strconv.ParseFloat(trimmed, 64)
 			if err != nil {
 				return 0, false
 			}
