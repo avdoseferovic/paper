@@ -2,29 +2,95 @@ package paper
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestProcessPageGroupsConcurrentlyPreservesOrderAndWorkerLimit(t *testing.T) {
+// barrier blocks each caller until n callers have arrived, then releases them
+// together. It lets a test force a deterministic number of concurrent workers
+// without relying on time.Sleep.
+type barrier struct {
+	mu    sync.Mutex
+	cond  *sync.Cond
+	n     int
+	count int
+}
+
+func newBarrier(n int) *barrier {
+	b := &barrier{n: n}
+	b.cond = sync.NewCond(&b.mu)
+	return b
+}
+
+func (b *barrier) wait() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.count++
+	if b.count == b.n {
+		b.count = 0
+		b.cond.Broadcast()
+		return
+	}
+	for b.count != 0 {
+		b.cond.Wait()
+	}
+}
+
+func TestProcessPageGroupsConcurrentlyPreservesInputOrder(t *testing.T) {
 	t.Parallel()
 
+	const n = 5
+	pageGroups := make([][]core.Page, n)
+	completed := make([]chan struct{}, n)
+	for i := range pageGroups {
+		pageGroups[i] = make([]core.Page, i+1)
+		completed[i] = make(chan struct{})
+	}
+
+	// Force strict reverse completion order: each job waits for the next-higher
+	// index to finish before completing, so jobs complete n-1, n-2, ..., 0.
+	// This deterministically proves results map back to their input index
+	// regardless of completion order (no time.Sleep, no scheduling guesswork).
+	results, err := processPageGroupsConcurrently(n, pageGroups, func(group []core.Page) (pageProcessResult, error) {
+		idx := len(group) - 1
+		if idx < n-1 {
+			<-completed[idx+1]
+		}
+		close(completed[idx])
+		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+	})
+
+	require.NoError(t, err)
+	pdfs, _ := splitPageProcessResults(results)
+	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}, {5}}, pdfs)
+}
+
+func TestProcessPageGroupsConcurrentlyRespectsWorkerLimit(t *testing.T) {
+	t.Parallel()
+
+	const workers = 2
+	// An even job count so the workers rendezvous in full batches of `workers`.
 	pageGroups := [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
 		make([]core.Page, 3),
 		make([]core.Page, 4),
-		make([]core.Page, 5),
 	}
 
 	var active int64
 	var maxActive int64
-	results, err := processPageGroupsConcurrently(2, pageGroups, func(group []core.Page) (pageProcessResult, error) {
+	// The barrier only releases once `workers` jobs are in-flight together, so
+	// the test deterministically observes concurrency at the limit (it would
+	// deadlock if the pool ran fewer than `workers` at a time), while the
+	// atomic maxActive check proves it never exceeds the limit.
+	b := newBarrier(workers)
+
+	results, err := processPageGroupsConcurrently(workers, pageGroups, func(group []core.Page) (pageProcessResult, error) {
 		current := atomic.AddInt64(&active, 1)
 		for {
 			observed := atomic.LoadInt64(&maxActive)
@@ -32,16 +98,15 @@ func TestProcessPageGroupsConcurrentlyPreservesOrderAndWorkerLimit(t *testing.T)
 				break
 			}
 		}
-		defer atomic.AddInt64(&active, -1)
-
-		time.Sleep(time.Duration(6-len(group)) * time.Millisecond)
+		b.wait()
+		atomic.AddInt64(&active, -1)
 		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
 	})
 
 	require.NoError(t, err)
 	pdfs, _ := splitPageProcessResults(results)
-	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}, {5}}, pdfs)
-	assert.LessOrEqual(t, maxActive, int64(2))
+	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}}, pdfs)
+	assert.Equal(t, int64(workers), maxActive)
 }
 
 func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
@@ -59,4 +124,22 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 	})
 
 	assert.ErrorIs(t, err, expectedErr)
+}
+
+func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
+	t.Parallel()
+
+	results, err := processPageGroupsConcurrently(3, [][]core.Page{
+		make([]core.Page, 1),
+		make([]core.Page, 2),
+	}, func(group []core.Page) (pageProcessResult, error) {
+		if len(group) == 2 {
+			panic("boom")
+		}
+		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, results)
+	assert.Contains(t, err.Error(), "panic processing page group")
 }

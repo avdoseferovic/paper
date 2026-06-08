@@ -8,7 +8,6 @@ import (
 	goimage "image"
 	_ "image/jpeg"
 	"image/png"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,6 +29,14 @@ import (
 // dpiForRaster is the DPI used when rasterising SVG to PNG for PDF embedding.
 const dpiForRaster = 150.0
 
+// maxRasterPixels caps the total pixel count of an SVG raster target. The
+// dimensions feeding the rasteriser (CSS/attribute width/height and the SVG's
+// own viewBox) are attacker-controlled in untrusted HTML, so an unbounded
+// goimage.NewRGBA allocation (4 bytes/px) is a memory-exhaustion DoS vector.
+// 16M px ≈ 64 MB RGBA, generous for any print-resolution image (A4 at 150 DPI
+// is ~2.2M px) while refusing pathological viewBox/size values.
+const maxRasterPixels = 16 << 20
+
 // ImageResolver loads image bytes for a given <img src="…"> value. It returns
 // the raw bytes and a hint extension ("png", "jpg", "svg", etc.). When err is
 // non-nil the caller falls back to the <img>'s alt text.
@@ -46,7 +53,9 @@ var (
 	errDataURIInvalid       = errors.New("html: invalid data URI")
 	errAbsolutePathRefused  = errors.New("html: absolute path refused outside base dir")
 	errPathEscapesBaseDir   = errors.New("html: path escapes base dir")
+	errBaseDirEmpty         = errors.New("html: base dir is empty; refusing all local reads")
 	errSVGHasZeroDimensions = errors.New("html: svg has zero dimensions")
+	errSVGTooLarge          = errors.New("html: svg raster dimensions exceed pixel budget")
 )
 
 // safeDefaultResolver only accepts data: URIs. It refuses any other src to
@@ -100,25 +109,13 @@ func decodeDataURI(uri string) ([]byte, string, error) {
 // baseDirResolver returns a resolver that only loads files inside dir,
 // rejecting any path that would escape via "../" or absolute prefix.
 func baseDirResolver(dir string) ImageResolver {
-	cleanBase, _ := filepath.Abs(filepath.Clean(dir))
 	return func(src string) ([]byte, string, error) {
 		if strings.HasPrefix(src, "data:") {
 			return decodeDataURI(src)
 		}
-		// Reject absolute paths immediately.
-		if filepath.IsAbs(src) {
-			return nil, "", fmt.Errorf("%w: %q", errAbsolutePathRefused, src)
-		}
-		full, err := filepath.Abs(filepath.Join(cleanBase, src))
+		data, err := readFileInRoot(dir, src)
 		if err != nil {
-			return nil, "", fmt.Errorf("html: resolving image path: %w", err)
-		}
-		if !strings.HasPrefix(full, cleanBase+string(filepath.Separator)) && full != cleanBase {
-			return nil, "", fmt.Errorf("%w: %q", errPathEscapesBaseDir, src)
-		}
-		data, err := os.ReadFile(full)
-		if err != nil {
-			return nil, "", fmt.Errorf("html: reading image: %w", err)
+			return nil, "", err
 		}
 		return data, extFromFilename(src), nil
 	}
@@ -932,6 +929,9 @@ func rasteriseSVG(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int,
 	pxW, pxH := svgTargetPixels(icon, widthMM, heightMM)
 	if pxW <= 0 || pxH <= 0 {
 		return nil, 0, 0, errSVGHasZeroDimensions
+	}
+	if int64(pxW)*int64(pxH) > maxRasterPixels {
+		return nil, 0, 0, fmt.Errorf("%w: %dx%d", errSVGTooLarge, pxW, pxH)
 	}
 	icon.SetTarget(0, 0, float64(pxW), float64(pxH))
 	rgba := goimage.NewRGBA(goimage.Rect(0, 0, pxW, pxH))

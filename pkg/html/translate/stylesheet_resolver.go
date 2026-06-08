@@ -3,8 +3,6 @@ package translate
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -15,11 +13,6 @@ type StylesheetResolver func(href string) ([]byte, error)
 // ErrStylesheetResolverRefused is returned by the default resolver when asked
 // to load a non-data: URI without an explicit WithStylesheetBaseDir.
 var ErrStylesheetResolverRefused = errors.New("html: default stylesheet resolver refuses local file reads; configure WithStylesheetBaseDir")
-
-var (
-	errStylesheetBaseDirEmpty   = errors.New("html: stylesheet base dir is empty; refusing all reads")
-	errStylesheetBaseDirInvalid = errors.New("html: stylesheet base dir is invalid")
-)
 
 // safeDefaultStylesheetResolver only accepts data: URIs.
 func safeDefaultStylesheetResolver(href string) ([]byte, error) {
@@ -48,46 +41,15 @@ func decodeCSSDataURI(uri string) ([]byte, error) {
 }
 
 // stylesheetBaseDirResolver returns a resolver that only loads files inside
-// dir, rejecting any path that would escape via "../" or absolute prefix.
-// Mirrors the image baseDirResolver safety model exactly.
-//
-// Security: when dir is empty or filepath.Abs fails, the returned resolver
-// errors on every call to prevent collapsing the prefix guard to "" (which
-// would allow CWD-relative reads).
+// dir. Confinement (".." traversal, absolute paths, and out-of-root symlinks)
+// is enforced by readFileInRoot via os.Root, mirroring the image resolver. An
+// empty dir is refused outright (see readFileInRoot).
 func stylesheetBaseDirResolver(dir string) StylesheetResolver {
-	if dir == "" {
-		return func(string) ([]byte, error) {
-			return nil, errStylesheetBaseDirEmpty
-		}
-	}
-	cleanBase, err := filepath.Abs(filepath.Clean(dir))
-	if err != nil || cleanBase == "" {
-		return func(string) ([]byte, error) {
-			if err != nil {
-				return nil, fmt.Errorf("%w: %q: %w", errStylesheetBaseDirInvalid, dir, err)
-			}
-			return nil, fmt.Errorf("%w: %q", errStylesheetBaseDirInvalid, dir)
-		}
-	}
 	return func(href string) ([]byte, error) {
 		if strings.HasPrefix(href, "data:") {
 			return decodeCSSDataURI(href)
 		}
-		if filepath.IsAbs(href) {
-			return nil, fmt.Errorf("%w: %q", errAbsolutePathRefused, href)
-		}
-		full, err := filepath.Abs(filepath.Clean(filepath.Join(cleanBase, href)))
-		if err != nil {
-			return nil, fmt.Errorf("html: resolving stylesheet path: %w", err)
-		}
-		if !strings.HasPrefix(full, cleanBase+string(filepath.Separator)) && full != cleanBase {
-			return nil, fmt.Errorf("%w: %q", errPathEscapesBaseDir, href)
-		}
-		data, err := os.ReadFile(full)
-		if err != nil {
-			return nil, fmt.Errorf("html: reading stylesheet: %w", err)
-		}
-		return data, nil
+		return readFileInRoot(dir, href)
 	}
 }
 

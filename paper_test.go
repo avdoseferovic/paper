@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/avdoseferovic/paper/pkg/components/code"
 	componentimage "github.com/avdoseferovic/paper/pkg/components/image"
@@ -23,11 +21,18 @@ import (
 	coreentity "github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/test"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
+	"go.uber.org/goleak"
 
 	"github.com/avdoseferovic/paper"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// TestMain runs the package test binary under goleak so any goroutine leaked
+// by the concurrent generation worker pool fails the suite deterministically.
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
+}
 
 type errorReader struct {
 	err error
@@ -517,6 +522,12 @@ func TestMaroto_Generate(t *testing.T) {
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_concurrent.json")
 	})
 	t.Run("goroutines do not leak after multiple generate calls on concurrent mode", func(t *testing.T) {
+		// goleak polls with backoff for goroutines to settle and filters
+		// runtime/test-framework goroutines, replacing the previous flaky
+		// time.Sleep + runtime.NumGoroutine() equality check (which was racy
+		// because NumGoroutine is process-global).
+		defer goleak.VerifyNone(t)
+
 		// Arrange
 		cfg := config.NewBuilder().
 			WithConcurrentMode(10).
@@ -528,18 +539,14 @@ func TestMaroto_Generate(t *testing.T) {
 		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
-		initialGoroutines := runtime.NumGoroutine()
 		_, err1 := sut.Generate()
 		_, err2 := sut.Generate()
 		_, err3 := sut.Generate()
-		time.Sleep(100 * time.Millisecond)
-		finalGoroutines := runtime.NumGoroutine()
 
 		// Assert
 		assert.Nil(t, err1)
 		assert.Nil(t, err2)
 		assert.Nil(t, err3)
-		assert.Equal(t, initialGoroutines, finalGoroutines)
 	})
 	t.Run("when two pages are sent and page number is active, should add page number", func(t *testing.T) {
 		// Arrange

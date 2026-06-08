@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/avdoseferovic/paper/internal/cache"
@@ -151,16 +152,33 @@ func processPageGroupsConcurrently(
 		go func() {
 			defer wg.Done()
 			for index := range jobs {
-				result, err := processor(pageGroups[index])
-				if err != nil {
-					errMu.Lock()
-					if firstErr == nil {
-						firstErr = err
+				// Process each job in its own scope so a panic in the
+				// processor is recovered and converted into firstErr.
+				// Without this, an unrecovered panic in a worker goroutine
+				// crashes the whole process (it cannot be recovered by the
+				// caller, since recover only works within the same goroutine).
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							errMu.Lock()
+							if firstErr == nil {
+								firstErr = fmt.Errorf("panic processing page group %d: %v", index, r)
+							}
+							errMu.Unlock()
+						}
+					}()
+
+					result, err := processor(pageGroups[index])
+					if err != nil {
+						errMu.Lock()
+						if firstErr == nil {
+							firstErr = err
+						}
+						errMu.Unlock()
+						return
 					}
-					errMu.Unlock()
-					continue
-				}
-				results[index] = result
+					results[index] = result
+				}()
 			}
 		}()
 	}

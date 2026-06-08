@@ -122,6 +122,63 @@ func TestBaseDirResolver_RefusesEscape(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestBaseDirResolver_RefusesEmptyDir(t *testing.T) {
+	t.Parallel()
+	r := baseDirResolver("")
+	_, _, err := r("anything.png")
+	require.ErrorIs(t, err, errBaseDirEmpty)
+}
+
+func TestBaseDirResolver_RefusesSymlinkEscape(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "secret.png")
+	require.NoError(t, os.WriteFile(secret, minimalPNG(t), 0o600))
+	if err := os.Symlink(secret, filepath.Join(dir, "link.png")); err != nil {
+		t.Skipf("symlinks unsupported: %v", err)
+	}
+
+	r := baseDirResolver(dir)
+	_, _, err := r("link.png")
+	require.Error(t, err, "symlink pointing outside base dir must be refused")
+}
+
+func TestStylesheetResolver_RefusesEmptyDir(t *testing.T) {
+	t.Parallel()
+	r := stylesheetBaseDirResolver("")
+	_, err := r("anything.css")
+	require.ErrorIs(t, err, errBaseDirEmpty)
+}
+
+func TestStylesheetResolver_RefusesSymlinkEscape(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "secret.css")
+	require.NoError(t, os.WriteFile(secret, []byte("p{color:red}"), 0o600))
+	if err := os.Symlink(secret, filepath.Join(dir, "link.css")); err != nil {
+		t.Skipf("symlinks unsupported: %v", err)
+	}
+
+	r := stylesheetBaseDirResolver(dir)
+	_, err := r("link.css")
+	require.Error(t, err, "symlink pointing outside base dir must be refused")
+}
+
+func TestRasteriseSVG_RefusesOversizeMM(t *testing.T) {
+	t.Parallel()
+	_, _, _, err := rasteriseSVG([]byte(minimalSVG), 800.0, 800.0)
+	require.ErrorIs(t, err, errSVGTooLarge)
+}
+
+func TestRasteriseSVG_RefusesOversizeViewBox(t *testing.T) {
+	t.Parallel()
+	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000"><rect width="10" height="10"/></svg>`
+	_, _, _, err := rasteriseSVG([]byte(svg), 0, 0)
+	require.ErrorIs(t, err, errSVGTooLarge)
+}
+
 func TestRasteriseSVG_ProducesPNGAtRequestedSize(t *testing.T) {
 	t.Parallel()
 	pngBytes, pxW, pxH, err := rasteriseSVG([]byte(minimalSVG), 10.0, 10.0) // 10mm × 10mm
