@@ -10,12 +10,12 @@ import (
 const labelGap = 1.0
 
 type Checkbox struct {
-	pdf  gofpdfwrapper.Fpdf
+	pdf  gofpdfwrapper.PDF
 	font core.Font
 }
 
 // NewCheckbox create a Checkbox.
-func NewCheckbox(pdf gofpdfwrapper.Fpdf, font core.Font) *Checkbox {
+func NewCheckbox(pdf gofpdfwrapper.PDF, font core.Font) *Checkbox {
 	return &Checkbox{pdf: pdf, font: font}
 }
 

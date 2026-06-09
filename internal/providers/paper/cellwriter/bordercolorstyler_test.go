@@ -87,7 +87,7 @@ func TestBorderColorStyler_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue).Once()
 		fpdf.EXPECT().SetDrawColor(0, 0, 0).Once()
 

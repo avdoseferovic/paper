@@ -15,7 +15,7 @@ func TestGradientRenderer_DrawGradient(t *testing.T) {
 
 	t.Run("linear gradient calls RegisterImageOptionsReader once and Image once", func(t *testing.T) {
 		t.Parallel()
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().GetMargins().Return(15.0, 10.0, 15.0, 10.0).Maybe()
 		pdf.EXPECT().RegisterImageOptionsReader(
 			mock.AnythingOfType("string"),
@@ -49,7 +49,7 @@ func TestGradientRenderer_DrawGradient(t *testing.T) {
 
 	t.Run("identical gradient on second call reuses imgName (no second RegisterImageOptionsReader)", func(t *testing.T) {
 		t.Parallel()
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 		// RegisterImageOptionsReader called exactly ONCE even though DrawGradient is called twice
 		pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), mock.Anything, mock.Anything).Return(nil).Once()
@@ -71,7 +71,7 @@ func TestGradientRenderer_DrawGradient(t *testing.T) {
 
 	t.Run("gradient Image x/y includes margin offsets", func(t *testing.T) {
 		t.Parallel()
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().GetMargins().Return(15.0, 10.0, 15.0, 10.0).Maybe()
 		pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), mock.Anything, mock.Anything).Return(nil).Maybe()
 		// x should be cell.X + leftMargin = 5 + 15 = 20

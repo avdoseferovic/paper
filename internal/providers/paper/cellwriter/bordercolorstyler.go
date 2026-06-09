@@ -12,7 +12,7 @@ type BorderColorStyler struct {
 	defaultColor *props.Color
 }
 
-func NewBorderColorStyler(fpdf gofpdfwrapper.Fpdf) *BorderColorStyler {
+func NewBorderColorStyler(fpdf gofpdfwrapper.PDF) *BorderColorStyler {
 	defaultColor := props.Black()
 	return &BorderColorStyler{
 		stylerTemplate: stylerTemplate{

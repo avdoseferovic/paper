@@ -12,7 +12,7 @@ const (
 )
 
 type Font struct {
-	pdf         gofpdfwrapper.Fpdf
+	pdf         gofpdfwrapper.PDF
 	size        float64
 	family      string
 	style       fontstyle.Type
@@ -21,7 +21,7 @@ type Font struct {
 }
 
 // NewFont create a Font.
-func NewFont(pdf gofpdfwrapper.Fpdf, size float64, family string, style fontstyle.Type) *Font {
+func NewFont(pdf gofpdfwrapper.PDF, size float64, family string, style fontstyle.Type) *Font {
 	pdf.SetFont(family, string(style), size)
 
 	return &Font{

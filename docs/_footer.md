@@ -1,1 +1,1 @@
-© 2026 Paper · MIT License · Made for Go
+Paper · MIT License · Made for Go

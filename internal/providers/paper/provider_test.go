@@ -206,14 +206,14 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
 			Text:  text,
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 			Code:  code,
 		}
@@ -347,14 +347,14 @@ func TestProvider_AddQrCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
 			Text:  text,
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 			Code:  code,
 		}
@@ -489,14 +489,14 @@ func TestProvider_AddBarCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
 			Text:  text,
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 		}
 
@@ -583,11 +583,11 @@ func TestProvider_CreateRow(t *testing.T) {
 	// Arrange
 	height := 10.0
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().Ln(height).Once()
 
 	dep := &gofpdf.Dependencies{
-		Fpdf: fpdf,
+		PDF: fpdf,
 	}
 
 	sut := gofpdf.New(dep)
@@ -601,22 +601,22 @@ func TestProvider_EnsurePage(t *testing.T) {
 
 	t.Run("adds pages until requested page is current", func(t *testing.T) {
 		t.Parallel()
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().PageNo().Return(1).Once()
 		fpdf.EXPECT().AddPage().Once()
 		fpdf.EXPECT().PageNo().Return(2).Once()
 
-		sut := gofpdf.New(&gofpdf.Dependencies{Fpdf: fpdf})
+		sut := gofpdf.New(&gofpdf.Dependencies{PDF: fpdf})
 
 		sut.(core.PageProvider).EnsurePage(2)
 	})
 
 	t.Run("does not add a page when already current", func(t *testing.T) {
 		t.Parallel()
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().PageNo().Return(2).Once()
 
-		sut := gofpdf.New(&gofpdf.Dependencies{Fpdf: fpdf})
+		sut := gofpdf.New(&gofpdf.Dependencies{PDF: fpdf})
 
 		sut.(core.PageProvider).EnsurePage(2)
 		fpdf.AssertNotCalled(t, "AddPage")
@@ -671,11 +671,11 @@ func TestProvider_SetProtection(t *testing.T) {
 			OwnerPassword: "ownerPassword",
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetProtection(byte(p.Type), p.UserPassword, p.OwnerPassword).Once()
 
 		dep := &gofpdf.Dependencies{
-			Fpdf: fpdf,
+			PDF: fpdf,
 		}
 
 		sut := gofpdf.New(dep)
@@ -688,11 +688,11 @@ func TestProvider_SetProtection(t *testing.T) {
 func TestProvider_SetCompression(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetCompression(true).Once()
 
 	dep := &gofpdf.Dependencies{
-		Fpdf: fpdf,
+		PDF: fpdf,
 	}
 
 	sut := gofpdf.New(dep)
@@ -724,7 +724,7 @@ func TestProvider_SetMetadata(t *testing.T) {
 		// Arrange
 		timeNow := time.Now()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetAuthor("author", true).Once()
 		fpdf.EXPECT().SetCreator("creator", true).Once()
 		fpdf.EXPECT().SetSubject("subject", true).Once()
@@ -733,7 +733,7 @@ func TestProvider_SetMetadata(t *testing.T) {
 		fpdf.EXPECT().SetCreationDate(timeNow).Once()
 
 		dep := &gofpdf.Dependencies{
-			Fpdf: fpdf,
+			PDF: fpdf,
 		}
 		sut := gofpdf.New(dep)
 
@@ -767,11 +767,11 @@ func TestProvider_SetMetadata(t *testing.T) {
 func TestProvider_GenerateBytes(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().Output(mock.Anything).Return(errors.New("anyError")).Once()
 
 	dep := &gofpdf.Dependencies{
-		Fpdf: fpdf,
+		PDF: fpdf,
 	}
 	sut := gofpdf.New(dep)
 
@@ -828,13 +828,13 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().ClearError().Once()
 
 		dep := &gofpdf.Dependencies{
 			Text:  text,
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 		}
 
@@ -922,14 +922,14 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().ClearError().Once()
 		fpdf.EXPECT().SetHomeXY().Once()
 
 		dep := &gofpdf.Dependencies{
 			Text:  text,
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 		}
 
@@ -960,12 +960,12 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(nil).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetHomeXY().Once()
 
 		dep := &gofpdf.Dependencies{
 			Image: image,
-			Fpdf:  fpdf,
+			PDF:   fpdf,
 			Cfg:   cfg,
 		}
 
@@ -1279,11 +1279,11 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
 	fpdf.EXPECT().SetXY(15.0, 27.0).Once()
 
-	dep := &gofpdf.Dependencies{Fpdf: fpdf}
+	dep := &gofpdf.Dependencies{PDF: fpdf}
 	sut := gofpdf.New(dep)
 
 	// Act — cell coords are margin-relative; SetCursor must translate to absolute.
@@ -1295,7 +1295,7 @@ func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
 	fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
 	fpdf.EXPECT().SetFillColor(1, 2, 3)
@@ -1304,7 +1304,7 @@ func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
 	fpdf.EXPECT().Circle(18.0, 30.0, 3.0, "F").Once()
 	fpdf.EXPECT().SetFillColor(0, 0, 0) // restore
 
-	dep := &gofpdf.Dependencies{Fpdf: fpdf}
+	dep := &gofpdf.Dependencies{PDF: fpdf}
 	sut := gofpdf.New(dep)
 
 	// Act

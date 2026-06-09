@@ -13,7 +13,7 @@ import (
 
 func TestNewPerSideBorderStyler(t *testing.T) {
 	t.Parallel()
-	sut := cellwriter.NewPerSideBorderStyler(mocks.NewFpdf(t))
+	sut := cellwriter.NewPerSideBorderStyler(mocks.NewPDF(t))
 	assert.NotNil(t, sut)
 }
 
@@ -28,7 +28,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		// Line must NOT be called when no per-side borders
 		sut := cellwriter.NewPerSideBorderStyler(fpdf)
 		sut.SetNext(next)
@@ -44,7 +44,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 
 		const cellX, cellY = 15.0, 30.0
 		origLineWidth := 0.2
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetXY().Return(cellX, cellY)
@@ -72,7 +72,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
 		origLineWidth := 0.2
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetXY().Return(0.0, 0.0)
@@ -105,7 +105,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 
 		sut := cellwriter.NewPerSideBorderStyler(fpdf)
 		sut.SetNext(next)

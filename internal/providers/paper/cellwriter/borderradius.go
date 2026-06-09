@@ -24,7 +24,7 @@ type borderRadiusStyler struct {
 //
 // Current limitation: mixed per-side border widths use the averaged thickness
 // as a single stroke width. Uniform borders are unaffected.
-func NewBorderRadiusStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewBorderRadiusStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 	return &borderRadiusStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,

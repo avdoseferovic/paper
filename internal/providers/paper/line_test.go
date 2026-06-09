@@ -39,7 +39,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 10.0)
 		fpdf.EXPECT().SetLineWidth(0.5)
 		// size = 100 * (100/100) = 100, position = 50 * (50/100) = 25
@@ -67,7 +67,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 0,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		fpdf.EXPECT().SetDrawColor(255, 0, 0)
 		fpdf.EXPECT().SetLineWidth(1.0)
@@ -96,7 +96,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(10.0, 10.0, 10.0, 10.0)
 		fpdf.EXPECT().SetLineWidth(0.2)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 1}, 0.0)
@@ -126,7 +126,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		fpdf.EXPECT().SetDrawColor(0, 128, 255)
 		fpdf.EXPECT().SetLineWidth(0.4)
@@ -157,7 +157,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 10.0)
 		fpdf.EXPECT().SetLineWidth(0.5)
 		// size = 100*(100/100) = 100, position = 50*(50/100) = 25
@@ -186,7 +186,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 0,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		fpdf.EXPECT().SetDrawColor(0, 255, 0)
 		fpdf.EXPECT().SetLineWidth(1.0)
@@ -215,7 +215,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(10.0, 10.0, 10.0, 10.0)
 		fpdf.EXPECT().SetLineWidth(0.2)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 1}, 0.0)
@@ -245,7 +245,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		fpdf.EXPECT().SetDrawColor(100, 100, 100)
 		fpdf.EXPECT().SetLineWidth(0.3)
@@ -274,7 +274,7 @@ func TestLine_Add(t *testing.T) {
 			OffsetPercent: 50,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		fpdf.EXPECT().SetLineWidth(0.5)
 		fpdf.EXPECT().SetDashPattern([]float64{0.4, 0.4}, 0.0)

@@ -86,7 +86,7 @@ func TestFillColorStyle_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetFillColor(prop.BackgroundColor.Red, prop.BackgroundColor.Green, prop.BackgroundColor.Blue).Once()
 		fpdf.EXPECT().SetFillColor(255, 255, 255).Once()
 

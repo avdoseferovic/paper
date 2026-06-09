@@ -36,7 +36,7 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    5,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 10.0)
 		// x = cell.X + prop.Left + left = 10 + 3 + 5 = 18
 		// y = cell.Y + prop.Top + top = 20 + 2 + 10 = 32
@@ -60,7 +60,7 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    10,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		// x = 0 + 0 + 0 = 0, y = 0 + 0 + 0 = 0
 		fpdf.EXPECT().Rect(0.0, 0.0, 10.0, 10.0, "D")
@@ -87,7 +87,7 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    8,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(2.0, 3.0, 2.0, 3.0)
 		// x = 5 + 1 + 2 = 8, y = 5 + 1 + 3 = 9
 		fpdf.EXPECT().Rect(8.0, 9.0, 8.0, 8.0, "D")
@@ -115,7 +115,7 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    10,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		// x = 0, y = 0
 		fpdf.EXPECT().Rect(0.0, 0.0, 10.0, 10.0, "D")
@@ -145,7 +145,7 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    5,
 		}
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetMargins().Return(10.0, 15.0, 10.0, 15.0)
 		// x = 0 + 0 + 10 = 10, y = 0 + 0 + 15 = 15
 		fpdf.EXPECT().Rect(10.0, 15.0, 5.0, 5.0, "D")

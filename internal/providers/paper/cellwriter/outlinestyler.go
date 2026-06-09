@@ -15,7 +15,7 @@ type outlineStyler struct {
 // OUTSIDE the cell box (does not affect layout). It must be the LAST node in
 // the chain so it can read the final cell position from GetXY after other nodes
 // have drawn. The cursor position is saved and restored before forwarding.
-func NewOutlineStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewOutlineStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 	return &outlineStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "outlineStyler"},
 	}

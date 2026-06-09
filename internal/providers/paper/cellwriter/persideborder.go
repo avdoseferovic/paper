@@ -17,7 +17,7 @@ type perSideBorderStyler struct {
 // calls per side (with per-side color/thickness) and clears BorderType before passing
 // through — so the downstream CellFormat call does not double-draw borders.
 // When no per-side fields are set it passes through unchanged (zero cost for legacy callers).
-func NewPerSideBorderStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewPerSideBorderStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 	return &perSideBorderStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,

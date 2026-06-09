@@ -7,7 +7,7 @@ import (
 	"math"
 	"strings"
 
-	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )

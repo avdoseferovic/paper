@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
@@ -29,7 +29,7 @@ type backgroundImageStyler struct {
 	stylerTemplate
 }
 
-func NewBackgroundImageStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewBackgroundImageStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 	return &backgroundImageStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,

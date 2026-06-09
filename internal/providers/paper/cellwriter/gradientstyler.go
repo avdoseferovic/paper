@@ -19,7 +19,7 @@ type gradientStyler struct {
 
 // NewGradientStyler creates a CellWriter chain node that paints gradient
 // backgrounds before the solid fill colour styler runs.
-func NewGradientStyler(fpdf gofpdfwrapper.Fpdf, drawer gradientDrawer) CellWriter {
+func NewGradientStyler(fpdf gofpdfwrapper.PDF, drawer gradientDrawer) CellWriter {
 	return &gradientStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "gradientStyler"},
 		drawer:         drawer,

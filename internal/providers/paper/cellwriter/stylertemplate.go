@@ -8,7 +8,7 @@ import (
 
 type stylerTemplate struct {
 	next CellWriter
-	fpdf gofpdfwrapper.Fpdf
+	fpdf gofpdfwrapper.PDF
 	name string
 }
 

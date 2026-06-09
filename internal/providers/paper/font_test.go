@@ -20,7 +20,7 @@ func TestNewFont(t *testing.T) {
 	family := fontfamily.Arial
 	style := fontstyle.Bold
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
 
 	// Act
@@ -42,7 +42,7 @@ func TestFont_GetHeight(t *testing.T) {
 	family := fontfamily.Arial
 	style := fontstyle.Bold
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
 	font := gofpdf.NewFont(fpdf, size, family, style)
 
@@ -60,7 +60,7 @@ func TestFont_SetFamily(t *testing.T) {
 	family := fontfamily.Arial
 	style := fontstyle.Bold
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
 	fpdf.EXPECT().SetFont(fontfamily.Helvetica, string(style), size)
 	font := gofpdf.NewFont(fpdf, size, family, style)
@@ -79,7 +79,7 @@ func TestFont_SetStyle(t *testing.T) {
 	family := fontfamily.Arial
 	style := fontstyle.Bold
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
 	fpdf.EXPECT().SetFontStyle(string(fontstyle.BoldItalic))
 	font := gofpdf.NewFont(fpdf, size, family, style)
@@ -98,7 +98,7 @@ func TestFont_SetSize(t *testing.T) {
 	family := fontfamily.Arial
 	style := fontstyle.Bold
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
 	fpdf.EXPECT().SetFontSize(14.0)
 	font := gofpdf.NewFont(fpdf, size, family, style)
@@ -119,7 +119,7 @@ func TestFont_SetColor(t *testing.T) {
 		family := fontfamily.Arial
 		style := fontstyle.Bold
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetFont(family, string(style), size)
 		font := gofpdf.NewFont(fpdf, size, family, style)
 		color := &props.Color{Red: 0, Green: 0, Blue: 0}
@@ -137,7 +137,7 @@ func TestFont_SetColor(t *testing.T) {
 		family := fontfamily.Arial
 		style := fontstyle.Bold
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetFont(family, string(style), size)
 		fpdf.EXPECT().SetTextColor(200, 200, 200)
 		font := gofpdf.NewFont(fpdf, size, family, style)

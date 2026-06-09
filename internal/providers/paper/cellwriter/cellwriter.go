@@ -19,7 +19,7 @@ type cellWriter struct {
 	defaultColor *props.Color
 }
 
-func NewCellWriter(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewCellWriter(fpdf gofpdfwrapper.PDF) CellWriter {
 	defaultColor := props.Black()
 	return &cellWriter{
 		stylerTemplate: stylerTemplate{

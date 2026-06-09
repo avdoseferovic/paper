@@ -10,7 +10,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/internal/math"
-	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/stretchr/testify/mock"
@@ -21,7 +21,7 @@ import (
 
 func TestNewImage(t *testing.T) {
 	t.Parallel()
-	image := gofpdf2.NewImage(mocks.NewFpdf(t), mocks.NewMath(t))
+	image := gofpdf2.NewImage(mocks.NewPDF(t), mocks.NewMath(t))
 
 	assert.NotNil(t, image)
 	assert.Equal(t, "*paper.Image", fmt.Sprintf("%T", image))
@@ -41,7 +41,7 @@ func TestImage_Add(t *testing.T) {
 			ImageType: string(img.Extension),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).Return(nil)
 
 		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))
@@ -64,7 +64,7 @@ func TestImage_Add(t *testing.T) {
 			ImageType: string(img.Extension),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).Return(&gofpdf.ImageInfoType{})
 		pdf.EXPECT().Image(mock.Anything, 30.0, 35.0, 98.0, mock.Anything, true, "", 0, "")
 
@@ -91,7 +91,7 @@ func TestImage_Add(t *testing.T) {
 			ImageType: string(img.Extension),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).Return(&gofpdf.ImageInfoType{})
 		pdf.EXPECT().Image(mock.Anything, 21.0, mock.Anything, 98.0, mock.Anything, true, "", 0, "")
 
@@ -118,7 +118,7 @@ func TestImage_Add(t *testing.T) {
 		}
 		registeredNames := make([]string, 0, 2)
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).
 			Return(&gofpdf.ImageInfoType{}).
 			Once()
@@ -159,7 +159,7 @@ func TestImage_Add(t *testing.T) {
 			ImageType: string(extension.Png),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, mock.MatchedBy(func(reader io.Reader) bool {
 			data, err := io.ReadAll(reader)
 			return err == nil && bytes.HasPrefix(data, []byte("\x89PNG"))
@@ -188,7 +188,7 @@ func TestImage_GetImageDimensions(t *testing.T) {
 			ImageType: string(img.Extension),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).Return(nil)
 
 		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))
@@ -209,7 +209,7 @@ func TestImage_GetImageDimensions(t *testing.T) {
 			ImageType: string(img.Extension),
 		}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, bytes.NewReader(img.Bytes)).Return(&gofpdf.ImageInfoType{})
 
 		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))

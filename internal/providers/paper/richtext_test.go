@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	paperpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	pdfbackend "github.com/avdoseferovic/paper/internal/pdf"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 	"github.com/avdoseferovic/paper/mocks"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
@@ -20,7 +20,7 @@ import (
 
 // baseRichTextSetup creates a minimal set of pdf + font mocks for AddRichText.
 // The caller adds expectations on top of what baseRichTextSetup declares.
-func baseRichTextSetup(t *testing.T) (*mocks.Fpdf, *mocks.Font) {
+func baseRichTextSetup(t *testing.T) (*mocks.PDF, *mocks.Font) {
 	t.Helper()
 	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
@@ -32,7 +32,7 @@ func baseRichTextSetup(t *testing.T) (*mocks.Fpdf, *mocks.Font) {
 	font.EXPECT().GetColor().Return(origColor).Maybe()
 	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
-	pdf := mocks.NewFpdf(t)
+	pdf := mocks.NewPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 	pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -94,7 +94,7 @@ func TestAddRichText_HiddenRunMeasuresButSkipsPainting(t *testing.T) {
 	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
 	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
-	pdf := mocks.NewFpdf(t)
+	pdf := mocks.NewPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 	pdf.EXPECT().GetStringWidth("hidden").Return(8.0).Once()
 	pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -130,7 +130,7 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 		font.EXPECT().GetColor().Return(origColor).Maybe()
 		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		// Measurement pass: word "ab" + individual char measurements
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(2.0).Maybe()
@@ -165,7 +165,7 @@ func TestMeasureRichText_UsesTokenLayoutForLetterSpacing(t *testing.T) {
 	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
 	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
-	pdf := mocks.NewFpdf(t)
+	pdf := mocks.NewPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 	pdf.EXPECT().GetStringWidth("x").Return(4.0).Maybe()
 	pdf.EXPECT().GetStringWidth(" ").Return(1.0).Maybe()
@@ -195,7 +195,7 @@ func TestMeasureRichText_UsesTallestRunLineHeight(t *testing.T) {
 	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(4.0).Maybe()
 	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Bold, 20.0).Return(9.0).Maybe()
 
-	pdf := mocks.NewFpdf(t)
+	pdf := mocks.NewPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(1.0).Maybe()
 
@@ -228,7 +228,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 
 		textCallOrder := []string{}
 
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -288,7 +288,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 
 		var textCalls []string
 		var colorCalls int
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -330,7 +330,7 @@ func TestAddRichText_WhiteSpace(t *testing.T) {
 		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
 		var ys []float64
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -367,7 +367,7 @@ func TestAddRichText_FirstLineIndent(t *testing.T) {
 
 		var xs []float64
 		var texts []string
-		pdf := mocks.NewFpdf(t)
+		pdf := mocks.NewPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -417,7 +417,7 @@ func TestAddRichText_Align(t *testing.T) {
 			font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
 			var xs []float64
-			pdf := mocks.NewFpdf(t)
+			pdf := mocks.NewPDF(t)
 			pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 			pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(10.0).Maybe()
 			pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -454,7 +454,7 @@ func TestAddRichText_VerticalAlign(t *testing.T) {
 	font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
 	textY := map[string]float64{}
-	pdf := mocks.NewFpdf(t)
+	pdf := mocks.NewPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(2.0).Maybe()
 	pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -487,10 +487,10 @@ func TestAddRichText_InlineImage(t *testing.T) {
 
 	pdf, font := baseRichTextSetup(t)
 	imageBytes := []byte("\x89PNG\r\n\x1a\ninline")
-	options := paperpdf.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+	options := pdfbackend.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
 
 	pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
-		Return(&paperpdf.ImageInfoType{}).
+		Return(&pdfbackend.ImageInfoType{}).
 		Once()
 	pdf.EXPECT().Image(mock.AnythingOfType("string"), 18.0, 1.0, 4.0, 3.0, false, "", 0, "").
 		Once()
@@ -518,10 +518,10 @@ func TestAddRichText_InlineImageObjectFitClipsToImageBox(t *testing.T) {
 
 	pdf, font := baseRichTextSetup(t)
 	imageBytes := []byte("\x89PNG\r\n\x1a\ninline")
-	options := paperpdf.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+	options := pdfbackend.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
 
 	pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
-		Return(&paperpdf.ImageInfoType{}).
+		Return(&pdfbackend.ImageInfoType{}).
 		Once()
 	pdf.EXPECT().ClipRect(18.0, 1.0, 4.0, 3.0, false).Once()
 	pdf.EXPECT().Image(mock.AnythingOfType("string"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), false, "", 0, "").

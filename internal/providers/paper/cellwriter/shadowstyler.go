@@ -21,7 +21,7 @@ type shadowStyler struct {
 // behind the cell. It must be the FIRST node in the chain so it draws beneath
 // all other decorations. The cursor position is saved and restored so
 // downstream nodes see the original coordinates.
-func NewShadowStyler(fpdf gofpdfwrapper.Fpdf) CellWriter {
+func NewShadowStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 	return &shadowStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "shadowStyler"},
 	}

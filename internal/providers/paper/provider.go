@@ -48,7 +48,7 @@ var _ core.LateFontProvider = (*provider)(nil)
 var _ core.CharSpacingProvider = (*provider)(nil)
 
 type provider struct {
-	fpdf       gofpdfwrapper.Fpdf
+	fpdf       gofpdfwrapper.PDF
 	font       core.Font
 	text       core.Text
 	richText   *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
@@ -66,7 +66,7 @@ type provider struct {
 func New(dep *Dependencies) core.Provider {
 	richText, _ := dep.Text.(*Text)
 	return &provider{
-		fpdf:       dep.Fpdf,
+		fpdf:       dep.PDF,
 		font:       dep.Font,
 		text:       dep.Text,
 		richText:   richText,

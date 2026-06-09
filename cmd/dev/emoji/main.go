@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	paperpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	pdfbackend "github.com/avdoseferovic/paper/internal/pdf"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	pdf := paperpdf.NewCustom(&paperpdf.InitType{
+	pdf := pdfbackend.NewCustom(&pdfbackend.InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
 		SizeStr:        "A4",

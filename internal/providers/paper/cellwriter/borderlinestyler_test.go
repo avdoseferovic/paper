@@ -106,7 +106,7 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 1}, 0.0).Once()
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0).Once()
 

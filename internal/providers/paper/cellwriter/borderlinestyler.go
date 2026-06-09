@@ -11,7 +11,7 @@ type BorderLineStyler struct {
 	stylerTemplate
 }
 
-func NewBorderLineStyler(fpdf gofpdfwrapper.Fpdf) *BorderLineStyler {
+func NewBorderLineStyler(fpdf gofpdfwrapper.PDF) *BorderLineStyler {
 	return &BorderLineStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,

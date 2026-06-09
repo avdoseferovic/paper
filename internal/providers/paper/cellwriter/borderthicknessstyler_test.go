@@ -87,7 +87,7 @@ func TestBorderThicknessStyler_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().SetLineWidth(prop.BorderThickness).Once()
 		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness).Once()
 

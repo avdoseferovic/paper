@@ -1,7 +1,7 @@
 package paper
 
 import (
-	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
 
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/code"
@@ -14,7 +14,7 @@ import (
 
 // Dependencies is the dependencies provider for gofpdf.
 type Dependencies struct {
-	Fpdf       gofpdfwrapper.Fpdf
+	PDF        gofpdfwrapper.PDF
 	Font       core.Font
 	Text       core.Text
 	Code       core.Code
@@ -75,7 +75,7 @@ func (b *builder) Build(cfg *entity.Config, cache cache.Cache) *Dependencies {
 		Build(fpdf, gradientRenderer)
 
 	return &Dependencies{
-		Fpdf:       fpdf,
+		PDF:        fpdf,
 		Font:       font,
 		Text:       text,
 		Code:       code,

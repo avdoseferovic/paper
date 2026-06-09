@@ -12,7 +12,7 @@ func NewBuilder() *WriterBuilder {
 
 // Build constructs the cellwriter chain. When drawer is non-nil, a gradient
 // styler is prepended to the chain so gradient backgrounds render first.
-func (c *WriterBuilder) Build(fpdf gofpdfwrapper.Fpdf, drawer ...gradientDrawer) CellWriter {
+func (c *WriterBuilder) Build(fpdf gofpdfwrapper.PDF, drawer ...gradientDrawer) CellWriter {
 	cellCreator := NewCellWriter(fpdf)
 	borderColorStyle := NewBorderColorStyler(fpdf)
 	borderLineStyler := NewBorderLineStyler(fpdf)

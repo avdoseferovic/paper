@@ -12,7 +12,7 @@ type BorderThicknessStyler struct {
 	defaultLineThickness float64
 }
 
-func NewBorderThicknessStyler(fpdf gofpdfwrapper.Fpdf) *BorderThicknessStyler {
+func NewBorderThicknessStyler(fpdf gofpdfwrapper.PDF) *BorderThicknessStyler {
 	return &BorderThicknessStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,

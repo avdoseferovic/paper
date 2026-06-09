@@ -13,7 +13,7 @@ import (
 
 func TestNewBorderRadiusStyler(t *testing.T) {
 	t.Parallel()
-	sut := cellwriter.NewBorderRadiusStyler(mocks.NewFpdf(t))
+	sut := cellwriter.NewBorderRadiusStyler(mocks.NewPDF(t))
 	assert.NotNil(t, sut)
 }
 
@@ -27,7 +27,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		sut := cellwriter.NewBorderRadiusStyler(fpdf)
 		sut.SetNext(next)
 
@@ -39,7 +39,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		sut := cellwriter.NewBorderRadiusStyler(fpdf)
 		sut.SetNext(next)
 
@@ -55,7 +55,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 				captured = p
 			})
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(0.2)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
@@ -92,7 +92,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewFpdf(t)
+		fpdf := mocks.NewPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(0.2)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
@@ -137,7 +137,7 @@ func TestPerSideBorderStyler_SkipsWhenBorderRadiusSet(t *testing.T) {
 	next := mocks.NewCellWriter(t)
 	next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-	fpdf := mocks.NewFpdf(t)
+	fpdf := mocks.NewPDF(t)
 	// No GetXY, no Line, no SetDrawColor — perSideBorder skips entirely.
 
 	sut := cellwriter.NewPerSideBorderStyler(fpdf)
