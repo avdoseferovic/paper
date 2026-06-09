@@ -92,7 +92,7 @@ func generateTextPDF(t *testing.T, value string, cfg ...*entity.Config) []byte {
 func generateImagePDF(t *testing.T) []byte {
 	t.Helper()
 
-	img, err := os.ReadFile("../../docs/assets/images/logo.png")
+	img, err := os.ReadFile("../../docs/assets/images/frontpage.png")
 	require.NoError(t, err)
 
 	m := paper.New()

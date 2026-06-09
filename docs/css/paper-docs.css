@@ -68,6 +68,7 @@ header.docnav {
 }
 .docnav .brand { display: flex; align-items: center; gap: 11px; }
 .docnav .brand .glyph { width: 26px; height: 32px; position: relative; flex: none; }
+.docnav .brand img.glyph { display: block; object-fit: contain; }
 .docnav .brand .glyph .pg { position: absolute; inset: 0; background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 2px; }
 .docnav .brand .glyph .pg.b { transform: translate(4px,4px); background: var(--paper); z-index: -1; border-color: var(--faint); }
 .docnav .brand .glyph .fold { position: absolute; top: 0; right: 0; width: 9px; height: 9px; background: var(--paper); border-left: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); border-bottom-left-radius: 2px; }

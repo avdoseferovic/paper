@@ -566,7 +566,7 @@ func componentRows() []core.Row {
 				}, props.RichText{Top: 13, Left: 4, Right: 4, LineHeight: 1.15}),
 			),
 			componentColumn(3, "Images", green,
-				image.NewFromFile("docs/assets/images/logosmall.png", props.Rect{Top: 11, Left: 25, Percent: 28}),
+				image.NewFromFile("docs/assets/images/paper-icon.svg", props.Rect{Top: 11, Left: 25, Percent: 28}),
 			),
 			componentColumn(3, "Tables", amber,
 				text.New("Item      Qty   Total", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 13, Left: 4, Color: faint}),

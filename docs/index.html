@@ -81,6 +81,7 @@ header.nav{position:sticky;top:0;z-index:50;background:oklch(0.987 0.004 95 / 0.
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
 .brand{display:flex;align-items:center;gap:11px;}
 .brand .glyph{width:26px;height:32px;position:relative;flex:none;}
+.brand img.glyph{display:block;object-fit:contain;}
 .brand .glyph .pg{position:absolute;inset:0;background:var(--sheet);border:1.5px solid var(--ink);border-radius:2px;}
 .brand .glyph .pg.b{transform:translate(4px,4px);background:var(--paper);z-index:-1;border-color:var(--faint);}
 .brand .glyph .fold{position:absolute;top:0;right:0;width:9px;height:9px;background:var(--paper);border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:2px;}
@@ -359,11 +360,7 @@ footer.ft{padding:46px 0;background:var(--paper-2);}
 <header class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="#top">
-      <span class="glyph">
-        <span class="pg b"></span><span class="pg"></span>
-        <span class="fold"></span>
-        <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
-      </span>
+      <img class="glyph" src="assets/images/paper-icon.svg" alt="" aria-hidden="true" />
       <span class="name">Paper</span>
     </a>
     <nav class="nav-links">
@@ -705,10 +702,7 @@ footer.ft{padding:46px 0;background:var(--paper-2);}
   <div class="wrap ft-inner">
     <div class="l">
       <span class="brand" style="gap:9px;">
-        <span class="glyph" style="width:20px;height:25px;">
-          <span class="pg b"></span><span class="pg"></span><span class="fold" style="width:7px;height:7px;"></span>
-          <span class="bar b1" style="top:10px;width:11px;"></span><span class="bar b2" style="top:14px;width:8px;"></span><span class="bar b3" style="top:18px;width:9px;"></span>
-        </span>
+        <img class="glyph" src="assets/images/paper-icon.svg" alt="" aria-hidden="true" style="width:20px;height:25px;" />
         <span class="name" style="font-size:17px;">Paper</span>
       </span>
       <span class="ft-meta">Paper · MIT License · Made for Go</span>

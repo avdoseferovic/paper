@@ -14,7 +14,7 @@ Use it when you want a direct HTML-to-PDF path, or when you need programmatic
 layout with rows, columns, headers, footers, metrics, tests, and explicit
 control over document generation.
 
-![Paper logo](docs/assets/images/logosmall.png)
+![Paper logo](docs/assets/images/paper-icon.svg)
 
 ## Installation
 
