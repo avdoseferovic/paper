@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Paper component model diagram</title>
+  <desc id="desc">A diagram showing how a Paper document contains pages, rows, columns, and components that are measured, placed, and drawn into a PDF.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c8a99"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#12355b" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .bg { fill: #fbfcfe; }
+      .ink { fill: #1f2937; }
+      .muted { fill: #5e6975; }
+      .brand { fill: #12355b; }
+      .blue { fill: #3164b3; }
+      .teal { fill: #24807c; }
+      .amber { fill: #d88e36; }
+      .red { fill: #b44949; }
+      .green { fill: #488d63; }
+      .soft-blue { fill: #e7eef9; }
+      .soft-teal { fill: #e2f3f0; }
+      .soft-gold { fill: #fbf1dc; }
+      .soft-rose { fill: #f9e8e8; }
+      .rule { stroke: #d3dbe5; stroke-width: 2; fill: none; }
+      .thin { stroke: #d3dbe5; stroke-width: 1.4; fill: none; }
+      .arrow { stroke: #7c8a99; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .node { fill: #ffffff; stroke: #d3dbe5; stroke-width: 2; rx: 8; filter: url(#shadow); }
+      .lane { fill: #ffffff; stroke: #d3dbe5; stroke-width: 1.6; rx: 8; }
+      .label { font-family: Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; }
+      .body { font-family: Helvetica, Arial, sans-serif; font-size: 15px; }
+      .small { font-family: Helvetica, Arial, sans-serif; font-size: 13px; }
+      .tiny { font-family: Helvetica, Arial, sans-serif; font-size: 11.5px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="760"/>
+  <text x="64" y="72" class="brand" font-family="Helvetica, Arial, sans-serif" font-size="38" font-weight="700">Paper component model</text>
+  <text x="64" y="104" class="muted body">Documents are ordinary Go values composed from rows, columns, and measured components.</text>
+  <line x1="64" y1="128" x2="1136" y2="128" class="rule"/>
+
+  <rect x="94" y="174" width="1012" height="78" class="node"/>
+  <text x="126" y="207" class="brand label">Paper document</text>
+  <text x="126" y="231" class="muted small">Configuration, margins, metadata, page numbers, headers, footers, and row groups</text>
+  <text x="850" y="217" class="mono teal">paper.New(cfg)</text>
+
+  <path d="M 600 252 L 600 292" class="arrow"/>
+  <rect x="94" y="292" width="1012" height="98" class="lane"/>
+  <text x="126" y="323" class="blue label">Rows stack vertically</text>
+  <text x="126" y="348" class="muted small">Fixed rows keep form regions predictable.</text>
+  <text x="126" y="368" class="muted small">Auto rows measure child content before render.</text>
+  <g transform="translate(645 312)">
+    <rect width="178" height="48" rx="7" fill="#e7eef9" stroke="#3164b3" stroke-width="1.6"/>
+    <text x="16" y="29" class="mono blue">row.New(24)</text>
+  </g>
+  <g transform="translate(844 312)">
+    <rect width="178" height="48" rx="7" fill="#e2f3f0" stroke="#24807c" stroke-width="1.6"/>
+    <text x="16" y="29" class="mono teal">row.New()</text>
+  </g>
+
+  <path d="M 600 390 L 600 430" class="arrow"/>
+  <rect x="94" y="430" width="1012" height="118" class="lane"/>
+  <text x="126" y="462" class="teal label">Columns divide each row</text>
+  <text x="126" y="487" class="muted small">Column sizes are normalized against the configured grid denominator, usually 12.</text>
+  <g transform="translate(126 512)">
+    <rect width="222" height="18" fill="#e7eef9" stroke="#3164b3" stroke-width="1"/>
+    <rect x="232" width="222" height="18" fill="#e2f3f0" stroke="#24807c" stroke-width="1"/>
+    <rect x="464" width="222" height="18" fill="#fbf1dc" stroke="#d88e36" stroke-width="1"/>
+    <rect x="696" width="222" height="18" fill="#f9e8e8" stroke="#b44949" stroke-width="1"/>
+    <text x="76" y="14" class="tiny blue">col.New(3)</text>
+    <text x="308" y="14" class="tiny teal">col.New(3)</text>
+    <text x="540" y="14" class="tiny amber">col.New(3)</text>
+    <text x="772" y="14" class="tiny red">col.New(3)</text>
+  </g>
+
+  <path d="M 600 548 L 600 586" class="arrow"/>
+  <text x="94" y="601" class="amber label">Components render inside column cells</text>
+  <g transform="translate(94 626)">
+    <rect width="160" height="62" rx="8" fill="#e7eef9" stroke="#3164b3" stroke-width="1.8"/>
+    <text x="18" y="29" class="blue label" font-size="16">Text</text>
+    <text x="18" y="48" class="muted tiny">text + richtext</text>
+  </g>
+  <g transform="translate(278 626)">
+    <rect width="160" height="62" rx="8" fill="#e2f3f0" stroke="#24807c" stroke-width="1.8"/>
+    <text x="18" y="29" class="teal label" font-size="16">Media</text>
+    <text x="18" y="48" class="muted tiny">png, jpg, bytes</text>
+  </g>
+  <g transform="translate(462 626)">
+    <rect width="160" height="62" rx="8" fill="#fbf1dc" stroke="#d88e36" stroke-width="1.8"/>
+    <text x="18" y="29" class="amber label" font-size="16">Codes</text>
+    <text x="18" y="48" class="muted tiny">QR, barcode, matrix</text>
+  </g>
+  <g transform="translate(646 626)">
+    <rect width="160" height="62" rx="8" fill="#ffffff" stroke="#d3dbe5" stroke-width="1.8"/>
+    <text x="18" y="29" class="brand label" font-size="16">Tables</text>
+    <text x="18" y="48" class="muted tiny">cells + styles</text>
+  </g>
+  <g transform="translate(830 626)">
+    <rect width="160" height="62" rx="8" fill="#f9e8e8" stroke="#b44949" stroke-width="1.8"/>
+    <text x="18" y="29" class="red label" font-size="16">Forms</text>
+    <text x="18" y="48" class="muted tiny">checks + signatures</text>
+  </g>
+  <g transform="translate(1014 626)">
+    <rect width="92" height="62" rx="8" fill="#e7eef9" stroke="#3164b3" stroke-width="1.8"/>
+    <text x="18" y="29" class="blue label" font-size="16">HTML</text>
+    <text x="18" y="48" class="muted tiny">fragment</text>
+  </g>
+  <text x="756" y="594" class="muted small">Render order: measure, place, draw</text>
+</svg>

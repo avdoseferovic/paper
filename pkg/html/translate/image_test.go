@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -168,20 +169,20 @@ func TestStylesheetResolver_RefusesSymlinkEscape(t *testing.T) {
 
 func TestRasteriseSVG_RefusesOversizeMM(t *testing.T) {
 	t.Parallel()
-	_, _, _, err := rasteriseSVG([]byte(minimalSVG), 800.0, 800.0)
-	require.ErrorIs(t, err, errSVGTooLarge)
+	_, _, _, err := svgraster.Rasterize([]byte(minimalSVG), 800.0, 800.0)
+	require.ErrorIs(t, err, svgraster.ErrSVGTooLarge)
 }
 
 func TestRasteriseSVG_RefusesOversizeViewBox(t *testing.T) {
 	t.Parallel()
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000"><rect width="10" height="10"/></svg>`
-	_, _, _, err := rasteriseSVG([]byte(svg), 0, 0)
-	require.ErrorIs(t, err, errSVGTooLarge)
+	_, _, _, err := svgraster.Rasterize([]byte(svg), 0, 0)
+	require.ErrorIs(t, err, svgraster.ErrSVGTooLarge)
 }
 
 func TestRasteriseSVG_ProducesPNGAtRequestedSize(t *testing.T) {
 	t.Parallel()
-	pngBytes, pxW, pxH, err := rasteriseSVG([]byte(minimalSVG), 10.0, 10.0) // 10mm × 10mm
+	pngBytes, pxW, pxH, err := svgraster.Rasterize([]byte(minimalSVG), 10.0, 10.0) // 10mm × 10mm
 	require.NoError(t, err)
 	// 10mm @ 150 DPI ≈ 59 px
 	assert.InDelta(t, 59, pxW, 2)

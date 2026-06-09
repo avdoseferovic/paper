@@ -69,12 +69,17 @@ func (c *Col) GetStructure() *node.Node[core.Structure] {
 
 // Render renders a core.Col into a PDF context.
 func (c *Col) Render(provider core.Provider, cell entity.Cell, createCell bool) {
+	contentCell := cell
 	if createCell {
-		provider.CreateCol(cell.Width, cell.Height, c.config, c.style)
+		contentCell = layout.ApplyCellMargins(cell, c.style)
+		if pp, ok := provider.(core.PositionProvider); ok {
+			pp.SetCursor(contentCell.X, contentCell.Y)
+		}
+		provider.CreateCol(contentCell.Width, contentCell.Height, c.config, c.style)
 	}
 
 	for _, component := range c.components {
-		component.Render(provider, &cell)
+		component.Render(provider, &contentCell)
 	}
 }
 
@@ -97,15 +102,16 @@ func (c *Col) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	innerCell := cell.Copy()
 	plan := layout.ManualUnits([]int{c.GetSize()}, c.maxGridSize())
 	innerCell.Width = layout.UnitWidth(innerCell.Width, plan.Units[0], plan.GridSize)
+	contentCell := layout.ApplyCellMargins(innerCell, c.style)
 
 	greaterHeight := 0.0
 	for _, component := range c.components {
-		height := component.GetHeight(provider, &innerCell)
+		height := component.GetHeight(provider, &contentCell)
 		if greaterHeight < height {
 			greaterHeight = height
 		}
 	}
-	return greaterHeight
+	return greaterHeight + layout.VerticalCellMargins(c.style)
 }
 
 func (c *Col) maxGridSize() int {

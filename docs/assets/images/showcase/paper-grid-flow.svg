@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Paper grid and page flow diagram</title>
+  <desc id="desc">A diagram showing page margins, the 12 column grid, fixed and auto rows, and overflow onto the next page.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c8a99"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfcfe; }
+      .page { fill: #ffffff; stroke: #d3dbe5; stroke-width: 2.2; rx: 9; }
+      .margin { fill: none; stroke: #7c8a99; stroke-width: 1.4; stroke-dasharray: 6 6; }
+      .rule { stroke: #d3dbe5; stroke-width: 2; fill: none; }
+      .arrow { stroke: #7c8a99; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .ink { fill: #1f2937; }
+      .muted { fill: #5e6975; }
+      .brand { fill: #12355b; }
+      .blue { fill: #3164b3; }
+      .teal { fill: #24807c; }
+      .amber { fill: #d88e36; }
+      .red { fill: #b44949; }
+      .label { font-family: Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; }
+      .body { font-family: Helvetica, Arial, sans-serif; font-size: 15px; }
+      .small { font-family: Helvetica, Arial, sans-serif; font-size: 13px; }
+      .tiny { font-family: Helvetica, Arial, sans-serif; font-size: 11.5px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="760"/>
+  <text x="64" y="72" class="brand" font-family="Helvetica, Arial, sans-serif" font-size="38" font-weight="700">Grid system and page flow</text>
+  <text x="64" y="104" class="muted body">Rows own vertical rhythm. Columns split the useful width. Page breaks happen between measured rows.</text>
+  <line x1="64" y1="128" x2="1136" y2="128" class="rule"/>
+
+  <g transform="translate(82 166)">
+    <text x="0" y="-18" class="brand label">Page 1</text>
+    <rect width="500" height="510" class="page"/>
+    <rect x="38" y="38" width="424" height="434" class="margin"/>
+    <text x="50" y="62" class="muted tiny">configured margins</text>
+    <rect x="64" y="82" width="372" height="32" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <text x="80" y="103" class="blue mono">headerRows()</text>
+    <rect x="64" y="132" width="372" height="238" fill="#ffffff" stroke="#d3dbe5" stroke-width="1.2"/>
+    <g stroke="#d3dbe5" stroke-width="1">
+      <line x1="95" y1="132" x2="95" y2="370"/>
+      <line x1="126" y1="132" x2="126" y2="370"/>
+      <line x1="157" y1="132" x2="157" y2="370"/>
+      <line x1="188" y1="132" x2="188" y2="370"/>
+      <line x1="219" y1="132" x2="219" y2="370"/>
+      <line x1="250" y1="132" x2="250" y2="370"/>
+      <line x1="281" y1="132" x2="281" y2="370"/>
+      <line x1="312" y1="132" x2="312" y2="370"/>
+      <line x1="343" y1="132" x2="343" y2="370"/>
+      <line x1="374" y1="132" x2="374" y2="370"/>
+      <line x1="405" y1="132" x2="405" y2="370"/>
+    </g>
+    <rect x="64" y="132" width="372" height="44" fill="#e2f3f0" stroke="#24807c" stroke-width="1.4" rx="4"/>
+    <text x="80" y="159" class="teal mono">row.New(16)</text>
+    <rect x="64" y="190" width="91" height="72" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <rect x="162" y="190" width="176" height="72" fill="#ffffff" stroke="#d3dbe5" stroke-width="1.4" rx="4"/>
+    <rect x="345" y="190" width="91" height="72" fill="#fbf1dc" stroke="#d88e36" stroke-width="1.4" rx="4"/>
+    <text x="83" y="231" class="blue mono">3</text>
+    <text x="229" y="231" class="muted mono">6</text>
+    <text x="365" y="231" class="amber mono">3</text>
+    <rect x="64" y="278" width="372" height="92" fill="#f9e8e8" stroke="#b44949" stroke-width="1.4" rx="4"/>
+    <text x="80" y="308" class="red mono">row.New()</text>
+    <text x="80" y="332" class="muted small">auto height from measured child content</text>
+    <rect x="64" y="390" width="372" height="32" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <text x="80" y="411" class="blue mono">footerRows()</text>
+    <path d="M 436 352 C 490 386 490 458 545 490" class="arrow"/>
+    <text x="380" y="468" class="muted tiny">next row does not fit</text>
+  </g>
+
+  <g transform="translate(706 166)">
+    <text x="0" y="-18" class="brand label">Page 2</text>
+    <rect width="412" height="510" class="page"/>
+    <rect x="32" y="38" width="348" height="434" class="margin"/>
+    <rect x="55" y="82" width="302" height="32" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <text x="70" y="103" class="blue mono">headerRows()</text>
+    <rect x="55" y="132" width="302" height="238" fill="#ffffff" stroke="#d3dbe5" stroke-width="1.2"/>
+    <g stroke="#d3dbe5" stroke-width="1">
+      <line x1="80.2" y1="132" x2="80.2" y2="370"/>
+      <line x1="105.3" y1="132" x2="105.3" y2="370"/>
+      <line x1="130.5" y1="132" x2="130.5" y2="370"/>
+      <line x1="155.7" y1="132" x2="155.7" y2="370"/>
+      <line x1="180.8" y1="132" x2="180.8" y2="370"/>
+      <line x1="206" y1="132" x2="206" y2="370"/>
+      <line x1="231.2" y1="132" x2="231.2" y2="370"/>
+      <line x1="256.3" y1="132" x2="256.3" y2="370"/>
+      <line x1="281.5" y1="132" x2="281.5" y2="370"/>
+      <line x1="306.7" y1="132" x2="306.7" y2="370"/>
+      <line x1="331.8" y1="132" x2="331.8" y2="370"/>
+    </g>
+    <rect x="55" y="132" width="302" height="112" fill="#fbf1dc" stroke="#d88e36" stroke-width="1.4" rx="4"/>
+    <text x="70" y="164" class="amber mono">overflow row</text>
+    <text x="70" y="188" class="muted small">continues after page break</text>
+    <rect x="55" y="264" width="145" height="70" fill="#e2f3f0" stroke="#24807c" stroke-width="1.4" rx="4"/>
+    <rect x="212" y="264" width="145" height="70" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <text x="88" y="304" class="teal mono">6</text>
+    <text x="245" y="304" class="blue mono">6</text>
+    <rect x="55" y="390" width="302" height="32" fill="#e7eef9" stroke="#3164b3" stroke-width="1.4" rx="4"/>
+    <text x="70" y="411" class="blue mono">footerRows()</text>
+  </g>
+
+  <g transform="translate(82 706)">
+    <circle cx="0" cy="-5" r="6" fill="#3164b3"/>
+    <text x="18" y="0" class="ink small">Headers and footers repeat per page</text>
+    <circle cx="306" cy="-5" r="6" fill="#24807c"/>
+    <text x="324" y="0" class="ink small">Columns normalize to MaxGridSize</text>
+    <circle cx="646" cy="-5" r="6" fill="#d88e36"/>
+    <text x="664" y="0" class="ink small">Overflow moves whole rows forward</text>
+  </g>
+</svg>

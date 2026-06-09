@@ -32,8 +32,6 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		sut.SetNext(next)
 
 		sut.Apply(w, h, config, &props.Cell{})
-
-		fpdf.AssertNumberOfCalls(t, "DrawPath", 0)
 	})
 
 	t.Run("when nil prop, should pass through", func(t *testing.T) {
@@ -46,8 +44,6 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		sut.SetNext(next)
 
 		sut.Apply(w, h, config, nil)
-
-		fpdf.AssertNumberOfCalls(t, "DrawPath", 0)
 	})
 
 	t.Run("when fill only, should draw rounded fill path and clear background", func(t *testing.T) {
@@ -151,7 +147,4 @@ func TestPerSideBorderStyler_SkipsWhenBorderRadiusSet(t *testing.T) {
 		BorderRadius:       4,
 		BorderTopThickness: 1.0,
 	})
-
-	fpdf.AssertNumberOfCalls(t, "Line", 0)
-	fpdf.AssertNumberOfCalls(t, "GetXY", 0)
 }

@@ -1,6 +1,7 @@
 package paper_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -77,6 +78,28 @@ func BenchmarkPDFGeneration(b *testing.B) {
 			consumeBenchmarkDocument(b, doc)
 		}
 	})
+}
+
+// BenchmarkPDFScaling sweeps document size to expose the per-row cost curve.
+// Each sub-benchmark generates a text document with N body rows so the marginal
+// cost of a row (and page breaks) can be read off as the slope of ns/op vs N.
+func BenchmarkPDFScaling(b *testing.B) {
+	cfg := benchmarkConfig()
+	for _, rowCount := range []int{10, 50, 100, 500, 1000} {
+		b.Run(fmt.Sprintf("Rows=%d", rowCount), func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				m := paper.New(cfg)
+				m.AddRows(benchmarkTextRows(rowCount)...)
+
+				doc, err := m.Generate()
+				if err != nil {
+					b.Fatalf("generate %d-row document: %v", rowCount, err)
+				}
+				consumeBenchmarkDocument(b, doc)
+			}
+		})
+	}
 }
 
 func generateHTMLDemoDocument(b *testing.B, htmlBody string, cfg *entity.Config) core.Document {

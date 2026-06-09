@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title> Paper — Docs </title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="description" content="Paper documentation — generate PDFs from HTML and Go components.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <style>
+    :root {
+      --base-font-size: 14px;
+      --theme-color   : #373d7e;
+      --seconday-color: #ee2444;
+    }
+  </style>
+  <link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="//cdn.jsdelivr.net/npm/docsify-edit-on-github"></script>
+<script src="//unpkg.com/docsify/lib/plugins/emoji.min.js"></script>
+<script>
+  window.$docsify = {
+    search: 'auto',
+    name: 'Paper',
+    repo: 'https://github.com/avdoseferovic/paper',
+    loadSidebar: true,
+    loadFooter: true,
+    coverpage: true,
+    loadNavbar: true,
+    copyCode: {
+      buttonText : 'Copy to clipboard',
+      errorText  : 'Error',
+      successText: 'Copied'
+    },
+    pagination: {
+      crossChapter: true,
+      crossChapterText: true,
+    },
+    plugins: [
+      EditOnGithubPlugin.create('https://github.com/avdoseferovic/paper/tree/master/docs/', 'https://github.com/avdoseferovic/paper/edit/master/docs/', "Edit on Github")
+    ]
+  }
+</script>
+<!-- Docsify v4 -->
+<script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+<script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
+<script src="https://unpkg.com/docsify-copy-code@2"></script>
+<script src="//unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/@alertbox/docsify-footer/dist/docsify-footer.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/pdfobject/2.1.1/pdfobject.min.js"></script>
+<script src="//unpkg.com/docsify-pdf-embed-plugin/src/docsify-pdf-embed.js"></script>
+<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+</body>
+</html>

@@ -104,13 +104,10 @@ func TestMatrixCode_Render(t *testing.T) {
 		sut := code.NewMatrix(codeValue, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddMatrixCode(codeValue, &cell, &prop)
+		provider.EXPECT().AddMatrixCode(codeValue, &cell, &prop).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddMatrixCode", 1)
 	})
 }
 

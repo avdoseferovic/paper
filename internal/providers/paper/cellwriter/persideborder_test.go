@@ -35,8 +35,6 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 
 		prop := &props.Cell{}
 		sut.Apply(w, h, config, prop)
-
-		fpdf.AssertNumberOfCalls(t, "Line", 0)
 	})
 
 	t.Run("when only top border set, should draw one Line using GetXY cell origin", func(t *testing.T) {
@@ -53,7 +51,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		// Expect exactly one Line call for the top side with real cell-relative coords
 		fpdf.EXPECT().SetLineWidth(1.0)
 		fpdf.EXPECT().SetDrawColor(255, 0, 0)
-		fpdf.EXPECT().Line(cellX, cellY, cellX+w, cellY)
+		fpdf.EXPECT().Line(cellX, cellY, cellX+w, cellY).Once()
 		// Restore original state
 		fpdf.EXPECT().SetLineWidth(origLineWidth)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
@@ -66,8 +64,6 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 			BorderTopColor:     &props.Color{Red: 255},
 		}
 		sut.Apply(w, h, config, prop)
-
-		fpdf.AssertNumberOfCalls(t, "Line", 1)
 	})
 
 	t.Run("when all four sides set with different thicknesses, should draw four Line calls using GetXY", func(t *testing.T) {
@@ -100,8 +96,6 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 			BorderLeftColor:       &props.Color{Red: 128, Green: 128},
 		}
 		sut.Apply(w, h, config, prop)
-
-		fpdf.AssertNumberOfCalls(t, "Line", 4)
 	})
 
 	t.Run("legacy BorderType still works after PerSideBorderStyler (regression)", func(t *testing.T) {
@@ -121,8 +115,5 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 			BorderThickness: 0.6,
 		}
 		sut.Apply(w, h, config, prop)
-
-		fpdf.AssertNumberOfCalls(t, "Line", 0)       // raw Line NOT called
-		fpdf.AssertNumberOfCalls(t, "CellFormat", 0) // CellFormat handled by next
 	})
 }

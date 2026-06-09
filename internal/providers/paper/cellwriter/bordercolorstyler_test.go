@@ -49,16 +49,13 @@ func TestBorderColorStyler_Apply(t *testing.T) {
 		var nilCellProp *props.Cell
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, nilCellProp)
+		inner.EXPECT().Apply(width, height, cfg, nilCellProp).Once()
 
 		sut := cellwriter.NewBorderColorStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, nilCellProp)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop but border color is nil, should skip current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -69,16 +66,13 @@ func TestBorderColorStyler_Apply(t *testing.T) {
 		prop := &props.Cell{}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		sut := cellwriter.NewBorderColorStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop and border color is defined, should apply current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -91,20 +85,16 @@ func TestBorderColorStyler_Apply(t *testing.T) {
 		}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
-		fpdf.EXPECT().SetDrawColor(0, 0, 0)
+		fpdf.EXPECT().SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue).Once()
+		fpdf.EXPECT().SetDrawColor(0, 0, 0).Once()
 
 		sut := cellwriter.NewBorderColorStyler(fpdf)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
-		fpdf.AssertNumberOfCalls(t, "SetDrawColor", 2)
 	})
 }

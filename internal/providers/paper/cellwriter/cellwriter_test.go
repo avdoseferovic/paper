@@ -32,15 +32,12 @@ func TestCellWriter_Apply(t *testing.T) {
 		width := 100.0
 		height := 200.0
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().CellFormat(width, height, "", "", 0, "C", false, 0, "")
+		fpdf.EXPECT().CellFormat(width, height, "", "", 0, "C", false, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
 
 		// Act
 		sut.Apply(width, height, config, nil)
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "CellFormat", 1)
 	})
 	t.Run("when prop is nil with debug, should call cellformat correctly", func(t *testing.T) {
 		t.Parallel()
@@ -51,15 +48,12 @@ func TestCellWriter_Apply(t *testing.T) {
 		width := 100.0
 		height := 200.0
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", false, 0, "")
+		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", false, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
 
 		// Act
 		sut.Apply(width, height, config, nil)
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "CellFormat", 1)
 	})
 	t.Run("when has prop without debug, should call cellformat correctly", func(t *testing.T) {
 		t.Parallel()
@@ -69,15 +63,12 @@ func TestCellWriter_Apply(t *testing.T) {
 		width := 100.0
 		height := 200.0
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().CellFormat(width, height, "", "L", 0, "C", true, 0, "")
+		fpdf.EXPECT().CellFormat(width, height, "", "L", 0, "C", true, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
 
 		// Act
 		sut.Apply(width, height, config, &prop)
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "CellFormat", 1)
 	})
 	t.Run("when has prop with debug, should call cellformat correctly", func(t *testing.T) {
 		t.Parallel()
@@ -89,14 +80,11 @@ func TestCellWriter_Apply(t *testing.T) {
 		width := 100.0
 		height := 200.0
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", true, 0, "")
+		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", true, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
 
 		// Act
 		sut.Apply(width, height, config, &prop)
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "CellFormat", 1)
 	})
 }

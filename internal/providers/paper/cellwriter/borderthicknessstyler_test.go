@@ -49,16 +49,13 @@ func TestBorderThicknessStyler_Apply(t *testing.T) {
 		var nilCellProp *props.Cell
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, nilCellProp)
+		inner.EXPECT().Apply(width, height, cfg, nilCellProp).Once()
 
 		sut := cellwriter.NewBorderThicknessStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, nilCellProp)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop but thickness is 0.0, should skip current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -69,16 +66,13 @@ func TestBorderThicknessStyler_Apply(t *testing.T) {
 		prop := &props.Cell{}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		sut := cellwriter.NewBorderThicknessStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop and line style is dashed, should apply current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -91,20 +85,16 @@ func TestBorderThicknessStyler_Apply(t *testing.T) {
 		}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetLineWidth(prop.BorderThickness)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(prop.BorderThickness).Once()
+		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness).Once()
 
 		sut := cellwriter.NewBorderThicknessStyler(fpdf)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
-		fpdf.AssertNumberOfCalls(t, "SetLineWidth", 2)
 	})
 }

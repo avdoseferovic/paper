@@ -31,6 +31,13 @@ type Cell struct {
 	PaddingBottom float64
 	PaddingLeft   float64
 
+	// Per-side margin (mm). Applied by styled rows and columns to inset the
+	// painted cell box and its content from the allocated grid cell.
+	MarginTop    float64
+	MarginRight  float64
+	MarginBottom float64
+	MarginLeft   float64
+
 	// Per-side border colors (nil = no override; falls back to BorderColor).
 	BorderTopColor    *Color
 	BorderRightColor  *Color
@@ -215,6 +222,22 @@ func (c *Cell) ToMap() map[string]any {
 
 	if c.BackgroundColor != nil {
 		m["prop_background_color"] = c.BackgroundColor.ToString()
+	}
+
+	if c.MarginTop != 0 {
+		m["prop_margin_top"] = c.MarginTop
+	}
+
+	if c.MarginRight != 0 {
+		m["prop_margin_right"] = c.MarginRight
+	}
+
+	if c.MarginBottom != 0 {
+		m["prop_margin_bottom"] = c.MarginBottom
+	}
+
+	if c.MarginLeft != 0 {
+		m["prop_margin_left"] = c.MarginLeft
 	}
 
 	if c.BackgroundImage != nil {

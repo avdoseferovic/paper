@@ -10,6 +10,8 @@ import (
 
 	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
 	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
+	svgraster "github.com/avdoseferovic/paper/internal/svg"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -51,13 +53,17 @@ func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64,
 	}
 	digest := sha256.Sum256(image.Bytes)
 	name := "cell-bg-" + hex.EncodeToString(digest[:16])
+	imageBytes, imageExtension, err := normalizeBackgroundImageBytes(image.Bytes, image.Extension)
+	if err != nil {
+		return
+	}
 	info := b.fpdf.RegisterImageOptionsReader(
 		name,
 		gofpdf.ImageOptions{
 			ReadDpi:   false,
-			ImageType: string(image.Extension),
+			ImageType: string(imageExtension),
 		},
-		bytes.NewReader(image.Bytes),
+		bytes.NewReader(imageBytes),
 	)
 	if info == nil {
 		return
@@ -75,6 +81,17 @@ func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64,
 	b.fpdf.ClipRect(x, y, width, height, false)
 	defer b.fpdf.ClipEnd()
 	b.drawTiles(name, ix, iy, x, y, width, height, w, h, repeatX, repeatY)
+}
+
+func normalizeBackgroundImageBytes(imageBytes []byte, imageExtension extension.Type) ([]byte, extension.Type, error) {
+	if imageExtension != extension.Svg {
+		return imageBytes, imageExtension, nil
+	}
+	pngBytes, _, _, err := svgraster.Rasterize(imageBytes, 0, 0)
+	if err != nil {
+		return nil, "", err
+	}
+	return pngBytes, extension.Png, nil
 }
 
 func (b *backgroundImageStyler) drawTiles(

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	goimage "image"
 	_ "image/jpeg"
-	"image/png"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	imagecomp "github.com/avdoseferovic/paper/pkg/components/image"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
@@ -21,21 +21,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/srwiley/oksvg"
-	"github.com/srwiley/rasterx"
 	"golang.org/x/net/html"
 )
-
-// dpiForRaster is the DPI used when rasterising SVG to PNG for PDF embedding.
-const dpiForRaster = 150.0
-
-// maxRasterPixels caps the total pixel count of an SVG raster target. The
-// dimensions feeding the rasteriser (CSS/attribute width/height and the SVG's
-// own viewBox) are attacker-controlled in untrusted HTML, so an unbounded
-// goimage.NewRGBA allocation (4 bytes/px) is a memory-exhaustion DoS vector.
-// 16M px ≈ 64 MB RGBA, generous for any print-resolution image (A4 at 150 DPI
-// is ~2.2M px) while refusing pathological viewBox/size values.
-const maxRasterPixels = 16 << 20
 
 // ImageResolver loads image bytes for a given <img src="…"> value. It returns
 // the raw bytes and a hint extension ("png", "jpg", "svg", etc.). When err is
@@ -50,12 +37,10 @@ var ErrImageResolverRefused = errors.New(
 )
 
 var (
-	errDataURIInvalid       = errors.New("html: invalid data URI")
-	errAbsolutePathRefused  = errors.New("html: absolute path refused outside base dir")
-	errPathEscapesBaseDir   = errors.New("html: path escapes base dir")
-	errBaseDirEmpty         = errors.New("html: base dir is empty; refusing all local reads")
-	errSVGHasZeroDimensions = errors.New("html: svg has zero dimensions")
-	errSVGTooLarge          = errors.New("html: svg raster dimensions exceed pixel budget")
+	errDataURIInvalid      = errors.New("html: invalid data URI")
+	errAbsolutePathRefused = errors.New("html: absolute path refused outside base dir")
+	errPathEscapesBaseDir  = errors.New("html: path escapes base dir")
+	errBaseDirEmpty        = errors.New("html: base dir is empty; refusing all local reads")
 )
 
 // safeDefaultResolver only accepts data: URIs. It refuses any other src to
@@ -159,15 +144,15 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	if ext == imageExtSVG {
-		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
+		pngBytes, w, h, rerr := svgraster.Rasterize(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported("img.svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
 		ext = imageExtPNG
-		intrinsicWidth = mmFromPx(w)
-		intrinsicHeight = mmFromPx(h)
+		intrinsicWidth = svgraster.MMFromPx(w)
+		intrinsicHeight = svgraster.MMFromPx(h)
 	} else {
 		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
 	}
@@ -243,15 +228,15 @@ func (tr *translator) richImageFromSource(
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	if ext == imageExtSVG {
-		pngBytes, w, h, rerr := rasteriseSVG(data, dimensions.width, dimensions.height)
+		pngBytes, w, h, rerr := svgraster.Rasterize(data, dimensions.width, dimensions.height)
 		if rerr != nil {
 			tr.unsupported(unsupportedPrefix+".svg", rerr.Error())
 			return nil, false
 		}
 		data = pngBytes
 		ext = imageExtPNG
-		intrinsicWidth = mmFromPx(w)
-		intrinsicHeight = mmFromPx(h)
+		intrinsicWidth = svgraster.MMFromPx(w)
+		intrinsicHeight = svgraster.MMFromPx(h)
 	} else {
 		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
 	}
@@ -625,12 +610,12 @@ func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (co
 		style = tr.imageStyle(n)
 	}
 	dimensions := imageDimensions(n, style)
-	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
+	pngBytes, widthPx, heightPx, err := svgraster.Rasterize(data, dimensions.width, dimensions.height)
 	if err != nil {
 		tr.unsupported(tagSVG, err.Error())
 		return nil, false
 	}
-	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 10)
+	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 10)
 
 	cellWidth := tr.contentWidthMM
 	if cellWidth <= 0 {
@@ -660,12 +645,12 @@ func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
 	}
 	style := tr.imageStyle(n)
 	dimensions := imageDimensions(n, style)
-	pngBytes, widthPx, heightPx, err := rasteriseSVG(data, dimensions.width, dimensions.height)
+	pngBytes, widthPx, heightPx, err := svgraster.Rasterize(data, dimensions.width, dimensions.height)
 	if err != nil {
 		tr.unsupported(tagSVG, err.Error())
 		return nil, false
 	}
-	widthMM, heightMM := resolveImageDimensions(dimensions, mmFromPx(widthPx), mmFromPx(heightPx), 4)
+	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 4)
 	return &props.RichImage{
 		Bytes:          pngBytes,
 		Extension:      extension.Png,
@@ -709,7 +694,7 @@ func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackg
 		return nil
 	}
 	if ext == imageExtSVG {
-		pngBytes, _, _, rerr := rasteriseSVG(data, 0, 0)
+		pngBytes, _, _, rerr := svgraster.Rasterize(data, 0, 0)
 		if rerr != nil {
 			tr.unsupported("background-image.svg", rerr.Error())
 			return nil
@@ -916,74 +901,6 @@ func parseImageDimension(s string) float64 {
 		s += "px"
 	}
 	return css.ParseLength(s, 0)
-}
-
-// rasteriseSVG converts SVG bytes into PNG bytes at the requested mm dimensions
-// (using dpiForRaster). Returns the PNG, width-px, height-px, and any error.
-// When widthMM/heightMM are 0 it uses the SVG's intrinsic ViewBox to pick a size.
-func rasteriseSVG(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int, error) {
-	icon, err := oksvg.ReadIconStream(bytes.NewReader(svgBytes), oksvg.IgnoreErrorMode)
-	if err != nil {
-		return nil, 0, 0, fmt.Errorf("html: svg parse: %w", err)
-	}
-	pxW, pxH := svgTargetPixels(icon, widthMM, heightMM)
-	if pxW <= 0 || pxH <= 0 {
-		return nil, 0, 0, errSVGHasZeroDimensions
-	}
-	if int64(pxW)*int64(pxH) > maxRasterPixels {
-		return nil, 0, 0, fmt.Errorf("%w: %dx%d", errSVGTooLarge, pxW, pxH)
-	}
-	icon.SetTarget(0, 0, float64(pxW), float64(pxH))
-	rgba := goimage.NewRGBA(goimage.Rect(0, 0, pxW, pxH))
-	scanner := rasterx.NewScannerGV(pxW, pxH, rgba, rgba.Bounds())
-	dasher := rasterx.NewDasher(pxW, pxH, scanner)
-	icon.Draw(dasher, 1.0)
-
-	var buf bytes.Buffer
-	err = png.Encode(&buf, rgba)
-	if err != nil {
-		return nil, 0, 0, fmt.Errorf("html: png encode: %w", err)
-	}
-	return buf.Bytes(), pxW, pxH, nil
-}
-
-func svgTargetPixels(icon *oksvg.SvgIcon, widthMM, heightMM float64) (int, int) {
-	vbW := icon.ViewBox.W
-	vbH := icon.ViewBox.H
-	switch {
-	case widthMM > 0 && heightMM > 0:
-		return pxFromMM(widthMM), pxFromMM(heightMM)
-	case widthMM > 0:
-		if vbW > 0 && vbH > 0 {
-			pxW := pxFromMM(widthMM)
-			pxH := int(float64(pxW) * vbH / vbW)
-			return pxW, pxH
-		}
-		return pxFromMM(widthMM), pxFromMM(widthMM)
-	case heightMM > 0:
-		if vbW > 0 && vbH > 0 {
-			pxH := pxFromMM(heightMM)
-			pxW := int(float64(pxH) * vbW / vbH)
-			return pxW, pxH
-		}
-		return pxFromMM(heightMM), pxFromMM(heightMM)
-	default:
-		if vbW > 0 && vbH > 0 {
-			return int(vbW), int(vbH)
-		}
-		return 32, 32
-	}
-}
-
-// pxFromMM converts millimetres to pixels at dpiForRaster.
-func pxFromMM(mm float64) int {
-	px := int(mm / 25.4 * dpiForRaster)
-	return max(px, 1)
-}
-
-// mmFromPx converts pixels back to millimetres at dpiForRaster.
-func mmFromPx(px int) float64 {
-	return float64(px) / dpiForRaster * 25.4
 }
 
 func extensionType(ext string) extension.Type {

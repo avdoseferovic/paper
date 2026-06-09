@@ -31,15 +31,12 @@ func TestMutexCache_AddImage(t *testing.T) {
 	img := &entity.Image{}
 
 	innerMock := mocks.NewCache(t)
-	innerMock.EXPECT().AddImage(value, img)
+	innerMock.EXPECT().AddImage(value, img).Once()
 
 	sut := cache.NewMutexDecorator(innerMock)
 
 	// Act
 	sut.AddImage(value, img)
-
-	// Assert
-	innerMock.AssertNumberOfCalls(t, "AddImage", 1)
 }
 
 func TestMutexCache_GetImage(t *testing.T) {
@@ -51,7 +48,7 @@ func TestMutexCache_GetImage(t *testing.T) {
 	errToReturn := errors.New("any error")
 
 	innerMock := mocks.NewCache(t)
-	innerMock.EXPECT().GetImage(value, ext).Return(imgToReturn, errToReturn)
+	innerMock.EXPECT().GetImage(value, ext).Return(imgToReturn, errToReturn).Once()
 
 	sut := cache.NewMutexDecorator(innerMock)
 
@@ -61,7 +58,6 @@ func TestMutexCache_GetImage(t *testing.T) {
 	// Assert
 	assert.Equal(t, imgToReturn, img)
 	assert.Equal(t, errToReturn, err)
-	innerMock.AssertNumberOfCalls(t, "GetImage", 1)
 }
 
 func TestMutexCache_LoadImage(t *testing.T) {
@@ -72,7 +68,7 @@ func TestMutexCache_LoadImage(t *testing.T) {
 	errToReturn := errors.New("any error")
 
 	innerMock := mocks.NewCache(t)
-	innerMock.EXPECT().LoadImage(value, ext).Return(errToReturn)
+	innerMock.EXPECT().LoadImage(value, ext).Return(errToReturn).Once()
 
 	sut := cache.NewMutexDecorator(innerMock)
 
@@ -81,5 +77,4 @@ func TestMutexCache_LoadImage(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, errToReturn, err)
-	innerMock.AssertNumberOfCalls(t, "LoadImage", 1)
 }

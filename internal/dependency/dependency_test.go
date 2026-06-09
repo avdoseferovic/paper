@@ -1,3 +1,11 @@
+//go:build integration
+
+// These tests shell out to the real `go` toolchain (go list -m all,
+// go list -deps ./...) and walk the whole source tree, so they require a
+// working toolchain (and possibly the module cache/network). They are
+// integration-tier and excluded from the default unit run; run them with
+// `go test -tags=integration ./...`.
+
 package dependency_test
 
 import (

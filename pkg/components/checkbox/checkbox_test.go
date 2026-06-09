@@ -102,14 +102,11 @@ func TestCheckbox_Render(t *testing.T) {
 		sut := checkbox.New("label", prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddCheckbox("label", &cell, &prop)
+		provider.EXPECT().AddCheckbox("label", &cell, &prop).Once()
 		sut.SetConfig(&entity.Config{})
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddCheckbox", 1)
 	})
 	t.Run("should call provider correctly when checked", func(t *testing.T) {
 		t.Parallel()
@@ -119,14 +116,11 @@ func TestCheckbox_Render(t *testing.T) {
 		sut := checkbox.New("label", prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddCheckbox("label", &cell, &prop)
+		provider.EXPECT().AddCheckbox("label", &cell, &prop).Once()
 		sut.SetConfig(&entity.Config{})
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddCheckbox", 1)
 	})
 }
 

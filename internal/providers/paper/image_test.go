@@ -3,6 +3,7 @@ package paper_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"testing"
 
 	gofpdf2 "github.com/avdoseferovic/paper/internal/providers/paper"
@@ -10,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/internal/math"
 	gofpdf "github.com/avdoseferovic/paper/internal/paperpdf"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/avdoseferovic/paper/mocks"
@@ -140,6 +143,37 @@ func TestImage_Add(t *testing.T) {
 		assert.Nil(t, err2)
 		assert.Len(t, registeredNames, 2)
 		assert.Equal(t, registeredNames[0], registeredNames[1])
+	})
+	t.Run("when extension is svg, should rasterise and register as png", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		img := &entity.Image{
+			Bytes: []byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 16">
+  <rect width="32" height="16" fill="#24807c"/>
+  <text x="3" y="12" fill="#ffffff" font-size="8">SVG</text>
+</svg>`),
+			Extension: extension.Svg,
+		}
+		options := gofpdf.ImageOptions{
+			ReadDpi:   false,
+			ImageType: string(extension.Png),
+		}
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().RegisterImageOptionsReader(mock.Anything, options, mock.MatchedBy(func(reader io.Reader) bool {
+			data, err := io.ReadAll(reader)
+			return err == nil && bytes.HasPrefix(data, []byte("\x89PNG"))
+		})).Return(&gofpdf.ImageInfoType{}).Once()
+
+		image := gofpdf2.NewImage(pdf, mocks.NewMath(t))
+
+		// Act
+		dimensions := image.GetImageDimensions(img, img.Extension)
+
+		// Assert
+		assert.NotNil(t, dimensions)
+		assert.Equal(t, 32.0, dimensions.Width)
+		assert.Equal(t, 16.0, dimensions.Height)
 	})
 }
 

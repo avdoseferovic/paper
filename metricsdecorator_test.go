@@ -40,7 +40,7 @@ func TestMetricsDecorator_AddPages(t *testing.T) {
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
 	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
-	inner.EXPECT().AddPages(pg)
+	inner.EXPECT().AddPages(pg).Times(2)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
 	sut := paper.NewMetricsDecorator(inner)
@@ -60,7 +60,6 @@ func TestMetricsDecorator_AddPages(t *testing.T) {
 	assert.Equal(t, "generate", report.TimeMetrics[0].Key)
 	assert.Equal(t, "add_page", report.TimeMetrics[1].Key)
 	assert.Len(t, report.TimeMetrics[1].Times, 2)
-	inner.AssertNumberOfCalls(t, "AddPages", 2)
 }
 
 func TestMetricsDecorator_AddRow(t *testing.T) {
@@ -72,7 +71,7 @@ func TestMetricsDecorator_AddRow(t *testing.T) {
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
 	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
-	inner.EXPECT().AddRow(10.0, col).Return(nil)
+	inner.EXPECT().AddRow(10.0, col).Return(nil).Times(2)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
 	sut := paper.NewMetricsDecorator(inner)
@@ -92,7 +91,6 @@ func TestMetricsDecorator_AddRow(t *testing.T) {
 	assert.Equal(t, "generate", report.TimeMetrics[0].Key)
 	assert.Equal(t, "add_row", report.TimeMetrics[1].Key)
 	assert.Len(t, report.TimeMetrics[1].Times, 2)
-	inner.AssertNumberOfCalls(t, "AddRow", 2)
 }
 
 func TestMetricsDecorator_GeneratePreservesRenderIssues(t *testing.T) {
@@ -126,7 +124,7 @@ func TestMetricsDecorator_AddRows(t *testing.T) {
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
 	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
-	inner.EXPECT().AddRows(row)
+	inner.EXPECT().AddRows(row).Times(2)
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
 	sut := paper.NewMetricsDecorator(inner)
@@ -146,7 +144,6 @@ func TestMetricsDecorator_AddRows(t *testing.T) {
 	assert.Equal(t, "generate", report.TimeMetrics[0].Key)
 	assert.Equal(t, "add_rows", report.TimeMetrics[1].Key)
 	assert.Len(t, report.TimeMetrics[1].Times, 2)
-	inner.AssertNumberOfCalls(t, "AddRows", 2)
 }
 
 func TestMetricsDecorator_GetStructure(t *testing.T) {
@@ -158,8 +155,8 @@ func TestMetricsDecorator_GetStructure(t *testing.T) {
 	docToReturn.EXPECT().GetBytes().Return([]byte{1, 2, 3})
 	docToReturn.EXPECT().GetReport().Return(nil)
 	inner := mocks.NewMaroto(t)
-	inner.EXPECT().AddRows(row)
-	inner.EXPECT().GetStructure().Return(&node.Node[core.Structure]{})
+	inner.EXPECT().AddRows(row).Once()
+	inner.EXPECT().GetStructure().Return(&node.Node[core.Structure]{}).Once()
 	inner.EXPECT().Generate().Return(docToReturn, nil)
 
 	sut := paper.NewMetricsDecorator(inner)
@@ -180,8 +177,6 @@ func TestMetricsDecorator_GetStructure(t *testing.T) {
 	assert.Equal(t, "generate", report.TimeMetrics[1].Key)
 	assert.Equal(t, "add_rows", report.TimeMetrics[2].Key)
 	assert.Len(t, report.TimeMetrics[1].Times, 1)
-	inner.AssertNumberOfCalls(t, "AddRows", 1)
-	inner.AssertNumberOfCalls(t, "GetStructure", 1)
 }
 
 func TestMetricsDecorator_FitlnCurrentPage(t *testing.T) {

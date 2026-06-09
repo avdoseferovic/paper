@@ -103,13 +103,10 @@ func TestBarcode_Render(t *testing.T) {
 		sut := code.NewBar(codeValue, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddBarCode(codeValue, &cell, &prop)
+		provider.EXPECT().AddBarCode(codeValue, &cell, &prop).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddBarCode", 1)
 	})
 }
 

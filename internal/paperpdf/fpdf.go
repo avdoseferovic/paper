@@ -36,7 +36,11 @@ type fmtBuffer struct {
 }
 
 func (b *fmtBuffer) printf(fmtStr string, args ...any) {
-	b.Buffer.WriteString(fmt.Sprintf(fmtStr, args...))
+	// Format straight into the buffer instead of allocating an intermediate
+	// result string via Sprintf. fmt.Fprintf uses a pooled internal printer and
+	// writes directly through bytes.Buffer.Write, so only the unavoidable
+	// variadic arg boxing remains.
+	fmt.Fprintf(&b.Buffer, fmtStr, args...)
 }
 
 func fpdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) (f *Fpdf) {

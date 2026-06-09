@@ -104,13 +104,10 @@ func TestQrCode_Render(t *testing.T) {
 		sut := code.NewQr(codeValue, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddQrCode(codeValue, &cell, &prop)
+		provider.EXPECT().AddQrCode(codeValue, &cell, &prop).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddQrCode", 1)
 	})
 }
 

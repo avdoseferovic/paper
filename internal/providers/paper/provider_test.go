@@ -79,7 +79,7 @@ func TestProvider_AddText(t *testing.T) {
 	prop := fixture.TextProp()
 
 	text := mocks.NewText(t)
-	text.EXPECT().Add(txtContent, cell, &prop)
+	text.EXPECT().Add(txtContent, cell, &prop).Once()
 
 	dep := &gofpdf.Dependencies{
 		Text: text,
@@ -88,9 +88,6 @@ func TestProvider_AddText(t *testing.T) {
 
 	// Act
 	sut.AddText(txtContent, cell, &prop)
-
-	// Assert
-	text.AssertNumberOfCalls(t, "Add", 1)
 }
 
 func TestProvider_GetTextHeight(t *testing.T) {
@@ -100,7 +97,7 @@ func TestProvider_GetTextHeight(t *testing.T) {
 	prop := fixture.FontProp()
 
 	font := mocks.NewFont(t)
-	font.EXPECT().GetHeight(prop.Family, prop.Style, prop.Size).Return(fontHeightToReturn)
+	font.EXPECT().GetHeight(prop.Family, prop.Style, prop.Size).Return(fontHeightToReturn).Once()
 
 	dep := &gofpdf.Dependencies{
 		Font: font,
@@ -111,7 +108,6 @@ func TestProvider_GetTextHeight(t *testing.T) {
 	fontHeight := sut.GetFontHeight(&prop)
 
 	// Assert
-	font.AssertNumberOfCalls(t, "GetHeight", 1)
 	assert.Equal(t, fontHeightToReturn, fontHeight)
 }
 
@@ -122,7 +118,7 @@ func TestProvider_AddLine(t *testing.T) {
 	prop := fixture.LineProp()
 
 	line := mocks.NewLine(t)
-	line.EXPECT().Add(cell, &prop)
+	line.EXPECT().Add(cell, &prop).Once()
 
 	dep := &gofpdf.Dependencies{
 		Line: line,
@@ -131,9 +127,6 @@ func TestProvider_AddLine(t *testing.T) {
 
 	// Act
 	sut.AddLine(cell, &prop)
-
-	// Assert
-	line.AssertNumberOfCalls(t, "Add", 1)
 }
 
 func TestProvider_AddCheckbox(t *testing.T) {
@@ -144,7 +137,7 @@ func TestProvider_AddCheckbox(t *testing.T) {
 	prop := fixture.CheckboxProp()
 
 	checkbox := mocks.NewCheckbox(t)
-	checkbox.EXPECT().Add(label, cell, &prop)
+	checkbox.EXPECT().Add(label, cell, &prop).Once()
 
 	dep := &gofpdf.Dependencies{
 		Checkbox: checkbox,
@@ -153,9 +146,6 @@ func TestProvider_AddCheckbox(t *testing.T) {
 
 	// Act
 	sut.AddCheckbox(label, cell, &prop)
-
-	// Assert
-	checkbox.AssertNumberOfCalls(t, "Add", 1)
 }
 
 // nolint: dupl
@@ -168,13 +158,13 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		prop := fixture.RectProp()
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenDataMatrix(codeContent).Return(nil, errors.New("anyError2"))
+		code.EXPECT().GenDataMatrix(codeContent).Return(nil, errors.New("anyError2")).Once()
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not generate matrixcode", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not generate matrixcode", cell, merror.DefaultErrorText).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -186,11 +176,6 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 
 		// Act
 		sut.AddMatrixCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenDataMatrix", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 
 	t.Run("when can find image on cache but cannot add image, should apply error message", func(t *testing.T) {
@@ -202,12 +187,12 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not add matrixcode to document", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not add matrixcode to document", cell, merror.DefaultErrorText).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -219,7 +204,7 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError"))
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
 		fpdf := mocks.NewFpdf(t)
 		fpdf.EXPECT().ClearError()
@@ -237,12 +222,6 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 
 		// Act
 		sut.AddMatrixCode("code", cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 0)
-		image.AssertNumberOfCalls(t, "Add", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when can find image on cache and can add image, should not apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -253,7 +232,7 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
@@ -267,7 +246,7 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -280,11 +259,6 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 
 		// Act
 		sut.AddMatrixCode("code", cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 0)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when matrx code is generated with the code sent, it should generate matrix code with the same code", func(t *testing.T) {
 		t.Parallel()
@@ -295,14 +269,14 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1"))
-		cache.EXPECT().AddImage("matrix-code-code", img).Return()
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
+		cache.EXPECT().AddImage("matrix-code-code", img).Return().Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenDataMatrix(codeContent).Return(img, nil)
+		code.EXPECT().GenDataMatrix(codeContent).Return(img, nil).Once()
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -313,12 +287,6 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 
 		// Act
 		gofpdf.New(dep).AddMatrixCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenDataMatrix", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 }
 
@@ -332,13 +300,13 @@ func TestProvider_AddQrCode(t *testing.T) {
 		prop := fixture.RectProp()
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenQr(codeContent).Return(nil, errors.New("anyError2"))
+		code.EXPECT().GenQr(codeContent).Return(nil, errors.New("anyError2")).Once()
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not generate qrcode", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not generate qrcode", cell, merror.DefaultErrorText).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -350,11 +318,6 @@ func TestProvider_AddQrCode(t *testing.T) {
 
 		// Act
 		sut.AddQrCode("code", cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenQr", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when can find image on cache but cannot add image, should apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -365,12 +328,12 @@ func TestProvider_AddQrCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not add qrcode to document", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not add qrcode to document", cell, merror.DefaultErrorText).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -382,7 +345,7 @@ func TestProvider_AddQrCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError"))
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
 		fpdf := mocks.NewFpdf(t)
 		fpdf.EXPECT().ClearError()
@@ -400,12 +363,6 @@ func TestProvider_AddQrCode(t *testing.T) {
 
 		// Act
 		sut.AddQrCode("code", cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 0)
-		image.AssertNumberOfCalls(t, "Add", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when can find image on cache and can add image, should not apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -416,7 +373,7 @@ func TestProvider_AddQrCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
@@ -430,7 +387,7 @@ func TestProvider_AddQrCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -443,11 +400,6 @@ func TestProvider_AddQrCode(t *testing.T) {
 
 		// Act
 		sut.AddQrCode("code", cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 0)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when qrcode is generated with the code sent, it should generate qr code with the same code", func(t *testing.T) {
 		t.Parallel()
@@ -458,14 +410,14 @@ func TestProvider_AddQrCode(t *testing.T) {
 		cfg := fixture.ConfigEntity()
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1"))
-		cache.EXPECT().AddImage("qr-code-code", img).Return()
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
+		cache.EXPECT().AddImage("qr-code-code", img).Return().Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenQr(codeContent).Return(img, nil)
+		code.EXPECT().GenQr(codeContent).Return(img, nil).Once()
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -478,12 +430,6 @@ func TestProvider_AddQrCode(t *testing.T) {
 
 		// Act
 		sut.AddQrCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenQr", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 }
 
@@ -497,13 +443,13 @@ func TestProvider_AddBarCode(t *testing.T) {
 		prop := fixture.BarcodeProp()
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(nil, errors.New("anyError1")).Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenBar(codeContent, cell, &prop).Return(nil, errors.New("anyError2"))
+		code.EXPECT().GenBar(codeContent, cell, &prop).Return(nil, errors.New("anyError2")).Once()
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not generate barcode", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not generate barcode", cell, merror.DefaultErrorText).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -515,11 +461,6 @@ func TestProvider_AddBarCode(t *testing.T) {
 
 		// Act
 		sut.AddBarCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenBar", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when can find image on cache but cannot add image, should apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -530,11 +471,11 @@ func TestProvider_AddBarCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(img, nil)
-		cache.EXPECT().AddImage("bar-code-codecode128", img)
+		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(img, nil).Once()
+		cache.EXPECT().AddImage("bar-code-codecode128", img).Once()
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not add barcode to document", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not add barcode to document", cell, merror.DefaultErrorText).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -546,7 +487,7 @@ func TestProvider_AddBarCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(errors.New("anyError"))
+		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(errors.New("anyError")).Once()
 
 		fpdf := mocks.NewFpdf(t)
 		fpdf.EXPECT().ClearError()
@@ -563,12 +504,6 @@ func TestProvider_AddBarCode(t *testing.T) {
 
 		// Act
 		sut.AddBarCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when can find image on cache and can add image, should not apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -579,8 +514,8 @@ func TestProvider_AddBarCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(img, nil)
-		cache.EXPECT().AddImage("bar-code-codecode128", img)
+		cache.EXPECT().GetImage("bar-code-codecode128", extension.Png).Return(img, nil).Once()
+		cache.EXPECT().AddImage("bar-code-codecode128", img).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -592,7 +527,7 @@ func TestProvider_AddBarCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -604,11 +539,6 @@ func TestProvider_AddBarCode(t *testing.T) {
 
 		// Act
 		sut.AddBarCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when barcode is ean and everything is correct, should not apply error message", func(t *testing.T) {
 		t.Parallel()
@@ -620,8 +550,8 @@ func TestProvider_AddBarCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("bar-code-codeean", extension.Png).Return(img, nil)
-		cache.EXPECT().AddImage("bar-code-codeean", img)
+		cache.EXPECT().GetImage("bar-code-codeean", extension.Png).Return(img, nil).Once()
+		cache.EXPECT().AddImage("bar-code-codeean", img).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -633,7 +563,7 @@ func TestProvider_AddBarCode(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -645,11 +575,6 @@ func TestProvider_AddBarCode(t *testing.T) {
 
 		// Act
 		sut.AddBarCode(codeContent, cell, &prop)
-
-		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "AddImage", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 }
 
@@ -659,7 +584,7 @@ func TestProvider_CreateRow(t *testing.T) {
 	height := 10.0
 
 	fpdf := mocks.NewFpdf(t)
-	fpdf.EXPECT().Ln(height)
+	fpdf.EXPECT().Ln(height).Once()
 
 	dep := &gofpdf.Dependencies{
 		Fpdf: fpdf,
@@ -669,9 +594,6 @@ func TestProvider_CreateRow(t *testing.T) {
 
 	// Act
 	sut.CreateRow(height)
-
-	// Assert
-	fpdf.AssertNumberOfCalls(t, "Ln", 1)
 }
 
 func TestProvider_EnsurePage(t *testing.T) {
@@ -710,7 +632,7 @@ func TestProvider_CreateCol(t *testing.T) {
 	prop := fixture.CellProp()
 
 	cellWriter := mocks.NewCellWriter(t)
-	cellWriter.EXPECT().Apply(width, height, cfg, &prop)
+	cellWriter.EXPECT().Apply(width, height, cfg, &prop).Once()
 
 	dep := &gofpdf.Dependencies{
 		CellWriter: cellWriter,
@@ -720,9 +642,6 @@ func TestProvider_CreateCol(t *testing.T) {
 
 	// Act
 	sut.CreateCol(width, height, cfg, &prop)
-
-	// Assert
-	cellWriter.AssertNumberOfCalls(t, "Apply", 1)
 }
 
 func TestProvider_SetProtection(t *testing.T) {
@@ -753,7 +672,7 @@ func TestProvider_SetProtection(t *testing.T) {
 		}
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetProtection(byte(p.Type), p.UserPassword, p.OwnerPassword)
+		fpdf.EXPECT().SetProtection(byte(p.Type), p.UserPassword, p.OwnerPassword).Once()
 
 		dep := &gofpdf.Dependencies{
 			Fpdf: fpdf,
@@ -763,9 +682,6 @@ func TestProvider_SetProtection(t *testing.T) {
 
 		// Act
 		sut.SetProtection(p)
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "SetProtection", 1)
 	})
 }
 
@@ -773,7 +689,7 @@ func TestProvider_SetCompression(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	fpdf := mocks.NewFpdf(t)
-	fpdf.EXPECT().SetCompression(true)
+	fpdf.EXPECT().SetCompression(true).Once()
 
 	dep := &gofpdf.Dependencies{
 		Fpdf: fpdf,
@@ -783,9 +699,6 @@ func TestProvider_SetCompression(t *testing.T) {
 
 	// Act
 	sut.SetCompression(true)
-
-	// Assert
-	fpdf.AssertNumberOfCalls(t, "SetCompression", 1)
 }
 
 func TestProvider_SetMetadata(t *testing.T) {
@@ -812,12 +725,12 @@ func TestProvider_SetMetadata(t *testing.T) {
 		timeNow := time.Now()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetAuthor("author", true)
-		fpdf.EXPECT().SetCreator("creator", true)
-		fpdf.EXPECT().SetSubject("subject", true)
-		fpdf.EXPECT().SetTitle("title", true)
-		fpdf.EXPECT().SetKeywords("keyword", true)
-		fpdf.EXPECT().SetCreationDate(timeNow)
+		fpdf.EXPECT().SetAuthor("author", true).Once()
+		fpdf.EXPECT().SetCreator("creator", true).Once()
+		fpdf.EXPECT().SetSubject("subject", true).Once()
+		fpdf.EXPECT().SetTitle("title", true).Once()
+		fpdf.EXPECT().SetKeywords("keyword", true).Once()
+		fpdf.EXPECT().SetCreationDate(timeNow).Once()
 
 		dep := &gofpdf.Dependencies{
 			Fpdf: fpdf,
@@ -848,14 +761,6 @@ func TestProvider_SetMetadata(t *testing.T) {
 			},
 			CreationDate: &timeNow,
 		})
-
-		// Assert
-		fpdf.AssertNumberOfCalls(t, "SetAuthor", 1)
-		fpdf.AssertNumberOfCalls(t, "SetCreator", 1)
-		fpdf.AssertNumberOfCalls(t, "SetSubject", 1)
-		fpdf.AssertNumberOfCalls(t, "SetTitle", 1)
-		fpdf.AssertNumberOfCalls(t, "SetCreationDate", 1)
-		fpdf.AssertNumberOfCalls(t, "SetKeywords", 1)
 	})
 }
 
@@ -863,7 +768,7 @@ func TestProvider_GenerateBytes(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	fpdf := mocks.NewFpdf(t)
-	fpdf.EXPECT().Output(mock.Anything).Return(errors.New("anyError"))
+	fpdf.EXPECT().Output(mock.Anything).Return(errors.New("anyError")).Once()
 
 	dep := &gofpdf.Dependencies{
 		Fpdf: fpdf,
@@ -876,7 +781,6 @@ func TestProvider_GenerateBytes(t *testing.T) {
 	// Assert
 	assert.Nil(t, bytes)
 	assert.NotNil(t, err)
-	fpdf.AssertNumberOfCalls(t, "Output", 1)
 }
 
 func TestProvider_AddImageFromBytes(t *testing.T) {
@@ -888,7 +792,7 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 		cell := &entity.Cell{}
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not parse image bytes", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not parse image bytes", cell, merror.DefaultErrorText).Once()
 
 		dep := &gofpdf.Dependencies{
 			Text: text,
@@ -898,9 +802,6 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddImageFromBytes([]byte{1, 2, 3}, cell, &prop, "invalid")
-
-		// Assert
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when image is valid but cannot add to document, should apply message error", func(t *testing.T) {
 		t.Parallel()
@@ -922,13 +823,13 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 		}
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not add image to document", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not add image to document", cell, merror.DefaultErrorText).Once()
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(errors.New("anyError"))
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(errors.New("anyError")).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().ClearError()
+		fpdf.EXPECT().ClearError().Once()
 
 		dep := &gofpdf.Dependencies{
 			Text:  text,
@@ -941,11 +842,6 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddImageFromBytes(img.Bytes, cell, &prop, img.Extension)
-
-		// Assert
-		text.AssertNumberOfCalls(t, "Add", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
-		fpdf.AssertNumberOfCalls(t, "ClearError", 1)
 	})
 	t.Run("when image is valid and can add to document, should not apply", func(t *testing.T) {
 		t.Parallel()
@@ -967,7 +863,7 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(nil).Once()
 
 		dep := &gofpdf.Dependencies{
 			Image: image,
@@ -978,9 +874,6 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddImageFromBytes(img.Bytes, cell, &prop, img.Extension)
-
-		// Assert
-		image.AssertNumberOfCalls(t, "Add", 1)
 	})
 }
 
@@ -993,7 +886,7 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		cell := &entity.Cell{}
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not parse image bytes", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not parse image bytes", cell, merror.DefaultErrorText).Once()
 
 		dep := &gofpdf.Dependencies{
 			Text: text,
@@ -1003,9 +896,6 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddBackgroundImageFromBytes([]byte{1, 2, 3}, cell, &prop, "invalid")
-
-		// Assert
-		text.AssertNumberOfCalls(t, "Add", 1)
 	})
 	t.Run("when image is valid but cannot add to document, should apply message error", func(t *testing.T) {
 		t.Parallel()
@@ -1027,14 +917,14 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		}
 
 		text := mocks.NewText(t)
-		text.EXPECT().Add("could not add image to document", cell, merror.DefaultErrorText)
+		text.EXPECT().Add("could not add image to document", cell, merror.DefaultErrorText).Once()
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(errors.New("anyError"))
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(errors.New("anyError")).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().ClearError()
-		fpdf.EXPECT().SetHomeXY()
+		fpdf.EXPECT().ClearError().Once()
+		fpdf.EXPECT().SetHomeXY().Once()
 
 		dep := &gofpdf.Dependencies{
 			Text:  text,
@@ -1047,12 +937,6 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddBackgroundImageFromBytes(img.Bytes, cell, &prop, img.Extension)
-
-		// Assert
-		text.AssertNumberOfCalls(t, "Add", 1)
-		image.AssertNumberOfCalls(t, "Add", 1)
-		fpdf.AssertNumberOfCalls(t, "ClearError", 1)
-		fpdf.AssertNumberOfCalls(t, "SetHomeXY", 1)
 	})
 	t.Run("when image is valid and can add to document, should not apply message error", func(t *testing.T) {
 		t.Parallel()
@@ -1074,10 +958,10 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(nil)
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(nil).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetHomeXY()
+		fpdf.EXPECT().SetHomeXY().Once()
 
 		dep := &gofpdf.Dependencies{
 			Image: image,
@@ -1089,10 +973,6 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 
 		// Act
 		sut.AddBackgroundImageFromBytes(img.Bytes, cell, &prop, img.Extension)
-
-		// Assert
-		image.AssertNumberOfCalls(t, "Add", 1)
-		fpdf.AssertNumberOfCalls(t, "SetHomeXY", 1)
 	})
 }
 
@@ -1104,10 +984,10 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenDataMatrix(codeContent).Return(nil, errors.New("anyError2"))
+		code.EXPECT().GenDataMatrix(codeContent).Return(nil, errors.New("anyError2")).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1120,8 +1000,6 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByMatrixCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenDataMatrix", 1)
 		assert.Nil(t, dimensions)
 		assert.NotNil(t, err)
 	})
@@ -1131,11 +1009,11 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 		cache.EXPECT().AddImage("matrix-code-code", img)
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenDataMatrix(codeContent).Return(img, nil)
+		code.EXPECT().GenDataMatrix(codeContent).Return(img, nil).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -1162,8 +1040,6 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByMatrixCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenDataMatrix", 1)
 		assert.NotNil(t, dimensions)
 		assert.Nil(t, err)
 	})
@@ -1172,7 +1048,7 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("matrix-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
@@ -1194,8 +1070,6 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByMatrixCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenDataMatrix", 0)
 		assert.NotNil(t, dimensions)
 		assert.Nil(t, err)
 	})
@@ -1209,10 +1083,10 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenQr(codeContent).Return(nil, errors.New("anyError2"))
+		code.EXPECT().GenQr(codeContent).Return(nil, errors.New("anyError2")).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1225,8 +1099,6 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByQrCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenQr", 1)
 		assert.Nil(t, dimensions)
 		assert.NotNil(t, err)
 	})
@@ -1236,11 +1108,11 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1"))
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(nil, errors.New("anyError1")).Once()
 		cache.EXPECT().AddImage("qr-code-code", img)
 
 		code := mocks.NewCode(t)
-		code.EXPECT().GenQr(codeContent).Return(img, nil)
+		code.EXPECT().GenQr(codeContent).Return(img, nil).Once()
 
 		cfg := &entity.Config{
 			Margins: &entity.Margins{
@@ -1267,8 +1139,6 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByQrCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		code.AssertNumberOfCalls(t, "GenQr", 1)
 		assert.NotNil(t, dimensions)
 		assert.Nil(t, err)
 	})
@@ -1277,7 +1147,7 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil)
+		cache.EXPECT().GetImage("qr-code-code", extension.Png).Return(img, nil).Once()
 
 		code := mocks.NewCode(t)
 
@@ -1306,7 +1176,6 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByQrCode(codeContent)
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
 		assert.NotNil(t, dimensions)
 		assert.Nil(t, err)
 	})
@@ -1320,8 +1189,8 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(nil, errors.New("anyError1"))
-		cache.EXPECT().LoadImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(errors.New("anyError1"))
+		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(nil, errors.New("anyError1")).Once()
+		cache.EXPECT().LoadImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(errors.New("anyError1")).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1333,8 +1202,6 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByImage("docs/assets/images/biplane.jpg")
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "LoadImage", 1)
 		assert.Nil(t, dimensions)
 		assert.NotNil(t, err)
 	})
@@ -1346,7 +1213,7 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(img, nil)
+		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(img, nil).Once()
 
 		image := mocks.NewImage(t)
 		image.EXPECT().GetImageDimensions(img, extension.Jpg).Return(&entity.Dimensions{Width: 1, Height: 1})
@@ -1362,8 +1229,6 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByImage("docs/assets/images/biplane.jpg")
 
 		// Assert
-		cache.AssertNumberOfCalls(t, "GetImage", 1)
-		cache.AssertNumberOfCalls(t, "LoadImage", 0)
 		assert.Nil(t, err)
 		assert.NotNil(t, dimensions)
 	})
@@ -1394,7 +1259,7 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 		// Arrange
 
 		image := mocks.NewImage(t)
-		image.EXPECT().GetImageDimensions(&img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1})
+		image.EXPECT().GetImageDimensions(&img, extension.Png).Return(&entity.Dimensions{Width: 1, Height: 1}).Once()
 
 		dep := &gofpdf.Dependencies{
 			Image: image,
@@ -1406,7 +1271,6 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 		dimensions, err := sut.GetDimensionsByImageByte(img.Bytes, extension.Png)
 
 		// Assert
-		image.AssertNumberOfCalls(t, "GetImageDimensions", 1)
 		assert.Nil(t, err)
 		assert.NotNil(t, dimensions)
 	})
@@ -1417,7 +1281,7 @@ func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 	// Arrange
 	fpdf := mocks.NewFpdf(t)
 	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
-	fpdf.EXPECT().SetXY(15.0, 27.0)
+	fpdf.EXPECT().SetXY(15.0, 27.0).Once()
 
 	dep := &gofpdf.Dependencies{Fpdf: fpdf}
 	sut := gofpdf.New(dep)
@@ -1426,7 +1290,6 @@ func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 	sut.(core.PositionProvider).SetCursor(10.0, 20.0)
 
 	// Assert: SetXY called with absolute coords (10+5, 20+7)
-	fpdf.AssertNumberOfCalls(t, "SetXY", 1)
 }
 
 func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
@@ -1438,7 +1301,7 @@ func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
 	fpdf.EXPECT().SetFillColor(1, 2, 3)
 	// cx = cell.X + cell.Width/2 + left = 10 + 3 + 5 = 18
 	// cy = cell.Y + cell.Height/2 + top = 20 + 3 + 7 = 30
-	fpdf.EXPECT().Circle(18.0, 30.0, 3.0, "F")
+	fpdf.EXPECT().Circle(18.0, 30.0, 3.0, "F").Once()
 	fpdf.EXPECT().SetFillColor(0, 0, 0) // restore
 
 	dep := &gofpdf.Dependencies{Fpdf: fpdf}
@@ -1449,8 +1312,6 @@ func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
 		&entity.Cell{X: 10.0, Y: 20.0, Width: 6.0, Height: 6.0},
 		&props.Color{Red: 1, Green: 2, Blue: 3},
 	)
-
-	fpdf.AssertNumberOfCalls(t, "Circle", 1)
 }
 
 /*func TestProvider_AddImageFromFile(t *testing.T) {

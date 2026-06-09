@@ -1,6 +1,7 @@
 package table
 
 import (
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -83,7 +84,7 @@ func distributeSpanSurplus(heights []float64, delta, sum float64) {
 }
 
 func paddedTableCell(x, y, width, height float64, style *props.Cell) entity.Cell {
-	inner := entity.Cell{X: x, Y: y, Width: width, Height: height}
+	inner := layout.ApplyCellMargins(entity.Cell{X: x, Y: y, Width: width, Height: height}, style)
 	if style == nil {
 		return inner
 	}
@@ -104,7 +105,7 @@ func verticalPadding(style *props.Cell) float64 {
 	if style == nil {
 		return 0
 	}
-	return style.PaddingTop + style.PaddingBottom
+	return style.PaddingTop + style.PaddingBottom + layout.VerticalCellMargins(style)
 }
 
 func (t *Table) defaultRowHeight(provider core.Provider) float64 {

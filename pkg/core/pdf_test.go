@@ -3,8 +3,7 @@ package core_test
 import (
 	"fmt"
 	"os"
-	"path"
-	"strings"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +83,7 @@ func TestPdf_Save(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		bytes := []byte{1, 2, 3}
-		file := buildPath("test.txt")
+		file := filepath.Join(t.TempDir(), "test.txt")
 		sut := core.NewPDF(bytes, nil)
 
 		// Act
@@ -94,7 +93,6 @@ func TestPdf_Save(t *testing.T) {
 		assert.Nil(t, err)
 		savedBytes, _ := os.ReadFile(file)
 		assert.Equal(t, bytes, savedBytes)
-		_ = os.Remove(file)
 	})
 }
 
@@ -149,14 +147,4 @@ func TestPdf_Merge(t *testing.T) {
 		assert.Equal(t, "merge_pdf", sut.GetReport().TimeMetrics[0].Key)
 		assert.Equal(t, "file_size", sut.GetReport().SizeMetric.Key)
 	})
-}
-
-func buildPath(file string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	dir = strings.ReplaceAll(dir, "pkg/core/entity", "")
-	return path.Join(dir, file)
 }

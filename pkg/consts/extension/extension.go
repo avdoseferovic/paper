@@ -11,9 +11,11 @@ const (
 	Jpeg Type = "jpeg"
 	// Png represents a png extension.
 	Png Type = "png"
+	// Svg represents a svg extension.
+	Svg Type = "svg"
 )
 
 // IsValid checks if the extension is valid.
 func (t Type) IsValid() bool {
-	return t == Jpg || t == Jpeg || t == Png
+	return t == Jpg || t == Jpeg || t == Png || t == Svg
 }

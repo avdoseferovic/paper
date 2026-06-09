@@ -104,13 +104,10 @@ func TestFileImage_Render(t *testing.T) {
 		sut := image.NewFromFile(path, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddImageFromFile(path, &cell, &prop)
+		provider.EXPECT().AddImageFromFile(path, &cell, &prop).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddImageFromFile", 1)
 	})
 }
 

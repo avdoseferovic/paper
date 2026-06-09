@@ -1,58 +1,835 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title> Paper </title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <meta name="description" content="Description">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-  <style>
-    :root {
-      --base-font-size: 14px;
-      --theme-color   : #373d7e;
-      --seconday-color: #ee2444;
-    }
-  </style>
-  <link rel="stylesheet" href="css/theme.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper — Generate PDFs from HTML and Go components</title>
+<meta name="description" content="Paper is a Go library for generating PDF documents from HTML or a typed, 12-column component grid. Precise, testable, deterministic." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper:        oklch(0.987 0.004 95);
+  --paper-2:      oklch(0.972 0.005 95);
+  --sheet:        #ffffff;
+  --ink:          oklch(0.23 0.012 65);
+  --ink-soft:     oklch(0.40 0.012 65);
+  --muted:        oklch(0.56 0.010 70);
+  --faint:        oklch(0.74 0.008 75);
+  --line:         oklch(0.90 0.005 80);
+  --line-soft:    oklch(0.945 0.004 85);
+  --accent:       oklch(0.585 0.188 30);
+  --accent-soft:  oklch(0.585 0.188 30 / 0.10);
+  --accent-ink:   oklch(0.46 0.17 30);
+  --blue:         oklch(0.52 0.10 250);
+  --green:        oklch(0.52 0.09 150);
+  --shadow-sheet: 0 1px 1px rgba(40,30,20,0.04), 0 8px 24px rgba(40,30,20,0.07), 0 22px 60px rgba(40,30,20,0.06);
+  --shadow-card:  0 1px 2px rgba(40,30,20,0.04), 0 4px 16px rgba(40,30,20,0.05);
+  --r:            10px;
+  --maxw:         1180px;
+  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+  --serif: "Spectral", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:1.5;
+}
+::selection{background:var(--accent-soft);color:var(--accent-ink);}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;}
+
+/* ---------- shared micro elements ---------- */
+.kicker{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--accent-ink);
+  display:inline-flex;align-items:center;gap:9px;
+}
+.kicker::before{content:"";width:18px;height:1px;background:var(--accent);display:inline-block;}
+.mono-label{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:0.13em;
+  text-transform:uppercase;
+  color:var(--faint);
+}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-0.01em;line-height:1.08;color:var(--ink);}
+.section-title{font-size:clamp(28px,4vw,44px);font-weight:600;letter-spacing:-0.02em;}
+.lede{font-size:18px;color:var(--ink-soft);line-height:1.55;max-width:54ch;}
+
+/* crop / registration marks */
+.cropmark{position:absolute;width:14px;height:14px;pointer-events:none;z-index:3;}
+.cropmark::before,.cropmark::after{content:"";position:absolute;background:var(--faint);}
+.cropmark::before{width:14px;height:1px;top:0;left:0;}
+.cropmark::after{width:1px;height:14px;top:0;left:0;}
+.cropmark.tr{right:0;top:0;}.cropmark.tr::before{right:0;left:auto;}.cropmark.tr::after{right:0;left:auto;}
+.cropmark.bl{left:0;bottom:0;}.cropmark.bl::before{bottom:0;top:auto;}.cropmark.bl::after{bottom:0;top:auto;}
+.cropmark.br{right:0;bottom:0;}.cropmark.br::before{right:0;left:auto;bottom:0;top:auto;}.cropmark.br::after{right:0;left:auto;bottom:0;top:auto;}
+
+/* ---------- top nav ---------- */
+header.nav{position:sticky;top:0;z-index:50;background:oklch(0.987 0.004 95 / 0.82);backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--line);}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand .glyph{width:26px;height:32px;position:relative;flex:none;}
+.brand .glyph .pg{position:absolute;inset:0;background:var(--sheet);border:1.5px solid var(--ink);border-radius:2px;}
+.brand .glyph .pg.b{transform:translate(4px,4px);background:var(--paper);z-index:-1;border-color:var(--faint);}
+.brand .glyph .fold{position:absolute;top:0;right:0;width:9px;height:9px;background:var(--paper);border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:2px;}
+.brand .glyph .bar{position:absolute;left:5px;height:1.5px;background:var(--accent);}
+.brand .glyph .bar.b1{top:13px;width:14px;}.brand .glyph .bar.b2{top:18px;width:10px;}.brand .glyph .bar.b3{top:23px;width:12px;}
+.brand .name{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:-0.01em;}
+.nav-links{display:flex;align-items:center;gap:28px;}
+.nav-links a{font-size:14px;color:var(--ink-soft);font-weight:500;transition:color .15s;}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{font-family:var(--mono);font-size:12.5px;background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:7px;display:inline-flex;gap:8px;align-items:center;transition:transform .15s, background .15s;}
+.nav-cta:hover{background:var(--accent-ink);transform:translateY(-1px);}
+@media(max-width:820px){.nav-links{display:none;}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);}
+.gridbg{position:absolute;inset:0;z-index:0;
+  background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+  background-size:54px 54px;
+  -webkit-mask-image:radial-gradient(120% 90% at 60% 0%, #000 30%, transparent 78%);
+  mask-image:radial-gradient(120% 90% at 60% 0%, #000 30%, transparent 78%);
+}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.04fr 1fr;gap:56px;align-items:center;padding:84px 0 96px;}
+.hero-copy .kicker{margin-bottom:22px;}
+.hero h1{font-size:clamp(40px,5.6vw,68px);font-weight:700;letter-spacing:-0.025em;}
+.hero h1 em{font-style:italic;color:var(--accent-ink);font-weight:600;}
+.hero .tag{font-family:var(--serif);font-size:clamp(20px,2.4vw,26px);color:var(--ink-soft);margin-top:18px;font-weight:400;line-height:1.3;}
+.hero .vp{font-size:16.5px;color:var(--muted);margin-top:20px;max-width:50ch;line-height:1.6;}
+.hero-actions{display:flex;gap:14px;align-items:center;margin-top:30px;flex-wrap:wrap;}
+.btn{font-family:var(--sans);font-weight:600;font-size:14.5px;padding:12px 20px;border-radius:8px;display:inline-flex;align-items:center;gap:9px;transition:transform .15s,box-shadow .15s,background .15s;cursor:pointer;border:1px solid transparent;}
+.btn.primary{background:var(--ink);color:var(--paper);}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(40,30,20,0.16);}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn.ghost:hover{border-color:var(--faint);background:var(--paper-2);}
+.install{margin-top:24px;display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13.5px;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:11px 14px;box-shadow:var(--shadow-card);}
+.install .dollar{color:var(--accent);}
+.install .cmd{color:var(--ink);}
+.install .copy{margin-left:6px;color:var(--faint);font-size:11px;border-left:1px solid var(--line);padding-left:11px;cursor:pointer;transition:color .15s;background:none;border-top:0;border-right:0;border-bottom:0;font-family:var(--mono);}
+.install .copy:hover{color:var(--accent-ink);}
+
+/* code panel */
+.code{background:#fbfaf8;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-card);overflow:hidden;font-family:var(--mono);font-size:13px;line-height:1.7;}
+.code .bar{display:flex;align-items:center;gap:7px;padding:9px 13px;border-bottom:1px solid var(--line);background:var(--paper-2);}
+.code .bar .dot{width:9px;height:9px;border-radius:50%;background:var(--line);}
+.code .bar .fn{font-size:11px;color:var(--muted);margin-left:8px;}
+.code pre{padding:15px 16px;overflow-x:auto;color:var(--ink-soft);tab-size:2;}
+.code .ln{display:block;white-space:pre;}
+.tok-kw{color:var(--accent-ink);}
+.tok-fn{color:var(--blue);}
+.tok-str{color:var(--green);}
+.tok-com{color:var(--faint);font-style:italic;}
+.tok-typ{color:var(--blue);}
+.tok-num{color:var(--accent-ink);}
+.tok-pkg{color:var(--ink);font-weight:600;}
+
+/* hero preview stack */
+.preview{position:relative;height:520px;}
+.sheet{position:absolute;background:var(--sheet);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow-sheet);}
+.sheet .crop{position:absolute;width:10px;height:10px;}
+.sheet-back{width:300px;height:392px;right:36px;top:18px;transform:rotate(4.5deg);opacity:.9;}
+.sheet-mid{width:300px;height:392px;right:78px;top:48px;transform:rotate(-2.5deg);opacity:.96;}
+.sheet-front{width:330px;height:430px;right:24px;top:34px;transform:rotate(1deg);z-index:4;padding:0;overflow:hidden;}
+/* mini invoice inside front sheet */
+.doc{position:absolute;inset:0;padding:26px 24px;display:flex;flex-direction:column;font-family:var(--sans);}
+.doc .dhead{display:flex;justify-content:space-between;align-items:flex-start;}
+.doc .dtitle{font-family:var(--serif);font-size:20px;font-weight:700;}
+.doc .dsub{font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:0.08em;margin-top:3px;}
+.doc .qr{width:46px;height:46px;border-radius:3px;}
+.doc .rule{height:1px;background:var(--line);margin:16px 0 14px;}
+.doc .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:9px;}
+.doc .meta .lbl{font-family:var(--mono);font-size:7.5px;color:var(--faint);letter-spacing:0.1em;text-transform:uppercase;}
+.doc .meta .val{color:var(--ink-soft);margin-top:2px;font-weight:500;font-size:10px;}
+.doc table{width:100%;border-collapse:collapse;margin-top:16px;font-size:9px;}
+.doc th{font-family:var(--mono);font-size:7px;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:0 0 7px;border-bottom:1px solid var(--ink);}
+.doc th.r,.doc td.r{text-align:right;}
+.doc td{padding:7px 0;border-bottom:1px solid var(--line-soft);color:var(--ink-soft);}
+.doc tbody tr:last-child td{border-bottom:none;}
+.doc .total{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;border-top:1.5px solid var(--ink);}
+.doc .total .t-l{font-family:var(--mono);font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+.doc .total .t-v{font-family:var(--serif);font-size:22px;font-weight:700;}
+.doc .dfoot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:12px;letter-spacing:0.06em;}
+.float-badge{position:absolute;z-index:6;background:var(--sheet);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-card);padding:9px 12px;display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;}
+.float-badge .ico{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px oklch(0.52 0.09 150 / 0.14);}
+.float-badge.b1{top:6px;left:-14px;}
+.float-badge.b2{bottom:30px;right:-8px;}
+.float-badge.b2 .ico{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:30px;}.preview{height:440px;margin-top:10px;}.float-badge.b1{left:0;}}
+
+/* ---------- generic section ---------- */
+section.band{padding:96px 0;position:relative;border-bottom:1px solid var(--line);}
+section.alt{background:var(--paper-2);}
+.sec-head{max-width:640px;margin-bottom:52px;}
+.sec-head .kicker{margin-bottom:18px;}
+.sec-head p{margin-top:16px;}
+
+/* two paths */
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+.path-card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:30px;box-shadow:var(--shadow-card);position:relative;overflow:hidden;}
+.path-card .num{position:absolute;top:22px;right:26px;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:0.1em;}
+.path-card h3{font-size:24px;margin-bottom:8px;}
+.path-card .pd{font-size:14.5px;color:var(--muted);margin-bottom:22px;max-width:42ch;line-height:1.55;}
+.path-card .feat{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px;}
+.chip{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:5px 9px;}
+@media(max-width:820px){.paths{grid-template-columns:1fr;}}
+
+/* component grid */
+.comp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.comp{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow-card);transition:transform .18s, box-shadow .18s, border-color .18s;position:relative;min-height:158px;display:flex;flex-direction:column;}
+.comp:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(40,30,20,0.09);border-color:var(--faint);}
+.comp .cname{font-family:var(--sans);font-weight:600;font-size:14px;margin-top:auto;}
+.comp .cmeta{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:0.06em;margin-top:3px;}
+.comp .vis{height:62px;display:flex;align-items:center;justify-content:flex-start;margin-bottom:14px;}
+@media(max-width:980px){.comp-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:720px){.comp-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* component mini-visuals */
+.v-lines{display:flex;flex-direction:column;gap:5px;width:100%;}
+.v-lines i{height:5px;border-radius:3px;background:var(--line);display:block;}
+.v-lines i.a{background:var(--ink);opacity:.85;}
+.qrish{display:grid;width:52px;height:52px;gap:1px;}
+.qrish span{background:var(--ink);border-radius:1px;}
+.barcode{display:flex;align-items:flex-end;gap:2px;height:46px;}
+.barcode i{background:var(--ink);width:2px;display:block;}
+.dm{display:grid;grid-template-columns:repeat(8,1fr);width:48px;height:48px;gap:1px;}
+.dm span{background:var(--ink);}
+.v-img{width:64px;height:48px;border-radius:4px;background:
+  repeating-linear-gradient(45deg, var(--line-soft) 0 6px, transparent 6px 12px), var(--paper-2);
+  border:1px solid var(--line);position:relative;}
+.v-img::after{content:"IMG";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:0.1em;}
+.v-table{width:100%;}
+.v-table i{display:block;height:6px;background:var(--line-soft);margin-bottom:4px;border-radius:2px;}
+.v-table i:first-child{background:var(--ink);opacity:.8;height:7px;}
+.v-check{display:flex;flex-direction:column;gap:7px;}
+.v-check .row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);}
+.v-check .box{width:13px;height:13px;border:1.5px solid var(--faint);border-radius:3px;flex:none;position:relative;}
+.v-check .row.on .box{border-color:var(--accent);background:var(--accent);}
+.v-check .row.on .box::after{content:"";position:absolute;left:3.5px;top:1px;width:4px;height:7px;border:1.7px solid #fff;border-top:0;border-left:0;transform:rotate(40deg);}
+.v-sign{font-family:"Spectral";font-style:italic;font-size:26px;color:var(--ink);border-bottom:1.5px solid var(--line);padding-bottom:4px;width:100%;transform:rotate(-3deg);}
+.v-line{width:100%;height:46px;display:flex;align-items:center;}
+.v-line .l{flex:1;height:1px;background:var(--ink);}
+.v-line .d{flex:1;height:0;border-top:2px dashed var(--faint);}
+.v-pageno{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.v-pageno b{color:var(--ink);}
+.v-hf{width:100%;border:1px solid var(--line);border-radius:4px;height:50px;display:flex;flex-direction:column;overflow:hidden;}
+.v-hf .h{height:11px;background:var(--ink);opacity:.82;}
+.v-hf .m{flex:1;background:repeating-linear-gradient(transparent 0 6px,var(--line-soft) 6px 7px);}
+.v-hf .f{height:9px;background:var(--accent);opacity:.55;}
+.v-rich{display:flex;flex-direction:column;gap:5px;width:100%;font-size:12px;}
+.v-rich i{height:5px;border-radius:3px;background:var(--line);}
+.v-rich i.b{background:var(--ink);width:60%;}
+.v-rich i.acc{background:var(--accent);width:40%;}
+
+/* layout model */
+.layout-demo{display:grid;grid-template-columns:1.15fr 1fr;gap:40px;align-items:center;}
+.grid12{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);position:relative;}
+.grid12 .glabel{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between;}
+.cols{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-bottom:14px;}
+.cols .c{height:30px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:3px;}
+.rowblk{display:grid;gap:6px;margin-bottom:6px;}
+.rowblk .cell{height:38px;border-radius:5px;background:var(--paper-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.rowblk .cell.fill{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.rowblk .cell.acc{background:var(--accent);color:#fff;border-color:var(--accent);}
+.r1{grid-template-columns:repeat(12,1fr);}
+.r1 .cell:nth-child(1){grid-column:span 12;}
+.r2{grid-template-columns:repeat(12,1fr);}
+.r2 .cell:nth-child(1){grid-column:span 4;}
+.r2 .cell:nth-child(2){grid-column:span 4;}
+.r2 .cell:nth-child(3){grid-column:span 4;}
+.r3{grid-template-columns:repeat(12,1fr);}
+.r3 .cell:nth-child(1){grid-column:span 8;}
+.r3 .cell:nth-child(2){grid-column:span 4;}
+.layout-copy h3{font-size:24px;margin-bottom:14px;}
+.layout-copy .li{display:flex;gap:13px;margin-top:16px;}
+.layout-copy .li .n{font-family:var(--mono);font-size:11px;color:var(--accent-ink);flex:none;width:22px;height:22px;border:1px solid var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;}
+.layout-copy .li .tx b{font-size:14.5px;}
+.layout-copy .li .tx p{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+@media(max-width:880px){.layout-demo{grid-template-columns:1fr;gap:30px;}}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:1fr auto 1fr;gap:28px;align-items:stretch;}
+.pipe-col{display:flex;flex-direction:column;}
+.pipe-col .ph{font-family:var(--mono);font-size:10.5px;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.pipe-col .ph b{color:var(--accent-ink);font-weight:600;}
+.arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.arrow .line{width:1px;flex:1;background:linear-gradient(var(--line),var(--faint),var(--line));}
+.arrow .head{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--sheet);display:flex;align-items:center;justify-content:center;color:var(--accent);box-shadow:var(--shadow-card);}
+.arrow .tag{font-family:var(--mono);font-size:9px;color:var(--faint);writing-mode:vertical-rl;letter-spacing:0.1em;}
+.pdf-out{background:var(--sheet);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-sheet);flex:1;padding:20px;display:flex;flex-direction:column;}
+.pdf-out .poh{display:flex;justify-content:space-between;align-items:flex-start;}
+.pdf-out .pttl{font-family:var(--serif);font-size:16px;font-weight:700;}
+.pdf-out .psub{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:0.08em;margin-top:2px;}
+.pdf-out .prow{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
+.pdf-out .prow i{height:6px;border-radius:3px;background:var(--line);}
+.pdf-out .prow i.a{background:var(--ink);opacity:.8;width:70%;}
+.pdf-out .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px;}
+.pdf-out .pgrid .b{height:42px;background:var(--paper-2);border:1px solid var(--line);border-radius:5px;}
+.pdf-out .ptot{margin-top:auto;padding-top:14px;border-top:1.5px solid var(--ink);display:flex;justify-content:space-between;align-items:baseline;}
+.pdf-out .ptot .v{font-family:var(--serif);font-weight:700;font-size:18px;}
+@media(max-width:820px){.pipe{grid-template-columns:1fr;}.arrow{flex-direction:row;height:50px;}.arrow .line{height:1px;width:auto;}.arrow .tag{writing-mode:horizontal-tb;}}
+
+/* testing & metrics */
+.tm{display:grid;grid-template-columns:1.1fr 1fr;gap:26px;}
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-card);overflow:hidden;}
+.panel .ph2{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--paper-2);font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.06em;}
+.panel .ph2 .dot{width:8px;height:8px;border-radius:2px;background:var(--accent);}
+.tree{padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.95;color:var(--ink-soft);}
+.tree .ln{display:block;white-space:pre;}
+.tree .br{color:var(--faint);}
+.tree .nd{color:var(--blue);}
+.tree .at{color:var(--muted);}
+.tree .ok{color:var(--green);}
+.metrics{padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start;}
+.metric{border:1px solid var(--line);border-radius:9px;padding:15px;background:var(--paper);}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:700;letter-spacing:-0.01em;}
+.metric .mv small{font-size:14px;color:var(--muted);font-family:var(--sans);font-weight:600;}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-top:5px;}
+.metric.span2{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;}
+.spark{display:flex;align-items:flex-end;gap:3px;height:34px;}
+.spark i{width:5px;background:var(--accent);border-radius:1px;opacity:.85;}
+@media(max-width:880px){.tm{grid-template-columns:1fr;}}
+
+/* use cases */
+.uses{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;}
+.use{position:relative;background:var(--sheet);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow-card);aspect-ratio:0.74;overflow:hidden;display:flex;flex-direction:column;padding:13px;transition:transform .18s, box-shadow .18s;}
+.use:hover{transform:translateY(-4px) rotate(-1deg);box-shadow:0 14px 34px rgba(40,30,20,0.1);}
+.use .umini{flex:1;display:flex;flex-direction:column;gap:4px;}
+.use .umini i{height:4px;border-radius:2px;background:var(--line-soft);}
+.use .umini i.h{background:var(--ink);opacity:.75;width:70%;height:6px;margin-bottom:3px;}
+.use .umini .ub{flex:1;border:1px dashed var(--line);border-radius:4px;margin-top:5px;}
+.use .uname{font-family:var(--sans);font-weight:600;font-size:13px;margin-top:11px;}
+.use .un{font-family:var(--mono);font-size:9px;color:var(--faint);position:absolute;top:11px;right:12px;}
+@media(max-width:980px){.uses{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:560px){.uses{grid-template-columns:repeat(2,1fr);}}
+
+/* output options strip */
+.outs{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px;}
+.out{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--sheet);border-radius:9px;padding:12px 16px;box-shadow:var(--shadow-card);}
+.out .oc{font-family:var(--mono);font-size:13px;color:var(--accent-ink);font-weight:600;}
+.out .ot{font-size:13px;color:var(--muted);}
+
+/* final cta */
+.cta{position:relative;overflow:hidden;background:var(--ink);color:var(--paper);border:none;}
+.cta .gridbg2{position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(oklch(1 0 0 / 0.05) 1px,transparent 1px),linear-gradient(90deg,oklch(1 0 0 / 0.05) 1px,transparent 1px);
+  background-size:48px 48px;}
+.cta-inner{position:relative;z-index:2;text-align:center;padding:104px 0;}
+.cta h2{color:var(--paper);font-size:clamp(34px,5vw,56px);font-weight:700;letter-spacing:-0.02em;}
+.cta h2 em{font-style:italic;color:oklch(0.72 0.13 35);}
+.cta p{color:oklch(0.78 0.01 70);font-size:18px;margin-top:18px;max-width:46ch;margin-left:auto;margin-right:auto;}
+.cta-install{margin:34px auto 0;max-width:560px;background:oklch(0.18 0.012 65);border:1px solid oklch(0.32 0.012 65);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:15px;}
+.cta-install .dollar{color:oklch(0.72 0.13 35);}
+.cta-install .cmd{color:var(--paper);flex:1;text-align:left;}
+.cta-install .copy{cursor:pointer;font-size:12px;color:oklch(0.66 0.01 70);border:1px solid oklch(0.32 0.012 65);border-radius:6px;padding:6px 11px;transition:all .15s;background:none;font-family:var(--mono);}
+.cta-install .copy:hover{color:var(--paper);border-color:oklch(0.5 0.01 70);}
+.cta-actions{display:flex;gap:14px;justify-content:center;margin-top:26px;flex-wrap:wrap;}
+.cta .btn.primary{background:var(--paper);color:var(--ink);}
+.cta .btn.ghost{border-color:oklch(0.4 0.012 65);color:var(--paper);}
+.cta .btn.ghost:hover{background:oklch(0.2 0.012 65);}
+
+/* footer */
+footer.ft{padding:46px 0;background:var(--paper-2);}
+.ft-inner{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;}
+.ft-inner .l{display:flex;align-items:center;gap:11px;}
+.ft-meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+.ft-links{display:flex;gap:22px;font-size:13.5px;color:var(--ink-soft);}
+.ft-links a:hover{color:var(--accent-ink);}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);}
+.reveal.in{opacity:1;transform:none;}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+</style>
 </head>
 <body>
-<div id="app"></div>
-<script src="//cdn.jsdelivr.net/npm/docsify-edit-on-github"></script>
-<script src="//unpkg.com/docsify/lib/plugins/emoji.min.js"></script>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="glyph">
+        <span class="pg b"></span><span class="pg"></span>
+        <span class="fold"></span>
+        <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
+      </span>
+      <span class="name">Paper</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#paths">Authoring</a>
+      <a href="#components">Components</a>
+      <a href="#layout">Layout</a>
+      <a href="#testing">Testing</a>
+      <a href="#usecases">Use cases</a>
+      <a href="docs.html">Docs</a>
+    </nav>
+    <a class="nav-cta" href="https://github.com/avdoseferovic/paper" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8c0 2.9 1.9 5.3 4.4 6.2.3.1.4-.1.4-.3v-1.1c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .6 1 .6.6 1 1.5.7 1.9.6 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.3-1.3.6-1.7 0-.2-.3-.8.1-1.7 0 0 .5-.2 1.7.6a6 6 0 0 1 3 0c1.2-.8 1.7-.6 1.7-.6.4.9.1 1.5.1 1.7.4.4.6 1 .6 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.2v1.8c0 .2.1.4.4.3A6.5 6.5 0 0 0 14.5 8c0-3.6-2.9-6.5-6.5-6.5Z" fill="currentColor"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<a id="top"></a>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="gridbg"></div>
+  <span class="cropmark tr" style="top:18px;right:18px;"></span>
+  <span class="cropmark bl" style="bottom:18px;left:18px;"></span>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="kicker">Go · PDF generation</span>
+      <h1>Generate PDFs<br>from HTML and<br><em>Go components.</em></h1>
+      <p class="tag">A precise, testable document engine for production Go services.</p>
+      <p class="vp">One call to render HTML, or a structured component grid built from rows and columns. Invoices, reports, forms, labels, certificates — generated fast, with explicit control over every element on the page.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#install">
+          Get started
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="btn ghost" href="#paths">See how it works</a>
+      </div>
+      <div class="install">
+        <span class="dollar">$</span>
+        <span class="cmd">go get github.com/avdoseferovic/paper</span>
+        <button type="button" class="copy" data-copy="go get github.com/avdoseferovic/paper">copy</button>
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="sheet sheet-back"></div>
+      <div class="sheet sheet-mid"></div>
+      <div class="sheet sheet-front">
+        <span class="cropmark" style="top:8px;left:8px;"></span>
+        <span class="cropmark tr" style="top:8px;right:8px;"></span>
+        <span class="cropmark bl" style="bottom:8px;left:8px;"></span>
+        <span class="cropmark br" style="bottom:8px;right:8px;"></span>
+        <div class="doc">
+          <div class="dhead">
+            <div>
+              <div class="dtitle">Invoice</div>
+              <div class="dsub">NO. INV-2026-0481</div>
+            </div>
+            <div class="qr" id="heroQR"></div>
+          </div>
+          <div class="rule"></div>
+          <div class="meta">
+            <div><div class="lbl">Billed to</div><div class="val">Northwind Trading Co.</div></div>
+            <div><div class="lbl">Issued</div><div class="val">June 8, 2026</div></div>
+            <div><div class="lbl">Terms</div><div class="val">Net 30</div></div>
+            <div><div class="lbl">Due</div><div class="val">July 8, 2026</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead>
+            <tbody>
+              <tr><td>Document API — Team</td><td class="r">1</td><td class="r">$480.00</td></tr>
+              <tr><td>Rendering credits</td><td class="r">12k</td><td class="r">$240.00</td></tr>
+              <tr><td>Priority support</td><td class="r">1</td><td class="r">$120.00</td></tr>
+            </tbody>
+          </table>
+          <div class="total">
+            <span class="t-l">Total due</span>
+            <span class="t-v">$840.00</span>
+          </div>
+          <div class="dfoot"><span>PAPER · A4 · 595×842pt</span><span>PAGE 1 / 1</span></div>
+        </div>
+      </div>
+      <div class="float-badge b1"><span class="ico"></span>FromHTML() → 18ms</div>
+      <div class="float-badge b2"><span class="ico"></span>12-col grid · deterministic</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HERO CODE STRIP ============ -->
+<section class="band" style="padding:56px 0;">
+  <div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;">
+    <div class="code reveal">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fn">main.go — one call</span></div>
+      <pre><span class="ln"><span class="tok-kw">package</span> main</span>
+<span class="ln"></span>
+<span class="ln"><span class="tok-kw">import</span> <span class="tok-str">"github.com/avdoseferovic/paper"</span></span>
+<span class="ln"></span>
+<span class="ln"><span class="tok-kw">func</span> <span class="tok-fn">main</span>() {</span>
+<span class="ln">  doc, _ := paper.<span class="tok-fn">FromHTML</span>(invoiceHTML)</span>
+<span class="ln">  _ = doc.<span class="tok-fn">Save</span>(<span class="tok-str">"invoice.pdf"</span>)</span>
+<span class="ln">}</span></pre>
+    </div>
+    <div class="code reveal">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fn">layout.go — components</span></div>
+      <pre><span class="ln">m := paper.<span class="tok-fn">New</span>()</span>
+<span class="ln">m.<span class="tok-fn">AddRow</span>(<span class="tok-num">12</span>,</span>
+<span class="ln">  text.<span class="tok-fn">NewCol</span>(<span class="tok-num">8</span>, <span class="tok-str">"Invoice"</span>),</span>
+<span class="ln">  code.<span class="tok-fn">NewQrCol</span>(<span class="tok-num">4</span>, url),</span>
+<span class="ln">)</span>
+<span class="ln">doc, _ := m.<span class="tok-fn">Generate</span>()  <span class="tok-com">// component tree → PDF</span></span>
+<span class="ln">b := doc.<span class="tok-fn">GetBytes</span>()</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TWO PATHS ============ -->
+<section class="band alt" id="paths">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Two authoring paths</span>
+      <h2 class="section-title">Start from HTML. Or compose with components.</h2>
+      <p class="lede">Paper gives you both ends of the spectrum — render existing markup in a single call, or build pixel-deterministic layouts from a typed component grid. Mix them freely.</p>
+    </div>
+    <div class="paths">
+      <div class="path-card reveal">
+        <span class="num">PATH 01</span>
+        <h3>HTML → PDF</h3>
+        <p class="pd">Bring your own templates. Pass an HTML string or fragment and get a print-ready PDF back. Ideal for migrating existing documents.</p>
+        <div class="code" style="box-shadow:none;">
+          <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fn">html.go</span></div>
+          <pre><span class="ln">doc, err := paper.<span class="tok-fn">FromHTML</span>(tmpl)</span>
+<span class="ln"><span class="tok-kw">if</span> err != <span class="tok-kw">nil</span> { <span class="tok-kw">return</span> err }</span>
+<span class="ln">b64 := doc.<span class="tok-fn">GetBase64</span>()</span></pre>
+        </div>
+        <div class="feat">
+          <span class="chip">Templates</span><span class="chip">Fragments</span><span class="chip">CSS-aware</span><span class="chip">One call</span>
+        </div>
+      </div>
+      <div class="path-card reveal">
+        <span class="num">PATH 02</span>
+        <h3>Component grid</h3>
+        <p class="pd">Compose documents from rows and columns on a 12-column grid. Every element is a typed component you can test, reuse, and inspect.</p>
+        <div class="code" style="box-shadow:none;">
+          <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fn">grid.go</span></div>
+          <pre><span class="ln">m.<span class="tok-fn">AddRow</span>(<span class="tok-num">12</span>,</span>
+<span class="ln">  text.<span class="tok-fn">NewCol</span>(<span class="tok-num">6</span>, header),</span>
+<span class="ln">  code.<span class="tok-fn">NewBarCol</span>(<span class="tok-num">6</span>, sku),</span>
+<span class="ln">)</span></pre>
+        </div>
+        <div class="feat">
+          <span class="chip">Rows / Columns</span><span class="chip">12-col grid</span><span class="chip">Typed</span><span class="chip">Reusable</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPONENTS ============ -->
+<section class="band" id="components">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Component library</span>
+      <h2 class="section-title">Every document primitive, built in.</h2>
+      <p class="lede">Drop these into any column. Compose your own from them. Each one renders deterministically and can be inspected in tests.</p>
+    </div>
+    <div class="comp-grid">
+      <div class="comp reveal"><div class="vis"><div class="v-lines"><i class="a"></i><i style="width:90%"></i><i style="width:75%"></i><i style="width:84%"></i></div></div><div class="cname">Text</div><div class="cmeta">text.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-rich"><i class="b"></i><i></i><i class="acc"></i><i style="width:80%"></i></div></div><div class="cname">Rich text</div><div class="cmeta">richtext.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-img"></div></div><div class="cname">Images</div><div class="cmeta">image.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-table"><i></i><i></i><i></i><i></i><i></i></div></div><div class="cname">Tables</div><div class="cmeta">table.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="qrish" id="compQR"></div></div><div class="cname">QR codes</div><div class="cmeta">code.NewQrCol()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="barcode" id="compBar"></div></div><div class="cname">Barcodes</div><div class="cmeta">code.NewBarCol()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="dm" id="compDM"></div></div><div class="cname">Data Matrix</div><div class="cmeta">code.NewMatrixCol()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-check"><div class="row on"><span class="box"></span>Approved</div><div class="row"><span class="box"></span>Pending</div></div></div><div class="cname">Checkboxes</div><div class="cmeta">checkbox.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-sign">Avdo S.</div></div><div class="cname">Signatures</div><div class="cmeta">signature.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-line"><span class="d"></span></div></div><div class="cname">Lines</div><div class="cmeta">line.New()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-pageno">Page <b>3</b> of <b>12</b></div></div><div class="cname">Page numbers</div><div class="cmeta">RegisterFooter()</div></div>
+      <div class="comp reveal"><div class="vis"><div class="v-hf"><span class="h"></span><span class="m"></span><span class="f"></span></div></div><div class="cname">Headers &amp; footers</div><div class="cmeta">RegisterHeader() · RegisterFooter()</div></div>
+    </div>
+    <div class="outs reveal">
+      <div class="out"><span class="oc">.Save()</span><span class="ot">write to disk</span></div>
+      <div class="out"><span class="oc">.GetBytes()</span><span class="ot">raw []byte</span></div>
+      <div class="out"><span class="oc">.GetBase64()</span><span class="ot">inline / API responses</span></div>
+      <div class="out"><span class="oc">.Merge()</span><span class="ot">combine documents</span></div>
+      <div class="out"><span class="oc">+ HTML fragments</span><span class="ot">mix inside the grid</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYOUT MODEL ============ -->
+<section class="band alt" id="layout">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Layout model</span>
+      <h2 class="section-title">Rows and columns on a 12-column grid.</h2>
+      <p class="lede">The same mental model as the web — but resolved to exact points on the page. Spans add up to twelve; Paper measures, positions, and paginates.</p>
+    </div>
+    <div class="layout-demo">
+      <div class="grid12 reveal">
+        <div class="glabel"><span>DOCUMENT GRID</span><span>12 COLUMNS</span></div>
+        <div class="cols" id="colMarks"></div>
+        <div class="rowblk r1"><div class="cell fill">Header — col 12</div></div>
+        <div class="rowblk r2"><div class="cell">col 4</div><div class="cell">col 4</div><div class="cell acc">col 4 · QR</div></div>
+        <div class="rowblk r3"><div class="cell">Table — col 8</div><div class="cell">Totals — col 4</div></div>
+      </div>
+      <div class="layout-copy reveal">
+        <h3>Explicit, by design.</h3>
+        <div class="li"><span class="n">01</span><div class="tx"><b>Rows hold columns.</b><p>Each row opens a 12-unit track. Add columns with a span and Paper handles the math.</p></div></div>
+        <div class="li"><span class="n">02</span><div class="tx"><b>Columns hold components.</b><p>Any component — or a nested row — drops into a column. Composition all the way down.</p></div></div>
+        <div class="li"><span class="n">03</span><div class="tx"><b>Deterministic pagination.</b><p>Content that overflows the page flows predictably to the next, headers and footers intact.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PIPELINE ============ -->
+<section class="band" id="pipeline">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">HTML pipeline</span>
+      <h2 class="section-title">HTML in. Structured PDF out.</h2>
+      <p class="lede">Paper parses your markup, resolves it into the same component tree the grid API produces, then renders to an exact, paginated PDF.</p>
+    </div>
+    <div class="pipe">
+      <div class="pipe-col reveal">
+        <div class="ph"><span>INPUT</span><b>HTML</b></div>
+        <div class="code" style="flex:1;">
+          <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fn">invoice.html</span></div>
+          <pre><span class="ln"><span class="tok-typ">&lt;section</span> <span class="tok-fn">class</span>=<span class="tok-str">"invoice"</span><span class="tok-typ">&gt;</span></span>
+<span class="ln">  <span class="tok-typ">&lt;h1&gt;</span>Invoice<span class="tok-typ">&lt;/h1&gt;</span></span>
+<span class="ln">  <span class="tok-typ">&lt;table&gt;</span></span>
+<span class="ln">    <span class="tok-typ">&lt;tr&gt;&lt;td&gt;</span>API<span class="tok-typ">&lt;/td&gt;</span></span>
+<span class="ln">    <span class="tok-typ">&lt;td&gt;</span>$480<span class="tok-typ">&lt;/td&gt;&lt;/tr&gt;</span></span>
+<span class="ln">  <span class="tok-typ">&lt;/table&gt;</span></span>
+<span class="ln">  <span class="tok-typ">&lt;img</span> <span class="tok-fn">src</span>=<span class="tok-str">"qr.png"</span> <span class="tok-typ">/&gt;</span></span>
+<span class="ln"><span class="tok-typ">&lt;/section&gt;</span></span></pre>
+        </div>
+      </div>
+      <div class="arrow reveal">
+        <div class="line"></div>
+        <div class="head"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 3v9M4.5 8.5 8 12l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="line"></div>
+        <span class="tag">PARSE · RESOLVE · RENDER</span>
+        <div class="line"></div>
+      </div>
+      <div class="pipe-col reveal">
+        <div class="ph"><span>OUTPUT</span><b>PDF</b></div>
+        <div class="pdf-out">
+          <div class="poh">
+            <div><div class="pttl">Invoice</div><div class="psub">A4 · 595×842pt · 1 page</div></div>
+            <div class="qr" id="pipeQR" style="width:40px;height:40px;border-radius:3px;"></div>
+          </div>
+          <div class="prow"><i class="a"></i><i style="width:55%"></i></div>
+          <div class="pgrid"><div class="b"></div><div class="b"></div></div>
+          <div class="prow" style="margin-top:14px;"><i style="width:90%"></i><i style="width:70%"></i><i style="width:80%"></i></div>
+          <div class="ptot"><span class="mono-label" style="color:var(--muted)">TOTAL DUE</span><span class="v">$840.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTING & METRICS ============ -->
+<section class="band alt" id="testing">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Testing &amp; metrics</span>
+      <h2 class="section-title">Inspect the tree. Assert the output.</h2>
+      <p class="lede">Because every document is a component tree, you can unit-test structure without rendering a single pixel — then watch generation behavior with optional metrics.</p>
+    </div>
+    <div class="tm">
+      <div class="panel reveal">
+        <div class="ph2"><span class="dot"></span>m.GetStructure() — deterministic snapshot</div>
+        <div class="tree">
+<span class="ln"><span class="nd">Document</span> <span class="at">a4 · portrait</span></span>
+<span class="ln"><span class="br">├─</span> <span class="nd">Header</span></span>
+<span class="ln"><span class="br">│  └─</span> <span class="nd">Row</span> <span class="at">[12]</span></span>
+<span class="ln"><span class="br">├─</span> <span class="nd">Row</span> <span class="at">[8,4]</span></span>
+<span class="ln"><span class="br">│  ├─</span> <span class="nd">Text</span> <span class="at">"Invoice"</span> <span class="ok">✓</span></span>
+<span class="ln"><span class="br">│  └─</span> <span class="nd">QRCode</span> <span class="at">88×88</span> <span class="ok">✓</span></span>
+<span class="ln"><span class="br">├─</span> <span class="nd">Table</span> <span class="at">3 rows</span> <span class="ok">✓</span></span>
+<span class="ln"><span class="br">└─</span> <span class="nd">Footer</span> <span class="at">PageNumber</span></span>
+        </div>
+      </div>
+      <div class="panel reveal">
+        <div class="ph2"><span class="dot"></span>doc.GetReport() — last run</div>
+        <div class="metrics">
+          <div class="metric"><div class="mv">18<small> ms</small></div><div class="ml">Generation time</div></div>
+          <div class="metric"><div class="mv">7</div><div class="ml">Components</div></div>
+          <div class="metric"><div class="mv">1</div><div class="ml">Pages</div></div>
+          <div class="metric"><div class="mv">42<small> kb</small></div><div class="ml">Output size</div></div>
+          <div class="metric span2">
+            <div><div class="ml" style="margin-top:0;margin-bottom:8px;">Throughput · docs/sec</div><div class="mv" style="font-size:24px;">1,240</div></div>
+            <div class="spark" id="spark"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ USE CASES ============ -->
+<section class="band" id="usecases">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Use cases</span>
+      <h2 class="section-title">Built for the documents your service ships.</h2>
+      <p class="lede">Anywhere you generate paper, on demand, at volume.</p>
+    </div>
+    <div class="uses" id="uses"></div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="band cta" id="install">
+  <div class="gridbg2"></div>
+  <span class="cropmark tr" style="top:22px;right:22px;"></span>
+  <span class="cropmark bl" style="bottom:22px;left:22px;"></span>
+  <div class="wrap cta-inner">
+    <h2>Ship documents that<br><em>render exactly right.</em></h2>
+    <p>Add Paper to your Go service and generate production PDFs in a single import.</p>
+    <div class="cta-install">
+      <span class="dollar">$</span>
+      <span class="cmd">go get github.com/avdoseferovic/paper</span>
+      <button type="button" class="copy" data-copy="go get github.com/avdoseferovic/paper">Copy</button>
+    </div>
+    <div class="cta-actions">
+      <a class="btn primary" href="docs.html">Read the docs</a>
+      <a class="btn ghost" href="https://github.com/avdoseferovic/paper" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8c0 2.9 1.9 5.3 4.4 6.2.3.1.4-.1.4-.3v-1.1c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .6 1 .6.6 1 1.5.7 1.9.6 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.3-1.3.6-1.7 0-.2-.3-.8.1-1.7 0 0 .5-.2 1.7.6a6 6 0 0 1 3 0c1.2-.8 1.7-.6 1.7-.6.4.9.1 1.5.1 1.7.4.4.6 1 .6 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.2v1.8c0 .2.1.4.4.3A6.5 6.5 0 0 0 14.5 8c0-3.6-2.9-6.5-6.5-6.5Z" fill="currentColor"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="ft">
+  <div class="wrap ft-inner">
+    <div class="l">
+      <span class="brand" style="gap:9px;">
+        <span class="glyph" style="width:20px;height:25px;">
+          <span class="pg b"></span><span class="pg"></span><span class="fold" style="width:7px;height:7px;"></span>
+          <span class="bar b1" style="top:10px;width:11px;"></span><span class="bar b2" style="top:14px;width:8px;"></span><span class="bar b3" style="top:18px;width:9px;"></span>
+        </span>
+        <span class="name" style="font-size:17px;">Paper</span>
+      </span>
+      <span class="ft-meta">© 2026 · MIT License · Made for Go</span>
+    </div>
+    <nav class="ft-links">
+      <a href="#paths">Authoring</a>
+      <a href="#components">Components</a>
+      <a href="#testing">Testing</a>
+      <a href="docs.html">Docs</a>
+      <a href="#install">Install</a>
+    </nav>
+  </div>
+</footer>
+
 <script>
-  window.$docsify = {
-    search: 'auto',
-    name: 'Paper',
-    repo: 'https://github.com/avdoseferovic/paper',
-    loadSidebar: true,
-    loadFooter: true,
-    coverpage: true,
-    loadNavbar: true,
-    copyCode: {
-      buttonText : 'Copy to clipboard',
-      errorText  : 'Error',
-      successText: 'Copied'
-    },
-    pagination: {
-      crossChapter: true,
-      crossChapterText: true,
-    },
-    plugins: [
-      EditOnGithubPlugin.create('https://github.com/avdoseferovic/paper/tree/master/docs/', 'https://github.com/avdoseferovic/paper/edit/master/docs/', "Edit on Github")
-    ]
+// ---- deterministic pseudo-random for stable patterns ----
+function rng(seed){let s=seed;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+// ---- QR-like block builder ----
+function buildQR(el,size,seed){
+  if(!el)return;
+  el.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  el.style.gridTemplateRows=`repeat(${size},1fr)`;
+  const r=rng(seed);
+  const cells=size*size;
+  for(let i=0;i<cells;i++){
+    const s=document.createElement('span');
+    const x=i%size, y=Math.floor(i/size);
+    // finder patterns in three corners
+    const within=(bx,by)=>x>=bx&&x<bx+3&&y>=by&&y<by+3;
+    const ring=(bx,by)=>{const ix=x-bx, iy=y-by; return !(ix===1&&iy===1);};
+    let on;
+    if(within(0,0)) on=ring(0,0);
+    else if(within(size-3,0)) on=ring(size-3,0);
+    else if(within(0,size-3)) on=ring(0,size-3);
+    else on = r()>0.52;
+    s.style.background = on ? 'var(--ink)' : 'transparent';
+    el.appendChild(s);
   }
+}
+buildQR(document.getElementById('heroQR'),11,7);
+buildQR(document.getElementById('compQR'),11,21);
+buildQR(document.getElementById('pipeQR'),11,33);
+
+// ---- barcode ----
+(function(){
+  const el=document.getElementById('compBar'); if(!el)return;
+  const r=rng(99); const widths=[1,2,3];
+  for(let i=0;i<26;i++){
+    const b=document.createElement('i');
+    b.style.width=widths[Math.floor(r()*widths.length)]+'px';
+    b.style.height=(70+r()*30)+'%';
+    el.appendChild(b);
+  }
+})();
+
+// ---- data matrix ----
+(function(){
+  const el=document.getElementById('compDM'); if(!el)return;
+  const r=rng(55);
+  for(let i=0;i<64;i++){
+    const x=i%8,y=Math.floor(i/8);
+    const s=document.createElement('span');
+    let on=r()>0.5;
+    if(x===0) on=(y%2===0);          // left solid bar
+    if(y===7) on=(x%2===0);          // bottom timing
+    if(x===7) on=r()>0.5;
+    if(y===0) on=true;               // top solid
+    s.style.background=on?'var(--ink)':'transparent';
+    el.appendChild(s);
+  }
+})();
+
+// ---- 12 column marks ----
+(function(){
+  const el=document.getElementById('colMarks'); if(!el)return;
+  for(let i=0;i<12;i++){const c=document.createElement('div');c.className='c';el.appendChild(c);}
+})();
+
+// ---- sparkline ----
+(function(){
+  const el=document.getElementById('spark'); if(!el)return;
+  const vals=[40,55,48,70,62,85,78,92,88,100,95];
+  vals.forEach(v=>{const i=document.createElement('i');i.style.height=v+'%';el.appendChild(i);});
+})();
+
+// ---- use cases ----
+(function(){
+  const el=document.getElementById('uses'); if(!el)return;
+  const items=[
+    ['Invoices','01'],['Reports','02'],['Forms','03'],
+    ['Labels','04'],['Certificates','05'],['Contracts','06']
+  ];
+  items.forEach(([name,n])=>{
+    const d=document.createElement('div'); d.className='use';
+    d.innerHTML=`<span class="un">${n}</span>
+      <div class="umini">
+        <i class="h"></i><i style="width:90%"></i><i style="width:60%"></i>
+        <div class="ub"></div>
+        <i style="width:80%"></i><i style="width:50%"></i>
+      </div>
+      <div class="uname">${name}</div>`;
+    el.appendChild(d);
+  });
+})();
+
+// ---- copy buttons ----
+document.querySelectorAll('[data-copy]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const t=btn.getAttribute('data-copy');
+    navigator.clipboard?.writeText(t);
+    const o=btn.textContent; btn.textContent='copied ✓';
+    setTimeout(()=>btn.textContent=o,1400);
+  });
+});
+
+// ---- reveal on scroll ----
+const io=new IntersectionObserver((es)=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach((el,i)=>{ el.style.transitionDelay=(Math.min(i%4,3)*60)+'ms'; io.observe(el); });
 </script>
-<!-- Docsify v4 -->
-<script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
-<script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
-<script src="https://unpkg.com/docsify-copy-code@2"></script>
-<script src="//unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/@alertbox/docsify-footer/dist/docsify-footer.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/pdfobject/2.1.1/pdfobject.min.js"></script>
-<script src="//unpkg.com/docsify-pdf-embed-plugin/src/docsify-pdf-embed.js"></script>
-<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
 </body>
 </html>

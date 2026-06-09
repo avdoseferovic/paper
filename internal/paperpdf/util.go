@@ -26,7 +26,23 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+// zlibWriterPool reuses zlib (deflate) writers across sliceCompress calls.
+// A fresh zlib.NewWriterLevel allocates a ~600KB flate compressor (deflate
+// tables, hash chains) on first write; sliceCompress is invoked once per page
+// content stream, per embedded image color/alpha plane, and per font stream,
+// so a single document triggers many such allocations. zlib.Writer.Reset
+// retains the underlying compressor and only re-points the output, turning the
+// per-call allocation into a one-time cost amortised over the pool.
+// Profiled impact: flate.NewWriter was 54% of bytes allocated via this path.
+var zlibWriterPool = sync.Pool{
+	New: func() any {
+		w, _ := zlib.NewWriterLevel(io.Discard, zlib.BestSpeed)
+		return w
+	},
+}
 
 func round(f float64) int {
 	if f < 0 {
@@ -49,9 +65,11 @@ func bufferFromReader(r io.Reader) (b *bytes.Buffer, err error) {
 // sliceCompress returns a zlib-compressed copy of the specified byte array
 func sliceCompress(data []byte) []byte {
 	var buf bytes.Buffer
-	cmp, _ := zlib.NewWriterLevel(&buf, zlib.BestSpeed)
+	cmp := zlibWriterPool.Get().(*zlib.Writer)
+	cmp.Reset(&buf)
 	cmp.Write(data)
 	cmp.Close()
+	zlibWriterPool.Put(cmp)
 	return buf.Bytes()
 }
 

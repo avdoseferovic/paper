@@ -1,6 +1,7 @@
 package table
 
 import (
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
@@ -29,10 +30,11 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 			w := t.columnSpanWidth(cell.Width, c, declCell.Colspan)
 			innerCell := paddedTableCell(x, y, w, rowH, declCell.Style)
 			if declCell.Style != nil {
+				paintCell := layout.ApplyCellMargins(entity.Cell{X: x, Y: y, Width: w, Height: rowH}, declCell.Style)
 				if pp, ok := provider.(core.PositionProvider); ok {
-					pp.SetCursor(x, y)
+					pp.SetCursor(paintCell.X, paintCell.Y)
 				}
-				provider.CreateCol(w, rowH, t.config, declCell.Style)
+				provider.CreateCol(paintCell.Width, paintCell.Height, t.config, declCell.Style)
 			}
 			if declCell.Content != nil {
 				declCell.Content.Render(provider, &innerCell)

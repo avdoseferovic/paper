@@ -49,16 +49,13 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		var nilCellProp *props.Cell
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, nilCellProp)
+		inner.EXPECT().Apply(width, height, cfg, nilCellProp).Once()
 
 		sut := cellwriter.NewBorderLineStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, nilCellProp)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop but line style is solid, should skip current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -71,16 +68,13 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		sut := cellwriter.NewBorderLineStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop but line style is empty, should skip current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -91,16 +85,13 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		prop := &props.Cell{}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		sut := cellwriter.NewBorderLineStyler(nil)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
 	})
 	t.Run("When has prop and line style is dashed, should apply current and call next", func(t *testing.T) {
 		t.Parallel()
@@ -113,20 +104,16 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		}
 
 		inner := mocks.NewCellWriter(t)
-		inner.EXPECT().Apply(width, height, cfg, prop)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
 		fpdf := mocks.NewFpdf(t)
-		fpdf.EXPECT().SetDashPattern([]float64{1, 1}, 0.0)
-		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
+		fpdf.EXPECT().SetDashPattern([]float64{1, 1}, 0.0).Once()
+		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0).Once()
 
 		sut := cellwriter.NewBorderLineStyler(fpdf)
 		sut.SetNext(inner)
 
 		// Act
 		sut.Apply(width, height, cfg, prop)
-
-		// Assert
-		inner.AssertNumberOfCalls(t, "Apply", 1)
-		fpdf.AssertNumberOfCalls(t, "SetDashPattern", 2)
 	})
 }

@@ -73,6 +73,35 @@ func TestRow_GetHeight(t *testing.T) {
 		// Assert
 		assert.Equal(t, 5.0, r.GetHeight(provider, &cell))
 	})
+	t.Run("when auto-height row has style margins, should measure inside margins and include vertical margins", func(t *testing.T) {
+		t.Parallel()
+		cell := fixture.CellEntity()
+		style := &props.Cell{
+			MarginTop:    2,
+			MarginRight:  3,
+			MarginBottom: 5,
+			MarginLeft:   7,
+		}
+		wantCell := entity.Cell{
+			X:      cell.X + 7,
+			Y:      cell.Y + 2,
+			Width:  cell.Width - 10,
+			Height: cell.Height - 7,
+		}
+
+		provider := mocks.NewProvider(t)
+
+		columns := mocks.NewCol(t)
+		columns.EXPECT().
+			GetHeight(provider, mock.MatchedBy(func(inner *entity.Cell) bool {
+				return inner != nil && *inner == wantCell
+			})).
+			Return(5.0)
+
+		r := row.New().Add(columns).WithStyle(style)
+
+		assert.Equal(t, 12.0, r.GetHeight(provider, &cell))
+	})
 }
 
 func TestRow_GetColumns(t *testing.T) {
@@ -100,11 +129,11 @@ func TestRow_GetStructure(t *testing.T) {
 		cell := fixture.CellEntity()
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().CreateRow(cell.Height)
+		provider.EXPECT().CreateRow(cell.Height).Once()
 
 		col := mocks.NewCol(t)
-		col.EXPECT().Render(provider, cell, true)
-		col.EXPECT().SetConfig(cfg)
+		col.EXPECT().Render(provider, cell, true).Once()
+		col.EXPECT().SetConfig(cfg).Once()
 		col.EXPECT().GetSize().Return(12)
 
 		sut := row.New(cell.Height).Add(col)
@@ -112,11 +141,6 @@ func TestRow_GetStructure(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "CreateRow", 1)
-		col.AssertNumberOfCalls(t, "Render", 1)
-		col.AssertNumberOfCalls(t, "SetConfig", 1)
 	})
 	t.Run("when there is style, should call provider correctly", func(t *testing.T) {
 		t.Parallel()
@@ -128,12 +152,12 @@ func TestRow_GetStructure(t *testing.T) {
 		prop := fixture.CellProp()
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().CreateRow(cell.Height)
-		provider.EXPECT().CreateCol(cell.Width, cell.Height, cfg, &prop)
+		provider.EXPECT().CreateRow(cell.Height).Once()
+		provider.EXPECT().CreateCol(cell.Width, cell.Height, cfg, &prop).Once()
 
 		col := mocks.NewCol(t)
-		col.EXPECT().Render(provider, cell, false)
-		col.EXPECT().SetConfig(cfg)
+		col.EXPECT().Render(provider, cell, false).Once()
+		col.EXPECT().SetConfig(cfg).Once()
 		col.EXPECT().GetSize().Return(12)
 
 		sut := row.New(cell.Height).Add(col).WithStyle(&prop)
@@ -141,12 +165,6 @@ func TestRow_GetStructure(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "CreateCol", 1)
-		provider.AssertNumberOfCalls(t, "CreateRow", 1)
-		col.AssertNumberOfCalls(t, "Render", 1)
-		col.AssertNumberOfCalls(t, "SetConfig", 1)
 	})
 	t.Run("when config max grid size is invalid, should use default grid for render widths", func(t *testing.T) {
 		t.Parallel()
@@ -156,12 +174,12 @@ func TestRow_GetStructure(t *testing.T) {
 		cell.Width = 120
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().CreateRow(cell.Height)
+		provider.EXPECT().CreateRow(cell.Height).Once()
 
 		col := mocks.NewCol(t)
 		col.EXPECT().Render(provider, mock.MatchedBy(func(inner entity.Cell) bool {
 			return inner.Width == 60
-		}), true)
+		}), true).Once()
 		col.EXPECT().SetConfig(cfg)
 		col.EXPECT().GetSize().Return(6)
 
@@ -170,10 +188,6 @@ func TestRow_GetStructure(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "CreateRow", 1)
-		col.AssertNumberOfCalls(t, "Render", 1)
 	})
 }
 
@@ -204,9 +218,9 @@ func TestRow_RenderManualGridWidths(t *testing.T) {
 			provider := mocks.NewProvider(t)
 
 			for _, width := range tt.wantWidth {
-				provider.EXPECT().CreateCol(width, cell.Height, cfg, (*props.Cell)(nil))
+				provider.EXPECT().CreateCol(width, cell.Height, cfg, (*props.Cell)(nil)).Once()
 			}
-			provider.EXPECT().CreateRow(cell.Height)
+			provider.EXPECT().CreateRow(cell.Height).Once()
 
 			cols := make([]core.Col, 0, len(tt.colSizes))
 			for _, size := range tt.colSizes {
@@ -216,9 +230,6 @@ func TestRow_RenderManualGridWidths(t *testing.T) {
 			sut.SetConfig(cfg)
 
 			sut.Render(provider, cell)
-
-			provider.AssertNumberOfCalls(t, "CreateCol", len(tt.wantWidth))
-			provider.AssertNumberOfCalls(t, "CreateRow", 1)
 		})
 	}
 }

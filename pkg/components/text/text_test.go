@@ -103,14 +103,11 @@ func TestText_Render(t *testing.T) {
 		sut := text.New(value, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddText(value, &cell, &prop)
+		provider.EXPECT().AddText(value, &cell, &prop).Once()
 		sut.SetConfig(&entity.Config{})
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddText", 1)
 	})
 }
 

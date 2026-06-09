@@ -58,8 +58,8 @@ func TestPage_Render(t *testing.T) {
 
 		provider := mocks.NewProvider(t)
 		row := mocks.NewRow(t)
-		row.EXPECT().Render(provider, cell)
-		row.EXPECT().GetHeight(provider, &cell).Return(10.0)
+		row.EXPECT().Render(provider, cell).Once()
+		row.EXPECT().GetHeight(provider, &cell).Return(10.0).Once()
 		row.EXPECT().SetConfig(cfg)
 
 		sut := page.New(prop)
@@ -68,10 +68,6 @@ func TestPage_Render(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		row.AssertNumberOfCalls(t, "Render", 1)
-		row.AssertNumberOfCalls(t, "GetHeight", 1)
 	})
 
 	t.Run("when there is background image and there is no page pattern, should call row render and provider correctly", func(t *testing.T) {
@@ -91,10 +87,10 @@ func TestPage_Render(t *testing.T) {
 		rectProp.MakeValid()
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddBackgroundImageFromBytes(cfg.BackgroundImage.Bytes, &cell, rectProp, cfg.BackgroundImage.Extension)
+		provider.EXPECT().AddBackgroundImageFromBytes(cfg.BackgroundImage.Bytes, &cell, rectProp, cfg.BackgroundImage.Extension).Once()
 		row := mocks.NewRow(t)
-		row.EXPECT().Render(provider, cell)
-		row.EXPECT().GetHeight(provider, &cell).Return(10.0)
+		row.EXPECT().Render(provider, cell).Once()
+		row.EXPECT().GetHeight(provider, &cell).Return(10.0).Once()
 		row.EXPECT().SetConfig(cfg)
 
 		sut := page.New(prop)
@@ -103,11 +99,6 @@ func TestPage_Render(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddBackgroundImageFromBytes", 1)
-		row.AssertNumberOfCalls(t, "Render", 1)
-		row.AssertNumberOfCalls(t, "GetHeight", 1)
 	})
 	t.Run("when there is background image and there is page pattern, should call row render and provider correctly", func(t *testing.T) {
 		t.Parallel()
@@ -125,11 +116,11 @@ func TestPage_Render(t *testing.T) {
 		rectProp.MakeValid()
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddBackgroundImageFromBytes(cfg.BackgroundImage.Bytes, &cell, rectProp, cfg.BackgroundImage.Extension)
-		provider.EXPECT().AddText("0 / 0", &cell, prop.GetNumberTextProp(cell.Height))
+		provider.EXPECT().AddBackgroundImageFromBytes(cfg.BackgroundImage.Bytes, &cell, rectProp, cfg.BackgroundImage.Extension).Once()
+		provider.EXPECT().AddText("0 / 0", &cell, prop.GetNumberTextProp(cell.Height)).Once()
 		row := mocks.NewRow(t)
-		row.EXPECT().Render(provider, cell)
-		row.EXPECT().GetHeight(provider, &cell).Return(10.0)
+		row.EXPECT().Render(provider, cell).Once()
+		row.EXPECT().GetHeight(provider, &cell).Return(10.0).Once()
 		row.EXPECT().SetConfig(cfg)
 
 		sut := page.New(prop)
@@ -138,12 +129,6 @@ func TestPage_Render(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddBackgroundImageFromBytes", 1)
-		provider.AssertNumberOfCalls(t, "AddText", 1)
-		row.AssertNumberOfCalls(t, "Render", 1)
-		row.AssertNumberOfCalls(t, "GetHeight", 1)
 	})
 }
 

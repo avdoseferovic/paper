@@ -100,13 +100,10 @@ func TestLine_Render(t *testing.T) {
 		sut := line.New(prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddLine(&cell, &prop)
+		provider.EXPECT().AddLine(&cell, &prop).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddLine", 1)
 	})
 }
 

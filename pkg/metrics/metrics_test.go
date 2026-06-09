@@ -399,7 +399,7 @@ func TestReport_Save(t *testing.T) {
 		}
 
 		// Act
-		err := report.Save("report-test-demo.txt")
+		err := report.Save(filepath.Join(t.TempDir(), "report-test-demo.txt"))
 
 		// Assert
 		assert.NoError(t, err)

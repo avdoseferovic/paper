@@ -103,17 +103,12 @@ func TestSignature_Render(t *testing.T) {
 		sut := signature.New(label, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.On("AddText", mock.Anything, mock.Anything, mock.Anything).Return(10.0)
-		provider.On("GetFontHeight", mock.Anything).Return(10.0)
-		provider.On("AddLine", mock.Anything, mock.Anything)
+		provider.On("AddText", mock.Anything, mock.Anything, mock.Anything).Return(10.0).Once()
+		provider.On("GetFontHeight", mock.Anything).Return(10.0).Once()
+		provider.On("AddLine", mock.Anything, mock.Anything).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddText", 1)
-		provider.AssertNumberOfCalls(t, "GetFontHeight", 1)
-		provider.AssertNumberOfCalls(t, "AddLine", 1)
 	})
 }
 

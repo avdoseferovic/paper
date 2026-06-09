@@ -12,13 +12,17 @@ import (
 )
 
 // barrier blocks each caller until n callers have arrived, then releases them
-// together. It lets a test force a deterministic number of concurrent workers
-// without relying on time.Sleep.
+// together. It is a reusable (cyclic) barrier: a generation counter prevents
+// the classic reuse race where a fast caller re-enters the next batch and
+// bumps the count before a slow caller from the previous batch re-checks its
+// wait predicate. It lets a test force a deterministic number of concurrent
+// workers without relying on time.Sleep.
 type barrier struct {
 	mu    sync.Mutex
 	cond  *sync.Cond
 	n     int
 	count int
+	gen   int
 }
 
 func newBarrier(n int) *barrier {
@@ -30,13 +34,15 @@ func newBarrier(n int) *barrier {
 func (b *barrier) wait() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	gen := b.gen
 	b.count++
 	if b.count == b.n {
 		b.count = 0
+		b.gen++
 		b.cond.Broadcast()
 		return
 	}
-	for b.count != 0 {
+	for gen == b.gen {
 		b.cond.Wait()
 	}
 }

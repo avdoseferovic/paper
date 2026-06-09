@@ -115,8 +115,8 @@ func TestCol_Render(t *testing.T) {
 		provider := mocks.NewProvider(t)
 
 		component := mocks.NewComponent(t)
-		component.EXPECT().Render(provider, &cell)
-		component.EXPECT().SetConfig(cfg)
+		component.EXPECT().Render(provider, &cell).Once()
+		component.EXPECT().SetConfig(cfg).Once()
 
 		sut := col.New(12).Add(component)
 		sut.WithStyle(style)
@@ -124,10 +124,6 @@ func TestCol_Render(t *testing.T) {
 
 		// Act
 		sut.Render(provider, cell, false)
-
-		// Assert
-		component.AssertNumberOfCalls(t, "Render", 1)
-		component.AssertNumberOfCalls(t, "SetConfig", 1)
 	})
 	t.Run("when createCell, should call provider correctly", func(t *testing.T) {
 		t.Parallel()
@@ -137,11 +133,46 @@ func TestCol_Render(t *testing.T) {
 		style := &props.Cell{}
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().CreateCol(cell.Width, cell.Height, cfg, style)
+		provider.EXPECT().CreateCol(cell.Width, cell.Height, cfg, style).Once()
 
 		component := mocks.NewComponent(t)
-		component.EXPECT().Render(provider, &cell)
-		component.EXPECT().SetConfig(cfg)
+		component.EXPECT().Render(provider, &cell).Once()
+		component.EXPECT().SetConfig(cfg).Once()
+
+		sut := col.New(12).Add(component)
+		sut.WithStyle(style)
+		sut.SetConfig(cfg)
+
+		// Act
+		sut.Render(provider, cell, true)
+	})
+	t.Run("when createCell and provider supports positioning, should draw at cell origin", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cfg := &entity.Config{}
+		cell := fixture.CellEntity()
+		style := &props.Cell{}
+		calls := make([]string, 0, 2)
+
+		baseProvider := mocks.NewProvider(t)
+		provider := &positionedProvider{
+			Provider: baseProvider,
+			setCursor: func(x, y float64) {
+				assert.Equal(t, cell.X, x)
+				assert.Equal(t, cell.Y, y)
+				calls = append(calls, "set_cursor")
+			},
+		}
+		baseProvider.EXPECT().
+			CreateCol(cell.Width, cell.Height, cfg, style).
+			Run(func(_ float64, _ float64, _ *entity.Config, _ *props.Cell) {
+				calls = append(calls, "create_col")
+			}).
+			Once()
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().Render(provider, &cell).Once()
+		component.EXPECT().SetConfig(cfg).Once()
 
 		sut := col.New(12).Add(component)
 		sut.WithStyle(style)
@@ -151,10 +182,53 @@ func TestCol_Render(t *testing.T) {
 		sut.Render(provider, cell, true)
 
 		// Assert
-		provider.AssertNumberOfCalls(t, "CreateCol", 1)
-		component.AssertNumberOfCalls(t, "Render", 1)
-		component.AssertNumberOfCalls(t, "SetConfig", 1)
+		assert.Equal(t, []string{"set_cursor", "create_col"}, calls)
 	})
+	t.Run("when createCell and style has margins, should draw and render inside margin box", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cfg := &entity.Config{}
+		cell := fixture.CellEntity()
+		style := &props.Cell{
+			MarginTop:    3,
+			MarginRight:  5,
+			MarginBottom: 7,
+			MarginLeft:   2,
+		}
+		wantCell := entity.Cell{
+			X:      cell.X + 2,
+			Y:      cell.Y + 3,
+			Width:  cell.Width - 7,
+			Height: cell.Height - 10,
+		}
+
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().CreateCol(wantCell.Width, wantCell.Height, cfg, style).Once()
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().
+			Render(provider, mock.MatchedBy(func(got *entity.Cell) bool {
+				return got != nil && *got == wantCell
+			})).
+			Once()
+		component.EXPECT().SetConfig(cfg).Once()
+
+		sut := col.New(12).Add(component)
+		sut.WithStyle(style)
+		sut.SetConfig(cfg)
+
+		// Act
+		sut.Render(provider, cell, true)
+	})
+}
+
+type positionedProvider struct {
+	*mocks.Provider
+	setCursor func(x, y float64)
+}
+
+func (p *positionedProvider) SetCursor(x, y float64) {
+	p.setCursor(x, y)
 }
 
 func TestCol_GetHeight(t *testing.T) {
@@ -168,7 +242,7 @@ func TestCol_GetHeight(t *testing.T) {
 		provider := mocks.NewProvider(t)
 
 		component := mocks.NewComponent(t)
-		component.EXPECT().GetHeight(provider, &cell).Return(10.0)
+		component.EXPECT().GetHeight(provider, &cell).Return(10.0).Once()
 		component.EXPECT().SetConfig(cfg)
 
 		component2 := mocks.NewComponent(t)
@@ -182,8 +256,6 @@ func TestCol_GetHeight(t *testing.T) {
 		height := sut.GetHeight(provider, &cell)
 
 		// Assert
-
-		component.AssertNumberOfCalls(t, "GetHeight", 1)
 		assert.Equal(t, 15.0, height)
 	})
 	t.Run("when config max grid size is invalid, should use default grid for height measurement", func(t *testing.T) {
@@ -211,5 +283,44 @@ func TestCol_GetHeight(t *testing.T) {
 
 		// Assert
 		assert.Equal(t, 10.0, height)
+	})
+	t.Run("when styled column has margins, should measure inside margins and include vertical margins", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := fixture.CellEntity()
+		cell.Width = 120
+		cfg := &entity.Config{MaxGridSize: 12}
+		style := &props.Cell{
+			MarginTop:    2,
+			MarginRight:  3,
+			MarginBottom: 4,
+			MarginLeft:   5,
+		}
+		wantCell := entity.Cell{
+			X:      cell.X + 5,
+			Y:      cell.Y + 2,
+			Width:  60 - 8,
+			Height: cell.Height - 6,
+		}
+
+		provider := mocks.NewProvider(t)
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().
+			GetHeight(provider, mock.MatchedBy(func(inner *entity.Cell) bool {
+				return inner != nil && *inner == wantCell
+			})).
+			Return(10.0).
+			Once()
+		component.EXPECT().SetConfig(cfg)
+
+		sut := col.New(6).Add(component).WithStyle(style)
+		sut.SetConfig(cfg)
+
+		// Act
+		height := sut.GetHeight(provider, &cell)
+
+		// Assert
+		assert.Equal(t, 16.0, height)
 	})
 }

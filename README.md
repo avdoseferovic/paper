@@ -139,6 +139,60 @@ the useful page area after margins, headers, and footers are reserved.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
 
+## Performance
+
+Generation is benchmarked in [`paper_benchmark_test.go`](paper_benchmark_test.go).
+Two benchmarks live there:
+
+- `BenchmarkPDFGeneration` — representative documents (text-heavy, mixed
+  components, full HTML demo).
+- `BenchmarkPDFScaling` — a text document swept across 10–1000 rows to expose
+  the per-row / per-page cost curve.
+
+Run them with:
+
+```bash
+# Representative scenarios
+go test -run='^$' -bench=BenchmarkPDFGeneration -benchmem -count=6 .
+
+# Size scaling curve
+go test -run='^$' -bench=BenchmarkPDFScaling -benchmem -count=6 .
+```
+
+The numbers below are the median of 6 runs on an Apple M1 Pro (Go 1.26),
+single-threaded. They are representative of the bundled fixtures, not a
+universal guarantee — actual time scales with page count, image size, and
+component mix.
+
+### Representative documents (`BenchmarkPDFGeneration`)
+
+| Scenario           | Document                                                | Time / doc | Mem / doc | Allocs / doc |
+|--------------------|---------------------------------------------------------|-----------:|----------:|-------------:|
+| `TextHeavy`        | 180 text rows (~6 pages)                                |    1.05 ms |  1.16 MiB |        9,511 |
+| `MixedComponents`  | 40× (barcode + QR + image + signature + text)           |    4.85 ms |  3.49 MiB |       12,457 |
+| `HTMLDemoFull`     | HTML → PDF: header + styled body + embedded PNG         |    7.83 ms | 13.47 MiB |       43,629 |
+
+### Size scaling (`BenchmarkPDFScaling`)
+
+| Rows | ~Pages (A4) | Time / doc | Mem / doc | Allocs / doc |
+|-----:|------------:|-----------:|----------:|-------------:|
+|   10 |           1 |    0.30 ms |   153 KiB |        2,283 |
+|   50 |           2 |    0.48 ms |   377 KiB |        3,969 |
+|  100 |           4 |    0.69 ms |   671 KiB |        6,103 |
+|  500 |          17 |    2.48 ms |  2.87 MiB |       23,108 |
+| 1000 |          34 |    4.79 ms |  5.65 MiB |       44,307 |
+
+The curve is linear, giving a simple cost model for text content:
+
+```
+time(N rows) ≈ 0.25 ms (fixed setup) + 4.5 µs × N
+```
+
+That is roughly **~140 µs per A4 page** and **~42 allocations per row**. Generation
+is single-threaded and the internal compression writers are pooled in a
+concurrency-safe way, so throughput scales ~linearly across cores when
+generating documents in parallel.
+
 ## Documentation
 
 - [API reference](https://pkg.go.dev/github.com/avdoseferovic/paper)

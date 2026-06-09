@@ -41,4 +41,12 @@ func TestType_IsValid(t *testing.T) {
 		// Act & Assert
 		assert.True(t, extensionType.IsValid())
 	})
+	t.Run("when type is svg, should be valid", func(t *testing.T) {
+		t.Parallel()
+		// Act
+		extensionType := extension.Svg
+
+		// Act & Assert
+		assert.True(t, extensionType.IsValid())
+	})
 }

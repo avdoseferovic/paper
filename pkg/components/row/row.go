@@ -70,7 +70,8 @@ func (r *Row) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	if r.height > 0 && r.cachedCellWidth == cell.Width {
 		return r.height
 	}
-	r.height = r.getBiggestCol(provider, cell)
+	measureCell := layout.ApplyCellMargins(*cell, r.style)
+	r.height = r.getBiggestCol(provider, &measureCell) + layout.VerticalCellMargins(r.style)
 	r.cachedCellWidth = cell.Width
 	return r.height
 }
@@ -98,7 +99,11 @@ func (r *Row) GetStructure() *node.Node[core.Structure] {
 // Render renders a Row into a PDF context.
 func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 	cell.Height = r.GetHeight(provider, &cell)
-	innerCell := cell.Copy()
+	contentCell := cell
+	if r.style != nil {
+		contentCell = layout.ApplyCellMargins(cell, r.style)
+	}
+	innerCell := contentCell.Copy()
 
 	if r.style != nil {
 		// Ensure the gofpdf pen is at the cell origin before CreateCol so
@@ -107,9 +112,9 @@ func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 		// the pen drifts after Ln/CellFormat and styled rows render in the
 		// wrong place after nested flex/container content.
 		if pp, ok := provider.(core.PositionProvider); ok {
-			pp.SetCursor(cell.X, cell.Y)
+			pp.SetCursor(contentCell.X, contentCell.Y)
 		}
-		provider.CreateCol(cell.Width, cell.Height, r.config, r.style)
+		provider.CreateCol(contentCell.Width, contentCell.Height, r.config, r.style)
 	}
 
 	units := make([]int, len(r.cols))
@@ -119,7 +124,7 @@ func (r *Row) Render(provider core.Provider, cell entity.Cell) {
 	plan := layout.ManualUnits(units, maxGridSize(r.config))
 
 	for i, col := range r.cols {
-		parentWidth := cell.Width
+		parentWidth := contentCell.Width
 
 		colDimension := layout.UnitWidth(parentWidth, plan.Units[i], plan.GridSize)
 		innerCell.Width = colDimension

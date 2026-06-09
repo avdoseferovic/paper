@@ -58,7 +58,13 @@ func (gr *GradientRenderer) DrawGradient(cell *entity.Cell, g *props.Gradient, w
 		}
 		img := rasteriseGradient(g, pxW, pxH)
 		var buf bytes.Buffer
-		err := png.Encode(&buf, img)
+		// This PNG is a throwaway transport buffer: RegisterImageOptionsReader
+		// immediately decodes it back to raw pixel planes, which the PDF writer
+		// re-compresses with FlateDecode. Compressing here is pure waste, so we
+		// skip it — NoCompression avoids the LZ77 pass and the ~128KB deflate
+		// table allocation. The embedded PDF stream is byte-identical.
+		enc := png.Encoder{CompressionLevel: png.NoCompression}
+		err := enc.Encode(&buf, img)
 		if err != nil {
 			return
 		}

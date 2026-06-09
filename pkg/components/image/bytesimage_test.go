@@ -105,13 +105,10 @@ func TestBytesImage_Render(t *testing.T) {
 		sut := image.NewFromBytes(bytes, ext, prop)
 
 		provider := mocks.NewProvider(t)
-		provider.EXPECT().AddImageFromBytes(bytes, &cell, &prop, ext)
+		provider.EXPECT().AddImageFromBytes(bytes, &cell, &prop, ext).Once()
 
 		// Act
 		sut.Render(provider, &cell)
-
-		// Assert
-		provider.AssertNumberOfCalls(t, "AddImageFromBytes", 1)
 	})
 }
 
