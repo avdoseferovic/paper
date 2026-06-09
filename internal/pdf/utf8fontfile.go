@@ -247,14 +247,14 @@ func (utf *utf8FontFile) readByte() int {
 	return int(s[0])
 }
 
-func (utf *utf8FontFile) readInt8Bits(label string) (int8, bool) {
+func (utf *utf8FontFile) readInt8Bits(label string) (int, bool) {
 	value := utf.readByte()
 	result, ok := checkedByte(value)
 	if !ok {
 		utf.setErrorf("%s value %d is out of byte range", label, value)
 		return 0, false
 	}
-	return int8FromByteBits(result), true
+	return signedByteValue(result), true
 }
 
 func (utf *utf8FontFile) readOffset24() int {
@@ -1193,8 +1193,8 @@ func (utf *utf8FontFile) readBigGlyphMetrics() bitmapGlyphMetrics {
 	return bitmapGlyphMetrics{
 		width:    width,
 		height:   height,
-		bearingX: int(bearingX),
-		bearingY: int(bearingY),
+		bearingX: bearingX,
+		bearingY: bearingY,
 		advance:  advance,
 	}
 }
@@ -1299,8 +1299,8 @@ func cbdtPNGImageData(location bitmapGlyphLocation, raw []byte) (bitmapGlyphMetr
 		metrics := bitmapGlyphMetrics{
 			height:   int(raw[0]),
 			width:    int(raw[1]),
-			bearingX: int(int8(raw[2])),
-			bearingY: int(int8(raw[3])),
+			bearingX: signedByteValue(raw[2]),
+			bearingY: signedByteValue(raw[3]),
 			advance:  int(raw[4]),
 		}
 		return metrics, sizedPNGData(raw, 5)
@@ -1311,8 +1311,8 @@ func cbdtPNGImageData(location bitmapGlyphLocation, raw []byte) (bitmapGlyphMetr
 		metrics := bitmapGlyphMetrics{
 			height:   int(raw[0]),
 			width:    int(raw[1]),
-			bearingX: int(int8(raw[2])),
-			bearingY: int(int8(raw[3])),
+			bearingX: signedByteValue(raw[2]),
+			bearingY: signedByteValue(raw[3]),
 			advance:  int(raw[4]),
 		}
 		return metrics, sizedPNGData(raw, 8)

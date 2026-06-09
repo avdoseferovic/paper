@@ -12,8 +12,11 @@ func int16FromUint16Bits(v uint16) int16 {
 	return int16(v) // #nosec G115 -- TrueType stores signed int16 values as uint16 bits.
 }
 
-func int8FromByteBits(v byte) int8 {
-	return int8(v) // #nosec G115 -- TrueType stores signed int8 values as byte bits.
+func signedByteValue(v byte) int {
+	if v < 0x80 {
+		return int(v)
+	}
+	return int(v) - 0x100
 }
 
 // SetColorEmojiEnabled enables or disables color emoji rendering for COLR/CPAL,
@@ -492,8 +495,8 @@ func readCompositeGlyphArgs(data []byte, offset int, flags uint16) (int, int, in
 	if offset+2 > len(data) {
 		return 0, 0, offset, false
 	}
-	arg1 := int(int8FromByteBits(data[offset]))
-	arg2 := int(int8FromByteBits(data[offset+1]))
+	arg1 := signedByteValue(data[offset])
+	arg2 := signedByteValue(data[offset+1])
 	return arg1, arg2, offset + 2, true
 }
 
