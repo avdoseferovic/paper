@@ -1,1 +1,1 @@
-[Art by **@marinabankr**](https://www.instagram.com/marinabankr/)
+© 2026 Paper · MIT License · Made for Go

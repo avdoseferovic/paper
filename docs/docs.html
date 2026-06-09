@@ -6,16 +6,40 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta name="description" content="Paper documentation — generate PDFs from HTML and Go components.">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --base-font-size: 14px;
-      --theme-color   : #373d7e;
-      --seconday-color: #ee2444;
+      --base-font-size: 16px;
+      --theme-color   : oklch(0.585 0.188 30);
     }
   </style>
   <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/paper-docs.css">
 </head>
 <body>
+<header class="docnav">
+  <div class="docnav-inner">
+    <a class="brand" href="index.html">
+      <span class="glyph">
+        <span class="pg b"></span><span class="pg"></span>
+        <span class="fold"></span>
+        <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
+      </span>
+      <span class="name">Paper<span class="tag">Docs</span></span>
+    </a>
+    <nav class="docnav-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#components">Components</a>
+      <a href="index.html#layout">Layout</a>
+      <a class="docnav-cta" href="https://github.com/avdoseferovic/paper" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8c0 2.9 1.9 5.3 4.4 6.2.3.1.4-.1.4-.3v-1.1c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .6 1 .6.6 1 1.5.7 1.9.6 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.3-1.3.6-1.7 0-.2-.3-.8.1-1.7 0 0 .5-.2 1.7.6a6 6 0 0 1 3 0c1.2-.8 1.7-.6 1.7-.6.4.9.1 1.5.1 1.7.4.4.6 1 .6 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.2v1.8c0 .2.1.4.4.3A6.5 6.5 0 0 0 14.5 8c0-3.6-2.9-6.5-6.5-6.5Z" fill="currentColor"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
 <div id="app"></div>
 <script src="//cdn.jsdelivr.net/npm/docsify-edit-on-github"></script>
 <script src="//unpkg.com/docsify/lib/plugins/emoji.min.js"></script>
@@ -26,8 +50,8 @@
     repo: 'https://github.com/avdoseferovic/paper',
     loadSidebar: true,
     loadFooter: true,
-    coverpage: true,
-    loadNavbar: true,
+    coverpage: false,
+    loadNavbar: false,
     copyCode: {
       buttonText : 'Copy to clipboard',
       errorText  : 'Error',

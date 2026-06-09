@@ -1,1 +1,2 @@
-- [Art by **@marinabankr**](https://www.instagram.com/marinabankr/)
+- [Home](index.html)
+- [GitHub](https://github.com/avdoseferovic/paper)

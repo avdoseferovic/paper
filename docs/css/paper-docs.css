@@ -1,0 +1,286 @@
+/* =========================================================================
+   Paper — Docsify theme overrides
+   Layered AFTER css/theme.css to restyle the default vue theme so the docs
+   match the home page (index.html) aesthetic: warm paper/ink palette,
+   orange-red accent, Spectral / Schibsted Grotesk / JetBrains Mono.
+   ========================================================================= */
+
+:root {
+  --paper:        oklch(0.987 0.004 95);
+  --paper-2:      oklch(0.972 0.005 95);
+  --sheet:        #ffffff;
+  --ink:          oklch(0.23 0.012 65);
+  --ink-soft:     oklch(0.40 0.012 65);
+  --muted:        oklch(0.56 0.010 70);
+  --faint:        oklch(0.74 0.008 75);
+  --line:         oklch(0.90 0.005 80);
+  --line-soft:    oklch(0.945 0.004 85);
+  --accent:       oklch(0.585 0.188 30);
+  --accent-soft:  oklch(0.585 0.188 30 / 0.10);
+  --accent-ink:   oklch(0.46 0.17 30);
+  --blue:         oklch(0.52 0.10 250);
+  --green:        oklch(0.52 0.09 150);
+  --shadow-card:  0 1px 2px rgba(40,30,20,0.04), 0 4px 16px rgba(40,30,20,0.05);
+  --r:            10px;
+
+  --sans:  "Schibsted Grotesk", system-ui, sans-serif;
+  --serif: "Spectral", Georgia, serif;
+  --mono:  "JetBrains Mono", ui-monospace, monospace;
+
+  /* docsify variables the vue theme reads */
+  --theme-color: oklch(0.585 0.188 30);
+
+  --nav-h: 64px;
+}
+
+/* ---------- base ---------- */
+body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* docsify loading splash */
+div#app { font-family: var(--serif); color: var(--muted); font-weight: 400; }
+
+/* progress bar */
+.progress { background-color: var(--accent); }
+
+/* =========================================================================
+   Static home-style header (injected in docs.html as <header class="docnav">)
+   ========================================================================= */
+header.docnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  height: var(--nav-h);
+  background: oklch(0.987 0.004 95 / 0.85);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.docnav .docnav-inner {
+  max-width: 100%;
+  height: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.docnav .brand { display: flex; align-items: center; gap: 11px; }
+.docnav .brand .glyph { width: 26px; height: 32px; position: relative; flex: none; }
+.docnav .brand .glyph .pg { position: absolute; inset: 0; background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 2px; }
+.docnav .brand .glyph .pg.b { transform: translate(4px,4px); background: var(--paper); z-index: -1; border-color: var(--faint); }
+.docnav .brand .glyph .fold { position: absolute; top: 0; right: 0; width: 9px; height: 9px; background: var(--paper); border-left: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); border-bottom-left-radius: 2px; }
+.docnav .brand .glyph .bar { position: absolute; left: 5px; height: 1.5px; background: var(--accent); }
+.docnav .brand .glyph .bar.b1 { top: 13px; width: 14px; }
+.docnav .brand .glyph .bar.b2 { top: 18px; width: 10px; }
+.docnav .brand .glyph .bar.b3 { top: 23px; width: 12px; }
+.docnav .brand .name { font-family: var(--serif); font-size: 21px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.docnav .brand .name .tag { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); margin-left: 8px; }
+.docnav .docnav-links { display: flex; align-items: center; gap: 26px; }
+.docnav .docnav-links a { font-size: 14px; color: var(--ink-soft); font-weight: 500; text-decoration: none; transition: color .15s; }
+.docnav .docnav-links a:hover { color: var(--ink); }
+.docnav .docnav-cta {
+  font-family: var(--mono); font-size: 12.5px; background: var(--ink); color: var(--paper);
+  padding: 9px 15px; border-radius: 7px; display: inline-flex; gap: 8px; align-items: center;
+  text-decoration: none; transition: transform .15s, background .15s;
+}
+.docnav .docnav-cta:hover { background: var(--accent-ink); transform: translateY(-1px); }
+@media (max-width: 768px) {
+  .docnav .docnav-links a:not(.docnav-cta) { display: none; }
+  .docnav .docnav-inner { padding-left: 56px; } /* clear the sidebar toggle */
+}
+
+/* =========================================================================
+   Layout — push docsify panes below the fixed header
+   ========================================================================= */
+.sidebar {
+  top: var(--nav-h);
+  background: var(--paper-2);
+  border-right: 1px solid var(--line);
+  padding-top: 26px;
+}
+.content { top: var(--nav-h); padding-top: 30px; }
+.sidebar-toggle { top: 0; height: var(--nav-h); background: transparent; z-index: 61; }
+.sidebar-toggle .sidebar-toggle-button { color: var(--ink); }
+.sidebar-toggle span { background-color: var(--ink); }
+
+/* hide the default docsify top-right nav (we use the static header instead) */
+.app-nav { display: none !important; }
+/* hide the default docsify GitHub corner ribbon — the header has a GitHub CTA */
+.github-corner { display: none !important; }
+
+/* =========================================================================
+   Sidebar
+   ========================================================================= */
+.sidebar > h1 { display: none; } /* app name lives in the header */
+.sidebar .search { margin: 0 18px 18px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+.sidebar .search .input-wrap {
+  background: var(--sheet); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: var(--shadow-card); overflow: hidden;
+}
+.sidebar .search input {
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink);
+  padding: 9px 12px; background: transparent; border: 0;
+}
+.sidebar .search input::placeholder { color: var(--faint); }
+.sidebar .search .clear-button { color: var(--faint); }
+.sidebar .search p.empty { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.sidebar .search .matching-post { border-bottom: 1px solid var(--line-soft); }
+.sidebar .search .matching-post h2 { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+.sidebar .search .search-keyword { color: var(--accent-ink); background: var(--accent-soft); font-style: normal; border-radius: 3px; padding: 0 2px; }
+
+.sidebar-nav { padding: 0 12px; }
+.sidebar ul { margin: 0; }
+.sidebar li { margin: 2px 0; }
+.sidebar ul li a {
+  font-family: var(--sans); font-size: 14px; color: var(--ink-soft); font-weight: 500;
+  border: 0; padding: 6px 12px; border-radius: 7px; line-height: 1.45;
+  transition: background .14s, color .14s;
+}
+.sidebar ul li a:hover { color: var(--ink); background: oklch(0.90 0.005 80 / 0.5); text-decoration: none; }
+.sidebar ul li.active > a,
+.sidebar ul li a.active {
+  color: var(--accent-ink); font-weight: 600; background: var(--accent-soft);
+  border-right: 0; position: relative;
+}
+.sidebar ul li.active > a::before {
+  content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px;
+  border-radius: 2px; background: var(--accent);
+}
+/* top-level section labels */
+.sidebar > .sidebar-nav > ul > li > a,
+.sidebar > .sidebar-nav > ul > li > p {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--faint); font-weight: 600;
+}
+.sidebar > .sidebar-nav > ul > li > ul > li > a { text-transform: none; letter-spacing: 0; font-family: var(--sans); font-size: 14px; color: var(--ink-soft); }
+
+/* =========================================================================
+   Content typography
+   ========================================================================= */
+.markdown-section { max-width: 820px; padding: 8px 24px 64px; }
+
+.markdown-section h1,
+.markdown-section h2,
+.markdown-section h3,
+.markdown-section h4 {
+  font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); line-height: 1.15;
+}
+.markdown-section h1 { font-size: clamp(30px, 4vw, 42px); font-weight: 700; letter-spacing: -0.02em; margin: 8px 0 18px; }
+.markdown-section h2 { font-size: 27px; margin: 56px 0 16px; padding-top: 22px; border-top: 1px solid var(--line); }
+.markdown-section h3 { font-size: 20px; margin: 34px 0 12px; }
+.markdown-section h4 { font-size: 16px; margin: 26px 0 10px; }
+.markdown-section h2 + h3 { margin-top: 18px; }
+
+.markdown-section p,
+.markdown-section li { font-size: 16px; line-height: 1.7; color: var(--ink-soft); }
+.markdown-section strong { color: var(--ink); font-weight: 600; }
+.markdown-section a { color: var(--accent-ink); text-decoration: none; border-bottom: 1px solid var(--accent-soft); transition: border-color .15s; }
+.markdown-section a:hover { border-bottom-color: var(--accent); }
+.markdown-section hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+.markdown-section ul, .markdown-section ol { padding-left: 1.3em; }
+.markdown-section li { margin: 5px 0; }
+.markdown-section li::marker { color: var(--faint); }
+.markdown-section img { border-radius: 8px; }
+
+/* badges row (shields) on the README — keep them subtle */
+.markdown-section p > a > img[src*="badge"],
+.markdown-section p > a > img[src*="shields"] { border-radius: 4px; vertical-align: middle; }
+
+/* =========================================================================
+   Code — inline + blocks, styled like the home page code panels
+   ========================================================================= */
+.markdown-section code,
+.markdown-section tt {
+  font-family: var(--mono); font-size: 0.86em; color: var(--accent-ink);
+  background: var(--accent-soft); border-radius: 5px; padding: 2px 6px;
+}
+.markdown-section pre {
+  background: #fbfaf8; border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow-card); padding: 0; margin: 22px 0; line-height: 1.7;
+}
+.markdown-section pre > code {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-soft);
+  background: transparent; border: 0; padding: 16px 18px; display: block;
+  border-radius: var(--r); tab-size: 2; white-space: pre; overflow-x: auto;
+}
+.markdown-section pre::after { color: var(--faint); font-family: var(--mono); }
+
+/* Prism token colors mapped to the home palette */
+.token.keyword, .token.boolean, .token.builtin, .token.tag { color: var(--accent-ink); }
+.token.string, .token.char, .token.attr-value, .token.regex { color: var(--green); }
+.token.function, .token.class-name { color: var(--blue); }
+.token.comment, .token.prolog, .token.doctype, .token.cdata { color: var(--faint); font-style: italic; }
+.token.number, .token.constant, .token.symbol { color: var(--accent-ink); }
+.token.operator, .token.punctuation { color: var(--muted); background: transparent; }
+.token.property, .token.attr-name { color: var(--ink); }
+
+/* copy-to-clipboard button (docsify-copy-code) */
+.docsify-copy-code-button {
+  font-family: var(--mono); font-size: 11px; background: var(--paper-2) !important;
+  color: var(--muted) !important; border: 1px solid var(--line); border-radius: 6px;
+}
+.docsify-copy-code-button:hover { color: var(--accent-ink) !important; border-color: var(--faint); }
+.docsify-copy-code-button .label { opacity: 1; }
+
+/* =========================================================================
+   Tables — echo the home page document tables
+   ========================================================================= */
+.markdown-section table { border-collapse: collapse; display: table; width: 100%; margin: 22px 0; font-size: 14px; }
+.markdown-section th {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--faint); text-align: left; font-weight: 600; padding: 10px 14px;
+  border: 0; border-bottom: 1.5px solid var(--ink); background: transparent;
+}
+.markdown-section td { padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line-soft); color: var(--ink-soft); }
+.markdown-section tr { background: transparent; border: 0; }
+.markdown-section tr:nth-child(2n) { background: oklch(0.972 0.005 95 / 0.6); }
+.markdown-section tbody tr:last-child td { border-bottom: 1px solid var(--line); }
+
+/* =========================================================================
+   Blockquotes / tips
+   ========================================================================= */
+.markdown-section blockquote {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 8px 8px 0; margin: 22px 0; padding: 14px 20px; color: var(--ink-soft);
+}
+.markdown-section blockquote p { color: var(--ink-soft); }
+
+/* =========================================================================
+   Edit-on-GitHub + pagination
+   ========================================================================= */
+.docsify-edit-on-github { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+.docsify-edit-on-github:hover { color: var(--accent-ink); }
+
+.docsify-pagination-container { border-top: 1px solid var(--line); margin-top: 48px; }
+.pagination-item-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.pagination-item-title { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+.pagination-item a:hover .pagination-item-title { color: var(--accent-ink); }
+.pagination-item:hover .pagination-item-label { color: var(--accent); }
+
+/* =========================================================================
+   Footer (@alertbox/docsify-footer)
+   ========================================================================= */
+.markdown-section > footer,
+.content footer {
+  margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+}
+.content footer a { color: var(--accent-ink); border: 0; }
+
+/* =========================================================================
+   Cover page — disabled in config, but keep on-brand if ever re-enabled
+   ========================================================================= */
+section.cover { background: var(--paper) !important; }
+section.cover .cover-main > p:last-child a { border-radius: 8px; }
+section.cover h1 { font-family: var(--serif); color: var(--ink); }
+section.cover blockquote p { font-family: var(--serif); color: var(--ink-soft); }
+section.cover .cover-main > p > a.button { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+/* =========================================================================
+   Scrollbar
+   ========================================================================= */
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: var(--faint); }
