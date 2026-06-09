@@ -29,13 +29,15 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/fontrepository"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 const (
-	defaultOutput = "test/output/paper-showcase.pdf"
-	serifFont     = "times"
+	defaultOutput    = "docs/assets/pdf/showcase.pdf"
+	showcaseFont     = "arial-unicode-ms"
+	showcaseFontFile = "docs/assets/fonts/arial-unicode-ms.ttf"
 )
 
 var (
@@ -101,15 +103,32 @@ func buildShowcaseDocument() (core.Document, error) {
 }
 
 func buildShowcasePaper() (core.Paper, error) {
+	fontBytes, err := readShowcaseAsset(showcaseFontFile)
+	if err != nil {
+		return nil, fmt.Errorf("read showcase font: %w", err)
+	}
+
+	customFonts, err := fontrepository.New().
+		AddUTF8FontFromBytes(showcaseFont, fontstyle.Normal, fontBytes).
+		AddUTF8FontFromBytes(showcaseFont, fontstyle.Italic, fontBytes).
+		AddUTF8FontFromBytes(showcaseFont, fontstyle.Bold, fontBytes).
+		AddUTF8FontFromBytes(showcaseFont, fontstyle.BoldItalic, fontBytes).
+		Load()
+	if err != nil {
+		return nil, fmt.Errorf("load showcase font: %w", err)
+	}
+
 	cfg := config.NewBuilder().
 		WithLeftMargin(15).
 		WithRightMargin(15).
 		WithTopMargin(12).
 		WithBottomMargin(13).
+		WithCustomFonts(customFonts).
+		WithDefaultFont(&props.Font{Family: showcaseFont, Size: 9.5, Color: ink}).
 		WithPageNumber(props.PageNumber{
 			Pattern: "Page {current} of {total}",
 			Place:   props.RightBottom,
-			Family:  fontfamily.Helvetica,
+			Family:  showcaseFont,
 			Size:    7,
 			Color:   muted,
 		}).
@@ -149,7 +168,7 @@ func headerRows() []core.Row {
 	return []core.Row{
 		row.New(6).Add(
 			text.NewCol(6, "PAPER", props.Text{
-				Family: serifFont,
+				Family: showcaseFont,
 				Style:  fontstyle.Bold,
 				Size:   9,
 				Color:  brand,
@@ -186,7 +205,7 @@ func overviewRows() []core.Row {
 	return []core.Row{
 		heroRow(),
 		spacer(5),
-		row.New(34).Add(
+		row.New(40).Add(
 			codeSnippetCol(6, "main.go - one call", `package main
 
 import "github.com/avdoseferovic/paper"
@@ -286,11 +305,11 @@ func svgDiagramPage(spec svgDiagramSpec) []core.Row {
 		thinRule(),
 		spacer(4),
 		row.New(37).Add(
-			col.New(4).Add(text.New("Source", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: spec.accent}),
+			col.New(4).Add(text.New("Source", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: spec.accent}),
 				text.New("These are checked-in SVG assets under docs/assets/images/showcase.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Image pipeline", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal}),
+			col.New(4).Add(text.New("Image pipeline", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
 				text.New("The page uses image.NewFromBytes with extension.Svg, then the provider rasterizes internally.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Why SVG", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: brand}),
+			col.New(4).Add(text.New("Why SVG", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: brand}),
 				text.New("The source stays crisp and editable while the PDF output remains provider-compatible.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
 		),
 	}
@@ -349,7 +368,7 @@ func heroRow() core.Row {
 				Color:  teal,
 			}),
 			text.New("Generate PDFs from HTML and Go components", props.Text{
-				Family:          serifFont,
+				Family:          showcaseFont,
 				Style:           fontstyle.Bold,
 				Size:            22,
 				Top:             18,
@@ -359,7 +378,7 @@ func heroRow() core.Row {
 				Color:           ink,
 			}),
 			text.New("A precise, testable document engine for production Go services.", props.Text{
-				Family:          serifFont,
+				Family:          showcaseFont,
 				Size:            11.5,
 				Top:             46,
 				Left:            5,
@@ -368,7 +387,7 @@ func heroRow() core.Row {
 				Color:           inkSoft,
 			}),
 			text.New("Render HTML in one call or compose explicit PDF pages from rows, columns, and reusable components.", props.Text{
-				Family:          fontfamily.Helvetica,
+				Family:          showcaseFont,
 				Size:            8,
 				Top:             59,
 				Left:            5,
@@ -397,21 +416,21 @@ func heroRow() core.Row {
 
 func heroInvoicePreview() core.Col {
 	return col.New(5).Add(
-		text.New("Invoice", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 16, Top: 7, Left: 5, Color: ink}),
+		text.New("Invoice", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 16, Top: 7, Left: 5, Color: ink}),
 		text.New("NO. INV-2026-0481", props.Text{Family: fontfamily.Courier, Size: 6.2, Top: 17, Left: 5, Color: muted}),
 		code.NewQr("https://github.com/avdoseferovic/paper", props.Rect{Top: 6, Left: 37, Percent: 20}),
 		text.New("BILLED TO", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 5.8, Top: 27, Left: 5, Color: faint}),
-		text.New("Northwind Trading Co.", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 7.2, Top: 33, Left: 5, Color: inkSoft}),
+		text.New("Northwind Trading Co.", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 7.2, Top: 33, Left: 5, Color: inkSoft}),
 		text.New("ISSUED", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 5.8, Top: 27, Left: 36, Color: faint}),
-		text.New("June 8, 2026", props.Text{Family: fontfamily.Helvetica, Size: 7.2, Top: 33, Left: 36, Color: inkSoft}),
+		text.New("June 8, 2026", props.Text{Family: showcaseFont, Size: 7.2, Top: 33, Left: 36, Color: inkSoft}),
 		text.New("ITEM", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 5.6, Top: 45, Left: 5, Color: faint}),
 		text.New("AMOUNT", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 5.6, Top: 45, Align: align.Right, Right: 5, Color: faint}),
-		text.New("Document API - Team", props.Text{Family: fontfamily.Helvetica, Size: 6.7, Top: 53, Left: 5, Color: inkSoft}),
+		text.New("Document API - Team", props.Text{Family: showcaseFont, Size: 6.7, Top: 53, Left: 5, Color: inkSoft}),
 		text.New("$480.00", props.Text{Family: fontfamily.Courier, Size: 6.7, Top: 53, Align: align.Right, Right: 5, Color: ink}),
-		text.New("Rendering credits", props.Text{Family: fontfamily.Helvetica, Size: 6.7, Top: 61, Left: 5, Color: inkSoft}),
+		text.New("Rendering credits", props.Text{Family: showcaseFont, Size: 6.7, Top: 61, Left: 5, Color: inkSoft}),
 		text.New("$240.00", props.Text{Family: fontfamily.Courier, Size: 6.7, Top: 61, Align: align.Right, Right: 5, Color: ink}),
 		text.New("TOTAL DUE", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 6, Top: 74, Left: 5, Color: muted}),
-		text.New("$840.00", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 14, Top: 70, Align: align.Right, Right: 5, Color: ink}),
+		text.New("$840.00", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 14, Top: 70, Align: align.Right, Right: 5, Color: ink}),
 	).WithStyle(&props.Cell{
 		BackgroundColor: white,
 		BorderType:      border.Full,
@@ -447,8 +466,8 @@ func codeSnippetCol(size int, label, value string, accent *props.Color) core.Col
 
 func authoringPathCard(size int, title, body, snippet string, accent *props.Color, chips []string) core.Col {
 	components := []core.Component{
-		text.New(title, props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 14, Top: 5, Left: 5, Color: ink}),
-		text.New(body, props.Text{Family: fontfamily.Helvetica, Size: 7.7, Top: 17, Left: 5, Right: 5, VerticalPadding: 1.2, Color: muted}),
+		text.New(title, props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 14, Top: 5, Left: 5, Color: ink}),
+		text.New(body, props.Text{Family: showcaseFont, Size: 7.7, Top: 17, Left: 5, Right: 5, VerticalPadding: 1.2, Color: muted}),
 	}
 	for i, line := range strings.Split(strings.Trim(snippet, "\n"), "\n") {
 		components = append(components, text.New(line, props.Text{
@@ -476,7 +495,7 @@ func authoringPathCard(size int, title, body, snippet string, accent *props.Colo
 func outputChip(size int, command, label string) core.Col {
 	return col.New(size).Add(
 		text.New(command, props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 7, Top: 3, Align: align.Center, Color: teal}),
-		text.New(label, props.Text{Family: fontfamily.Helvetica, Size: 6.2, Top: 9, Align: align.Center, Left: 2, Right: 2, Color: muted}),
+		text.New(label, props.Text{Family: showcaseFont, Size: 6.2, Top: 9, Align: align.Center, Left: 2, Right: 2, Color: muted}),
 	).WithStyle(cardStyle(white, borderC))
 }
 
@@ -585,7 +604,7 @@ func componentRows() []core.Row {
 			),
 			componentColumn(3, "Headers & footers", amber,
 				text.New("HEADER", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 10, Align: align.Center, Color: muted}),
-				text.New("main content region", props.Text{Family: fontfamily.Helvetica, Size: 6.7, Top: 18, Align: align.Center, Color: inkSoft}),
+				text.New("main content region", props.Text{Family: showcaseFont, Size: 6.7, Top: 18, Align: align.Center, Color: inkSoft}),
 				text.New("FOOTER", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 28, Align: align.Center, Color: teal}),
 			),
 		),
@@ -598,7 +617,7 @@ func componentRows() []core.Row {
 func componentColumn(size int, title string, accent *props.Color, components ...core.Component) core.Col {
 	all := make([]core.Component, 0, len(components)+1)
 	all = append(all, text.New(title, props.Text{
-		Family: fontfamily.Helvetica,
+		Family: showcaseFont,
 		Style:  fontstyle.Bold,
 		Size:   9,
 		Top:    1,
@@ -644,7 +663,7 @@ func textFlowRows() []core.Row {
 		row.New(42).Add(
 			col.New(7).Add(
 				text.New("Narrative content", props.Text{
-					Family: fontfamily.Helvetica,
+					Family: showcaseFont,
 					Style:  fontstyle.Bold,
 					Size:   10,
 					Color:  brand,
@@ -655,7 +674,7 @@ func textFlowRows() []core.Row {
 					{Text: ", links, emphasized labels, and measured wrapping without leaving the grid model."},
 				}, props.RichText{Top: 8, Right: 8, LineHeight: 1.18}),
 				text.New("Rows can be fixed height for predictable layouts or auto height when content determines vertical space.", props.Text{
-					Family:          fontfamily.Helvetica,
+					Family:          showcaseFont,
 					Size:            8,
 					Top:             25,
 					Right:           8,
@@ -665,7 +684,7 @@ func textFlowRows() []core.Row {
 			),
 			col.New(5).Add(
 				text.New("Alignment samples", props.Text{
-					Family: fontfamily.Helvetica,
+					Family: showcaseFont,
 					Style:  fontstyle.Bold,
 					Size:   10,
 					Color:  brand,
@@ -682,7 +701,7 @@ func textFlowRows() []core.Row {
 		spacer(5),
 		row.New(34).Add(
 			col.New(6).Add(
-				text.New("Composition pattern", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: teal}),
+				text.New("Composition pattern", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: teal}),
 				text.New("Rows stack top to bottom. Columns provide horizontal regions. Components are measured before render so text wraps consistently.", props.Text{
 					Top:             9,
 					Right:           8,
@@ -692,7 +711,7 @@ func textFlowRows() []core.Row {
 				}),
 			),
 			col.New(6).Add(
-				text.New("Useful for", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: amber}),
+				text.New("Useful for", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: amber}),
 				text.New("Reports, letters, invoices, approvals, generated forms, and HTML fragments that need predictable PDF output.", props.Text{
 					Top:             9,
 					Right:           6,
@@ -706,13 +725,13 @@ func textFlowRows() []core.Row {
 		spacer(4),
 		row.New(40).Add(
 			col.New(5).Add(
-				text.New("Type scale", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: brand}),
-				text.New("Section heading", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 13, Top: 8, Color: brand}),
-				text.New("Subheading", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Top: 18, Color: teal}),
-				text.New("Body copy with measured wrapping and steady line height.", props.Text{Family: fontfamily.Helvetica, Size: 8, Top: 28, Right: 5, Color: ink}),
+				text.New("Type scale", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
+				text.New("Section heading", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 13, Top: 8, Color: brand}),
+				text.New("Subheading", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Top: 18, Color: teal}),
+				text.New("Body copy with measured wrapping and steady line height.", props.Text{Family: showcaseFont, Size: 8, Top: 28, Right: 5, Color: ink}),
 			),
 			col.New(7).Add(
-				text.New("Measured text output", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: brand}),
+				text.New("Measured text output", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
 				text.New("The same paragraph can sit beside narrow side content, wrap inside a table cell, or flow through a full-width narrative section without changing the component contract.", props.Text{
 					Top:             9,
 					Right:           4,
@@ -760,13 +779,13 @@ func reportExampleRows() []core.Row {
 		row.New(26).Add(
 			col.New(7).Add(
 				text.New("Site Readiness Report", props.Text{
-					Family: fontfamily.Helvetica,
+					Family: showcaseFont,
 					Style:  fontstyle.Bold,
 					Size:   16,
 					Color:  brand,
 				}),
 				text.New("North Facility / Prepared 2026-06-08 / Ref PAPER-2026", props.Text{
-					Family: fontfamily.Helvetica,
+					Family: showcaseFont,
 					Size:   8,
 					Top:    12,
 					Color:  muted,
@@ -788,13 +807,13 @@ func reportExampleRows() []core.Row {
 		spacer(5),
 		row.New(34).Add(
 			col.New(6).Add(
-				text.New("Checklist", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: brand}),
+				text.New("Checklist", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
 				checkbox.New("Source data reviewed", props.Checkbox{Checked: true, Top: 10, Size: 3.8}),
 				checkbox.New("Assets resolved from disk", props.Checkbox{Checked: true, Top: 18, Size: 3.8}),
 				checkbox.New("Generated PDF visually inspected", props.Checkbox{Top: 26, Size: 3.8}),
 			),
 			col.New(6).Add(
-				text.New("Approval", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: brand}),
+				text.New("Approval", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
 				signature.New("Prepared by Paper", props.Signature{
 					FontColor:     teal,
 					LineColor:     teal,
@@ -809,11 +828,11 @@ func reportExampleRows() []core.Row {
 		row.New().Add(col.New(12).Add(reportAuditTable())),
 		spacer(5),
 		row.New(24).Add(
-			col.New(4).Add(text.New("Reusable bands", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: blue}),
+			col.New(4).Add(text.New("Reusable bands", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue}),
 				text.New("Headers, data tables, and approval rows can be assembled as reusable row groups.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
-			col.New(4).Add(text.New("Human + machine", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal}),
+			col.New(4).Add(text.New("Human + machine", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
 				text.New("QR and barcode components carry references alongside readable report content.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
-			col.New(4).Add(text.New("Stable output", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: amber}),
+			col.New(4).Add(text.New("Stable output", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber}),
 				text.New("Page numbers, margins, and footer rules stay consistent across generated pages.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
 		),
 	}
@@ -960,13 +979,13 @@ func gridRows() []core.Row {
 		row.New().Add(col.New(12).Add(gridBehaviorTable())),
 		spacer(5),
 		row.New(23).Add(
-			col.New(3).Add(text.New("Nested rows", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: blue}),
+			col.New(3).Add(text.New("Nested rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue}),
 				text.New("Components can contain translated HTML or tables inside normal columns.", props.Text{Top: 8, Right: 4, Size: 7.5, Color: ink})),
-			col.New(3).Add(text.New("Auto rows", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal}),
+			col.New(3).Add(text.New("Auto rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
 				text.New("Measured content determines height before drawing begins.", props.Text{Top: 8, Right: 4, Size: 7.5, Color: ink})),
-			col.New(3).Add(text.New("Manual rows", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: amber}),
+			col.New(3).Add(text.New("Manual rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber}),
 				text.New("Fixed heights keep reports and form regions predictable.", props.Text{Top: 8, Right: 4, Size: 7.5, Color: ink})),
-			col.New(3).Add(text.New("Page flow", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: red}),
+			col.New(3).Add(text.New("Page flow", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: red}),
 				text.New("Rows that do not fit continue on the next page with header and footer.", props.Text{Top: 8, Right: 4, Size: 7.5, Color: ink})),
 		),
 	}
@@ -989,11 +1008,11 @@ func htmlRows(gridSize int) []core.Row {
 		thinRule(),
 		spacer(4),
 		row.New(31).Add(
-			col.New(4).Add(text.New("Inline content", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: blue}),
+			col.New(4).Add(text.New("Inline content", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue}),
 				text.New("Paragraphs, headings, strong/emphasis, links, and colored text become text or rich text runs.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Block layout", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal}),
+			col.New(4).Add(text.New("Block layout", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
 				text.New("Flex rows and common block spacing are mapped onto Paper rows and grid columns.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Document fit", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: amber}),
+			col.New(4).Add(text.New("Document fit", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber}),
 				text.New("Translated rows use the same page measurement, break, header, and footer behavior as hand-built rows.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink, VerticalPadding: 1.1})),
 		),
 		pageBreak(),
@@ -1005,9 +1024,9 @@ func htmlRows(gridSize int) []core.Row {
 		thinRule(),
 		spacer(4),
 		row.New(32).Add(
-			col.New(6).Add(text.New("Why this page matters", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: brand}),
+			col.New(6).Add(text.New("Why this page matters", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
 				text.New("The HTML example is not a screenshot. It is parsed into Paper components and rendered by the same provider pipeline as the rest of the document.", props.Text{Top: 9, Right: 7, Size: 8, Color: ink, VerticalPadding: 1.1})),
-			col.New(6).Add(text.New("What to inspect", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 10, Color: teal}),
+			col.New(6).Add(text.New("What to inspect", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: teal}),
 				text.New("The panel border, flex-style KPI row, table header, cell borders, and text wrapping all come from translated HTML and CSS.", props.Text{Top: 9, Right: 7, Size: 8, Color: ink, VerticalPadding: 1.1})),
 		),
 	}
@@ -1151,13 +1170,13 @@ func treeSnapshotCol(size int) core.Col {
 func metricsSnapshotCol(size int) core.Col {
 	return col.New(size).Add(
 		text.New("paper.Metrics() - last run", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 7, Top: 4, Left: 5, Color: muted}),
-		text.New("18 ms", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 18, Top: 16, Left: 7, Color: ink}),
+		text.New("18 ms", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 18, Top: 16, Left: 7, Color: ink}),
 		text.New("generation time", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 28, Left: 7, Color: faint}),
-		text.New("7", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 18, Top: 16, Left: 39, Color: ink}),
+		text.New("7", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 18, Top: 16, Left: 39, Color: ink}),
 		text.New("components", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 28, Left: 39, Color: faint}),
-		text.New("1", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 18, Top: 42, Left: 7, Color: ink}),
+		text.New("1", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 18, Top: 42, Left: 7, Color: ink}),
 		text.New("page", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 54, Left: 7, Color: faint}),
-		text.New("42 kb", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 18, Top: 42, Left: 39, Color: ink}),
+		text.New("42 kb", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 18, Top: 42, Left: 39, Color: ink}),
 		text.New("output size", props.Text{Family: fontfamily.Courier, Size: 5.8, Top: 54, Left: 39, Color: faint}),
 		text.New("throughput  1,240 docs/sec", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 7, Top: 65, Left: 7, Color: teal}),
 	).WithStyle(cardStyle(white, borderC))
@@ -1188,9 +1207,9 @@ func useCaseRows() []core.Row {
 
 func useCaseCard(size int, name, detail string) core.Col {
 	return col.New(size).Add(
-		text.New(name, props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 8.2, Top: 23, Align: align.Center, Color: ink}),
+		text.New(name, props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 8.2, Top: 23, Align: align.Center, Color: ink}),
 		text.New(detail, props.Text{Family: fontfamily.Courier, Size: 5.7, Top: 30, Align: align.Center, Left: 2, Right: 2, Color: muted}),
-		text.New("PDF", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 15, Top: 7, Align: align.Center, Color: teal}),
+		text.New("PDF", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 15, Top: 7, Align: align.Center, Color: teal}),
 	).WithStyle(&props.Cell{
 		BackgroundColor: white,
 		BorderType:      border.Full,
@@ -1207,11 +1226,11 @@ func invoiceExampleRows() []core.Row {
 		sectionTitle("Generated PDF Example", "A single invoice-style page using the same visual language as the showcase hero."),
 		row.New(36).Add(
 			col.New(7).Add(
-				text.New("Paper Labs, Inc.", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 14, Top: 5, Left: 3, Color: ink}),
-				text.New("120 Foundry Street, Suite 4 / Brooklyn, NY 11222 / hello@paperlabs.dev", props.Text{Family: fontfamily.Helvetica, Size: 7, Top: 15, Left: 3, Right: 8, Color: muted, VerticalPadding: 1.12}),
+				text.New("Paper Labs, Inc.", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 14, Top: 5, Left: 3, Color: ink}),
+				text.New("120 Foundry Street, Suite 4 / Brooklyn, NY 11222 / hello@paperlabs.dev", props.Text{Family: showcaseFont, Size: 7, Top: 15, Left: 3, Right: 8, Color: muted, VerticalPadding: 1.12}),
 			),
 			col.New(3).Add(
-				text.New("Invoice", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 22, Top: 4, Align: align.Right, Right: 2, Color: ink}),
+				text.New("Invoice", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 22, Top: 4, Align: align.Right, Right: 2, Color: ink}),
 				text.New("NO. INV-2026-0481", props.Text{Family: fontfamily.Courier, Size: 7, Top: 21, Align: align.Right, Right: 2, Color: teal}),
 			),
 			col.New(2).Add(code.NewQr("pay.paperlabs.dev/inv-0481", props.Rect{Percent: 45, Center: true})),
@@ -1229,7 +1248,7 @@ func invoiceExampleRows() []core.Row {
 		row.New(45).Add(
 			col.New(6).Add(
 				text.New("Payment details", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 7, Top: 3, Left: 3, Color: faint}),
-				text.New("Wire transfer or ACH within 30 days. Reference the invoice number on all remittances.", props.Text{Family: fontfamily.Helvetica, Size: 7.4, Top: 12, Left: 3, Right: 8, Color: muted, VerticalPadding: 1.2}),
+				text.New("Wire transfer or ACH within 30 days. Reference the invoice number on all remittances.", props.Text{Family: showcaseFont, Size: 7.4, Top: 12, Left: 3, Right: 8, Color: muted, VerticalPadding: 1.2}),
 				code.NewBar("INV-2026-0481", props.Barcode{Top: 29, Left: 3, Percent: 46, Proportion: props.Proportion{Width: 12, Height: 1.4}}),
 			),
 			col.New(6).Add(invoiceTotalsTable()),
@@ -1237,7 +1256,7 @@ func invoiceExampleRows() []core.Row {
 		spacer(5),
 		row.New(38).Add(
 			col.New(6).Add(
-				text.New("Avdo S.", props.Text{Family: serifFont, Style: fontstyle.Italic, Size: 20, Top: 6, Left: 3, Color: ink}),
+				text.New("Avdo S.", props.Text{Family: showcaseFont, Style: fontstyle.Italic, Size: 20, Top: 6, Left: 3, Color: ink}),
 				text.New("Authorized - Paper Labs", props.Text{Family: fontfamily.Courier, Size: 6, Top: 25, Left: 3, Color: faint}),
 			),
 			col.New(6).Add(
@@ -1252,7 +1271,7 @@ func invoiceExampleRows() []core.Row {
 func invoiceMetaCol(size int, label, value string) core.Col {
 	return col.New(size).Add(
 		text.New(label, props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 6, Top: 3, Left: 3, Color: faint}),
-		text.New(value, props.Text{Family: fontfamily.Helvetica, Size: 7.4, Top: 10, Left: 3, Right: 3, Color: inkSoft, VerticalPadding: 1.15}),
+		text.New(value, props.Text{Family: showcaseFont, Size: 7.4, Top: 10, Left: 3, Right: 3, Color: inkSoft, VerticalPadding: 1.15}),
 	).WithStyle(cardStyle(white, borderC))
 }
 
@@ -1345,9 +1364,9 @@ func installRows() []core.Row {
 	return []core.Row{
 		row.New(96).Add(
 			col.New(12).Add(
-				text.New("Install Paper", props.Text{Family: serifFont, Style: fontstyle.Bold, Size: 26, Top: 18, Align: align.Center, Color: white}),
-				text.New("Ship documents that render exactly right.", props.Text{Family: serifFont, Style: fontstyle.Italic, Size: 15, Top: 39, Align: align.Center, Color: rgb(231, 166, 139)}),
-				text.New("Add Paper to your Go service and generate production PDFs in a single import.", props.Text{Family: fontfamily.Helvetica, Size: 8.6, Top: 55, Align: align.Center, Color: rgb(207, 198, 188)}),
+				text.New("Install Paper", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 26, Top: 18, Align: align.Center, Color: white}),
+				text.New("Ship documents that render exactly right.", props.Text{Family: showcaseFont, Style: fontstyle.Italic, Size: 15, Top: 39, Align: align.Center, Color: rgb(231, 166, 139)}),
+				text.New("Add Paper to your Go service and generate production PDFs in a single import.", props.Text{Family: showcaseFont, Size: 8.6, Top: 55, Align: align.Center, Color: rgb(207, 198, 188)}),
 				text.New("$ go get github.com/avdoseferovic/paper", props.Text{Family: fontfamily.Courier, Style: fontstyle.Bold, Size: 10, Top: 72, Align: align.Center, Color: white}),
 			),
 		).WithStyle(&props.Cell{
@@ -1367,9 +1386,9 @@ func apiReferenceRows() []core.Row {
 	return []core.Row{
 		sectionTitle("API Reference", "Code snippets are isolated here so the showcase pages stay focused on rendered output."),
 		row.New(20).Add(
-			col.New(4).Add(text.New("Create from HTML", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: blue})),
-			col.New(4).Add(text.New("Compose with rows", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal})),
-			col.New(4).Add(text.New("Add tables", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: amber})),
+			col.New(4).Add(text.New("Create from HTML", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue})),
+			col.New(4).Add(text.New("Compose with rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal})),
+			col.New(4).Add(text.New("Add tables", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber})),
 		),
 		codeBlock(`doc, err := paper.FromHTML("<h1>Hello</h1><p>World</p>")
 _ = doc.Save("out.pdf")`),
@@ -1387,9 +1406,9 @@ m.AddRows(row.New().Add(col.New(12).Add(tbl)))`),
 		thinRule(),
 		spacer(5),
 		row.New(19).Add(
-			col.New(4).Add(text.New("Configure grid", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: blue})),
-			col.New(4).Add(text.New("Embed HTML", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: teal})),
-			col.New(4).Add(text.New("Split sections", props.Text{Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 9, Color: amber})),
+			col.New(4).Add(text.New("Configure grid", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue})),
+			col.New(4).Add(text.New("Embed HTML", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal})),
+			col.New(4).Add(text.New("Split sections", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber})),
 		),
 		codeBlock(`cfg := config.NewBuilder().
     WithMaxGridSize(12).
@@ -1465,7 +1484,7 @@ func gridCells(cells []gridCellSpec) [][]table.Cell {
 	for _, cell := range cells {
 		out = append(out, table.Cell{
 			Content: text.New(cell.label, props.Text{
-				Family: fontfamily.Helvetica,
+				Family: showcaseFont,
 				Style:  fontstyle.Bold,
 				Size:   8,
 				Align:  align.Center,
@@ -1539,7 +1558,7 @@ func tableText(value string, bold bool, color *props.Color) core.Component {
 		style = fontstyle.Bold
 	}
 	return text.New(value, props.Text{
-		Family: fontfamily.Helvetica,
+		Family: showcaseFont,
 		Style:  style,
 		Size:   7.5,
 		Color:  color,
@@ -1548,7 +1567,7 @@ func tableText(value string, bold bool, color *props.Color) core.Component {
 
 func cardTitle(title string, color *props.Color) core.Component {
 	return text.New(title, props.Text{
-		Family: serifFont,
+		Family: showcaseFont,
 		Style:  fontstyle.Bold,
 		Size:   10,
 		Top:    3,
@@ -1560,7 +1579,7 @@ func cardTitle(title string, color *props.Color) core.Component {
 func metricCol(size int, value, label string, bg, accent *props.Color) core.Col {
 	return col.New(size).Add(
 		text.New(value, props.Text{
-			Family: fontfamily.Helvetica,
+			Family: showcaseFont,
 			Style:  fontstyle.Bold,
 			Size:   11,
 			Top:    3,
@@ -1568,7 +1587,7 @@ func metricCol(size int, value, label string, bg, accent *props.Color) core.Col 
 			Color:  accent,
 		}),
 		text.New(label, props.Text{
-			Family: fontfamily.Helvetica,
+			Family: showcaseFont,
 			Size:   7,
 			Top:    10,
 			Left:   3,
@@ -1583,7 +1602,7 @@ func cardCol(size int, title, body string, bg, accent *props.Color) core.Col {
 	return col.New(size).Add(
 		cardTitle(title, accent),
 		text.New(body, props.Text{
-			Family:          fontfamily.Helvetica,
+			Family:          showcaseFont,
 			Size:            8,
 			Top:             11,
 			Left:            4,
@@ -1597,14 +1616,14 @@ func cardCol(size int, title, body string, bg, accent *props.Color) core.Col {
 func sectionTitle(title, subtitle string) core.Row {
 	return row.New(17).Add(col.New(12).Add(
 		text.New(title, props.Text{
-			Family: serifFont,
+			Family: showcaseFont,
 			Style:  fontstyle.Bold,
 			Size:   16,
 			Top:    1,
 			Color:  brand,
 		}),
 		text.New(subtitle, props.Text{
-			Family: fontfamily.Helvetica,
+			Family: showcaseFont,
 			Size:   8.5,
 			Top:    10,
 			Color:  muted,
@@ -1633,14 +1652,14 @@ func thinRule() core.Row {
 func infoCol(size int, title, body string, accent *props.Color) core.Col {
 	return col.New(size).Add(
 		text.New(title, props.Text{
-			Family: fontfamily.Helvetica,
+			Family: showcaseFont,
 			Style:  fontstyle.Bold,
 			Size:   9,
 			Top:    3,
 			Color:  accent,
 		}),
 		text.New(body, props.Text{
-			Family:          fontfamily.Helvetica,
+			Family:          showcaseFont,
 			Size:            8,
 			Top:             12,
 			Right:           5,

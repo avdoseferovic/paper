@@ -48,10 +48,10 @@ This is part of the [simplest example](examples/simplest?id=simplest).
 [filename](assets/examples/simplest/main.go ':include :type=code')
 
 ## PDF Example
-This is part of the [billing example](examples/billing?id=billing).
+This is part of the [showcase example](examples/showcase?id=showcase).
 
 ```pdf
-	assets/pdf/billing.pdf
+	assets/pdf/showcase.pdf
 ```
 
 ## Paper Columns and Rows

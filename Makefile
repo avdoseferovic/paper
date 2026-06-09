@@ -55,6 +55,7 @@ examples:
 	go run docs/assets/examples/background/main.go
 	go run docs/assets/examples/barcodegrid/main.go
 	go run docs/assets/examples/billing/main.go
+	go run ./cmd/paper-showcase
 	go run docs/assets/examples/cellstyle/main.go
 	go run docs/assets/examples/checkbox/main.go
 	go run docs/assets/examples/compression/main.go
