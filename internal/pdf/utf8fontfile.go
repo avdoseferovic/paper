@@ -3,20 +3,23 @@ package pdf
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
 )
 
 // flags
-const symbolWords = 1 << 0
-const symbolScale = 1 << 3
-const symbolContinue = 1 << 5
-const symbolAllScale = 1 << 6
-const symbol2x2 = 1 << 7
+const (
+	symbolWords    = 1 << 0
+	symbolScale    = 1 << 3
+	symbolContinue = 1 << 5
+	symbolAllScale = 1 << 6
+	symbol2x2      = 1 << 7
+)
 
 // CID map Init
-const toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend"
+const toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend"
 
 type colorRecord struct {
 	r, g, b, a byte
@@ -143,10 +146,11 @@ func (utf *utf8FontFile) parseFile() error {
 		return utf.err
 	}
 	if codeType == 0x4F54544F {
-		return fmt.Errorf("unsupported OpenType CFF font")
+		return errors.New("unsupported OpenType CFF font")
 	}
 	if codeType == 0x74746366 {
-		if err := utf.selectTTCFont(); err != nil {
+		err := utf.selectTTCFont()
+		if err != nil {
 			return err
 		}
 		codeType = uint32(utf.readUint32())
@@ -175,14 +179,14 @@ func (utf *utf8FontFile) selectTTCFont() error {
 		return utf.err
 	}
 	if fontCount < 1 {
-		return fmt.Errorf("TrueType collection has no fonts")
+		return errors.New("TrueType collection has no fonts")
 	}
 	fontOffset := utf.readUint32()
 	if utf.err != nil {
 		return utf.err
 	}
 	if fontOffset <= 0 || fontOffset+4 > len(utf.fileReader.array) {
-		return fmt.Errorf("TrueType collection font offset is invalid")
+		return errors.New("TrueType collection font offset is invalid")
 	}
 	utf.fontOffset = fontOffset
 	utf.seek(fontOffset)
@@ -190,7 +194,6 @@ func (utf *utf8FontFile) selectTTCFont() error {
 }
 
 func (utf *utf8FontFile) generateTableDescriptions() {
-
 	tablesCount := utf.readUint16()
 	_ = utf.readUint16()
 	_ = utf.readUint16()
@@ -418,11 +421,13 @@ func (utf *utf8FontFile) parseNAMETable() int {
 			}
 			size /= 2
 			currentName = ""
+			var currentNameSb422 strings.Builder
 			for size > 0 {
 				char := utf.readUint16()
-				currentName += string(rune(char))
+				currentNameSb422.WriteString(string(rune(char)))
 				size--
 			}
+			currentName += currentNameSb422.String()
 			utf.fileReader.readerPosition = oldPos
 			utf.seek(int(oldPos))
 		} else if system == 1 && code == 0 && local == 0 {
@@ -620,7 +625,7 @@ func (utf *utf8FontFile) parseCOLRTable() {
 
 	if baseGlyphRecordsOffset != 0 {
 		utf.seek(tableStart + baseGlyphRecordsOffset)
-		for i := 0; i < int(numBaseGlyphRecords); i++ {
+		for i := range numBaseGlyphRecords {
 			colr.baseGlyphRecords[i] = colorBaseGlyphRecord{
 				glyphID:       uint16(utf.readUint16()),
 				firstLayerIdx: uint16(utf.readUint16()),
@@ -634,7 +639,7 @@ func (utf *utf8FontFile) parseCOLRTable() {
 
 	if layerRecordsOffset != 0 {
 		utf.seek(tableStart + layerRecordsOffset)
-		for i := 0; i < int(numLayerRecords); i++ {
+		for i := range numLayerRecords {
 			colr.layerRecords[i] = colorLayerRecord{
 				glyphID:      uint16(utf.readUint16()),
 				paletteIndex: uint16(utf.readUint16()),
@@ -669,7 +674,7 @@ func (utf *utf8FontFile) parseCPALTable() {
 		colorRecords: make([]colorRecord, numColorRecords),
 	}
 	utf.seek(tableStart + colorRecordsArrayOffset)
-	for i := 0; i < int(numColorRecords); i++ {
+	for i := range numColorRecords {
 		data := utf.fileReader.Read(4)
 		if utf.err != nil || len(data) < 4 {
 			return
@@ -1507,9 +1512,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 	cmap = append(cmap, 0xFFFF)
 	cmap = append(cmap, 0)
 
-	for _, cidKey := range cidArrayKeys {
-		cmap = append(cmap, cidKey)
-	}
+	cmap = append(cmap, cidArrayKeys...)
 	cmap = append(cmap, 0xFFFF)
 	for _, cidKey := range cidArrayKeys {
 		idDelta := -(cidKey - cidArray[cidKey][0])
@@ -1518,13 +1521,10 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 	cmap = append(cmap, 1)
 	for range cidArray {
 		cmap = append(cmap, 0)
-
 	}
 	cmap = append(cmap, 0)
 	for _, start := range cidArrayKeys {
-		for _, glidx := range cidArray[start] {
-			cmap = append(cmap, glidx)
-		}
+		cmap = append(cmap, cidArray[start]...)
 	}
 	cmap = append(cmap, 0)
 	cmapstr := make([]byte, 0)
@@ -1838,7 +1838,6 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 	for symbol := range numberOfHMetrics {
 		arrayWidths = arr[(symbol*2)+1]
 		if _, OK := symbolToChar[symbol]; OK || symbol == 0 {
-
 			if arrayWidths >= (1 << 15) {
 				arrayWidths = 0
 			}
@@ -1906,7 +1905,8 @@ func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
 func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 	start := utf.seekTable("loca", 0)
 	utf.symbolPosition = make([]int, 0)
-	if format == 0 {
+	switch format {
+	case 0:
 		data := utf.getRange(start, (numSymbols*2)+2)
 		if utf.err != nil {
 			return
@@ -1919,7 +1919,7 @@ func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 		for n := 0; n <= numSymbols; n++ {
 			utf.symbolPosition = append(utf.symbolPosition, arr[n+1]*2)
 		}
-	} else if format == 1 {
+	case 1:
 		data := utf.getRange(start, (numSymbols*4)+4)
 		if utf.err != nil {
 			return
@@ -1932,7 +1932,7 @@ func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 		for n := 0; n <= numSymbols; n++ {
 			utf.symbolPosition = append(utf.symbolPosition, arr[n+1])
 		}
-	} else {
+	default:
 		utf.setErrorf("unknown loca table format %d", format)
 	}
 }

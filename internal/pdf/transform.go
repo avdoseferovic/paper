@@ -62,8 +62,10 @@ func (f *PDF) TransformScale(scaleWd, scaleHt, x, y float64) {
 	x *= f.k
 	scaleWd /= 100
 	scaleHt /= 100
-	f.Transform(TransformMatrix{scaleWd, 0, 0,
-		scaleHt, x * (1 - scaleWd), y * (1 - scaleHt)})
+	f.Transform(TransformMatrix{
+		scaleWd, 0, 0,
+		scaleHt, x * (1 - scaleWd), y * (1 - scaleHt),
+	})
 }
 
 // TransformMirrorHorizontal horizontally mirrors the following text, drawings

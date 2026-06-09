@@ -27,8 +27,8 @@ func (b *fmtBuffer) printf(fmtStr string, args ...any) {
 	fmt.Fprintf(&b.Buffer, fmtStr, args...)
 }
 
-func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) (f *PDF) {
-	f = new(PDF)
+func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) *PDF {
+	f := new(PDF)
 	if orientationStr == "" {
 		orientationStr = "p"
 	} else {
@@ -94,8 +94,8 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	case "in", "inch":
 		f.k = 72.0
 	default:
-		f.err = fmt.Errorf("incorrect unit %s", unitStr)
-		return
+		f.err = fmt.Errorf("%w %s", errIncorrectUnit, unitStr)
+		return f
 	}
 	f.unitStr = unitStr
 	f.stdPageSizes = cloneStandardPageSizes()
@@ -104,7 +104,7 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	} else {
 		f.defPageSize = f.getpagesizestr(sizeStr)
 		if f.err != nil {
-			return
+			return f
 		}
 	}
 	f.curPageSize = f.defPageSize
@@ -120,8 +120,8 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 		f.w = f.defPageSize.Ht
 		f.h = f.defPageSize.Wd
 	default:
-		f.err = fmt.Errorf("incorrect orientation: %s", orientationStr)
-		return
+		f.err = fmt.Errorf("%w: %s", errIncorrectOrientation, orientationStr)
+		return f
 	}
 	f.curOrientation = f.defOrientation
 	f.wPt = f.w * f.k
@@ -136,9 +136,9 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 
 	f.SetAutoPageBreak(true, 2*margin)
 
-	f.SetDisplayMode("default", "default")
+	f.SetDisplayMode(displayModeDefault, displayModeDefault)
 	if f.err != nil {
-		return
+		return f
 	}
 	f.acceptPageBreak = func() bool {
 		return f.autoPageBreak
@@ -149,7 +149,7 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	f.blendList = make([]blendModeType, 0, 8)
 	f.blendList = append(f.blendList, blendModeType{})
 	f.blendMap = make(map[string]int)
-	f.blendMode = "Normal"
+	f.blendMode = blendModeNormal
 	f.alpha = 1
 	f.gradientList = make([]gradientType, 0, 8)
 	f.gradientList = append(f.gradientList, gradientType{})
@@ -161,14 +161,14 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	f.creationDate = gl.creationDate
 	f.modDate = gl.modDate
 	f.userUnderlineThickness = 1
-	return
+	return f
 }
 
 // NewCustom returns a pointer to a new PDF instance. Its methods are
 // subsequently called to produce a single PDF document. NewCustom() is an
 // alternative to New() that provides additional customization. The PageSize()
 // example demonstrates this method.
-func NewCustom(init *InitType) (f *PDF) {
+func NewCustom(init *InitType) *PDF {
 	return pdfNew(init.OrientationStr, init.UnitStr, init.SizeStr, init.FontDirStr, init.Size)
 }
 
@@ -198,7 +198,7 @@ func (f *PDF) ClearError() {
 // about fmtStr and args.
 func (f *PDF) SetErrorf(fmtStr string, args ...any) {
 	if f.err == nil {
-		f.err = fmt.Errorf(fmtStr, args...)
+		f.err = dynamicErrorf(fmtStr, args...)
 	}
 }
 
@@ -241,9 +241,9 @@ func (f *PDF) open() {
 func (f *PDF) Close() {
 	if f.err == nil {
 		if f.clipNest > 0 {
-			f.err = fmt.Errorf("clip procedure must be explicitly ended")
+			f.err = errClipProcedureOpen
 		} else if f.transformNest > 0 {
-			f.err = fmt.Errorf("transformation procedure must be explicitly ended")
+			f.err = errTransformationProcedureOpen
 		}
 	}
 	if f.err != nil {

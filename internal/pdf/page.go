@@ -10,21 +10,15 @@ import (
 // GetPageSize returns the current page's width and height. This is the paper's
 // size. To compute the size of the area being used, subtract the margins (see
 // GetMargins()).
-func (f *PDF) GetPageSize() (width, height float64) {
-	width = f.w
-	height = f.h
-	return
+func (f *PDF) GetPageSize() (float64, float64) {
+	return f.w, f.h
 }
 
 // GetMargins returns the left, top, right, and bottom margins. The first three
 // are set with the SetMargins() method. The bottom margin is set with the
 // SetAutoPageBreak() method.
-func (f *PDF) GetMargins() (left, top, right, bottom float64) {
-	left = f.lMargin
-	top = f.tMargin
-	right = f.rMargin
-	bottom = f.bMargin
-	return
+func (f *PDF) GetMargins() (float64, float64, float64, float64) {
+	return f.lMargin, f.tMargin, f.rMargin, f.bMargin
 }
 
 // SetMargins defines the left, top and right margins. By default, they equal 1
@@ -86,12 +80,12 @@ func (f *PDF) SetPageBoxRec(t string, pb PageBox) {
 	case "artbox":
 		t = "ArtBox"
 	default:
-		f.err = fmt.Errorf("%s is not a valid page box type", t)
+		f.err = fmt.Errorf("%w: %s", errInvalidPageBoxType, t)
 		return
 	}
 
-	pb.X = pb.X * f.k
-	pb.Y = pb.Y * f.k
+	pb.X *= f.k
+	pb.Y *= f.k
 	pb.Wd = (pb.Wd * f.k) + pb.X
 	pb.Ht = (pb.Ht * f.k) + pb.Y
 
@@ -191,10 +185,8 @@ func (f *PDF) SetRightMargin(margin float64) {
 // GetAutoPageBreak returns true if automatic pages breaks are enabled, false
 // otherwise. This is followed by the triggering limit from the bottom of the
 // page. This value applies only if automatic page breaks are enabled.
-func (f *PDF) GetAutoPageBreak() (auto bool, margin float64) {
-	auto = f.autoPageBreak
-	margin = f.bMargin
-	return
+func (f *PDF) GetAutoPageBreak() (bool, float64) {
+	return f.autoPageBreak, f.bMargin
 }
 
 // SetAutoPageBreak enables or disables the automatic page breaking mode. When
@@ -212,7 +204,7 @@ func (f *PDF) SetAutoPageBreak(auto bool, margin float64) {
 // measure itself. If pageNum is zero or otherwise out of bounds, it returns
 // the default page size, that is, the size of the page that would be added by
 // AddPage().
-func (f *PDF) PageSize(pageNum int) (wd, ht float64, unitStr string) {
+func (f *PDF) PageSize(pageNum int) (float64, float64, string) {
 	sz, ok := f.pageSizes[pageNum]
 	if ok {
 		sz.Wd, sz.Ht = sz.Wd/f.k, sz.Ht/f.k
@@ -260,7 +252,6 @@ func (f *PDF) AddPageFormat(orientationStr string, size SizeType) {
 
 		if f.footerFnc != nil {
 			f.footerFnc()
-
 		} else if f.footerFncLpi != nil {
 			f.footerFncLpi(false)
 		}
@@ -391,27 +382,23 @@ func (f *PDF) Ln(h float64) {
 	}
 }
 
-func (f *PDF) getpagesizestr(sizeStr string) (size SizeType) {
+func (f *PDF) getpagesizestr(sizeStr string) SizeType {
 	if f.err != nil {
-		return
+		return SizeType{}
 	}
 	sizeStr = strings.ToLower(sizeStr)
-	// dbg("Size [%s]", sizeStr)
-	var ok bool
-	size, ok = f.stdPageSizes[sizeStr]
+	size, ok := f.stdPageSizes[sizeStr]
 	if ok {
-
 		size.Wd /= f.k
 		size.Ht /= f.k
-
 	} else {
-		f.err = fmt.Errorf("unknown page size %s", sizeStr)
+		f.err = fmt.Errorf("%w %s", errUnknownPageSize, sizeStr)
 	}
-	return
+	return size
 }
 
 // GetPageSizeStr returns the SizeType for the given sizeStr (that is A4, A3, etc..)
-func (f *PDF) GetPageSizeStr(sizeStr string) (size SizeType) {
+func (f *PDF) GetPageSizeStr(sizeStr string) SizeType {
 	return f.getpagesizestr(sizeStr)
 }
 
@@ -437,7 +424,6 @@ func (f *PDF) beginpage(orientationStr string, size SizeType) {
 		orientationStr = strings.ToUpper(orientationStr[0:1])
 	}
 	if orientationStr != f.curOrientation || size.Wd != f.curPageSize.Wd || size.Ht != f.curPageSize.Ht {
-
 		if orientationStr == "P" {
 			f.w = size.Wd
 			f.h = size.Ht
@@ -467,7 +453,6 @@ func (f *PDF) putpages() {
 	var ok bool
 	nb := f.page
 	if len(f.aliasNbPagesStr) > 0 {
-
 		f.RegisterAlias(f.aliasNbPagesStr, sprintf("%d", nb))
 	}
 	f.replaceAliases()
@@ -480,7 +465,6 @@ func (f *PDF) putpages() {
 	}
 	pagesObjectNumbers := make([]int, nb+1)
 	for n := 1; n <= nb; n++ {
-
 		f.newobj()
 		pagesObjectNumbers[n] = f.n
 		f.out("<</Type /Page")

@@ -19,8 +19,8 @@ type HTMLBasicSegmentType struct {
 func HTMLBasicTokenize(htmlStr string) (list []HTMLBasicSegmentType) {
 	// This routine is adapted from http://www.fpdf.org/
 	list = make([]HTMLBasicSegmentType, 0, 16)
-	htmlStr = strings.Replace(htmlStr, "\n", " ", -1)
-	htmlStr = strings.Replace(htmlStr, "\r", "", -1)
+	htmlStr = strings.ReplaceAll(htmlStr, "\n", " ")
+	htmlStr = strings.ReplaceAll(htmlStr, "\r", "")
 	tagRe, _ := regexp.Compile(`(?U)<.*>`)
 	attrRe, _ := regexp.Compile(`([^=]+)=["']?([^"']+)`)
 	capList := tagRe.FindAllStringIndex(htmlStr, -1)
@@ -70,7 +70,7 @@ func HTMLBasicTokenize(htmlStr string) (list []HTMLBasicSegmentType) {
 	} else {
 		list = append(list, HTMLBasicSegmentType{Cat: 'T', Str: htmlStr, Attr: nil})
 	}
-	return
+	return list
 }
 
 // HTMLBasicType is used for rendering a very basic subset of HTML. It supports
@@ -106,7 +106,7 @@ func (f *PDF) HTMLBasicNew() (html HTMLBasicType) {
 // lineHt indicates the line height in the unit of measure specified in New().
 func (html *HTMLBasicType) Write(lineHt float64, htmlStr string) {
 	var boldLvl, italicLvl, underscoreLvl, linkBold, linkItalic, linkUnderscore int
-	var textR, textG, textB = html.pdf.GetTextColor()
+	textR, textG, textB := html.pdf.GetTextColor()
 	var hrefStr string
 	if html.Link.Bold {
 		linkBold = 1

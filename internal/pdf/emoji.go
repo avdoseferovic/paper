@@ -215,7 +215,7 @@ func (r colorEmojiRenderer) renderColorGlyph(glyphID uint16, x, y, fontSize, k f
 		}
 
 		result.WriteString("q ")
-		result.WriteString(fmt.Sprintf("%.3f %.3f %.3f rg ", float64(color.r)/255, float64(color.g)/255, float64(color.b)/255))
+		fmt.Fprintf(&result, "%.3f %.3f %.3f rg ", float64(color.r)/255, float64(color.g)/255, float64(color.b)/255)
 		result.WriteString(glyphOutlineToPDFPath(outline, x, y, scale, k))
 		result.WriteString("f Q ")
 	}
@@ -509,11 +509,11 @@ func contourToPDFOps(contour glyphContour, baseX, baseY, scale, k float64) strin
 	if startIdx == -1 {
 		p0, p1 := contour[0], contour[1]
 		px, py := transform(glyphPoint{x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2, onCurve: true})
-		result.WriteString(fmt.Sprintf("%.2f %.2f m ", px, py))
+		fmt.Fprintf(&result, "%.2f %.2f m ", px, py)
 		startIdx = 0
 	} else {
 		px, py := transform(contour[startIdx])
-		result.WriteString(fmt.Sprintf("%.2f %.2f m ", px, py))
+		fmt.Fprintf(&result, "%.2f %.2f m ", px, py)
 	}
 
 	n := len(contour)
@@ -523,7 +523,7 @@ func contourToPDFOps(contour glyphContour, baseX, baseY, scale, k float64) strin
 		next := contour[(i+1)%n]
 		if curr.onCurve {
 			px, py := transform(curr)
-			result.WriteString(fmt.Sprintf("%.2f %.2f l ", px, py))
+			fmt.Fprintf(&result, "%.2f %.2f l ", px, py)
 		} else {
 			prev := contour[(i-1+n)%n]
 			p0x, p0y := prev.x, prev.y
@@ -543,7 +543,7 @@ func contourToPDFOps(contour glyphContour, baseX, baseY, scale, k float64) strin
 			c1px, c1py := transform(glyphPoint{x: c1x, y: c1y})
 			c2px, c2py := transform(glyphPoint{x: c2x, y: c2y})
 			epx, epy := transform(glyphPoint{x: p2x, y: p2y})
-			result.WriteString(fmt.Sprintf("%.2f %.2f %.2f %.2f %.2f %.2f c ", c1px, c1py, c2px, c2py, epx, epy))
+			fmt.Fprintf(&result, "%.2f %.2f %.2f %.2f %.2f %.2f c ", c1px, c1py, c2px, c2py, epx, epy)
 			if next.onCurve {
 				i = (i + 1) % n
 				count++

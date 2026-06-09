@@ -147,7 +147,6 @@ func (f *PDF) putTemplates() {
 					sortpkg.Strings(keyList)
 				}
 				for _, key = range keyList {
-
 					ti = tImages[key]
 					f.outf("/I%s %d 0 R", ti.i, ti.n)
 				}
@@ -238,22 +237,22 @@ func newTpl(corner PointType, size SizeType, orientationStr, unitStr, fontDirStr
 	if copyFrom != nil {
 		tpl.loadParamsFromPDF(copyFrom)
 	}
-	tpl.PDF.AddPage()
+	tpl.AddPage()
 	fn(&tpl)
 
-	bytes := make([][]byte, len(tpl.PDF.pages))
+	bytes := make([][]byte, len(tpl.pages))
 
 	for x := 1; x < len(bytes); x++ {
 		bytes[x] = tpl.PDF.pages[x].Bytes()
 	}
 
-	templates := make([]Template, 0, len(tpl.PDF.templates))
-	for _, key := range templateKeyList(tpl.PDF.templates, true) {
-		templates = append(templates, tpl.PDF.templates[key])
+	templates := make([]Template, 0, len(tpl.templates))
+	for _, key := range templateKeyList(tpl.templates, true) {
+		templates = append(templates, tpl.templates[key])
 	}
-	images := tpl.PDF.images
+	images := tpl.images
 
-	template := PDFTpl{corner, size, bytes, images, templates, tpl.PDF.page}
+	template := PDFTpl{corner, size, bytes, images, templates, tpl.page}
 	return &template
 }
 
@@ -284,7 +283,6 @@ func (t *PDFTpl) Bytes() []byte {
 
 // FromPage creates a new template from a specific Page
 func (t *PDFTpl) FromPage(page int) (Template, error) {
-
 	if page == 0 {
 		return nil, errors.New("Pages start at 1 No template will have a page 0")
 	}
@@ -306,7 +304,6 @@ func (t *PDFTpl) FromPage(page int) (Template, error) {
 func (t *PDFTpl) FromPages() []Template {
 	p := make([]Template, t.NumPages())
 	for x := 1; x <= t.NumPages(); x++ {
-
 		p[x-1], _ = t.FromPage(x)
 	}
 
@@ -325,7 +322,6 @@ func (t *PDFTpl) Templates() []Template {
 
 // NumPages returns the number of available pages within the template. Look at FromPage and FromPages on access to that content.
 func (t *PDFTpl) NumPages() int {
-
 	return len(t.bytes) - 1
 }
 
@@ -344,7 +340,7 @@ func (t *PDFTpl) Serialize() ([]byte, error) {
 func (t *PDFTpl) childrenImages() map[string]*ImageInfoType {
 	childrenImgs := make(map[string]*ImageInfoType)
 
-	for x := 0; x < len(t.templates); x++ {
+	for x := range len(t.templates) {
 		imgs := t.templates[x].Images()
 		for key, val := range imgs {
 			name := sprintf("t%s-%s", t.templates[x].ID(), key)
@@ -360,7 +356,7 @@ func (t *PDFTpl) childrenImages() map[string]*ImageInfoType {
 func (t *PDFTpl) childrensTemplates() []Template {
 	childrenTmpls := make([]Template, 0)
 
-	for x := 0; x < len(t.templates); x++ {
+	for x := range len(t.templates) {
 		tmpls := t.templates[x].Templates()
 		childrenTmpls = append(childrenTmpls, tmpls...)
 	}
@@ -378,7 +374,7 @@ func (t *PDFTpl) GobEncode() ([]byte, error) {
 	firstClassTemplates := make([]Template, 0)
 
 found_continue:
-	for x := 0; x < len(t.templates); x++ {
+	for x := range len(t.templates) {
 		for y := range childrensTemplates {
 			if childrensTemplates[y].ID() == t.templates[x].ID() {
 				continue found_continue
@@ -465,26 +461,26 @@ type Tpl struct {
 }
 
 func (t *Tpl) loadParamsFromPDF(f *PDF) {
-	t.PDF.compress = false
+	t.compress = false
 
-	t.PDF.k = f.k
-	t.PDF.x = f.x
-	t.PDF.y = f.y
-	t.PDF.lineWidth = f.lineWidth
-	t.PDF.capStyle = f.capStyle
-	t.PDF.joinStyle = f.joinStyle
+	t.k = f.k
+	t.x = f.x
+	t.y = f.y
+	t.lineWidth = f.lineWidth
+	t.capStyle = f.capStyle
+	t.joinStyle = f.joinStyle
 
-	t.PDF.color.draw = f.color.draw
-	t.PDF.color.fill = f.color.fill
-	t.PDF.color.text = f.color.text
+	t.color.draw = f.color.draw
+	t.color.fill = f.color.fill
+	t.color.text = f.color.text
 
-	t.PDF.fonts = f.fonts
-	t.PDF.currentFont = f.currentFont
-	t.PDF.fontFamily = f.fontFamily
-	t.PDF.fontSize = f.fontSize
-	t.PDF.fontSizePt = f.fontSizePt
-	t.PDF.fontStyle = f.fontStyle
-	t.PDF.ws = f.ws
+	t.fonts = f.fonts
+	t.currentFont = f.currentFont
+	t.fontFamily = f.fontFamily
+	t.fontSize = f.fontSize
+	t.fontSizePt = f.fontSizePt
+	t.fontStyle = f.fontStyle
+	t.ws = f.ws
 
-	maps.Copy(t.PDF.images, f.images)
+	maps.Copy(t.images, f.images)
 }

@@ -28,10 +28,10 @@ func (f *PDF) layerInit() {
 // display in the layer list. visible specifies whether the layer will be
 // initially visible. The return value is an integer ID that is used in a call
 // to BeginLayer().
-func (f *PDF) AddLayer(name string, visible bool) (layerID int) {
-	layerID = len(f.layer.list)
+func (f *PDF) AddLayer(name string, visible bool) int {
+	layerID := len(f.layer.list)
 	f.layer.list = append(f.layer.list, layerType{name: name, visible: visible})
-	return
+	return layerID
 }
 
 // BeginLayer is called to begin adding content to the specified layer. All
@@ -86,20 +86,20 @@ func (f *PDF) layerPutResourceDict() {
 		}
 		f.out(">>")
 	}
-
 }
 
 func (f *PDF) layerPutCatalog() {
 	if len(f.layer.list) > 0 {
-		onStr := ""
 		var offStr strings.Builder
+		var onStr strings.Builder
 		for _, layer := range f.layer.list {
-			onStr += sprintf("%d 0 R ", layer.objNum)
+			onStr.WriteString(sprintf("%d 0 R ", layer.objNum))
 			if !layer.visible {
 				offStr.WriteString(sprintf("%d 0 R ", layer.objNum))
 			}
 		}
-		f.outf("/OCProperties <</OCGs [%s] /D <</OFF [%s] /Order [%s]>>>>", onStr, offStr.String(), onStr)
+		onStrValue := onStr.String()
+		f.outf("/OCProperties <</OCGs [%s] /D <</OFF [%s] /Order [%s]>>>>", onStrValue, offStr.String(), onStrValue)
 		if f.layer.openLayerPane {
 			f.out("/PageMode /UseOC")
 		}

@@ -17,7 +17,8 @@ func colorComp(v int) (int, float64) {
 	return v, float64(v) / 255.0
 }
 
-func rgbColorValue(r, g, b int, grayStr, fullStr string) (clr colorType) {
+func rgbColorValue(r, g, b int, grayStr, fullStr string) colorType {
+	var clr colorType
 	clr.ir, clr.r = colorComp(r)
 	clr.ig, clr.g = colorComp(g)
 	clr.ib, clr.b = colorComp(b)
@@ -32,7 +33,7 @@ func rgbColorValue(r, g, b int, grayStr, fullStr string) (clr colorType) {
 	} else {
 		clr.str = sprintf("%.3f %.3f %.3f", clr.r, clr.g, clr.b)
 	}
-	return
+	return clr
 }
 
 // SetDrawColor defines the color used for all drawing operations (lines,
@@ -102,7 +103,7 @@ func (f *PDF) GetTextColor() (int, int, int) {
 // GetAlpha returns the alpha blending channel, which consists of the
 // alpha transparency value and the blend mode. See SetAlpha for more
 // details.
-func (f *PDF) GetAlpha() (alpha float64, blendModeStr string) {
+func (f *PDF) GetAlpha() (float64, string) {
 	return f.alpha, f.blendMode
 }
 
@@ -125,18 +126,18 @@ func (f *PDF) SetAlpha(alpha float64, blendModeStr string) {
 	}
 	var bl blendModeType
 	switch blendModeStr {
-	case "Normal", "Multiply", "Screen", "Overlay",
+	case blendModeNormal, "Multiply", "Screen", "Overlay",
 		"Darken", "Lighten", "ColorDodge", "ColorBurn", "HardLight", "SoftLight",
 		"Difference", "Exclusion", "Hue", "Saturation", "Color", "Luminosity":
 		bl.modeStr = blendModeStr
 	case "":
-		bl.modeStr = "Normal"
+		bl.modeStr = blendModeNormal
 	default:
-		f.err = fmt.Errorf("unrecognized blend mode \"%s\"", blendModeStr)
+		f.err = fmt.Errorf("%w: %q", errUnrecognizedBlendMode, blendModeStr)
 		return
 	}
 	if alpha < 0.0 || alpha > 1.0 {
-		f.err = fmt.Errorf("alpha value (0.0 - 1.0) is out of range: %.3f", alpha)
+		f.err = fmt.Errorf("%w: %.3f", errAlphaOutOfRange, alpha)
 		return
 	}
 	f.alpha = alpha
@@ -230,7 +231,6 @@ func (f *PDF) SetDashPattern(dashArray []float64, dashPhase float64) {
 	if f.page > 0 {
 		f.outputDashPattern()
 	}
-
 }
 
 func (f *PDF) outputDashPattern() {
@@ -255,27 +255,21 @@ func (f *PDF) Line(x1, y1, x2, y2 float64) {
 }
 
 // fillDrawOp corrects path painting operators
-func fillDrawOp(styleStr string) (opStr string) {
+func fillDrawOp(styleStr string) string {
 	switch strings.ToUpper(styleStr) {
 	case "", "D":
-
-		opStr = "S"
+		return "S"
 	case "F":
-
-		opStr = "f"
+		return "f"
 	case "F*":
-
-		opStr = "f*"
+		return "f*"
 	case "FD", "DF":
-
-		opStr = "B"
+		return "B"
 	case "FD*", "DF*":
-
-		opStr = "B*"
+		return "B*"
 	default:
-		opStr = styleStr
+		return styleStr
 	}
-	return
 }
 
 // Rect outputs a rectangle of width w and height h with the upper left corner
@@ -388,7 +382,6 @@ func (f *PDF) Polygon(points []PointType, styleStr string) {
 // the current draw color and line width centered on the ellipse's perimeter.
 // Filling uses the current fill color.
 func (f *PDF) Beziergon(points []PointType, styleStr string) {
-
 	if len(points) < 4 {
 		return
 	}
@@ -413,7 +406,6 @@ func (f *PDF) point(x, y float64) {
 
 // curve outputs a single cubic Bézier curve segment from current point
 func (f *PDF) curve(cx0, cy0, cx1, cy1, x, y float64) {
-
 	f.outf("%.5f %.5f %.5f %.5f %.5f %.5f c", cx0*f.k, (f.h-cy0)*f.k, cx1*f.k,
 		(f.h-cy1)*f.k, x*f.k, (f.h-y)*f.k)
 }
@@ -441,7 +433,6 @@ func (f *PDF) Curve(x0, y0, cx, cy, x1, y1 float64, styleStr string) {
 // the same function as CurveBezierCubic() but has a nonstandard argument order.
 // It is retained to preserve backward compatibility.
 func (f *PDF) CurveCubic(x0, y0, cx0, cy0, x1, y1, cx1, cy1 float64, styleStr string) {
-
 	f.CurveBezierCubic(x0, y0, cx0, cy0, cx1, cy1, x1, y1, styleStr)
 }
 
@@ -486,14 +477,12 @@ func (f *PDF) Arc(x, y, rx, ry, degRotate, degStart, degEnd float64, styleStr st
 }
 
 func (f *PDF) gradientClipStart(x, y, w, h float64) {
-
 	f.outf("q %.2f %.2f %.2f %.2f re W n", x*f.k, (f.h-y)*f.k, w*f.k, -h*f.k)
 
 	f.outf("%.5f 0 0 %.5f %.5f %.5f cm", w*f.k, h*f.k, x*f.k, (f.h-(y+h))*f.k)
 }
 
 func (f *PDF) gradientClipEnd() {
-
 	f.out("Q")
 }
 
@@ -501,8 +490,10 @@ func (f *PDF) gradient(tp, r1, g1, b1, r2, g2, b2 int, x1, y1, x2, y2, r float64
 	pos := len(f.gradientList)
 	clr1 := rgbColorValue(r1, g1, b1, "", "")
 	clr2 := rgbColorValue(r2, g2, b2, "", "")
-	f.gradientList = append(f.gradientList, gradientType{tp, clr1.str, clr2.str,
-		x1, y1, x2, y2, r, 0})
+	f.gradientList = append(f.gradientList, gradientType{
+		tp, clr1.str, clr2.str,
+		x1, y1, x2, y2, r, 0,
+	})
 	f.outf("/Sh%d sh", pos)
 }
 
@@ -569,18 +560,20 @@ func (f *PDF) putGradients() {
 	for j := 1; j < count; j++ {
 		var f1 int
 		gr := f.gradientList[j]
-		if gr.tp == 2 || gr.tp == 3 {
-			f.newobj()
-			f.outf("<</FunctionType 2 /Domain [0.0 1.0] /C0 [%s] /C1 [%s] /N 1>>", gr.clr1Str, gr.clr2Str)
-			f.out("endobj")
-			f1 = f.n
-		}
+			switch gr.tp {
+			case 2, 3:
+				f.newobj()
+				f.outf("<</FunctionType 2 /Domain [0.0 1.0] /C0 [%s] /C1 [%s] /N 1>>", gr.clr1Str, gr.clr2Str)
+				f.out("endobj")
+				f1 = f.n
+			}
 		f.newobj()
 		f.outf("<</ShadingType %d /ColorSpace /DeviceRGB", gr.tp)
-		if gr.tp == 2 {
+		switch gr.tp {
+		case 2:
 			f.outf("/Coords [%.5f %.5f %.5f %.5f] /Function %d 0 R /Extend [true true]>>",
 				gr.x1, gr.y1, gr.x2, gr.y2, f1)
-		} else if gr.tp == 3 {
+		case 3:
 			f.outf("/Coords [%.5f %.5f 0 %.5f %.5f %.5f] /Function %d 0 R /Extend [true true]>>",
 				gr.x1, gr.y1, gr.x2, gr.y2, gr.r, f1)
 		}
@@ -763,7 +756,7 @@ func (f *PDF) ClipEnd() {
 			f.clipNest--
 			f.out("Q")
 		} else {
-			f.err = fmt.Errorf("error attempting to end clip operation out of sequence")
+			f.err = errClipEndSequence
 		}
 	}
 }
@@ -871,7 +864,8 @@ func (f *PDF) ArcTo(x, y, rx, ry, degRotate, degStart, degEnd float64) {
 }
 
 func (f *PDF) arc(x, y, rx, ry, degRotate, degStart, degEnd float64,
-	styleStr string, path bool) {
+	styleStr string, path bool,
+) {
 	x *= f.k
 	y = (f.h - y) * f.k
 	rx *= f.k
@@ -899,14 +893,12 @@ func (f *PDF) arc(x, y, rx, ry, degRotate, degStart, degEnd float64,
 	sy := f.h - (b0 / f.k)
 	if path {
 		if f.x != sx || f.y != sy {
-
 			f.LineTo(sx, sy)
 		}
 	} else {
 		f.point(sx, sy)
 	}
 	for j := 1; j <= segments; j++ {
-
 		t = (float64(j) * dt) + angleStart
 		a1 := x + rx*math.Cos(t)
 		b1 := y + ry*math.Sin(t)

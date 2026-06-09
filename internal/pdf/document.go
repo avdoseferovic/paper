@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -34,21 +35,21 @@ func (f *PDF) SetDisplayMode(zoomStr, layoutStr string) {
 		return
 	}
 	if layoutStr == "" {
-		layoutStr = "default"
+		layoutStr = displayModeDefault
 	}
 	switch zoomStr {
-	case "fullpage", "fullwidth", "real", "default":
+	case "fullpage", "fullwidth", "real", displayModeDefault:
 		f.zoomMode = zoomStr
 	default:
-		f.err = fmt.Errorf("incorrect zoom display mode: %s", zoomStr)
+		f.err = fmt.Errorf("%w: %s", errIncorrectZoomDisplayMode, zoomStr)
 		return
 	}
 	switch layoutStr {
-	case "single", "continuous", "two", "default", "SinglePage", "OneColumn",
+	case "single", "continuous", "two", displayModeDefault, "SinglePage", "OneColumn",
 		"TwoColumnLeft", "TwoColumnRight", "TwoPageLeft", "TwoPageRight":
 		f.layoutMode = layoutStr
 	default:
-		f.err = fmt.Errorf("incorrect layout display mode: %s", layoutStr)
+		f.err = fmt.Errorf("%w: %s", errIncorrectLayoutDisplayMode, layoutStr)
 		return
 	}
 }
@@ -166,7 +167,6 @@ func (f *PDF) SetJavascript(script string) {
 // is closed. Functions ExamplePDF_RegisterAlias() and
 // ExamplePDF_RegisterAlias_utf8() in fpdf_test.go demonstrate this method.
 func (f *PDF) RegisterAlias(alias, replacement string) {
-
 	f.aliasMap[alias] = replacement
 }
 
@@ -180,7 +180,7 @@ func (f *PDF) replaceAliases() {
 			for n := 1; n <= f.page; n++ {
 				s := f.pages[n].String()
 				if strings.Contains(s, alias) {
-					s = strings.Replace(s, alias, replacement, -1)
+					s = strings.ReplaceAll(s, alias, replacement)
 					f.pages[n].Truncate(0)
 					f.pages[n].WriteString(s)
 				}
@@ -250,6 +250,7 @@ func (f *PDF) putcatalog() {
 	case "fullwidth":
 		f.out("/OpenAction [3 0 R /FitH null]")
 	case "real":
+		//nolint:dupword // PDF /XYZ OpenAction uses separate left and top null operands.
 		f.out("/OpenAction [3 0 R /XYZ null null 1]")
 	}
 
@@ -315,8 +316,14 @@ func (f *PDF) SetProtection(actionFlag byte, userPassStr, ownerPassStr string) {
 // method will close both f and w, even if an error is detected and no document
 // is produced.
 func (f *PDF) OutputAndClose(w io.WriteCloser) error {
-	f.Output(w)
-	w.Close()
+	outErr := f.Output(w)
+	closeErr := w.Close()
+	if outErr != nil {
+		return outErr
+	}
+	if closeErr != nil {
+		f.err = closeErr
+	}
 	return f.err
 }
 
@@ -329,8 +336,13 @@ func (f *PDF) OutputFileAndClose(fileStr string) error {
 	if f.err == nil {
 		pdfFile, err := os.Create(fileStr)
 		if err == nil {
-			f.Output(pdfFile)
-			pdfFile.Close()
+			outErr := f.Output(pdfFile)
+			closeErr := pdfFile.Close()
+			if outErr != nil {
+				f.err = outErr
+			} else if closeErr != nil {
+				f.err = closeErr
+			}
 		} else {
 			f.err = err
 		}
@@ -359,18 +371,23 @@ func (f *PDF) Output(w io.Writer) error {
 
 // Escape special characters in strings
 func (f *PDF) escape(s string) string {
-	s = strings.Replace(s, "\\", "\\\\", -1)
-	s = strings.Replace(s, "(", "\\(", -1)
-	s = strings.Replace(s, ")", "\\)", -1)
-	s = strings.Replace(s, "\r", "\\r", -1)
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "(", "\\(")
+	s = strings.ReplaceAll(s, ")", "\\)")
+	s = strings.ReplaceAll(s, "\r", "\\r")
 	return s
 }
 
 // textstring formats a text string
 func (f *PDF) textstring(s string) string {
 	if f.protect.encrypted {
+		objectNumber, ok := checkedUint32(f.n)
+		if !ok {
+			f.err = staticErrorf(errObjectNumberOutOfRange, "%d", f.n)
+			return "(" + f.escape(s) + ")"
+		}
 		b := []byte(s)
-		f.protect.rc4(uint32(f.n), &b)
+		f.protect.rc4(objectNumber, &b)
 		s = string(b)
 	}
 	return "(" + f.escape(s) + ")"
@@ -378,7 +395,6 @@ func (f *PDF) textstring(s string) string {
 
 // newobj begins a new object
 func (f *PDF) newobj() {
-
 	f.n++
 	for j := len(f.offsets); j <= f.n; j++ {
 		f.offsets = append(f.offsets, 0)
@@ -388,9 +404,13 @@ func (f *PDF) newobj() {
 }
 
 func (f *PDF) putstream(b []byte) {
-
 	if f.protect.encrypted {
-		f.protect.rc4(uint32(f.n), &b)
+		objectNumber, ok := checkedUint32(f.n)
+		if !ok {
+			f.err = staticErrorf(errObjectNumberOutOfRange, "%d", f.n)
+			return
+		}
+		f.protect.rc4(objectNumber, &b)
 	}
 	f.out("stream")
 	f.out(string(b))
@@ -411,10 +431,16 @@ func (f *PDF) out(s string) {
 // outbuf adds a buffered line to the document
 func (f *PDF) outbuf(r io.Reader) {
 	if f.state == 2 {
-		f.pages[f.page].ReadFrom(r)
+		if _, err := f.pages[f.page].ReadFrom(r); err != nil {
+			f.err = err
+			return
+		}
 		f.pages[f.page].WriteString("\n")
 	} else {
-		f.buffer.ReadFrom(r)
+		if _, err := f.buffer.ReadFrom(r); err != nil {
+			f.err = err
+			return
+		}
 		f.buffer.WriteString("\n")
 	}
 }
@@ -530,7 +556,7 @@ func (f *PDF) putxobjectdict() {
 	{
 		var image *ImageInfoType
 		var key string
-		var keyList []string
+		keyList := make([]string, 0, len(f.images))
 		for key = range f.images {
 			keyList = append(keyList, key)
 		}
@@ -558,7 +584,6 @@ func (f *PDF) putxobjectdict() {
 	}
 	{
 		for tplName, objID := range f.importedTplObjs {
-
 			f.outf("%s %d 0 R", tplName, f.importedTplIDs[objID])
 		}
 	}
@@ -568,7 +593,7 @@ func (f *PDF) putresourcedict() {
 	f.out("/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]")
 	f.out("/Font <<")
 	{
-		var keyList []string
+		keyList := make([]string, 0, len(f.fonts))
 		var font fontDefType
 		var key string
 		for key = range f.fonts {
@@ -672,17 +697,15 @@ func (f *PDF) putImportedTemplates() {
 	}
 
 	hashToObjID := make(map[string]int, len(f.importedObjs))
-	for i = 0; i < len(objsIDHash); i++ {
+	for i = range objsIDHash {
 		hashToObjID[objsIDHash[i]] = i + nOffset
 	}
 
 	for i = 0; i < len(objsIDData); i++ {
-
 		hash := objsIDHash[i]
 
 		for pos, h := range f.importedObjPos[hash] {
-
-			objIDPadded := fmt.Sprintf("%40s", fmt.Sprintf("%d", hashToObjID[h]))
+			objIDPadded := fmt.Sprintf("%40s", strconv.Itoa(hashToObjID[h]))
 
 			objIDBytes := []byte(objIDPadded)
 
@@ -756,7 +779,6 @@ func (f *PDF) GetY() float64 {
 // ordinate. If the passed value is negative, it is relative to the bottom of
 // the page.
 func (f *PDF) SetY(y float64) {
-
 	f.x = f.lMargin
 	if y >= 0 {
 		f.y = y

@@ -2,7 +2,7 @@ package pdf
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"math"
 	"strings"
 	"unicode"
@@ -163,21 +163,20 @@ func (f *PDF) SetTextRenderingMode(mode int) {
 // linkStr is a target URL or empty for no external link. A non--zero value for
 // link takes precedence over linkStr.
 func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
-	alignStr string, fill bool, link int, linkStr string) {
-
+	alignStr string, fill bool, link int, linkStr string,
+) {
 	if f.err != nil {
 		return
 	}
 
 	if f.currentFont.Name == "" {
-		f.err = fmt.Errorf("font has not been set; unable to render text")
+		f.err = errors.New("font has not been set; unable to render text")
 		return
 	}
 
 	borderStr = strings.ToUpper(borderStr)
 	k := f.k
 	if f.y+h > f.pageBreakTrigger && !f.inHeader && !f.inFooter && f.acceptPageBreak() {
-
 		x := f.x
 		ws := f.ws
 
@@ -204,13 +203,10 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 		if fill {
 			if borderStr == "1" {
 				op = "B"
-
 			} else {
 				op = "f"
-
 			}
 		} else {
-
 			op = "S"
 		}
 
@@ -257,7 +253,6 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 			var descent float64
 			d := f.currentFont.Desc
 			if d.Descent == 0 {
-
 				descent = -0.19 * f.fontSize
 			} else {
 				descent = float64(d.Descent) * f.fontSize / float64(d.Ascent-d.Descent)
@@ -298,15 +293,13 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 				}
 				txt2 = f.escape(f.stringToCIDs(txtStr))
 			} else {
-
-				txt2 = strings.Replace(txtStr, "\\", "\\\\", -1)
-				txt2 = strings.Replace(txt2, "(", "\\(", -1)
-				txt2 = strings.Replace(txt2, ")", "\\)", -1)
+				txt2 = strings.ReplaceAll(txtStr, "\\", "\\\\")
+				txt2 = strings.ReplaceAll(txt2, "(", "\\(")
+				txt2 = strings.ReplaceAll(txt2, ")", "\\)")
 			}
 			bt := (f.x + dx) * k
 			td := (f.h - (f.y + dy + .5*h + .3*f.fontSize)) * k
 			s.printf("BT %.2f %.2f Td (%s)Tj ET", bt, td, txt2)
-
 		}
 
 		if f.underline {
@@ -328,7 +321,6 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	}
 	f.lasth = h
 	if ln > 0 {
-
 		f.y += h
 		if ln == 1 {
 			f.x = f.lMargin
@@ -373,11 +365,10 @@ func (f *PDF) Cellf(w, h float64, fmtStr string, args ...any) {
 // You can use MultiCell if you want to print a text on several lines in a
 // simple way.
 func (f *PDF) SplitLines(txt []byte, w float64) [][]byte {
-
 	lines := [][]byte{}
 	cw := f.currentFont.Cw
 	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
-	s := bytes.Replace(txt, []byte("\r"), []byte{}, -1)
+	s := bytes.ReplaceAll(txt, []byte("\r"), []byte{})
 	nb := len(s)
 	for nb > 0 && s[nb-1] == '\n' {
 		nb--
@@ -451,7 +442,7 @@ func (f *PDF) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill b
 		w = f.w - f.rMargin - f.x
 	}
 	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
-	s := strings.Replace(txtStr, "\r", "", -1)
+	s := strings.ReplaceAll(txtStr, "\r", "")
 	srune := []rune(s)
 
 	// remove extra line breaks
@@ -510,7 +501,6 @@ func (f *PDF) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill b
 			c = rune(s[i])
 		}
 		if c == '\n' {
-
 			if f.ws > 0 {
 				f.ws = 0
 				f.out("0 Tw")
@@ -547,7 +537,6 @@ func (f *PDF) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill b
 		}
 		l += f.currentRuneWidth(c)
 		if l > wmax {
-
 			if sep == -1 {
 				if i == j {
 					i++
@@ -624,10 +613,9 @@ func blankCount(str string) (count int) {
 
 // write outputs text in flowing mode
 func (f *PDF) write(h float64, txtStr string, link int, linkStr string) {
-
 	w := f.w - f.rMargin - f.x
 	wmax := (w - 2*f.cMargin) * 1000 / f.fontSize
-	s := strings.Replace(txtStr, "\r", "", -1)
+	s := strings.ReplaceAll(txtStr, "\r", "")
 	var nb int
 	if f.isCurrentUTF8 {
 		nb = len([]rune(s))
@@ -652,7 +640,6 @@ func (f *PDF) write(h float64, txtStr string, link int, linkStr string) {
 			c = rune(byte(s[i]))
 		}
 		if c == '\n' {
-
 			if f.isCurrentUTF8 {
 				f.CellFormat(w, h, string([]rune(s)[j:i]), "", 2, "", false, link, linkStr)
 			} else {
@@ -675,10 +662,8 @@ func (f *PDF) write(h float64, txtStr string, link int, linkStr string) {
 		}
 		l += float64(f.currentRuneWidth(c))
 		if l > wmax {
-
 			if sep == -1 {
 				if f.x > f.lMargin {
-
 					f.x = f.lMargin
 					f.y += h
 					w = f.w - f.rMargin - f.x
@@ -830,7 +815,6 @@ func (f *PDF) SetLink(link int, y float64, page int) {
 
 // newLink adds a new clickable link on current page
 func (f *PDF) newLink(x, y, w, h float64, link int, linkStr string) {
-
 	f.pageLinks[f.page] = append(f.pageLinks[f.page],
 		linkType{x * f.k, f.hPt - y*f.k, w * f.k, h * f.k, link, linkStr})
 }

@@ -3,6 +3,7 @@ package pdf
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -36,18 +37,14 @@ func (f *PDF) ImageTypeFromMime(mimeStr string) (tp string) {
 }
 
 func (f *PDF) imageOut(info *ImageInfoType, x, y, w, h float64, allowNegativeX, flow bool, link int, linkStr string) {
-
 	if w == 0 && h == 0 {
-
 		w = -96
 		h = -96
 	}
 	if w == -1 {
-
 		w = -info.dpi
 	}
 	if h == -1 {
-
 		h = -info.dpi
 	}
 	if w < 0 {
@@ -65,7 +62,6 @@ func (f *PDF) imageOut(info *ImageInfoType, x, y, w, h float64, allowNegativeX, 
 
 	if flow {
 		if f.y+h > f.pageBreakTrigger && !f.inHeader && !f.inFooter && f.acceptPageBreak() {
-
 			x2 := f.x
 			f.AddPageFormat(f.curOrientation, f.curPageSize)
 			if f.err != nil {
@@ -187,18 +183,17 @@ type ImageOptions struct {
 //
 // See Image() for restrictions on the image and the options parameters.
 func (f *PDF) RegisterImageOptionsReader(imgName string, options ImageOptions, r io.Reader) (info *ImageInfoType) {
-
 	if f.err != nil {
-		return
+		return info
 	}
 	info, ok := f.images[imgName]
 	if ok {
-		return
+		return info
 	}
 
 	if options.ImageType == "" {
-		f.err = fmt.Errorf("image type should be specified if reading from custom reader")
-		return
+		f.err = errors.New("image type should be specified if reading from custom reader")
+		return info
 	}
 	options.ImageType = strings.ToLower(options.ImageType)
 	if options.ImageType == "jpeg" {
@@ -215,15 +210,15 @@ func (f *PDF) RegisterImageOptionsReader(imgName string, options ImageOptions, r
 		f.err = fmt.Errorf("unsupported image type: %s", options.ImageType)
 	}
 	if f.err != nil {
-		return
+		return info
 	}
 
 	if info.i, f.err = generateImageID(info); f.err != nil {
-		return
+		return info
 	}
 	f.images[imgName] = info
 
-	return
+	return info
 }
 
 // RegisterImage registers an image, adding it to the PDF file but not adding
@@ -279,7 +274,6 @@ func (f *PDF) GetImageInfo(imageStr string) (info *ImageInfoType) {
 }
 
 func (f *PDF) newImageInfo() *ImageInfoType {
-
 	return &ImageInfoType{scale: f.k, dpi: 72}
 }
 
@@ -294,14 +288,14 @@ func (f *PDF) parsejpg(r io.Reader) (info *ImageInfoType) {
 	_, err = data.ReadFrom(r)
 	if err != nil {
 		f.err = err
-		return
+		return info
 	}
 	info.data = data.Bytes()
 
 	config, err := jpeg.DecodeConfig(bytes.NewReader(info.data))
 	if err != nil {
 		f.err = err
-		return
+		return info
 	}
 	info.w = float64(config.Width)
 	info.h = float64(config.Height)
@@ -316,9 +310,9 @@ func (f *PDF) parsejpg(r io.Reader) (info *ImageInfoType) {
 		info.cs = "DeviceCMYK"
 	default:
 		f.err = fmt.Errorf("image JPEG buffer has unsupported color space (%v)", config.ColorModel)
-		return
+		return info
 	}
-	return
+	return info
 }
 
 // parsepng extracts info from a PNG data
@@ -333,7 +327,7 @@ func (f *PDF) parsepng(r io.Reader, readdpi bool) (info *ImageInfoType) {
 
 func (f *PDF) readBeInt32(r io.Reader) (val int32) {
 	err := binary.Read(r, binary.BigEndian, &val)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		f.err = err
 	}
 	return
@@ -479,18 +473,18 @@ func (f *PDF) pngColorSpace(ct byte) (colspace string, colorVal int) {
 func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoType) {
 	info = f.newImageInfo()
 	if f.err != nil {
-		return
+		return info
 	}
 
 	if string(buf.Next(8)) != "\x89PNG\x0d\x0a\x1a\x0a" {
 		f.SetErrorf("not a PNG buffer")
-		return
+		return info
 	}
 
 	_ = buf.Next(4)
 	if string(buf.Next(4)) != "IHDR" {
 		f.SetErrorf("incorrect PNG buffer")
-		return
+		return info
 	}
 	w := f.readBeInt32(buf)
 	h := f.readBeInt32(buf)
@@ -503,19 +497,19 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 	var colorVal int
 	colspace, colorVal = f.pngColorSpace(ct)
 	if f.err != nil {
-		return
+		return info
 	}
 	if f.readByte(buf) != 0 {
 		f.SetErrorf("unknown compression method in PNG buffer")
-		return
+		return info
 	}
 	if f.readByte(buf) != 0 {
 		f.SetErrorf("unknown filter method in PNG buffer")
-		return
+		return info
 	}
 	if f.readByte(buf) != 0 {
 		f.SetErrorf("interlacing not supported in PNG buffer")
-		return
+		return info
 	}
 	_ = buf.Next(4)
 	dp := sprintf("/Predictor 15 /Colors %d /BitsPerComponent %d /Columns %d", colorVal, bpc, w)
@@ -527,11 +521,11 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 	for loop {
 		n := int(f.readBeInt32(buf))
 		if f.err != nil {
-			return
+			return info
 		}
 		if n < 0 || buf.Len() < n+8 {
 			f.SetErrorf("incorrect PNG chunk")
-			return
+			return info
 		}
 
 		chunkType := string(buf.Next(4))
@@ -547,13 +541,13 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 			case 0:
 				if len(chunkData) < 2 {
 					f.SetErrorf("incorrect PNG transparency chunk")
-					return
+					return info
 				}
 				trns = []int{int(chunkData[1])}
 			case 2:
 				if len(chunkData) < 6 {
 					f.SetErrorf("incorrect PNG transparency chunk")
-					return
+					return info
 				}
 				trns = []int{int(chunkData[1]), int(chunkData[3]), int(chunkData[5])}
 			default:
@@ -572,7 +566,7 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 
 			if len(chunkData) < 9 {
 				f.SetErrorf("incorrect PNG physical pixel dimensions chunk")
-				return
+				return info
 			}
 			x := int(binary.BigEndian.Uint32(chunkData[0:4]))
 			y := int(binary.BigEndian.Uint32(chunkData[4:8]))
@@ -580,7 +574,6 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 
 			if x == y && readdpi {
 				switch units {
-
 				case 1:
 					info.dpi = float64(x) / 39.3701
 				default:
@@ -588,7 +581,6 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 				}
 			}
 		default:
-
 		}
 		if loop {
 			loop = n > 0
@@ -612,17 +604,16 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 		data, err = sliceUncompress(data)
 		if err != nil {
 			f.SetError(err)
-			return
+			return info
 		}
 		var color, alpha bytes.Buffer
 		if ct == 4 {
-
 			width := int(w)
 			height := int(h)
 			length := 2 * width
 			if len(data) < height*(1+length) {
 				f.SetErrorf("PNG alpha channel data is truncated")
-				return
+				return info
 			}
 			var pos, elPos int
 			for i := range height {
@@ -637,13 +628,12 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 				}
 			}
 		} else {
-
 			width := int(w)
 			height := int(h)
 			length := 4 * width
 			if len(data) < height*(1+length) {
 				f.SetErrorf("PNG alpha channel data is truncated")
-				return
+				return info
 			}
 			var pos, elPos int
 			for i := range height {
@@ -665,5 +655,5 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) (info *ImageInfoTy
 		}
 	}
 	info.data = data
-	return
+	return info
 }

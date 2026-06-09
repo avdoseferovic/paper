@@ -36,14 +36,16 @@ func (f *PDF) AddSpotColor(nameStr string, c, m, y, k byte) {
 	}
 }
 
-func (f *PDF) getSpotColor(nameStr string) (clr spotColorType, ok bool) {
+func (f *PDF) getSpotColor(nameStr string) (spotColorType, bool) {
+	var clr spotColorType
+	var ok bool
 	if f.err == nil {
 		clr, ok = f.spotColorMap[nameStr]
 		if !ok {
 			f.SetErrorf("spot color name %q is not registered", nameStr)
 		}
 	}
-	return
+	return clr, ok
 }
 
 // SetDrawSpotColor sets the current draw color to the spot color associated
@@ -102,11 +104,12 @@ func (f *PDF) SetTextSpotColor(nameStr string, tint byte) {
 	}
 }
 
-func (f *PDF) returnSpotColor(clr colorType) (name string, c, m, y, k byte) {
+func (f *PDF) returnSpotColor(clr colorType) (string, byte, byte, byte, byte) {
 	var spotClr spotColorType
 	var ok bool
 
-	name = clr.spotStr
+	name := clr.spotStr
+	var c, m, y, k byte
 	if name != "" {
 		spotClr, ok = f.getSpotColor(name)
 		if ok {
@@ -116,14 +119,14 @@ func (f *PDF) returnSpotColor(clr colorType) (name string, c, m, y, k byte) {
 			k = spotClr.val.k
 		}
 	}
-	return
+	return name, c, m, y, k
 }
 
 // GetDrawSpotColor returns the most recently used spot color information for
 // drawing. This will not be the current drawing color if some other color type
 // such as RGB is active. If no spot color has been set for drawing, zero
 // values are returned.
-func (f *PDF) GetDrawSpotColor() (name string, c, m, y, k byte) {
+func (f *PDF) GetDrawSpotColor() (string, byte, byte, byte, byte) {
 	return f.returnSpotColor(f.color.draw)
 }
 
@@ -131,7 +134,7 @@ func (f *PDF) GetDrawSpotColor() (name string, c, m, y, k byte) {
 // text output. This will not be the current text color if some other color
 // type such as RGB is active. If no spot color has been set for text, zero
 // values are returned.
-func (f *PDF) GetTextSpotColor() (name string, c, m, y, k byte) {
+func (f *PDF) GetTextSpotColor() (string, byte, byte, byte, byte) {
 	return f.returnSpotColor(f.color.text)
 }
 
@@ -139,14 +142,14 @@ func (f *PDF) GetTextSpotColor() (name string, c, m, y, k byte) {
 // fill output. This will not be the current fill color if some other color
 // type such as RGB is active. If no fill spot color has been set, zero values
 // are returned.
-func (f *PDF) GetFillSpotColor() (name string, c, m, y, k byte) {
+func (f *PDF) GetFillSpotColor() (string, byte, byte, byte, byte) {
 	return f.returnSpotColor(f.color.fill)
 }
 
 func (f *PDF) putSpotColors() {
 	for k, v := range f.spotColorMap {
 		f.newobj()
-		f.outf("[/Separation /%s", strings.Replace(k, " ", "#20", -1))
+		f.outf("[/Separation /%s", strings.ReplaceAll(k, " ", "#20"))
 		f.out("/DeviceCMYK <<")
 		f.out("/Range [0 1 0 1 0 1 0 1] /C0 [0 0 0 0] ")
 		f.outf("/C1 [%.3f %.3f %.3f %.3f] ", float64(v.val.c)/100, float64(v.val.m)/100,

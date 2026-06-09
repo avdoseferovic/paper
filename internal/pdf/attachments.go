@@ -1,7 +1,7 @@
 package pdf
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 -- PDF EmbeddedFile CheckSum is defined as an MD5 digest.
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -26,7 +26,7 @@ type Attachment struct {
 
 // return the hex encoded checksum of `data`
 func checksum(data []byte) string {
-	tmp := md5.Sum(data)
+	tmp := md5.Sum(data) // #nosec G401 -- PDF EmbeddedFile CheckSum is defined as an MD5 digest.
 	return hex.EncodeToString(tmp[:])
 }
 
@@ -83,7 +83,7 @@ func (f *PDF) putAttachments() {
 }
 
 // return /EmbeddedFiles tree name catalog entry.
-func (f PDF) getEmbeddedFiles() string {
+func (f *PDF) getEmbeddedFiles() string {
 	names := make([]string, len(f.attachments))
 	for i, as := range f.attachments {
 		names[i] = fmt.Sprintf("(Attachement%d) %d 0 R ", i+1, as.objectNumber)

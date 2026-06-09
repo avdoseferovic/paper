@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode/utf16"
 )
 
 // zlibWriterPool reuses zlib (deflate) writers across sliceCompress calls.
@@ -40,38 +41,51 @@ func sprintf(fmtStr string, args ...any) string {
 }
 
 // bufferFromReader returns a new buffer populated with the contents of the specified Reader
-func bufferFromReader(r io.Reader) (b *bytes.Buffer, err error) {
-	b = new(bytes.Buffer)
-	_, err = b.ReadFrom(r)
-	return
+func bufferFromReader(r io.Reader) (*bytes.Buffer, error) {
+	b := new(bytes.Buffer)
+	if _, err := b.ReadFrom(r); err != nil {
+		return nil, fmt.Errorf("read buffer: %w", err)
+	}
+	return b, nil
 }
 
 // sliceCompress returns a zlib-compressed copy of the specified byte array
 func sliceCompress(data []byte) []byte {
 	var buf bytes.Buffer
-	cmp := zlibWriterPool.Get().(*zlib.Writer)
-	cmp.Reset(&buf)
-	cmp.Write(data)
-	cmp.Close()
+	pooled := zlibWriterPool.Get()
+	cmp, ok := pooled.(*zlib.Writer)
+	if !ok {
+		cmp = zlib.NewWriter(&buf)
+	} else {
+		cmp.Reset(&buf)
+	}
+	_, _ = cmp.Write(data)
+	_ = cmp.Close()
 	zlibWriterPool.Put(cmp)
 	return buf.Bytes()
 }
 
 // sliceUncompress returns an uncompressed copy of the specified zlib-compressed byte array
-func sliceUncompress(data []byte) (outData []byte, err error) {
+func sliceUncompress(data []byte) ([]byte, error) {
 	inBuf := bytes.NewReader(data)
 	r, err := zlib.NewReader(inBuf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open zlib reader: %w", err)
 	}
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	var outBuf bytes.Buffer
 	_, err = outBuf.ReadFrom(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read zlib data: %w", err)
 	}
 	return outBuf.Bytes(), nil
+}
+
+func appendUTF16BEUnit(res []byte, unit uint16) []byte {
+	return append(res, byte(unit>>8), byte(unit)) // #nosec G115 -- bytes are the high and low halves of a uint16.
 }
 
 // utf8toutf16 converts UTF-8 to UTF-16BE; from http://www.fpdf.org/
@@ -84,16 +98,8 @@ func utf8toutf16(s string, withBOM ...bool) string {
 	if bom {
 		res = append(res, 0xFE, 0xFF)
 	}
-	for _, r := range s {
-		if r < 0x10000 {
-			res = append(res, byte(r>>8), byte(r))
-			continue
-		}
-
-		r -= 0x10000
-		high := 0xD800 | (r >> 10)
-		low := 0xDC00 | (r & 0x3FF)
-		res = append(res, byte(high>>8), byte(high), byte(low>>8), byte(low))
+	for _, unit := range utf16.Encode([]rune(s)) {
+		res = appendUTF16BEUnit(res, unit)
 	}
 	return string(res)
 }
@@ -134,10 +140,10 @@ func repClosure(m map[rune]byte) func(string) string {
 	return func(str string) string {
 		var ch byte
 		var ok bool
-		buf.Truncate(0)
+		buf.Reset()
 		for _, r := range str {
 			if r < 0x80 {
-				ch = byte(r)
+				ch = byte(r) // #nosec G115 -- branch guarantees an ASCII byte.
 			} else {
 				ch, ok = m[r]
 				if !ok {
@@ -165,29 +171,33 @@ func repClosure(m map[rune]byte) func(string) string {
 // An error occurs only if a line is read that does not conform to the expected
 // format. In this case, the returned function is valid but does not perform
 // any rune translation.
-func UnicodeTranslator(r io.Reader) (f func(string) string, err error) {
+func UnicodeTranslator(r io.Reader) (func(string) string, error) {
 	m := make(map[rune]byte)
 	var uPos, cPos uint32
 	var lineStr, nameStr string
+	var parseErr error
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
 		lineStr = sc.Text()
 		lineStr = strings.TrimSpace(lineStr)
 		if len(lineStr) > 0 {
-			_, err = fmt.Sscanf(lineStr, "!%2X U+%4X %s", &cPos, &uPos, &nameStr)
+			_, err := fmt.Sscanf(lineStr, "!%2X U+%4X %s", &cPos, &uPos, &nameStr)
 			if err == nil {
 				if cPos >= 0x80 {
 					m[rune(uPos)] = byte(cPos)
 				}
+			} else if parseErr == nil {
+				parseErr = err
 			}
 		}
 	}
-	if err == nil {
-		f = repClosure(m)
-	} else {
-		f = doNothing
+	if err := sc.Err(); err != nil {
+		return doNothing, fmt.Errorf("scan unicode translator: %w", err)
 	}
-	return
+	if parseErr != nil {
+		return doNothing, parseErr
+	}
+	return repClosure(m), nil
 }
 
 // UnicodeTranslatorFromFile returns a function that can be used to translate,
@@ -198,16 +208,20 @@ func UnicodeTranslator(r io.Reader) (f func(string) string, err error) {
 //
 // If an error occurs reading the file, the returned function is valid but does
 // not perform any rune translation.
-func UnicodeTranslatorFromFile(fileStr string) (f func(string) string, err error) {
-	var fl *os.File
-	fl, err = os.Open(fileStr)
-	if err == nil {
-		f, err = UnicodeTranslator(fl)
-		fl.Close()
-	} else {
-		f = doNothing
+func UnicodeTranslatorFromFile(fileStr string) (func(string) string, error) {
+	fl, err := os.Open(fileStr)
+	if err != nil {
+		return doNothing, fmt.Errorf("open unicode translator file: %w", err)
 	}
-	return
+	translator, err := UnicodeTranslator(fl)
+	closeErr := fl.Close()
+	if err != nil {
+		return translator, err
+	}
+	if closeErr != nil {
+		return translator, fmt.Errorf("close unicode translator file: %w", closeErr)
+	}
+	return translator, nil
 }
 
 // UnicodeTranslatorFromDescriptor returns a function that can be used to
@@ -223,7 +237,7 @@ func UnicodeTranslatorFromFile(fileStr string) (f func(string) string, err error
 // but does not perform any rune translation.
 //
 // The CellFormat_codepage example demonstrates this method.
-func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) (rep func(string) string) {
+func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) func(string) string {
 	var str string
 	var ok bool
 	if f.err == nil {
@@ -233,21 +247,21 @@ func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) (rep func(string) st
 		str, ok = embeddedMapList[cpStr]
 		if ok {
 			var err error
-			rep, err = UnicodeTranslator(strings.NewReader(str))
+			rep, err := UnicodeTranslator(strings.NewReader(str))
 			f.SetError(err)
+			return rep
 		} else {
 			var err error
-			rep, err = UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
+			rep, err := UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr)+".map")
 			f.SetError(err)
+			return rep
 		}
-	} else {
-		rep = doNothing
 	}
-	return
+	return doNothing
 }
 
 // Transform moves a point by given X, Y offset
-func (p *PointType) Transform(x, y float64) PointType {
+func (p PointType) Transform(x, y float64) PointType {
 	return PointType{p.X + x, p.Y + y}
 }
 
@@ -299,8 +313,8 @@ func isChinese(rune2 rune) bool {
 
 // Condition font family string to PDF name compliance. See section 5.3 (Names)
 // in https://resources.infosecinstitute.com/pdf-file-format-basic-structure/
-func fontFamilyEscape(familyStr string) (escStr string) {
-	escStr = strings.Replace(familyStr, " ", "#20", -1)
+func fontFamilyEscape(familyStr string) string {
+	escStr := strings.ReplaceAll(familyStr, " ", "#20")
 	// Additional replacements can take place here
-	return
+	return escStr
 }

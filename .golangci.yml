@@ -48,7 +48,7 @@ linters:
         - name: redefines-builtin-id
           severity: warning
           disabled: true
-          exclude: [ "" ]
+          exclude: [""]
     interfacebloat:
       max: 15
     gosec:
@@ -68,7 +68,6 @@ linters:
       - examples$
       - docs/*
       - cmd/*
-      - internal/paperpdf/.*
       - '(.+)_test\.go'
 
 formatters:

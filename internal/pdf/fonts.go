@@ -79,9 +79,9 @@ func (f *PDF) AddUTF8Font(familyStr, styleStr, fileStr string) {
 func (f *PDF) addFont(familyStr, styleStr, fileStr string, isUTF8 bool) {
 	if fileStr == "" {
 		if isUTF8 {
-			fileStr = strings.Replace(familyStr, " ", "", -1) + strings.ToLower(styleStr) + ".ttf"
+			fileStr = strings.ReplaceAll(familyStr, " ", "") + strings.ToLower(styleStr) + ".ttf"
 		} else {
-			fileStr = strings.Replace(familyStr, " ", "", -1) + strings.ToLower(styleStr) + ".json"
+			fileStr = strings.ReplaceAll(familyStr, " ", "") + strings.ToLower(styleStr) + ".json"
 		}
 	}
 	if isUTF8 {
@@ -242,7 +242,6 @@ func (f *PDF) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFileB
 	}
 
 	if utf8Bytes != nil {
-
 		reader := fileReader{readerPosition: 0, array: utf8Bytes}
 
 		utf8File := newUTF8Font(&reader)
@@ -292,7 +291,6 @@ func (f *PDF) addFontFromBytes(familyStr, styleStr string, jsonFileBytes, zFileB
 		// load font definitions
 		var info fontDefType
 		err := json.Unmarshal(jsonFileBytes, &info)
-
 		if err != nil {
 			f.err = err
 		}
@@ -377,13 +375,11 @@ func (f *PDF) AddFontFromReader(familyStr, styleStr string, r io.Reader) {
 	if ok {
 		return
 	}
-	var info fontDefType
-	info = f.loadfont(r)
+	var info fontDefType = f.loadfont(r)
 	if f.err != nil {
 		return
 	}
 	if len(info.Diff) > 0 {
-
 		n := -1
 		for j, str := range f.diffs {
 			if str == info.Diff {
@@ -399,7 +395,6 @@ func (f *PDF) AddFontFromReader(familyStr, styleStr string, r io.Reader) {
 	}
 
 	if len(info.File) > 0 {
-
 		if info.Tp == "TrueType" {
 			f.fontFiles[info.File] = fontFileType{length1: int64(info.OriginalSize)}
 		} else {
@@ -449,7 +444,6 @@ func (f *PDF) GetFontDesc(familyStr, styleStr string) FontDescType {
 // size. If no size has been specified since the beginning of the document, the
 // value taken is 12.
 func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
-
 	if f.err != nil {
 		return
 	}
@@ -464,11 +458,11 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 	styleStr = strings.ToUpper(styleStr)
 	f.underline = strings.Contains(styleStr, "U")
 	if f.underline {
-		styleStr = strings.Replace(styleStr, "U", "", -1)
+		styleStr = strings.ReplaceAll(styleStr, "U", "")
 	}
 	f.strikeout = strings.Contains(styleStr, "S")
 	if f.strikeout {
-		styleStr = strings.Replace(styleStr, "S", "", -1)
+		styleStr = strings.ReplaceAll(styleStr, "S", "")
 	}
 	if styleStr == "IB" {
 		styleStr = "BI"
@@ -480,7 +474,6 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 	fontKey := familyStr + styleStr
 	_, ok = f.fonts[fontKey]
 	if !ok {
-
 		if familyStr == "arial" {
 			familyStr = "helvetica"
 		}
@@ -610,7 +603,6 @@ func (f *PDF) putfonts() {
 	}
 	nf := f.n
 	for _, diff := range f.diffs {
-
 		f.newobj()
 		f.outf("<</Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [%s]>>", diff)
 		f.out("endobj")
@@ -886,7 +878,7 @@ func buildToUnicodeCMap(usedRunes map[int]int) string {
 		start = end
 	}
 
-	b.WriteString("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend")
+	b.WriteString("endcmap\nCMapName currentdict /CMap defineresource pop\nend")
 	return b.String()
 }
 
@@ -894,7 +886,7 @@ func utf16Hex(r rune) string {
 	encoded := []byte(utf8toutf16(string(r), false))
 	var b strings.Builder
 	for _, c := range encoded {
-		b.WriteString(fmt.Sprintf("%02X", c))
+		fmt.Fprintf(&b, "%02X", c)
 	}
 	return b.String()
 }
@@ -1091,13 +1083,14 @@ func (fr *fileReader) seek(shift int64, flag int) (int64, error) {
 	}
 
 	target := fr.readerPosition
-	if flag == 0 {
+	switch flag {
+	case 0:
 		target = shift
-	} else if flag == 1 {
+	case 1:
 		target += shift
-	} else if flag == 2 {
+	case 2:
 		target = int64(len(fr.array)) - shift
-	} else {
+	default:
 		fr.setErrorf("invalid font seek mode %d", flag)
 		return fr.readerPosition, fr.err
 	}

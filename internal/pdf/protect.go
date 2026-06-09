@@ -4,10 +4,10 @@
 package pdf
 
 import (
-	"crypto/md5"
-	"crypto/rc4"
+	"crypto/md5" // #nosec G501 -- PDF standard security handler revision 2 uses MD5.
+	"crypto/rand"
+	"crypto/rc4" // #nosec G503 -- PDF standard security handler revision 2 uses RC4.
 	"encoding/binary"
-	"math/rand/v2"
 )
 
 // Advisory bitflag constants that control document activities
@@ -32,39 +32,48 @@ type protectType struct {
 
 func (p *protectType) rc4(n uint32, buf *[]byte) {
 	if p.rc4cipher == nil || p.rc4n != n {
-		p.rc4cipher, _ = rc4.NewCipher(p.objectKey(n))
+		p.rc4cipher, _ = rc4.NewCipher(p.objectKey(n)) // #nosec G405 -- required by the PDF security handler.
 		p.rc4n = n
 	}
 	p.rc4cipher.XORKeyStream(*buf, *buf)
 }
 
 func (p *protectType) objectKey(n uint32) []byte {
-	var nbuf, b []byte
-	nbuf = make([]byte, 8)
+	nbuf := make([]byte, 8)
 	binary.LittleEndian.PutUint32(nbuf, n)
+	b := make([]byte, 0, len(p.encryptionKey)+5)
 	b = append(b, p.encryptionKey...)
 	b = append(b, nbuf[0], nbuf[1], nbuf[2], 0, 0)
-	s := md5.Sum(b)
+	s := md5.Sum(b) // #nosec G401 -- required by the PDF security handler.
 	return s[0:10]
 }
 
-func oValueGen(userPass, ownerPass []byte) (v []byte) {
+func oValueGen(userPass, ownerPass []byte) []byte {
 	var c *rc4.Cipher
-	tmp := md5.Sum(ownerPass)
-	c, _ = rc4.NewCipher(tmp[0:5])
+	tmp := md5.Sum(ownerPass)        // #nosec G401 -- required by the PDF security handler.
+	c, _ = rc4.NewCipher(tmp[0:5])   // #nosec G405 -- required by the PDF security handler.
 	size := len(userPass)
-	v = make([]byte, size)
+	v := make([]byte, size)
 	c.XORKeyStream(v, userPass)
-	return
+	return v
 }
 
-func (p *protectType) uValueGen() (v []byte) {
+func (p *protectType) uValueGen() []byte {
 	var c *rc4.Cipher
-	c, _ = rc4.NewCipher(p.encryptionKey)
+	c, _ = rc4.NewCipher(p.encryptionKey) // #nosec G405 -- required by the PDF security handler.
 	size := len(p.padding)
-	v = make([]byte, size)
+	v := make([]byte, size)
 	c.XORKeyStream(v, p.padding)
-	return
+	return v
+}
+
+func paddedProtectionPassword(pass, padding []byte) []byte {
+	padded := make([]byte, 32)
+	n := copy(padded, pass)
+	if n < len(padded) {
+		copy(padded[n:], padding)
+	}
+	return padded
 }
 
 func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr string) {
@@ -79,19 +88,21 @@ func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr str
 	var ownerPass []byte
 	if ownerPassStr == "" {
 		ownerPass = make([]byte, 8)
-		binary.LittleEndian.PutUint64(ownerPass, uint64(rand.Int64()))
+		if _, err := rand.Read(ownerPass); err != nil {
+			copy(ownerPass, p.padding[:8])
+		}
 	} else {
 		ownerPass = []byte(ownerPassStr)
 	}
-	userPass = append(userPass, p.padding...)[0:32]
-	ownerPass = append(ownerPass, p.padding...)[0:32]
+	userPass = paddedProtectionPassword(userPass, p.padding)
+	ownerPass = paddedProtectionPassword(ownerPass, p.padding)
 	p.encrypted = true
 	p.oValue = oValueGen(userPass, ownerPass)
-	var buf []byte
+	buf := make([]byte, 0, len(userPass)+len(p.oValue)+4)
 	buf = append(buf, userPass...)
 	buf = append(buf, p.oValue...)
 	buf = append(buf, privFlag, 0xff, 0xff, 0xff)
-	sum := md5.Sum(buf)
+	sum := md5.Sum(buf) // #nosec G401 -- required by the PDF security handler.
 	p.encryptionKey = sum[0:5]
 	p.uValue = p.uValueGen()
 	p.pValue = -(int(privFlag^255) + 1)
