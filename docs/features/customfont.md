@@ -15,14 +15,14 @@ Paper ships with a standard set of built-in fonts. `WithCustomFonts` lets you re
 * [entity : CustomFont](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core/entity#CustomFont)
 
 ## Code Example
-[filename](../../assets/examples/customfont/main.go ':include :type=code')
+[filename](../assets/examples/customfont/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
 	assets/pdf/customfont.pdf
 ```
 ## Time Execution
-[filename](../../assets/text/customfont.txt  ':include :type=code')
+[filename](../assets/text/customfont.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/customfont.json  ':include :type=code')

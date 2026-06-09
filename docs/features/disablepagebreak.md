@@ -13,14 +13,14 @@ By default, paper automatically inserts a new physical page whenever a row would
 * [builder : WithDisableAutoPageBreak](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithDisableAutoPageBreak)
 
 ## Code Example
-[filename](../../assets/examples/disablepagebreak/main.go ':include :type=code')
+[filename](../assets/examples/disablepagebreak/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
 	assets/pdf/disablepagebreak.pdf
 ```
 ## Time Execution
-[filename](../../assets/text/disablepagebreak.txt  ':include :type=code')
+[filename](../assets/text/disablepagebreak.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/disablepagebreak.json  ':include :type=code')

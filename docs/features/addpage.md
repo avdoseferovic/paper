@@ -10,7 +10,7 @@ This is useful when you want to control pagination explicitly: for example, forc
 * [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Page)
 
 ## Code Example
-[filename](../../assets/examples/addpage/main.go  ':include :type=code')
+[filename](../assets/examples/addpage/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -18,7 +18,7 @@ This is useful when you want to control pagination explicitly: for example, forc
 ```
 
 ## Time Execution
-[filename](../../assets/text/addpage.txt  ':include :type=code')
+[filename](../assets/text/addpage.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/addpage.json  ':include :type=code')

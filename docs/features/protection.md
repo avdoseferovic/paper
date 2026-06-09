@@ -25,14 +25,14 @@ Flags can be combined with `|`: `protection.Print | protection.Copy` restricts b
 * [protection : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/protection)
 
 ## Code Example
-[filename](../../assets/examples/protection/main.go ':include :type=code')
+[filename](../assets/examples/protection/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
 	assets/pdf/protection.pdf
 ```
 ## Time Execution
-[filename](../../assets/text/protection.txt  ':include :type=code')
+[filename](../assets/text/protection.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/protection.json  ':include :type=code')

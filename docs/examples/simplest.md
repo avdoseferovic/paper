@@ -1,7 +1,7 @@
 # Simplest
 
 ## Code Example
-[filename](../../assets/examples/simplest/main.go  ':include :type=code')
+[filename](../assets/examples/simplest/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf

@@ -13,7 +13,7 @@
 * [paper : RegisterFooter](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterFooter)
 
 ## Code Example
-[filename](../../assets/examples/footer/main.go ':include :type=code')
+[filename](../assets/examples/footer/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -21,7 +21,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/footer.txt  ':include :type=code')
+[filename](../assets/text/footer.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/footer.json  ':include :type=code')

@@ -18,7 +18,7 @@ Paper provides two complementary ways to combine PDF documents:
 * [pdf : Merge](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core#Pdf.Merge)
 
 ## Code Example
-[filename](../../assets/examples/mergepdf/main.go  ':include :type=code')
+[filename](../assets/examples/mergepdf/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -26,7 +26,7 @@ Paper provides two complementary ways to combine PDF documents:
 ```
 
 ## Time Execution
-[filename](../../assets/text/mergepdf.txt  ':include :type=code')
+[filename](../assets/text/mergepdf.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/mergepdf.json  ':include :type=code')

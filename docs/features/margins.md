@@ -15,7 +15,7 @@
 * [builder : WithTopMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithTopMargin)
 
 ## Code Example
-[filename](../../assets/examples/margins/main.go ':include :type=code')
+[filename](../assets/examples/margins/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -23,7 +23,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/margins.txt  ':include :type=code')
+[filename](../assets/text/margins.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/margins.json  ':include :type=code')

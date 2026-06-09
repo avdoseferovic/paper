@@ -18,7 +18,7 @@ paper provides a dedicated `pkg/test` package that lets you write deterministic 
 The test helper stores JSON fixtures in [`test/paper/`](https://github.com/avdoseferovic/paper/tree/master/test/paper) relative to the module root.
 
 ## Code
-[filename](../../assets/examples/unittests/main_test.go ':include :type=code')
+[filename](../assets/examples/unittests/main_test.go ':include :type=code')
 
 ## Test file
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/example_unit_test.json ':include :type=code')

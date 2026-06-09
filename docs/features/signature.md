@@ -31,7 +31,7 @@ The row height is automatically calculated from the font height plus the `SafePa
 * [component : Signature](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/signature#Signature)
 
 ## Code Example
-[filename](../../assets/examples/signaturegrid/main.go ':include :type=code')
+[filename](../assets/examples/signaturegrid/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -39,7 +39,7 @@ The row height is automatically calculated from the font height plus the `SafePa
 ```
 
 ## Time Execution
-[filename](../../assets/text/signaturegrid.txt  ':include :type=code')
+[filename](../assets/text/signaturegrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/signaturegrid.json  ':include :type=code')

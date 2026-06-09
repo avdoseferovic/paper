@@ -20,7 +20,7 @@
 * [builder : WithConcurrentMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithConcurrentMode)
 
 ## Code Example
-[filename](../../assets/examples/parallelism/main.go  ':include :type=code')
+[filename](../assets/examples/parallelism/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -28,10 +28,10 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/parallelism.txt  ':include :type=code')
+[filename](../assets/text/parallelism.txt  ':include :type=code')
 
 ## Time Execution (100 pages)
-[filename](../../assets/text/parallel.txt ':include :type=code')
+[filename](../assets/text/parallel.txt ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/parallelism.json  ':include :type=code')

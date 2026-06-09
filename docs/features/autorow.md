@@ -19,7 +19,7 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 * [image : NewAutoFromFileRow](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/image#NewAutoFromFileRow)
 
 ## Code Example
-[filename](../../assets/examples/autorow/main.go  ':include :type=code')
+[filename](../assets/examples/autorow/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -27,7 +27,7 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 ```
 
 ## Time Execution
-[filename](../../assets/text/autorow.txt  ':include :type=code')
+[filename](../assets/text/autorow.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/autorow.json  ':include :type=code')
@@ -36,7 +36,7 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 * [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Page)
 
 ## Code Example
-[filename](../../assets/examples/autorow/main.go  ':include :type=code')
+[filename](../assets/examples/autorow/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -44,7 +44,7 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 ```
 
 ## Time Execution
-[filename](../../assets/text/autorow.txt  ':include :type=code')
+[filename](../assets/text/autorow.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/autorow.json  ':include :type=code')

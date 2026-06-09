@@ -1,7 +1,7 @@
 # Billing
 
 ## Code Example
-[filename](../../assets/examples/billing/main.go  ':include :type=code')
+[filename](../assets/examples/billing/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -9,4 +9,4 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/billing.txt  ':include :type=code')
+[filename](../assets/text/billing.txt  ':include :type=code')

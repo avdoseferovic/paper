@@ -30,7 +30,7 @@ Cell Style applies visual decoration — background fill, borders, and line styl
 * [props : Cell](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Cell)
 
 ## Code Example
-[filename](../../assets/examples/cellstyle/main.go ':include :type=code')
+[filename](../assets/examples/cellstyle/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -38,7 +38,7 @@ Cell Style applies visual decoration — background fill, borders, and line styl
 ```
 
 ## Time Execution
-[filename](../../assets/text/cellstyle.txt  ':include :type=code')
+[filename](../assets/text/cellstyle.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/cellstyle.json  ':include :type=code')

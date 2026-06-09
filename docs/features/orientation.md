@@ -13,7 +13,7 @@
 * [orientation : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/orientation)
 
 ## Code Example
-[filename](../../assets/examples/orientation/main.go ':include :type=code')
+[filename](../assets/examples/orientation/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -21,7 +21,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/orientation.txt  ':include :type=code')
+[filename](../assets/text/orientation.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/orientation.json  ':include :type=code')

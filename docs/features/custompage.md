@@ -27,14 +27,14 @@
 * [pagesize : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/pagesize)
 
 ## Code Example
-[filename](../../assets/examples/custompage/main.go ':include :type=code')
+[filename](../assets/examples/custompage/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
 	assets/pdf/custompage.pdf
 ```
 ## Time Execution
-[filename](../../assets/text/custompage.txt  ':include :type=code')
+[filename](../assets/text/custompage.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/custompage.json  ':include :type=code')

@@ -13,7 +13,7 @@
 * [consts : Extension](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/extension#Type)
 
 ## Code Example
-[filename](../../assets/examples/background/main.go  ':include :type=code')
+[filename](../assets/examples/background/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -21,7 +21,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/background.txt  ':include :type=code')
+[filename](../assets/text/background.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/background.json  ':include :type=code')

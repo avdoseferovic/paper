@@ -121,14 +121,14 @@ the **document** response.
 The **report** struct contains the following information. For a complete example, refer
 to [this link](features/basics?id=using-metrics-decorator).
 
-[filename](../assets/text/report.txt ':include :type=code')
+[filename](assets/text/report.txt ':include :type=code')
 
 ## Execution Time Improvement
 Paper includes performance-focused generation paths. This becomes even more remarkable when parallel generation is enabled. The
 subsequent results were achieved by generating a PDF with **100 pages** encompassing **all components supported**
 by Paper.
 
-[filename](../assets/text/parallel.txt ':include :type=code')
+[filename](assets/text/parallel.txt ':include :type=code')
 
 The PDF generated was a custom version of ([billing example](examples/billing?id=billing)), with **100 pages**.
 The pages are merged using Paper's in-repo PDF merger. For a complete example, please refer to

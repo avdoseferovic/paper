@@ -35,7 +35,7 @@
 * [props : Place](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Place)
 
 ## Code Example
-[filename](../../assets/examples/pagenumber/main.go ':include :type=code')
+[filename](../assets/examples/pagenumber/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -43,7 +43,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/pagenumber.txt  ':include :type=code')
+[filename](../assets/text/pagenumber.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/pagenumber.json  ':include :type=code')

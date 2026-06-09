@@ -37,7 +37,7 @@ Text can be created as a standalone `Component`, wrapped directly into a `Col`, 
 
 
 ## Code Example
-[filename](../../assets/examples/textgrid/main.go ':include :type=code')
+[filename](../assets/examples/textgrid/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -45,7 +45,7 @@ Text can be created as a standalone `Component`, wrapped directly into a `Col`, 
 ```
 
 ## Time Execution
-[filename](../../assets/text/textgrid.txt  ':include :type=code')
+[filename](../assets/text/textgrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/textgrid.json  ':include :type=code')

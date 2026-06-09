@@ -32,7 +32,7 @@ Both sources expose the same set of constructors — `New`, `NewCol`, `NewRow`, 
 * [component : FileImage](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/image#FileImage)
 
 ## Code Example
-[filename](../../assets/examples/imagegrid/main.go ':include :type=code')
+[filename](../assets/examples/imagegrid/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -40,7 +40,7 @@ Both sources expose the same set of constructors — `New`, `NewCol`, `NewRow`, 
 ```
 
 ## Time Execution
-[filename](../../assets/text/imagegrid.txt  ':include :type=code')
+[filename](../assets/text/imagegrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/imagegrid.json  ':include :type=code')

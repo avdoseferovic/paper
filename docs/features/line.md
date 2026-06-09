@@ -30,14 +30,14 @@ For auto-row usage, the row height equals the line's `Thickness` value.
 * [component : Line](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/line#Line)
 
 ## Code Example
-[filename](../../assets/examples/line/main.go ':include :type=code')
+[filename](../assets/examples/line/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
 	assets/pdf/linegrid.pdf
 ```
 ## Time Execution
-[filename](../../assets/text/linegrid.txt  ':include :type=code')
+[filename](../assets/text/linegrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/line.json  ':include :type=code')

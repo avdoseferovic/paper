@@ -17,7 +17,7 @@ PDF metadata fields are stored in the document's information dictionary and are 
 * [builder : WithKeywords](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithKeywords)
 
 ## Code Example
-[filename](../../assets/examples/metadatas/main.go ':include :type=code')
+[filename](../assets/examples/metadatas/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -25,7 +25,7 @@ PDF metadata fields are stored in the document's information dictionary and are 
 ```
 
 ## Time Execution
-[filename](../../assets/text/metadatas.txt  ':include :type=code')
+[filename](../assets/text/metadatas.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/metadatas.json  ':include :type=code')

@@ -27,7 +27,7 @@ QR codes share the same `props.Rect` struct as images, giving them identical pos
 * [component : QrCode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#QrCode)
 
 ## Code Example
-[filename](../../assets/examples/qrgrid/main.go ':include :type=code')
+[filename](../assets/examples/qrgrid/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -35,7 +35,7 @@ QR codes share the same `props.Rect` struct as images, giving them identical pos
 ```
 
 ## Time Execution
-[filename](../../assets/text/qrgrid.txt  ':include :type=code')
+[filename](../assets/text/qrgrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/qrgrid.json  ':include :type=code')

@@ -27,7 +27,7 @@ Like QR codes, Data Matrix codes use `props.Rect` for layout control.
 * [component : MatrixCode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#MatrixCode)
 
 ## Code Example
-[filename](../../assets/examples/datamatrixgrid/main.go ':include :type=code')
+[filename](../assets/examples/datamatrixgrid/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -35,7 +35,7 @@ Like QR codes, Data Matrix codes use `props.Rect` for layout control.
 ```
 
 ## Time Execution
-[filename](../../assets/text/datamatrixgrid.txt  ':include :type=code')
+[filename](../assets/text/datamatrixgrid.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/datamatrixgrid.json  ':include :type=code')

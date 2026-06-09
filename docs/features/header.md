@@ -13,7 +13,7 @@
 * [paper : RegisterHeader](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterHeader)
 
 ## Code Example
-[filename](../../assets/examples/header/main.go ':include :type=code')
+[filename](../assets/examples/header/main.go ':include :type=code')
 
 ## PDF Generated
 ```pdf
@@ -21,7 +21,7 @@
 ```
 
 ## Time Execution
-[filename](../../assets/text/header.txt  ':include :type=code')
+[filename](../assets/text/header.txt  ':include :type=code')
 
 ## Test File
 [filename](https://raw.githubusercontent.com/avdoseferovic/paper/master/test/paper/examples/header.json  ':include :type=code')

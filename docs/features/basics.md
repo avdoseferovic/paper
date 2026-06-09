@@ -32,7 +32,7 @@ The entry point is `paper.New()`, which accepts an optional `*entity.Config` pro
 * [Checkbox](features/checkbox?id=checkbox)
 
 ## Code Example
-[filename](../../assets/examples/simplest/main.go  ':include :type=code')
+[filename](../assets/examples/simplest/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
