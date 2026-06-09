@@ -43,7 +43,8 @@ func sprintf(fmtStr string, args ...any) string {
 // bufferFromReader returns a new buffer populated with the contents of the specified Reader
 func bufferFromReader(r io.Reader) (*bytes.Buffer, error) {
 	b := new(bytes.Buffer)
-	if _, err := b.ReadFrom(r); err != nil {
+	_, err := b.ReadFrom(r)
+	if err != nil {
 		return nil, fmt.Errorf("read buffer: %w", err)
 	}
 	return b, nil
@@ -191,7 +192,8 @@ func UnicodeTranslator(r io.Reader) (func(string) string, error) {
 			}
 		}
 	}
-	if err := sc.Err(); err != nil {
+	err := sc.Err()
+	if err != nil {
 		return doNothing, fmt.Errorf("scan unicode translator: %w", err)
 	}
 	if parseErr != nil {
@@ -252,7 +254,7 @@ func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) func(string) string 
 			return rep
 		} else {
 			var err error
-			rep, err := UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr)+".map")
+			rep, err := UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
 			f.SetError(err)
 			return rep
 		}

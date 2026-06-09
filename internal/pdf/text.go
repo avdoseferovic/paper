@@ -2,7 +2,6 @@ package pdf
 
 import (
 	"bytes"
-	"errors"
 	"math"
 	"strings"
 	"unicode"
@@ -26,8 +25,7 @@ func (f *PDF) GetStringSymbolWidth(s string) int {
 	}
 	w := 0
 	if f.isCurrentUTF8 {
-		unicode := []rune(s)
-		for _, char := range unicode {
+		for _, char := range s {
 			w += f.currentRuneWidth(char)
 		}
 	} else {
@@ -170,150 +168,23 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	}
 
 	if f.currentFont.Name == "" {
-		f.err = errors.New("font has not been set; unable to render text")
+		f.err = errFontNotSet
 		return
 	}
 
 	borderStr = strings.ToUpper(borderStr)
-	k := f.k
-	if f.y+h > f.pageBreakTrigger && !f.inHeader && !f.inFooter && f.acceptPageBreak() {
-		x := f.x
-		ws := f.ws
-
-		if ws > 0 {
-			f.ws = 0
-			f.out("0 Tw")
-		}
-		f.AddPageFormat(f.curOrientation, f.curPageSize)
-		if f.err != nil {
-			return
-		}
-		f.x = x
-		if ws > 0 {
-			f.ws = ws
-			f.outf("%.3f Tw", ws*k)
-		}
+	f.cellPageBreak(h)
+	if f.err != nil {
+		return
 	}
 	if w == 0 {
 		w = f.w - f.rMargin - f.x
 	}
 	var s fmtBuffer
-	if fill || borderStr == "1" {
-		var op string
-		if fill {
-			if borderStr == "1" {
-				op = "B"
-			} else {
-				op = "f"
-			}
-		} else {
-			op = "S"
-		}
-
-		s.printf("%.2f %.2f %.2f %.2f re %s ", f.x*k, (f.h-f.y)*k, w*k, -h*k, op)
-	}
-	if len(borderStr) > 0 && borderStr != "1" {
-		x := f.x
-		y := f.y
-		left := x * k
-		top := (f.h - y) * k
-		right := (x + w) * k
-		bottom := (f.h - (y + h)) * k
-		if strings.Contains(borderStr, "L") {
-			s.printf("%.2f %.2f m %.2f %.2f l S ", left, top, left, bottom)
-		}
-		if strings.Contains(borderStr, "T") {
-			s.printf("%.2f %.2f m %.2f %.2f l S ", left, top, right, top)
-		}
-		if strings.Contains(borderStr, "R") {
-			s.printf("%.2f %.2f m %.2f %.2f l S ", right, top, right, bottom)
-		}
-		if strings.Contains(borderStr, "B") {
-			s.printf("%.2f %.2f m %.2f %.2f l S ", left, bottom, right, bottom)
-		}
-	}
+	f.appendCellFill(&s, w, h, borderStr, fill)
+	f.appendCellBorders(&s, w, h, borderStr)
 	if len(txtStr) > 0 {
-		var dx, dy float64
-
-		switch {
-		case strings.Contains(alignStr, "R"):
-			dx = w - f.cMargin - f.GetStringWidth(txtStr)
-		case strings.Contains(alignStr, "C"):
-			dx = (w - f.GetStringWidth(txtStr)) / 2
-		default:
-			dx = f.cMargin
-		}
-
-		switch {
-		case strings.Contains(alignStr, "T"):
-			dy = (f.fontSize - h) / 2.0
-		case strings.Contains(alignStr, "B"):
-			dy = (h - f.fontSize) / 2.0
-		case strings.Contains(alignStr, "A"):
-			var descent float64
-			d := f.currentFont.Desc
-			if d.Descent == 0 {
-				descent = -0.19 * f.fontSize
-			} else {
-				descent = float64(d.Descent) * f.fontSize / float64(d.Ascent-d.Descent)
-			}
-			dy = (h-f.fontSize)/2.0 - descent
-		default:
-			dy = 0
-		}
-		if f.colorFlag {
-			s.printf("q %s ", f.color.text.str)
-		}
-
-		if (f.ws != 0 || alignStr == "J") && f.isCurrentUTF8 {
-			if f.isRTL {
-				txtStr = reverseText(txtStr)
-			}
-			wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
-			space := f.escape(f.stringToCIDs(" "))
-			strSize := f.GetStringSymbolWidth(txtStr)
-			s.printf("BT 0 Tw %.2f %.2f Td [", (f.x+dx)*k, (f.h-(f.y+.5*h+.3*f.fontSize))*k)
-			t := strings.Split(txtStr, " ")
-			shift := float64((wmax - strSize)) / float64(len(t)-1)
-			numt := len(t)
-			for i := range numt {
-				tx := t[i]
-				tx = "(" + f.escape(f.stringToCIDs(tx)) + ")"
-				s.printf("%s ", tx)
-				if (i + 1) < numt {
-					s.printf("%.3f(%s) ", -shift, space)
-				}
-			}
-			s.printf("] TJ ET")
-		} else {
-			var txt2 string
-			if f.isCurrentUTF8 {
-				if f.isRTL {
-					txtStr = reverseText(txtStr)
-				}
-				txt2 = f.escape(f.stringToCIDs(txtStr))
-			} else {
-				txt2 = strings.ReplaceAll(txtStr, "\\", "\\\\")
-				txt2 = strings.ReplaceAll(txt2, "(", "\\(")
-				txt2 = strings.ReplaceAll(txt2, ")", "\\)")
-			}
-			bt := (f.x + dx) * k
-			td := (f.h - (f.y + dy + .5*h + .3*f.fontSize)) * k
-			s.printf("BT %.2f %.2f Td (%s)Tj ET", bt, td, txt2)
-		}
-
-		if f.underline {
-			s.printf(" %s", f.dounderline(f.x+dx, f.y+dy+.5*h+.3*f.fontSize, txtStr))
-		}
-		if f.strikeout {
-			s.printf(" %s", f.dostrikeout(f.x+dx, f.y+dy+.5*h+.3*f.fontSize, txtStr))
-		}
-		if f.colorFlag {
-			s.printf(" Q")
-		}
-		if link > 0 || len(linkStr) > 0 {
-			f.newLink(f.x+dx, f.y+dy+.5*h-.5*f.fontSize, f.GetStringWidth(txtStr), f.fontSize, link, linkStr)
-		}
+		f.appendCellText(&s, w, h, txtStr, alignStr, link, linkStr)
 	}
 	str := s.String()
 	if len(str) > 0 {
@@ -327,6 +198,179 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 		}
 	} else {
 		f.x += w
+	}
+}
+
+func (f *PDF) cellPageBreak(h float64) {
+	if f.y+h <= f.pageBreakTrigger || f.inHeader || f.inFooter || !f.acceptPageBreak() {
+		return
+	}
+	x := f.x
+	ws := f.ws
+	if ws > 0 {
+		f.ws = 0
+		f.out("0 Tw")
+	}
+	f.AddPageFormat(f.curOrientation, f.curPageSize)
+	if f.err != nil {
+		return
+	}
+	f.x = x
+	if ws > 0 {
+		f.ws = ws
+		f.outf("%.3f Tw", ws*f.k)
+	}
+}
+
+func (f *PDF) appendCellFill(s *fmtBuffer, w, h float64, borderStr string, fill bool) {
+	op := cellFillOp(fill, borderStr)
+	if op == "" {
+		return
+	}
+	k := f.k
+	s.printf("%.2f %.2f %.2f %.2f re %s ", f.x*k, (f.h-f.y)*k, w*k, -h*k, op)
+}
+
+func cellFillOp(fill bool, borderStr string) string {
+	if fill && borderStr == "1" {
+		return "B"
+	}
+	if fill {
+		return "f"
+	}
+	if borderStr == "1" {
+		return "S"
+	}
+	return ""
+}
+
+func (f *PDF) appendCellBorders(s *fmtBuffer, w, h float64, borderStr string) {
+	if len(borderStr) == 0 || borderStr == "1" {
+		return
+	}
+	k := f.k
+	left := f.x * k
+	top := (f.h - f.y) * k
+	right := (f.x + w) * k
+	bottom := (f.h - (f.y + h)) * k
+	if strings.Contains(borderStr, "L") {
+		s.printf("%.2f %.2f m %.2f %.2f l S ", left, top, left, bottom)
+	}
+	if strings.Contains(borderStr, "T") {
+		s.printf("%.2f %.2f m %.2f %.2f l S ", left, top, right, top)
+	}
+	if strings.Contains(borderStr, "R") {
+		s.printf("%.2f %.2f m %.2f %.2f l S ", right, top, right, bottom)
+	}
+	if strings.Contains(borderStr, "B") {
+		s.printf("%.2f %.2f m %.2f %.2f l S ", left, bottom, right, bottom)
+	}
+}
+
+func (f *PDF) appendCellText(s *fmtBuffer, w, h float64, txtStr, alignStr string, link int, linkStr string) {
+	dx := f.cellTextDX(w, txtStr, alignStr)
+	dy := f.cellTextDY(h, alignStr)
+	if f.colorFlag {
+		s.printf("q %s ", f.color.text.str)
+	}
+	renderedText := f.appendCellTextOperation(s, w, h, txtStr, alignStr, dx, dy)
+	f.appendCellTextDecorations(s, h, renderedText, dx, dy)
+	if f.colorFlag {
+		s.printf(" Q")
+	}
+	if link > 0 || len(linkStr) > 0 {
+		f.newLink(f.x+dx, f.y+dy+.5*h-.5*f.fontSize, f.GetStringWidth(renderedText), f.fontSize, link, linkStr)
+	}
+}
+
+func (f *PDF) cellTextDX(w float64, txtStr, alignStr string) float64 {
+	switch {
+	case strings.Contains(alignStr, "R"):
+		return w - f.cMargin - f.GetStringWidth(txtStr)
+	case strings.Contains(alignStr, "C"):
+		return (w - f.GetStringWidth(txtStr)) / 2
+	default:
+		return f.cMargin
+	}
+}
+
+func (f *PDF) cellTextDY(h float64, alignStr string) float64 {
+	switch {
+	case strings.Contains(alignStr, "T"):
+		return (f.fontSize - h) / 2.0
+	case strings.Contains(alignStr, "B"):
+		return (h - f.fontSize) / 2.0
+	case strings.Contains(alignStr, "A"):
+		return (h-f.fontSize)/2.0 - f.fontDescent()
+	default:
+		return 0
+	}
+}
+
+func (f *PDF) fontDescent() float64 {
+	d := f.currentFont.Desc
+	if d.Descent == 0 {
+		return -0.19 * f.fontSize
+	}
+	return float64(d.Descent) * f.fontSize / float64(d.Ascent-d.Descent)
+}
+
+func (f *PDF) appendCellTextOperation(
+	s *fmtBuffer,
+	w, h float64,
+	txtStr, alignStr string,
+	dx, dy float64,
+) string {
+	if (f.ws != 0 || alignStr == "J") && f.isCurrentUTF8 {
+		return f.appendJustifiedUTF8CellText(s, w, h, txtStr, dx)
+	}
+	renderedText, escapedText := f.cellEscapedText(txtStr)
+	bt := (f.x + dx) * f.k
+	td := (f.h - (f.y + dy + .5*h + .3*f.fontSize)) * f.k
+	s.printf("BT %.2f %.2f Td (%s)Tj ET", bt, td, escapedText)
+	return renderedText
+}
+
+func (f *PDF) appendJustifiedUTF8CellText(s *fmtBuffer, w, h float64, txtStr string, dx float64) string {
+	if f.isRTL {
+		txtStr = reverseText(txtStr)
+	}
+	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
+	space := f.escape(f.stringToCIDs(" "))
+	strSize := f.GetStringSymbolWidth(txtStr)
+	s.printf("BT 0 Tw %.2f %.2f Td [", (f.x+dx)*f.k, (f.h-(f.y+.5*h+.3*f.fontSize))*f.k)
+	parts := strings.Split(txtStr, " ")
+	shift := float64(wmax-strSize) / float64(len(parts)-1)
+	for i, tx := range parts {
+		s.printf("%s ", "("+f.escape(f.stringToCIDs(tx))+")")
+		if i+1 < len(parts) {
+			s.printf("%.3f(%s) ", -shift, space)
+		}
+	}
+	s.printf("] TJ ET")
+	return txtStr
+}
+
+func (f *PDF) cellEscapedText(txtStr string) (string, string) {
+	if f.isCurrentUTF8 {
+		if f.isRTL {
+			txtStr = reverseText(txtStr)
+		}
+		return txtStr, f.escape(f.stringToCIDs(txtStr))
+	}
+	txt2 := strings.ReplaceAll(txtStr, "\\", "\\\\")
+	txt2 = strings.ReplaceAll(txt2, "(", "\\(")
+	txt2 = strings.ReplaceAll(txt2, ")", "\\)")
+	return txtStr, txt2
+}
+
+func (f *PDF) appendCellTextDecorations(s *fmtBuffer, h float64, txtStr string, dx, dy float64) {
+	y := f.y + dy + .5*h + .3*f.fontSize
+	if f.underline {
+		s.printf(" %s", f.dounderline(f.x+dx, y, txtStr))
+	}
+	if f.strikeout {
+		s.printf(" %s", f.dostrikeout(f.x+dx, y, txtStr))
 	}
 }
 
@@ -385,15 +429,9 @@ func (f *PDF) SplitLines(txt []byte, w float64) [][]byte {
 			sep = i
 		}
 		if c == '\n' || l > wmax {
-			if sep == -1 {
-				if i == j {
-					i++
-				}
-				sep = i
-			} else {
-				i = sep + 1
-			}
-			lines = append(lines, s[j:sep])
+			lineEnd, nextI := splitLineBreak(i, j, sep)
+			lines = append(lines, s[j:lineEnd])
+			i = nextI
 			sep = -1
 			j = i
 			l = 0
@@ -435,280 +473,379 @@ func (f *PDF) MultiCell(w, h float64, txtStr, borderStr, alignStr string, fill b
 		return
 	}
 
+	state := f.newMultiCellState(w, h, txtStr, borderStr, alignStr, fill)
+	for state.i < state.nb {
+		c := state.currentRune()
+		if c == '\n' {
+			state.handleNewline()
+			continue
+		}
+		state.trackSeparator(c)
+		state.l += f.currentRuneWidth(c)
+		if state.l > state.wmax {
+			state.handleLineOverflow()
+			continue
+		}
+		state.i++
+	}
+	state.finish()
+	f.x = f.lMargin
+}
+
+type multiCellState struct {
+	pdf       *PDF
+	w         float64
+	h         float64
+	s         string
+	srune     []rune
+	borderStr string
+	alignStr  string
+	fill      bool
+	wmax      int
+	nb        int
+	b         string
+	b2        string
+	sep       int
+	i         int
+	j         int
+	l         int
+	ls        int
+	ns        int
+	nl        int
+}
+
+func (f *PDF) newMultiCellState(w, h float64, txtStr, borderStr, alignStr string, fill bool) multiCellState {
 	if alignStr == "" {
 		alignStr = "J"
 	}
 	if w == 0 {
 		w = f.w - f.rMargin - f.x
 	}
-	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
+	s, srune, nb := f.normalizedMultiCellText(txtStr)
+	borderStr, b, b2 := multiCellBorders(borderStr)
+	return multiCellState{
+		pdf:       f,
+		w:         w,
+		h:         h,
+		s:         s,
+		srune:     srune,
+		borderStr: borderStr,
+		alignStr:  alignStr,
+		fill:      fill,
+		wmax:      int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize)),
+		nb:        nb,
+		b:         b,
+		b2:        b2,
+		sep:       -1,
+		nl:        1,
+	}
+}
+
+func (f *PDF) normalizedMultiCellText(txtStr string) (string, []rune, int) {
 	s := strings.ReplaceAll(txtStr, "\r", "")
 	srune := []rune(s)
-
-	// remove extra line breaks
-	var nb int
 	if f.isCurrentUTF8 {
-		nb = len(srune)
+		nb := len(srune)
 		for nb > 0 && srune[nb-1] == '\n' {
 			nb--
 		}
-		srune = srune[0:nb]
-	} else {
-		nb = len(s)
-		bytes2 := []byte(s)
-
-		if nb > 0 && bytes2[nb-1] == '\n' {
-			nb--
-		}
-		s = s[0:nb]
+		return s, srune[:nb], nb
 	}
-	// dbg("[%s]\n", s)
-	var b, b2 string
-	b = "0"
-	if len(borderStr) > 0 {
-		if borderStr == "1" {
-			borderStr = "LTRB"
-			b = "LRT"
-			b2 = "LR"
-		} else {
-			b2 = ""
-			if strings.Contains(borderStr, "L") {
-				b2 += "L"
-			}
-			if strings.Contains(borderStr, "R") {
-				b2 += "R"
-			}
-			if strings.Contains(borderStr, "T") {
-				b = b2 + "T"
-			} else {
-				b = b2
-			}
-		}
+	nb := len(s)
+	bytes2 := []byte(s)
+	if nb > 0 && bytes2[nb-1] == '\n' {
+		nb--
 	}
-	sep := -1
-	i := 0
-	j := 0
-	l := 0
-	ls := 0
-	ns := 0
-	nl := 1
-	for i < nb {
-		// Get next character
-		var c rune
-		if f.isCurrentUTF8 {
-			c = srune[i]
-		} else {
-			c = rune(s[i])
-		}
-		if c == '\n' {
-			if f.ws > 0 {
-				f.ws = 0
-				f.out("0 Tw")
-			}
-
-			if f.isCurrentUTF8 {
-				newAlignStr := alignStr
-				if newAlignStr == "J" {
-					if f.isRTL {
-						newAlignStr = "R"
-					} else {
-						newAlignStr = "L"
-					}
-				}
-				f.CellFormat(w, h, string(srune[j:i]), b, 2, newAlignStr, fill, 0, "")
-			} else {
-				f.CellFormat(w, h, s[j:i], b, 2, alignStr, fill, 0, "")
-			}
-			i++
-			sep = -1
-			j = i
-			l = 0
-			ns = 0
-			nl++
-			if len(borderStr) > 0 && nl == 2 {
-				b = b2
-			}
-			continue
-		}
-		if c == ' ' || isChinese(c) {
-			sep = i
-			ls = l
-			ns++
-		}
-		l += f.currentRuneWidth(c)
-		if l > wmax {
-			if sep == -1 {
-				if i == j {
-					i++
-				}
-				if f.ws > 0 {
-					f.ws = 0
-					f.out("0 Tw")
-				}
-				if f.isCurrentUTF8 {
-					f.CellFormat(w, h, string(srune[j:i]), b, 2, alignStr, fill, 0, "")
-				} else {
-					f.CellFormat(w, h, s[j:i], b, 2, alignStr, fill, 0, "")
-				}
-			} else {
-				if alignStr == "J" {
-					if ns > 1 {
-						f.ws = float64((wmax-ls)/1000) * f.fontSize / float64(ns-1)
-					} else {
-						f.ws = 0
-					}
-					f.outf("%.3f Tw", f.ws*f.k)
-				}
-				if f.isCurrentUTF8 {
-					f.CellFormat(w, h, string(srune[j:sep]), b, 2, alignStr, fill, 0, "")
-				} else {
-					f.CellFormat(w, h, s[j:sep], b, 2, alignStr, fill, 0, "")
-				}
-				i = sep + 1
-			}
-			sep = -1
-			j = i
-			l = 0
-			ns = 0
-			nl++
-			if len(borderStr) > 0 && nl == 2 {
-				b = b2
-			}
-		} else {
-			i++
-		}
-	}
-
-	if f.ws > 0 {
-		f.ws = 0
-		f.out("0 Tw")
-	}
-	if len(borderStr) > 0 && strings.Contains(borderStr, "B") {
-		b += "B"
-	}
-	if f.isCurrentUTF8 {
-		if alignStr == "J" {
-			if f.isRTL {
-				alignStr = "R"
-			} else {
-				alignStr = ""
-			}
-		}
-		f.CellFormat(w, h, string(srune[j:i]), b, 2, alignStr, fill, 0, "")
-	} else {
-		f.CellFormat(w, h, s[j:i], b, 2, alignStr, fill, 0, "")
-	}
-	f.x = f.lMargin
+	return s[:nb], srune, nb
 }
 
-func blankCount(str string) (count int) {
+func multiCellBorders(borderStr string) (string, string, string) {
+	if len(borderStr) == 0 {
+		return borderStr, "0", ""
+	}
+	if borderStr == "1" {
+		return "LTRB", "LRT", "LR"
+	}
+	b2 := ""
+	if strings.Contains(borderStr, "L") {
+		b2 += "L"
+	}
+	if strings.Contains(borderStr, "R") {
+		b2 += "R"
+	}
+	if strings.Contains(borderStr, "T") {
+		return borderStr, b2 + "T", b2
+	}
+	return borderStr, b2, b2
+}
+
+func (state *multiCellState) currentRune() rune {
+	if state.pdf.isCurrentUTF8 {
+		return state.srune[state.i]
+	}
+	return rune(state.s[state.i])
+}
+
+func (state *multiCellState) handleNewline() {
+	state.pdf.clearWordSpacing()
+	state.cell(state.j, state.i, state.newlineAlign())
+	state.i++
+	state.nextLine()
+}
+
+func (state *multiCellState) newlineAlign() string {
+	if !state.pdf.isCurrentUTF8 || state.alignStr != "J" {
+		return state.alignStr
+	}
+	if state.pdf.isRTL {
+		return "R"
+	}
+	return "L"
+}
+
+func (state *multiCellState) trackSeparator(c rune) {
+	if c != ' ' && !isChinese(c) {
+		return
+	}
+	state.sep = state.i
+	state.ls = state.l
+	state.ns++
+}
+
+func (state *multiCellState) handleLineOverflow() {
+	if state.sep == -1 {
+		state.handleUnseparatedOverflow()
+	} else {
+		state.handleSeparatedOverflow()
+	}
+	state.nextLine()
+}
+
+func (state *multiCellState) handleUnseparatedOverflow() {
+	if state.i == state.j {
+		state.i++
+	}
+	state.pdf.clearWordSpacing()
+	state.cell(state.j, state.i, state.alignStr)
+}
+
+func (state *multiCellState) handleSeparatedOverflow() {
+	if state.alignStr == "J" {
+		state.pdf.setJustifiedWordSpacing(state.wmax, state.ls, state.ns)
+	}
+	state.cell(state.j, state.sep, state.alignStr)
+	state.i = state.sep + 1
+}
+
+func (state *multiCellState) nextLine() {
+	state.sep = -1
+	state.j = state.i
+	state.l = 0
+	state.ns = 0
+	state.nl++
+	if len(state.borderStr) > 0 && state.nl == 2 {
+		state.b = state.b2
+	}
+}
+
+func (state *multiCellState) finish() {
+	state.pdf.clearWordSpacing()
+	if len(state.borderStr) > 0 && strings.Contains(state.borderStr, "B") {
+		state.b += "B"
+	}
+	state.cell(state.j, state.i, state.finalAlign())
+}
+
+func (state *multiCellState) finalAlign() string {
+	if !state.pdf.isCurrentUTF8 || state.alignStr != "J" {
+		return state.alignStr
+	}
+	if state.pdf.isRTL {
+		return "R"
+	}
+	return ""
+}
+
+func (state *multiCellState) cell(start, end int, alignStr string) {
+	if state.pdf.isCurrentUTF8 {
+		state.pdf.CellFormat(state.w, state.h, string(state.srune[start:end]), state.b, 2, alignStr, state.fill, 0, "")
+		return
+	}
+	state.pdf.CellFormat(state.w, state.h, state.s[start:end], state.b, 2, alignStr, state.fill, 0, "")
+}
+
+func (f *PDF) clearWordSpacing() {
+	if f.ws <= 0 {
+		return
+	}
+	f.ws = 0
+	f.out("0 Tw")
+}
+
+func (f *PDF) setJustifiedWordSpacing(wmax, lineWidth, spaces int) {
+	if spaces > 1 {
+		f.ws = float64((wmax-lineWidth)/1000) * f.fontSize / float64(spaces-1)
+	} else {
+		f.ws = 0
+	}
+	f.outf("%.3f Tw", f.ws*f.k)
+}
+
+func blankCount(str string) int {
+	count := 0
 	l := len(str)
 	for j := range l {
 		if byte(' ') == str[j] {
 			count++
 		}
 	}
-	return
+	return count
 }
 
 // write outputs text in flowing mode
 func (f *PDF) write(h float64, txtStr string, link int, linkStr string) {
-	w := f.w - f.rMargin - f.x
-	wmax := (w - 2*f.cMargin) * 1000 / f.fontSize
-	s := strings.ReplaceAll(txtStr, "\r", "")
-	var nb int
-	if f.isCurrentUTF8 {
-		nb = len([]rune(s))
-		if nb == 1 && s == " " {
-			f.x += f.GetStringWidth(s)
-			return
-		}
-	} else {
-		nb = len(s)
+	state := f.newWriteFlowState(h, txtStr, link, linkStr)
+	if state.done {
+		return
 	}
-	sep := -1
-	i := 0
-	j := 0
-	l := 0.0
-	nl := 1
-	for i < nb {
-		// Get next character
-		var c rune
-		if f.isCurrentUTF8 {
-			c = []rune(s)[i]
-		} else {
-			c = rune(byte(s[i]))
-		}
+	for state.i < state.nb {
+		c := state.currentRune()
 		if c == '\n' {
-			if f.isCurrentUTF8 {
-				f.CellFormat(w, h, string([]rune(s)[j:i]), "", 2, "", false, link, linkStr)
-			} else {
-				f.CellFormat(w, h, s[j:i], "", 2, "", false, link, linkStr)
-			}
-			i++
-			sep = -1
-			j = i
-			l = 0.0
-			if nl == 1 {
-				f.x = f.lMargin
-				w = f.w - f.rMargin - f.x
-				wmax = (w - 2*f.cMargin) * 1000 / f.fontSize
-			}
-			nl++
+			state.handleNewline()
 			continue
 		}
-		if c == ' ' {
-			sep = i
+		state.trackSeparator(c)
+		state.l += float64(f.currentRuneWidth(c))
+		if state.l > state.wmax {
+			state.handleOverflow()
+			continue
 		}
-		l += float64(f.currentRuneWidth(c))
-		if l > wmax {
-			if sep == -1 {
-				if f.x > f.lMargin {
-					f.x = f.lMargin
-					f.y += h
-					w = f.w - f.rMargin - f.x
-					wmax = (w - 2*f.cMargin) * 1000 / f.fontSize
-					i++
-					nl++
-					continue
-				}
-				if i == j {
-					i++
-				}
-				if f.isCurrentUTF8 {
-					f.CellFormat(w, h, string([]rune(s)[j:i]), "", 2, "", false, link, linkStr)
-				} else {
-					f.CellFormat(w, h, s[j:i], "", 2, "", false, link, linkStr)
-				}
-			} else {
-				if f.isCurrentUTF8 {
-					f.CellFormat(w, h, string([]rune(s)[j:sep]), "", 2, "", false, link, linkStr)
-				} else {
-					f.CellFormat(w, h, s[j:sep], "", 2, "", false, link, linkStr)
-				}
-				i = sep + 1
-			}
-			sep = -1
-			j = i
-			l = 0.0
-			if nl == 1 {
-				f.x = f.lMargin
-				w = f.w - f.rMargin - f.x
-				wmax = (w - 2*f.cMargin) * 1000 / f.fontSize
-			}
-			nl++
-		} else {
-			i++
+		state.i++
+	}
+	state.finish()
+}
+
+type writeFlowState struct {
+	pdf     *PDF
+	h       float64
+	link    int
+	linkStr string
+	w       float64
+	wmax    float64
+	s       string
+	srune   []rune
+	nb      int
+	sep     int
+	i       int
+	j       int
+	l       float64
+	nl      int
+	done    bool
+}
+
+func (f *PDF) newWriteFlowState(h float64, txtStr string, link int, linkStr string) writeFlowState {
+	s := strings.ReplaceAll(txtStr, "\r", "")
+	state := writeFlowState{
+		pdf:     f,
+		h:       h,
+		link:    link,
+		linkStr: linkStr,
+		s:       s,
+		srune:   []rune(s),
+		sep:     -1,
+		nl:      1,
+	}
+	state.resetWidth()
+	if f.isCurrentUTF8 {
+		state.nb = len(state.srune)
+		state.done = state.nb == 1 && s == " "
+		if state.done {
+			f.x += f.GetStringWidth(s)
 		}
+	} else {
+		state.nb = len(s)
+	}
+	return state
+}
+
+func (state *writeFlowState) resetWidth() {
+	state.w = state.pdf.w - state.pdf.rMargin - state.pdf.x
+	state.wmax = (state.w - 2*state.pdf.cMargin) * 1000 / state.pdf.fontSize
+}
+
+func (state *writeFlowState) currentRune() rune {
+	if state.pdf.isCurrentUTF8 {
+		return state.srune[state.i]
+	}
+	return rune(state.s[state.i])
+}
+
+func (state *writeFlowState) handleNewline() {
+	state.cell(state.j, state.i, state.w, 2)
+	state.i++
+	state.nextLine()
+}
+
+func (state *writeFlowState) trackSeparator(c rune) {
+	if c == ' ' {
+		state.sep = state.i
+	}
+}
+
+func (state *writeFlowState) handleOverflow() {
+	if state.sep == -1 {
+		if state.handleUnseparatedOverflow() {
+			return
+		}
+		state.nextLine()
+		return
 	}
 
-	if i != j {
-		if f.isCurrentUTF8 {
-			f.CellFormat(l/1000*f.fontSize, h, string([]rune(s)[j:]), "", 0, "", false, link, linkStr)
-		} else {
-			f.CellFormat(l/1000*f.fontSize, h, s[j:], "", 0, "", false, link, linkStr)
-		}
+	state.cell(state.j, state.sep, state.w, 2)
+	state.i = state.sep + 1
+	state.nextLine()
+}
+
+func (state *writeFlowState) handleUnseparatedOverflow() bool {
+	if state.pdf.x > state.pdf.lMargin {
+		state.pdf.x = state.pdf.lMargin
+		state.pdf.y += state.h
+		state.resetWidth()
+		state.i++
+		state.nl++
+		return true
 	}
+	if state.i == state.j {
+		state.i++
+	}
+	state.cell(state.j, state.i, state.w, 2)
+	return false
+}
+
+func (state *writeFlowState) nextLine() {
+	state.sep = -1
+	state.j = state.i
+	state.l = 0
+	if state.nl == 1 {
+		state.pdf.x = state.pdf.lMargin
+		state.resetWidth()
+	}
+	state.nl++
+}
+
+func (state *writeFlowState) finish() {
+	if state.i == state.j {
+		return
+	}
+	state.cell(state.j, state.i, state.l/1000*state.pdf.fontSize, 0)
+}
+
+func (state *writeFlowState) cell(start, end int, w float64, ln int) {
+	if state.pdf.isCurrentUTF8 {
+		state.pdf.CellFormat(w, state.h, string(state.srune[start:end]), "", ln, "", false, state.link, state.linkStr)
+		return
+	}
+	state.pdf.CellFormat(w, state.h, state.s[start:end], "", ln, "", false, state.link, state.linkStr)
 }
 
 // Write prints text from the current position. When the right margin is
@@ -773,7 +910,7 @@ func (f *PDF) WriteAligned(width, lineHeight float64, textStr, alignStr string) 
 	}
 
 	for _, lineBt := range lines {
-		lineStr := string(lineBt)
+		lineStr := lineBt
 		lineWidth := f.GetStringWidth(lineStr)
 
 		switch alignStr {
@@ -852,62 +989,90 @@ func (f *PDF) Bookmark(txtStr string, level int, y float64) {
 
 func (f *PDF) putbookmarks() {
 	nb := len(f.outlines)
-	if nb > 0 {
-		lru := make(map[int]int)
-		level := 0
-		for i, o := range f.outlines {
-			if o.level > 0 {
-				parent := lru[o.level-1]
-				f.outlines[i].parent = parent
-				f.outlines[parent].last = i
-				if o.level > level {
-					f.outlines[parent].first = i
-				}
-			} else {
-				f.outlines[i].parent = nb
-			}
-			if o.level <= level && i > 0 {
-				prev := lru[o.level]
-				f.outlines[prev].next = i
-				f.outlines[i].prev = prev
-			}
-			lru[o.level] = i
-			level = o.level
-		}
-		n := f.n + 1
-		for _, o := range f.outlines {
-			f.newobj()
-			f.outf("<</Title %s", f.textstring(o.text))
-			f.outf("/Parent %d 0 R", n+o.parent)
-			if o.prev != -1 {
-				f.outf("/Prev %d 0 R", n+o.prev)
-			}
-			if o.next != -1 {
-				f.outf("/Next %d 0 R", n+o.next)
-			}
-			if o.first != -1 {
-				f.outf("/First %d 0 R", n+o.first)
-			}
-			if o.last != -1 {
-				f.outf("/Last %d 0 R", n+o.last)
-			}
-			f.outf("/Dest [%d 0 R /XYZ 0 %.2f null]", 1+2*o.p, (f.h-o.y)*f.k)
-			f.out("/Count 0>>")
-			f.out("endobj")
-		}
+	if nb == 0 {
+		return
+	}
+	lru := f.prepareBookmarkOutlines(nb)
+	n := f.n + 1
+	f.putBookmarkObjects(n)
+	f.putBookmarkRoot(n, lru[0])
+}
+
+func (f *PDF) prepareBookmarkOutlines(nb int) map[int]int {
+	lru := make(map[int]int)
+	level := 0
+	for i, o := range f.outlines {
+		f.setBookmarkParent(i, o, nb, lru, level)
+		f.setBookmarkSiblings(i, o, lru, level)
+		lru[o.level] = i
+		level = o.level
+	}
+	return lru
+}
+
+func (f *PDF) setBookmarkParent(i int, o outlineType, nb int, lru map[int]int, level int) {
+	if o.level == 0 {
+		f.outlines[i].parent = nb
+		return
+	}
+	parent := lru[o.level-1]
+	f.outlines[i].parent = parent
+	f.outlines[parent].last = i
+	if o.level > level {
+		f.outlines[parent].first = i
+	}
+}
+
+func (f *PDF) setBookmarkSiblings(i int, o outlineType, lru map[int]int, level int) {
+	if o.level > level || i == 0 {
+		return
+	}
+	prev := lru[o.level]
+	f.outlines[prev].next = i
+	f.outlines[i].prev = prev
+}
+
+func (f *PDF) putBookmarkObjects(n int) {
+	for _, o := range f.outlines {
 		f.newobj()
-		f.outlineRoot = f.n
-		f.outf("<</Type /Outlines /First %d 0 R", n)
-		f.outf("/Last %d 0 R>>", n+lru[0])
+		f.outf("<</Title %s", f.textstring(o.text))
+		f.outf("/Parent %d 0 R", n+o.parent)
+		f.putBookmarkObjectLinks(n, o)
+		f.outf("/Dest [%d 0 R /XYZ 0 %.2f null]", 1+2*o.p, (f.h-o.y)*f.k)
+		f.out("/Count 0>>")
 		f.out("endobj")
 	}
+}
+
+func (f *PDF) putBookmarkObjectLinks(n int, o outlineType) {
+	if o.prev != -1 {
+		f.outf("/Prev %d 0 R", n+o.prev)
+	}
+	if o.next != -1 {
+		f.outf("/Next %d 0 R", n+o.next)
+	}
+	if o.first != -1 {
+		f.outf("/First %d 0 R", n+o.first)
+	}
+	if o.last != -1 {
+		f.outf("/Last %d 0 R", n+o.last)
+	}
+}
+
+func (f *PDF) putBookmarkRoot(n, last int) {
+	f.newobj()
+	f.outlineRoot = f.n
+	f.outf("<</Type /Outlines /First %d 0 R", n)
+	f.outf("/Last %d 0 R>>", n+last)
+	f.out("endobj")
 }
 
 // SplitText splits UTF-8 encoded text into several lines using the current
 // font. Each line has its length limited to a maximum width given by w. This
 // function can be used to determine the total height of wrapped text for
 // vertical placement purposes.
-func (f *PDF) SplitText(txt string, w float64) (lines []string) {
+func (f *PDF) SplitText(txt string, w float64) []string {
+	lines := make([]string, 0)
 	wmax := int(math.Ceil((w - 2*f.cMargin) * 1000 / f.fontSize))
 	s := []rune(txt)
 	nb := len(s)
@@ -926,15 +1091,9 @@ func (f *PDF) SplitText(txt string, w float64) (lines []string) {
 			sep = i
 		}
 		if c == '\n' || l > wmax {
-			if sep == -1 {
-				if i == j {
-					i++
-				}
-				sep = i
-			} else {
-				i = sep + 1
-			}
-			lines = append(lines, string(s[j:sep]))
+			lineEnd, nextI := splitLineBreak(i, j, sep)
+			lines = append(lines, string(s[j:lineEnd]))
+			i = nextI
 			sep = -1
 			j = i
 			l = 0
@@ -946,6 +1105,16 @@ func (f *PDF) SplitText(txt string, w float64) (lines []string) {
 		lines = append(lines, string(s[j:i]))
 	}
 	return lines
+}
+
+func splitLineBreak(i, j, sep int) (int, int) {
+	if sep != -1 {
+		return sep, sep + 1
+	}
+	if i == j {
+		i++
+	}
+	return i, i
 }
 
 // SubWrite prints text from the current position in the same way as Write().

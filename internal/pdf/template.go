@@ -2,9 +2,8 @@ package pdf
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"maps"
 	sortpkg "sort"
@@ -80,7 +79,7 @@ type Template interface {
 	Images() map[string]*ImageInfoType
 	Templates() []Template
 	NumPages() int
-	FromPage(int) (Template, error)
+	FromPage(page int) (Template, error)
 	FromPages() []Template
 	Serialize() ([]byte, error)
 	gob.GobDecoder
@@ -88,7 +87,7 @@ type Template interface {
 }
 
 func (f *PDF) templateFontCatalog() {
-	var keyList []string
+	keyList := make([]string, 0, len(f.fonts))
 	var font fontDefType
 	var key string
 	f.out("/Font <<")
@@ -173,7 +172,8 @@ func (f *PDF) putTemplates() {
 	}
 }
 
-func templateKeyList(mp map[string]Template, sort bool) (keyList []string) {
+func templateKeyList(mp map[string]Template, sort bool) []string {
+	keyList := make([]string, 0, len(mp))
 	var key string
 	for key = range mp {
 		keyList = append(keyList, key)
@@ -181,7 +181,7 @@ func templateKeyList(mp map[string]Template, sort bool) (keyList []string) {
 	if sort {
 		sortpkg.Strings(keyList)
 	}
-	return
+	return keyList
 }
 
 // sortTemplates puts templates in a suitable order based on dependices
@@ -220,7 +220,7 @@ chain:
 // templateChainDependencies is a recursive function for determining the full chain of template dependencies
 func templateChainDependencies(template Template) []Template {
 	requires := template.Templates()
-	chain := make([]Template, len(requires)*2)
+	chain := make([]Template, 0, len(requires)+1)
 	for _, req := range requires {
 		chain = append(chain, templateChainDependencies(req)...)
 	}
@@ -243,7 +243,7 @@ func newTpl(corner PointType, size SizeType, orientationStr, unitStr, fontDirStr
 	bytes := make([][]byte, len(tpl.pages))
 
 	for x := 1; x < len(bytes); x++ {
-		bytes[x] = tpl.PDF.pages[x].Bytes()
+		bytes[x] = tpl.pages[x].Bytes()
 	}
 
 	templates := make([]Template, 0, len(tpl.templates))
@@ -268,11 +268,11 @@ type PDFTpl struct {
 
 // ID returns the global template identifier
 func (t *PDFTpl) ID() string {
-	return fmt.Sprintf("%x", sha1.Sum(t.Bytes()))
+	return fmt.Sprintf("%x", sha256.Sum256(t.Bytes()))
 }
 
 // Size gives the bounding dimensions of this template
-func (t *PDFTpl) Size() (corner PointType, size SizeType) {
+func (t *PDFTpl) Size() (PointType, SizeType) {
 	return t.corner, t.size
 }
 
@@ -284,11 +284,11 @@ func (t *PDFTpl) Bytes() []byte {
 // FromPage creates a new template from a specific Page
 func (t *PDFTpl) FromPage(page int) (Template, error) {
 	if page == 0 {
-		return nil, errors.New("Pages start at 1 No template will have a page 0")
+		return nil, errMissingTemplatePageZero
 	}
 
 	if page > t.NumPages() {
-		return nil, fmt.Errorf("The template does not have a page %d", page)
+		return nil, fmt.Errorf("%w %d", errTemplatePageMissing, page)
 	}
 
 	if t.page == page {
@@ -332,36 +332,6 @@ func (t *PDFTpl) Serialize() ([]byte, error) {
 	err := enc.Encode(t)
 
 	return b.Bytes(), err
-}
-
-// childrenImages returns the next layer of children images, it doesn't dig into
-// children of children. Applies template namespace to keys to ensure
-// no collisions. See UseTemplateScaled
-func (t *PDFTpl) childrenImages() map[string]*ImageInfoType {
-	childrenImgs := make(map[string]*ImageInfoType)
-
-	for x := range len(t.templates) {
-		imgs := t.templates[x].Images()
-		for key, val := range imgs {
-			name := sprintf("t%s-%s", t.templates[x].ID(), key)
-			childrenImgs[name] = val
-		}
-	}
-
-	return childrenImgs
-}
-
-// childrensTemplates returns the next layer of children templates, it doesn't dig into
-// children of children.
-func (t *PDFTpl) childrensTemplates() []Template {
-	childrenTmpls := make([]Template, 0)
-
-	for x := range len(t.templates) {
-		tmpls := t.templates[x].Templates()
-		childrenTmpls = append(childrenTmpls, tmpls...)
-	}
-
-	return childrenTmpls
 }
 
 // GobEncode encodes the receiving template into a byte buffer. Use GobDecode
@@ -450,7 +420,40 @@ func (t *PDFTpl) GobDecode(buf []byte) error {
 		err = decoder.Decode(&t.page)
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("decode template: %w", err)
+	}
+	return nil
+}
+
+// childrenImages returns the next layer of children images, it doesn't dig into
+// children of children. Applies template namespace to keys to ensure
+// no collisions. See UseTemplateScaled
+func (t *PDFTpl) childrenImages() map[string]*ImageInfoType {
+	childrenImgs := make(map[string]*ImageInfoType)
+
+	for x := range len(t.templates) {
+		imgs := t.templates[x].Images()
+		for key, val := range imgs {
+			name := sprintf("t%s-%s", t.templates[x].ID(), key)
+			childrenImgs[name] = val
+		}
+	}
+
+	return childrenImgs
+}
+
+// childrensTemplates returns the next layer of children templates, it doesn't dig into
+// children of children.
+func (t *PDFTpl) childrensTemplates() []Template {
+	childrenTmpls := make([]Template, 0, len(t.templates))
+
+	for x := range len(t.templates) {
+		tmpls := t.templates[x].Templates()
+		childrenTmpls = append(childrenTmpls, tmpls...)
+	}
+
+	return childrenTmpls
 }
 
 // Tpl is a PDF used for writing a template. It has most of the facilities of

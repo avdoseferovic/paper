@@ -560,13 +560,13 @@ func (f *PDF) putGradients() {
 	for j := 1; j < count; j++ {
 		var f1 int
 		gr := f.gradientList[j]
-			switch gr.tp {
-			case 2, 3:
-				f.newobj()
-				f.outf("<</FunctionType 2 /Domain [0.0 1.0] /C0 [%s] /C1 [%s] /N 1>>", gr.clr1Str, gr.clr2Str)
-				f.out("endobj")
-				f1 = f.n
-			}
+		switch gr.tp {
+		case 2, 3:
+			f.newobj()
+			f.outf("<</FunctionType 2 /Domain [0.0 1.0] /C0 [%s] /C1 [%s] /N 1>>", gr.clr1Str, gr.clr2Str)
+			f.out("endobj")
+			f1 = f.n
+		}
 		f.newobj()
 		f.outf("<</ShadingType %d /ColorSpace /DeviceRGB", gr.tp)
 		switch gr.tp {

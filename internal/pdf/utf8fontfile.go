@@ -3,7 +3,6 @@ package pdf
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -17,9 +16,6 @@ const (
 	symbolAllScale = 1 << 6
 	symbol2x2      = 1 << 7
 )
-
-// CID map Init
-const toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend"
 
 type colorRecord struct {
 	r, g, b, a byte
@@ -141,22 +137,22 @@ func (utf *utf8FontFile) parseFile() error {
 	utf.outTablesData = make(map[string][]byte)
 	utf.ascent = 0
 	utf.descent = 0
-	codeType := uint32(utf.readUint32())
+	codeType := uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
 	if utf.err != nil {
 		return utf.err
 	}
 	if codeType == 0x4F54544F {
-		return errors.New("unsupported OpenType CFF font")
+		return errUnsupportedCFFFont
 	}
 	if codeType == 0x74746366 {
 		err := utf.selectTTCFont()
 		if err != nil {
 			return err
 		}
-		codeType = uint32(utf.readUint32())
+		codeType = uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
 	}
 	if codeType != 0x00010000 && codeType != 0x74727565 {
-		return fmt.Errorf("not a TrueType font: codeType=%d", codeType)
+		return fmt.Errorf("%w: codeType=%d", errUnexpectedTrueTypeCodeType, codeType)
 	}
 	utf.generateTableDescriptions()
 	if utf.err != nil {
@@ -179,14 +175,14 @@ func (utf *utf8FontFile) selectTTCFont() error {
 		return utf.err
 	}
 	if fontCount < 1 {
-		return errors.New("TrueType collection has no fonts")
+		return errTrueTypeCollectionEmpty
 	}
 	fontOffset := utf.readUint32()
 	if utf.err != nil {
 		return utf.err
 	}
 	if fontOffset <= 0 || fontOffset+4 > len(utf.fileReader.array) {
-		return errors.New("TrueType collection font offset is invalid")
+		return errTrueTypeCollectionOffset
 	}
 	utf.fontOffset = fontOffset
 	utf.seek(fontOffset)
@@ -217,7 +213,9 @@ func (utf *utf8FontFile) generateTableDescriptions() {
 		if utf.err != nil {
 			return
 		}
-		if record.position < 0 || record.size < 0 || record.position > len(utf.fileReader.array) || record.position+record.size > len(utf.fileReader.array) {
+		if record.position < 0 || record.size < 0 ||
+			record.position > len(utf.fileReader.array) ||
+			record.position+record.size > len(utf.fileReader.array) {
 			utf.setErrorf("font table %q exceeds font data", record.name)
 			return
 		}
@@ -234,9 +232,29 @@ func (utf *utf8FontFile) readUint16() int {
 	return (int(s[0]) << 8) + int(s[1])
 }
 
+func (utf *utf8FontFile) readCheckedUint16(label string) (uint16, bool) {
+	value := utf.readUint16()
+	result, ok := checkedUint16(value)
+	if !ok {
+		utf.setErrorf("%s value %d is out of uint16 range", label, value)
+		return 0, false
+	}
+	return result, true
+}
+
 func (utf *utf8FontFile) readByte() int {
 	s := utf.readBytes(1)
 	return int(s[0])
+}
+
+func (utf *utf8FontFile) readInt8Bits(label string) (int8, bool) {
+	value := utf.readByte()
+	result, ok := checkedByte(value)
+	if !ok {
+		utf.setErrorf("%s value %d is out of byte range", label, value)
+		return 0, false
+	}
+	return int8FromByteBits(result), true
 }
 
 func (utf *utf8FontFile) readOffset24() int {
@@ -246,7 +264,7 @@ func (utf *utf8FontFile) readOffset24() int {
 
 func (utf *utf8FontFile) readUint32() int {
 	s := utf.readBytes(4)
-	return (int(s[0]) * 16777216) + (int(s[1]) << 16) + (int(s[2]) << 8) + int(s[3]) // 	16777216  = 1<<24
+	return (int(s[0]) * 16777216) + (int(s[1]) << 16) + (int(s[2]) << 8) + int(s[3])
 }
 
 func (utf *utf8FontFile) calcInt32(x, y []int) []int {
@@ -260,7 +278,7 @@ func (utf *utf8FontFile) calcInt32(x, y []int) []int {
 		x[0] += 1 << 16
 	}
 	answer[0] = x[0] - y[0]
-	answer[0] = answer[0] & 0xFFFF
+	answer[0] &= 0xFFFF
 	return answer
 }
 
@@ -275,15 +293,15 @@ func (utf *utf8FontFile) generateChecksum(data []byte) []int {
 		answer[0] += (int(data[i]) << 8) + int(data[i+1])
 		answer[1] += (int(data[i+2]) << 8) + int(data[i+3])
 		answer[0] += answer[1] >> 16
-		answer[1] = answer[1] & 0xFFFF
-		answer[0] = answer[0] & 0xFFFF
+		answer[1] &= 0xFFFF
+		answer[0] &= 0xFFFF
 	}
 	return answer
 }
 
 func (utf *utf8FontFile) setErrorf(format string, args ...any) {
 	if utf.err == nil {
-		utf.err = fmt.Errorf(format, args...)
+		utf.err = staticErrorf(errUTF8Font, format, args...)
 	}
 }
 
@@ -310,22 +328,18 @@ func (utf *utf8FontFile) skip(delta int) {
 	utf.setError(err)
 }
 
-func (utf *utf8FontFile) seekTable(name string, offsetInTable int) int {
+func (utf *utf8FontFile) seekTable(name string) int {
 	description := utf.tableDescriptions[name]
 	if description == nil {
 		utf.setErrorf("required font table %q is missing", name)
 		return int(utf.fileReader.readerPosition)
 	}
-	return utf.seek(description.position + offsetInTable)
+	return utf.seek(description.position)
 }
 
 func (utf *utf8FontFile) readInt16() int16 {
 	s := utf.readBytes(2)
-	a := (int16(s[0]) << 8) + int16(s[1])
-	if (int(a) & (1 << 15)) == 0 {
-		a = int16(int(a) - (1 << 16))
-	}
-	return a
+	return int16FromUint16Bits(binary.BigEndian.Uint16(s))
 }
 
 func (utf *utf8FontFile) getUint16(pos int) int {
@@ -372,7 +386,9 @@ func (utf *utf8FontFile) getTableData(name string) []byte {
 	if description.size == 0 {
 		return nil
 	}
-	if description.position < 0 || description.position > len(utf.fileReader.array) || description.position+description.size > len(utf.fileReader.array) {
+	if description.position < 0 ||
+		description.position > len(utf.fileReader.array) ||
+		description.position+description.size > len(utf.fileReader.array) {
 		utf.setErrorf("font table %q exceeds font data", name)
 		return nil
 	}
@@ -391,7 +407,7 @@ func (utf *utf8FontFile) setOutTable(name string, data []byte) {
 }
 
 func (utf *utf8FontFile) parseNAMETable() int {
-	namePosition := utf.seekTable("name", 0)
+	namePosition := utf.seekTable("name")
 	format := utf.readUint16()
 	if format != 0 {
 		utf.setErrorf("unsupported name table format %d", format)
@@ -424,7 +440,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 			var currentNameSb422 strings.Builder
 			for size > 0 {
 				char := utf.readUint16()
-				currentNameSb422.WriteString(string(rune(char)))
+				currentNameSb422.WriteRune(rune(char)) // #nosec G115 -- UTF-16 code units are valid rune values.
 				size--
 			}
 			currentName += currentNameSb422.String()
@@ -448,7 +464,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 }
 
 func (utf *utf8FontFile) parseHEADTable() int {
-	utf.seekTable("head", 0)
+	utf.seekTable("head")
 	utf.skip(18)
 	utf.fontElementSize = utf.readUint16()
 	scale := 1000.0 / float64(utf.fontElementSize)
@@ -472,7 +488,7 @@ func (utf *utf8FontFile) parseHHEATable() int {
 	metricsCount := 0
 	if _, OK := utf.tableDescriptions["hhea"]; OK {
 		scale := 1000.0 / float64(utf.fontElementSize)
-		utf.seekTable("hhea", 0)
+		utf.seekTable("hhea")
 		utf.skip(4)
 		hheaAscender := utf.readInt16()
 		hheaDescender := utf.readInt16()
@@ -494,54 +510,65 @@ func (utf *utf8FontFile) parseHHEATable() int {
 }
 
 func (utf *utf8FontFile) parseOS2Table() int {
-	var weightType int
 	scale := 1000.0 / float64(utf.fontElementSize)
-	if _, OK := utf.tableDescriptions["OS/2"]; OK {
-		utf.seekTable("OS/2", 0)
-		version := utf.readUint16()
-		utf.skip(2)
-		weightType = utf.readUint16()
-		utf.skip(2)
-		fsType := utf.readUint16()
-		if fsType == 0x0002 || (fsType&0x0300) != 0 {
-			utf.setErrorf("font cannot be embedded because of font embedding restrictions")
-			return 0
-		}
-		utf.skip(20)
-		_ = utf.readInt16()
-
-		utf.skip(36)
-		sTypoAscender := utf.readInt16()
-		sTypoDescender := utf.readInt16()
-		if utf.ascent == 0 {
-			utf.ascent = int(float64(sTypoAscender) * scale)
-		}
-		if utf.descent == 0 {
-			utf.descent = int(float64(sTypoDescender) * scale)
-		}
-		if version > 1 {
-			utf.skip(16)
-			sCapHeight := utf.readInt16()
-			utf.capHeight = int(float64(sCapHeight) * scale)
-		} else {
-			utf.capHeight = utf.ascent
-		}
-	} else {
-		weightType = 500
-		if utf.ascent == 0 {
-			utf.ascent = int(float64(utf.bbox.Ymax) * scale)
-		}
-		if utf.descent == 0 {
-			utf.descent = int(float64(utf.bbox.Ymin) * scale)
-		}
-		utf.capHeight = utf.ascent
+	if _, ok := utf.tableDescriptions["OS/2"]; !ok {
+		utf.setFallbackOS2Metrics(scale)
+		return 500
 	}
+	weightType := utf.parseOS2Metrics(scale)
 	utf.stemV = 50 + int(math.Pow(float64(weightType)/65.0, 2))
 	return weightType
 }
 
+func (utf *utf8FontFile) parseOS2Metrics(scale float64) int {
+	utf.seekTable("OS/2")
+	version := utf.readUint16()
+	utf.skip(2)
+	weightType := utf.readUint16()
+	utf.skip(2)
+	fsType := utf.readUint16()
+	if fsType == 0x0002 || (fsType&0x0300) != 0 {
+		utf.setErrorf("font cannot be embedded because of font embedding restrictions")
+		return 0
+	}
+	utf.skip(20)
+	_ = utf.readInt16()
+
+	utf.skip(36)
+	sTypoAscender := utf.readInt16()
+	sTypoDescender := utf.readInt16()
+	if utf.ascent == 0 {
+		utf.ascent = int(float64(sTypoAscender) * scale)
+	}
+	if utf.descent == 0 {
+		utf.descent = int(float64(sTypoDescender) * scale)
+	}
+	utf.setOS2CapHeight(version, scale)
+	return weightType
+}
+
+func (utf *utf8FontFile) setOS2CapHeight(version int, scale float64) {
+	if version <= 1 {
+		utf.capHeight = utf.ascent
+		return
+	}
+	utf.skip(16)
+	sCapHeight := utf.readInt16()
+	utf.capHeight = int(float64(sCapHeight) * scale)
+}
+
+func (utf *utf8FontFile) setFallbackOS2Metrics(scale float64) {
+	if utf.ascent == 0 {
+		utf.ascent = int(float64(utf.bbox.Ymax) * scale)
+	}
+	if utf.descent == 0 {
+		utf.descent = int(float64(utf.bbox.Ymin) * scale)
+	}
+	utf.capHeight = utf.ascent
+}
+
 func (utf *utf8FontFile) parsePOSTTable(weight int) {
-	utf.seekTable("post", 0)
+	utf.seekTable("post")
 	utf.skip(4)
 	utf.italicAngle = int(utf.readInt16()) + utf.readUint16()/65536.0
 	scale := 1000.0 / float64(utf.fontElementSize)
@@ -552,18 +579,18 @@ func (utf *utf8FontFile) parsePOSTTable(weight int) {
 	utf.flags = 4
 
 	if utf.italicAngle != 0 {
-		utf.flags = utf.flags | 64
+		utf.flags |= 64
 	}
 	if weight >= 600 {
-		utf.flags = utf.flags | 262144
+		utf.flags |= 262144
 	}
 	if fixed != 0 {
-		utf.flags = utf.flags | 1
+		utf.flags |= 1
 	}
 }
 
-func (utf *utf8FontFile) parseCMAPTable(format int) int {
-	cmapPosition := utf.seekTable("cmap", 0)
+func (utf *utf8FontFile) parseCMAPTable() int {
+	cmapPosition := utf.seekTable("cmap")
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	cidCMAPPosition := 0
@@ -573,7 +600,7 @@ func (utf *utf8FontFile) parseCMAPTable(format int) int {
 		position := utf.readUint32()
 		oldReaderPosition := utf.fileReader.readerPosition
 		if (system == 3 && (coded == 1 || coded == 10)) || system == 0 { // Microsoft, Unicode
-			format = utf.getUint16(cmapPosition + position)
+			format := utf.getUint16(cmapPosition + position)
 			if format == 12 {
 				cidCMAPPosition = cmapPosition + position
 				break
@@ -599,7 +626,10 @@ func (utf *utf8FontFile) parseCOLRTable() {
 
 	tableStart := desc.position
 	utf.seek(tableStart)
-	version := uint16(utf.readUint16())
+	version, ok := utf.readCheckedUint16("COLR version")
+	if !ok {
+		return
+	}
 	if version > 1 {
 		return
 	}
@@ -626,10 +656,22 @@ func (utf *utf8FontFile) parseCOLRTable() {
 	if baseGlyphRecordsOffset != 0 {
 		utf.seek(tableStart + baseGlyphRecordsOffset)
 		for i := range numBaseGlyphRecords {
+			glyphID, ok := utf.readCheckedUint16("COLR base glyph ID")
+			if !ok {
+				return
+			}
+			firstLayerIdx, ok := utf.readCheckedUint16("COLR first layer index")
+			if !ok {
+				return
+			}
+			numLayers, ok := utf.readCheckedUint16("COLR layer count")
+			if !ok {
+				return
+			}
 			colr.baseGlyphRecords[i] = colorBaseGlyphRecord{
-				glyphID:       uint16(utf.readUint16()),
-				firstLayerIdx: uint16(utf.readUint16()),
-				numLayers:     uint16(utf.readUint16()),
+				glyphID:       glyphID,
+				firstLayerIdx: firstLayerIdx,
+				numLayers:     numLayers,
 			}
 		}
 		if utf.err != nil {
@@ -640,9 +682,17 @@ func (utf *utf8FontFile) parseCOLRTable() {
 	if layerRecordsOffset != 0 {
 		utf.seek(tableStart + layerRecordsOffset)
 		for i := range numLayerRecords {
+			glyphID, ok := utf.readCheckedUint16("COLR layer glyph ID")
+			if !ok {
+				return
+			}
+			paletteIndex, ok := utf.readCheckedUint16("COLR palette index")
+			if !ok {
+				return
+			}
 			colr.layerRecords[i] = colorLayerRecord{
-				glyphID:      uint16(utf.readUint16()),
-				paletteIndex: uint16(utf.readUint16()),
+				glyphID:      glyphID,
+				paletteIndex: paletteIndex,
 			}
 		}
 		if utf.err != nil {
@@ -740,7 +790,10 @@ func (utf *utf8FontFile) colorGlyphLayersV1(glyphID uint16, depth int) []colorLa
 	for lo <= hi {
 		mid := (lo + hi) / 2
 		utf.seek(listStart + 4 + mid*6)
-		recordGlyphID := uint16(utf.readUint16())
+		recordGlyphID, ok := utf.readCheckedUint16("COLR v1 record glyph ID")
+		if !ok {
+			return nil
+		}
 		paintOffset := utf.readUint32()
 		if utf.err != nil {
 			return nil
@@ -771,7 +824,7 @@ func (utf *utf8FontFile) parseCOLRV1Paint(offset, depth int) []colorLayerRecord 
 
 	switch format {
 	case 1:
-		layerCount := int(utf.readByte())
+		layerCount := utf.readByte()
 		firstLayerIndex := utf.readUint32()
 		layerListStart := utf.tableDescriptions["COLR"].position + utf.colrTable.layerListOffset
 		utf.seek(layerListStart)
@@ -789,7 +842,10 @@ func (utf *utf8FontFile) parseCOLRV1Paint(offset, depth int) []colorLayerRecord 
 		return layers
 	case 10:
 		paintOffset := utf.readOffset24()
-		glyphID := uint16(utf.readUint16())
+		glyphID, ok := utf.readCheckedUint16("COLR v1 glyph ID")
+		if !ok {
+			return nil
+		}
 		paletteIndex := utf.parseCOLRV1Color(offset+paintOffset, depth+1)
 		if utf.err != nil {
 			return nil
@@ -799,7 +855,10 @@ func (utf *utf8FontFile) parseCOLRV1Paint(offset, depth int) []colorLayerRecord 
 			paletteIndex: paletteIndex,
 		}}
 	case 11:
-		reusedGlyphID := uint16(utf.readUint16())
+		reusedGlyphID, ok := utf.readCheckedUint16("COLR v1 reused glyph ID")
+		if !ok {
+			return nil
+		}
 		return utf.colorGlyphLayersV1(reusedGlyphID, depth+1)
 	case 12, 14, 16, 24, 26, 28, 30:
 		paintOffset := utf.readOffset24()
@@ -838,9 +897,17 @@ func (utf *utf8FontFile) parseCOLRV1Color(offset, depth int) uint16 {
 
 	switch format {
 	case 2:
-		return uint16(utf.readUint16())
+		paletteIndex, ok := utf.readCheckedUint16("COLR v1 palette index")
+		if !ok {
+			return 0xFFFF
+		}
+		return paletteIndex
 	case 3:
-		return uint16(utf.readUint16())
+		paletteIndex, ok := utf.readCheckedUint16("COLR v1 palette index")
+		if !ok {
+			return 0xFFFF
+		}
+		return paletteIndex
 	case 4, 5, 6, 7, 8, 9:
 		colorLineOffset := utf.readOffset24()
 		return utf.firstPaletteIndexInColorLine(offset + colorLineOffset)
@@ -860,7 +927,11 @@ func (utf *utf8FontFile) firstPaletteIndexInColorLine(offset int) uint16 {
 		return 0xFFFF
 	}
 	_ = utf.readUint16() // stop offset
-	return uint16(utf.readUint16())
+	paletteIndex, ok := utf.readCheckedUint16("COLR v1 color stop palette index")
+	if !ok {
+		return 0xFFFF
+	}
+	return paletteIndex
 }
 
 func (utf *utf8FontFile) parseBitmapTables(numGlyphs int) {
@@ -941,96 +1012,116 @@ func (utf *utf8FontFile) parseCBLCIndexSubTable(offset, firstGlyph, lastGlyph, p
 
 	switch indexFormat {
 	case 1:
-		offsets := make([]int, glyphCount+1)
-		for i := range offsets {
-			offsets[i] = utf.readUint32()
-		}
-		if utf.err != nil {
-			return
-		}
-		utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+		utf.parseCBLCFormat1(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, glyphCount)
 	case 2:
-		imageSize := utf.readUint32()
-		metrics := utf.readBigGlyphMetrics()
-		if utf.err != nil || imageSize <= 0 {
-			return
-		}
-		for glyphID := firstGlyph; glyphID <= lastGlyph; glyphID++ {
-			idx := glyphID - firstGlyph
-			utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
-				dataOffset:  imageDataStart + idx*imageSize,
-				dataLength:  imageSize,
-				imageFormat: imageFormat,
-				ppemX:       ppemX,
-				ppemY:       ppemY,
-				hasMetrics:  true,
-				width:       metrics.width,
-				height:      metrics.height,
-				bearingX:    metrics.bearingX,
-				bearingY:    metrics.bearingY,
-				advance:     metrics.advance,
-			})
-		}
+		utf.parseCBLCFormat2(firstGlyph, lastGlyph, imageDataStart, imageFormat, ppemX, ppemY)
 	case 3:
-		offsets := make([]int, glyphCount+1)
-		for i := range offsets {
-			offsets[i] = utf.readUint16()
-		}
-		if utf.err != nil {
-			return
-		}
-		utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+		utf.parseCBLCFormat3(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, glyphCount)
 	case 4:
-		pairCount := utf.readUint32()
-		if utf.err != nil || pairCount < 1 {
-			return
-		}
-		pairs := make([]bitmapGlyphOffsetPair, pairCount+1)
-		for i := range pairs {
-			pairs[i] = bitmapGlyphOffsetPair{
-				glyphID: utf.readUint16(),
-				offset:  utf.readUint16(),
-			}
-		}
-		if utf.err != nil {
-			return
-		}
-		for i := range pairCount {
-			dataLength := pairs[i+1].offset - pairs[i].offset
-			if dataLength <= 0 {
-				continue
-			}
-			utf.addCBDTGlyphLocation(pairs[i].glyphID, bitmapGlyphLocation{
-				dataOffset:  imageDataStart + pairs[i].offset,
-				dataLength:  dataLength,
-				imageFormat: imageFormat,
-				ppemX:       ppemX,
-				ppemY:       ppemY,
-			})
-		}
+		utf.parseCBLCFormat4(imageDataStart, imageFormat, ppemX, ppemY)
 	case 5:
-		imageSize := utf.readUint32()
-		metrics := utf.readBigGlyphMetrics()
-		sparseGlyphCount := utf.readUint32()
-		if utf.err != nil || imageSize <= 0 {
-			return
+		utf.parseCBLCFormat5(imageDataStart, imageFormat, ppemX, ppemY)
+	}
+}
+
+func (utf *utf8FontFile) parseCBLCFormat1(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, glyphCount int) {
+	offsets := make([]int, glyphCount+1)
+	for i := range offsets {
+		offsets[i] = utf.readUint32()
+	}
+	if utf.err != nil {
+		return
+	}
+	utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+}
+
+func (utf *utf8FontFile) parseCBLCFormat2(firstGlyph, lastGlyph, imageDataStart, imageFormat, ppemX, ppemY int) {
+	imageSize := utf.readUint32()
+	metrics := utf.readBigGlyphMetrics()
+	if utf.err != nil || imageSize <= 0 {
+		return
+	}
+	for glyphID := firstGlyph; glyphID <= lastGlyph; glyphID++ {
+		idx := glyphID - firstGlyph
+		utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
+			dataOffset:  imageDataStart + idx*imageSize,
+			dataLength:  imageSize,
+			imageFormat: imageFormat,
+			ppemX:       ppemX,
+			ppemY:       ppemY,
+			hasMetrics:  true,
+			width:       metrics.width,
+			height:      metrics.height,
+			bearingX:    metrics.bearingX,
+			bearingY:    metrics.bearingY,
+			advance:     metrics.advance,
+		})
+	}
+}
+
+func (utf *utf8FontFile) parseCBLCFormat3(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, glyphCount int) {
+	offsets := make([]int, glyphCount+1)
+	for i := range offsets {
+		offsets[i] = utf.readUint16()
+	}
+	if utf.err != nil {
+		return
+	}
+	utf.addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY, offsets, nil)
+}
+
+func (utf *utf8FontFile) parseCBLCFormat4(imageDataStart, imageFormat, ppemX, ppemY int) {
+	pairCount := utf.readUint32()
+	if utf.err != nil || pairCount < 1 {
+		return
+	}
+	pairs := make([]bitmapGlyphOffsetPair, pairCount+1)
+	for i := range pairs {
+		pairs[i] = bitmapGlyphOffsetPair{
+			glyphID: utf.readUint16(),
+			offset:  utf.readUint16(),
 		}
-		for i := range sparseGlyphCount {
-			glyphID := utf.readUint16()
-			utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
-				dataOffset:  imageDataStart + i*imageSize,
-				dataLength:  imageSize,
-				imageFormat: imageFormat,
-				ppemX:       ppemX,
-				ppemY:       ppemY,
-				hasMetrics:  true,
-				width:       metrics.width,
-				height:      metrics.height,
-				bearingX:    metrics.bearingX,
-				bearingY:    metrics.bearingY,
-				advance:     metrics.advance,
-			})
+	}
+	if utf.err != nil {
+		return
+	}
+	for i := range pairCount {
+		dataLength := pairs[i+1].offset - pairs[i].offset
+		if dataLength <= 0 {
+			continue
 		}
+		utf.addCBDTGlyphLocation(pairs[i].glyphID, bitmapGlyphLocation{
+			dataOffset:  imageDataStart + pairs[i].offset,
+			dataLength:  dataLength,
+			imageFormat: imageFormat,
+			ppemX:       ppemX,
+			ppemY:       ppemY,
+		})
+	}
+}
+
+func (utf *utf8FontFile) parseCBLCFormat5(imageDataStart, imageFormat, ppemX, ppemY int) {
+	imageSize := utf.readUint32()
+	metrics := utf.readBigGlyphMetrics()
+	sparseGlyphCount := utf.readUint32()
+	if utf.err != nil || imageSize <= 0 {
+		return
+	}
+	for i := range sparseGlyphCount {
+		glyphID := utf.readUint16()
+		utf.addCBDTGlyphLocation(glyphID, bitmapGlyphLocation{
+			dataOffset:  imageDataStart + i*imageSize,
+			dataLength:  imageSize,
+			imageFormat: imageFormat,
+			ppemX:       ppemX,
+			ppemY:       ppemY,
+			hasMetrics:  true,
+			width:       metrics.width,
+			height:      metrics.height,
+			bearingX:    metrics.bearingX,
+			bearingY:    metrics.bearingY,
+			advance:     metrics.advance,
+		})
 	}
 }
 
@@ -1051,7 +1142,11 @@ func isCBDTPNGImageFormat(imageFormat int) bool {
 	return imageFormat == 17 || imageFormat == 18 || imageFormat == 19
 }
 
-func (utf *utf8FontFile) addCBDTOffsetLocations(firstGlyph, imageDataStart, imageFormat, ppemX, ppemY int, offsets []int, metrics *bitmapGlyphMetrics) {
+func (utf *utf8FontFile) addCBDTOffsetLocations(
+	firstGlyph, imageDataStart, imageFormat, ppemX, ppemY int,
+	offsets []int,
+	metrics *bitmapGlyphMetrics,
+) {
 	for idx := 0; idx+1 < len(offsets); idx++ {
 		dataLength := offsets[idx+1] - offsets[idx]
 		if dataLength <= 0 {
@@ -1083,8 +1178,14 @@ func (utf *utf8FontFile) addCBDTGlyphLocation(glyphID int, location bitmapGlyphL
 func (utf *utf8FontFile) readBigGlyphMetrics() bitmapGlyphMetrics {
 	height := utf.readByte()
 	width := utf.readByte()
-	bearingX := int(int8(byte(utf.readByte())))
-	bearingY := int(int8(byte(utf.readByte())))
+	bearingX, ok := utf.readInt8Bits("big glyph bearingX")
+	if !ok {
+		return bitmapGlyphMetrics{}
+	}
+	bearingY, ok := utf.readInt8Bits("big glyph bearingY")
+	if !ok {
+		return bitmapGlyphMetrics{}
+	}
 	advance := utf.readByte()
 	_ = utf.readByte() // vertBearingX
 	_ = utf.readByte() // vertBearingY
@@ -1092,8 +1193,8 @@ func (utf *utf8FontFile) readBigGlyphMetrics() bitmapGlyphMetrics {
 	return bitmapGlyphMetrics{
 		width:    width,
 		height:   height,
-		bearingX: bearingX,
-		bearingY: bearingY,
+		bearingX: int(bearingX),
+		bearingY: int(bearingY),
 		advance:  advance,
 	}
 }
@@ -1279,12 +1380,12 @@ func (utf *utf8FontFile) sbixGlyphImage(glyphID int, sizePt float64) *bitmapGlyp
 	if utf.err != nil || len(raw) < 8 {
 		return nil
 	}
-	originOffsetX := int(int16(binary.BigEndian.Uint16(raw[0:2])))
-	originOffsetY := int(int16(binary.BigEndian.Uint16(raw[2:4])))
+	originOffsetX := int(int16FromUint16Bits(binary.BigEndian.Uint16(raw[0:2])))
+	originOffsetY := int(int16FromUint16Bits(binary.BigEndian.Uint16(raw[2:4])))
 	imageType := strings.TrimSpace(string(raw[4:8]))
 	imageData := raw[8:]
 	switch imageType {
-	case "png":
+	case imageTypePNG:
 		if !bytes.HasPrefix(imageData, []byte("\x89PNG\r\n\x1a\n")) {
 			return nil
 		}
@@ -1333,7 +1434,7 @@ func pngSize(data []byte) (int, int) {
 }
 
 func (utf *utf8FontFile) parseTables() {
-	f := utf.parseNAMETable()
+	utf.parseNAMETable()
 	if utf.err != nil {
 		return
 	}
@@ -1353,7 +1454,7 @@ func (utf *utf8FontFile) parseTables() {
 	if utf.err != nil {
 		return
 	}
-	runeCMAPPosition := utf.parseCMAPTable(f)
+	runeCMAPPosition := utf.parseCMAPTable()
 	if utf.err != nil {
 		return
 	}
@@ -1361,7 +1462,7 @@ func (utf *utf8FontFile) parseTables() {
 	utf.parseCOLRTable()
 	utf.parseCPALTable()
 
-	utf.seekTable("maxp", 0)
+	utf.seekTable("maxp")
 	utf.skip(4)
 	numSymbols := utf.readUint16()
 	if utf.err != nil {
@@ -1388,7 +1489,7 @@ func (utf *utf8FontFile) parseTables() {
 }
 
 func (utf *utf8FontFile) generateCMAP() map[int][]int {
-	cmapPosition := utf.seekTable("cmap", 0)
+	cmapPosition := utf.seekTable("cmap")
 	utf.skip(2)
 	cmapTableCount := utf.readUint16()
 	runeCmapPosition := 0
@@ -1428,18 +1529,9 @@ func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[i
 	symbolCollection := map[int]int{0: 0}
 	charSymbolPairCollection := make(map[int]int)
 	for cid, char := range usedRunes {
-		if _, OK := utf.charSymbolDictionary[char]; OK {
-			glyphID := utf.charSymbolDictionary[char]
-			symbolCollection[glyphID] = char
-			charSymbolPairCollection[cid] = glyphID
-			if utf.hasColorGlyphs {
-				for _, layer := range utf.colorGlyphLayers(uint16(glyphID)) {
-					layerGlyphID := int(layer.glyphID)
-					if _, exists := symbolCollection[layerGlyphID]; !exists {
-						symbolCollection[layerGlyphID] = 0
-					}
-				}
-			}
+		glyphID, ok := utf.charSymbolDictionary[char]
+		if ok {
+			utf.addSymbol(char, cid, glyphID, symbolCollection, charSymbolPairCollection)
 		}
 		utf.lastRune = max(utf.lastRune, cid)
 	}
@@ -1465,10 +1557,38 @@ func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[i
 
 	symbolCollectionKeys = keySortInt(symbolCollection)
 	for _, oldSymbolIndex := range symbolCollectionKeys {
-		_, symbolArray, symbolCollection, symbolCollectionKeys = utf.getSymbols(oldSymbolIndex, &begin, symbolArray, symbolCollection, symbolCollectionKeys)
+		symbolArray, symbolCollection, symbolCollectionKeys = utf.getSymbols(
+			oldSymbolIndex,
+			&begin,
+			symbolArray,
+			symbolCollection,
+			symbolCollectionKeys,
+		)
 	}
 
 	return runeSymbolPairCollection, symbolArray, symbolCollection, symbolCollectionKeys
+}
+
+func (utf *utf8FontFile) addSymbol(
+	char, cid, glyphID int,
+	symbolCollection map[int]int,
+	charSymbolPairCollection map[int]int,
+) {
+	symbolCollection[glyphID] = char
+	charSymbolPairCollection[cid] = glyphID
+	if !utf.hasColorGlyphs {
+		return
+	}
+	colorGlyphID, ok := checkedUint16(glyphID)
+	if !ok {
+		return
+	}
+	for _, layer := range utf.colorGlyphLayers(colorGlyphID) {
+		layerGlyphID := int(layer.glyphID)
+		if _, exists := symbolCollection[layerGlyphID]; !exists {
+			symbolCollection[layerGlyphID] = 0
+		}
+	}
 }
 
 func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, numSymbols int) []byte {
@@ -1497,13 +1617,14 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 	searchRange := 1
 	entrySelector := 0
 	for searchRange*2 <= segCount {
-		searchRange = searchRange * 2
-		entrySelector = entrySelector + 1
+		searchRange *= 2
+		entrySelector++
 	}
-	searchRange = searchRange * 2
+	searchRange *= 2
 	rangeShift := segCount*2 - searchRange
 	length := 16 + (8 * segCount) + (numSymbols + 1)
-	cmap := []int{0, 1, 3, 1, 0, 12, 4, length, 0, segCount * 2, searchRange, entrySelector, rangeShift}
+	cmap := make([]int, 0, 13+len(cidArrayKeys)*4+len(cidArray)+numSymbols+3)
+	cmap = append(cmap, 0, 1, 3, 1, 0, 12, 4, length, 0, segCount*2, searchRange, entrySelector, rangeShift)
 
 	for _, start := range cidArrayKeys {
 		endCode := start + (len(cidArray[start]) - 1)
@@ -1527,7 +1648,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 		cmap = append(cmap, cidArray[start]...)
 	}
 	cmap = append(cmap, 0)
-	cmapstr := make([]byte, 0)
+	cmapstr := make([]byte, 0, len(cmap)*2)
 	for _, cm := range cmap {
 		cmapstr = append(cmapstr, packUint16(cm)...)
 	}
@@ -1536,6 +1657,45 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 
 // generateCutFont fill utf8FontFile from .utf file, only with runes from usedRunes
 func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
+	utf.resetCutFontState()
+	metadata, ok := utf.readCutFontMetadata()
+	if !ok {
+		return nil
+	}
+
+	cidSymbolPairCollection, symbolArray, symbolCollection, symbolCollectionKeys := utf.parseSymbols(usedRunes)
+	metricsCount := len(symbolCollection)
+	numSymbols := metricsCount
+
+	if !utf.copyCutFontStaticTables() {
+		return nil
+	}
+
+	delete(cidSymbolPairCollection, 0)
+	utf.setOutTable("cmap", utf.generateCMAPTable(cidSymbolPairCollection, numSymbols))
+
+	glyphBuilder, ok := utf.newCutFontGlyphBuilder(symbolArray, metadata.oldMetrics)
+	if !ok {
+		return nil
+	}
+	for _, originalSymbolIdx := range symbolCollectionKeys {
+		if !glyphBuilder.appendGlyph(originalSymbolIdx) {
+			return nil
+		}
+	}
+	locaFormat := glyphBuilder.finish()
+	if !utf.updateCutFontHeaderTables(locaFormat, metricsCount, numSymbols) {
+		return nil
+	}
+
+	return utf.assembleTables()
+}
+
+type cutFontMetadata struct {
+	oldMetrics int
+}
+
+func (utf *utf8FontFile) resetCutFontState() {
 	utf.fileReader.readerPosition = int64(utf.fontOffset)
 	utf.fileReader.err = nil
 	utf.err = nil
@@ -1549,171 +1709,202 @@ func (utf *utf8FontFile) generateCutFont(usedRunes map[int]int) []byte {
 	utf.lastRune = 0
 	utf.generateTableDescriptions()
 	if utf.err != nil {
-		return nil
+		return
 	}
 	utf.parseCOLRTable()
 	utf.parseCPALTable()
 	utf.hasColorGlyphs = utf.colrTable != nil && utf.cpalTable != nil
+}
 
-	utf.seekTable("head", 0)
-	utf.skip(50)
-	LocaFormat := utf.readUint16()
+func (utf *utf8FontFile) readCutFontMetadata() (cutFontMetadata, bool) {
 	if utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
+	}
+	utf.seekTable("head")
+	utf.skip(50)
+	locaFormat := utf.readUint16()
+	if utf.err != nil {
+		return cutFontMetadata{}, false
 	}
 
-	utf.seekTable("hhea", 0)
+	utf.seekTable("hhea")
 	utf.skip(34)
 	metricsCount := utf.readUint16()
 	oldMetrics := metricsCount
 	if utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
 	}
 
-	utf.seekTable("maxp", 0)
+	utf.seekTable("maxp")
 	utf.skip(4)
 	numSymbols := utf.readUint16()
 	if utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
 	}
 
 	symbolCharDictionary := utf.generateCMAP()
 	if symbolCharDictionary == nil || utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
 	}
 
 	utf.parseHMTXTable(metricsCount, numSymbols, symbolCharDictionary, 1.0)
 	if utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
 	}
 
-	utf.parseLOCATable(LocaFormat, numSymbols)
+	utf.parseLOCATable(locaFormat, numSymbols)
 	if utf.err != nil {
-		return nil
+		return cutFontMetadata{}, false
 	}
 
-	cidSymbolPairCollection, symbolArray, symbolCollection, symbolCollectionKeys := utf.parseSymbols(usedRunes)
+	return cutFontMetadata{oldMetrics: oldMetrics}, true
+}
 
-	metricsCount = len(symbolCollection)
-	numSymbols = metricsCount
-
+func (utf *utf8FontFile) copyCutFontStaticTables() bool {
 	utf.setOutTable("name", utf.getTableData("name"))
 	utf.setOutTable("cvt ", utf.getTableData("cvt "))
 	utf.setOutTable("fpgm", utf.getTableData("fpgm"))
 	utf.setOutTable("prep", utf.getTableData("prep"))
 	utf.setOutTable("gasp", utf.getTableData("gasp"))
+	return utf.setCutFontPostTable()
+}
 
+func (utf *utf8FontFile) setCutFontPostTable() bool {
 	postTable := utf.getTableData("post")
 	if utf.err != nil {
-		return nil
+		return false
 	}
 	if len(postTable) < 16 {
 		utf.setErrorf("post table is truncated")
-		return nil
+		return false
 	}
-	postTable = append(append([]byte{0x00, 0x03, 0x00, 0x00}, postTable[4:16]...), []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}...)
-	utf.setOutTable("post", postTable)
+	utf.setOutTable("post", cutFontPostTable(postTable))
+	return true
+}
 
-	delete(cidSymbolPairCollection, 0)
+func cutFontPostTable(postTable []byte) []byte {
+	rewritten := make([]byte, 0, 32)
+	rewritten = append(rewritten, 0x00, 0x03, 0x00, 0x00)
+	rewritten = append(rewritten, postTable[4:16]...)
+	return append(rewritten, make([]byte, 16)...)
+}
 
-	utf.setOutTable("cmap", utf.generateCMAPTable(cidSymbolPairCollection, numSymbols))
+type cutFontGlyphBuilder struct {
+	utf         *utf8FontFile
+	symbolData  []byte
+	symbolArray map[int]int
+	oldMetrics  int
+	offsets     []int
+	glyfData    []byte
+	hmtxData    []byte
+	pos         int
+}
 
+func (utf *utf8FontFile) newCutFontGlyphBuilder(symbolArray map[int]int, oldMetrics int) (cutFontGlyphBuilder, bool) {
 	symbolData := utf.getTableData("glyf")
 	if utf.err != nil {
-		return nil
+		return cutFontGlyphBuilder{}, false
 	}
-
-	offsets := make([]int, 0)
-	glyfData := make([]byte, 0)
-	pos := 0
-	hmtxData := make([]byte, 0)
 	utf.symbolData = make(map[int]map[string][]int, 0)
+	return cutFontGlyphBuilder{
+		utf:         utf,
+		symbolData:  symbolData,
+		symbolArray: symbolArray,
+		oldMetrics:  oldMetrics,
+		offsets:     make([]int, 0, len(symbolArray)+1),
+		hmtxData:    make([]byte, 0, len(symbolArray)*4),
+	}, true
+}
 
-	for _, originalSymbolIdx := range symbolCollectionKeys {
-		hm := utf.getMetrics(oldMetrics, originalSymbolIdx)
-		hmtxData = append(hmtxData, hm...)
+func (builder *cutFontGlyphBuilder) appendGlyph(originalSymbolIdx int) bool {
+	builder.hmtxData = append(builder.hmtxData, builder.utf.getMetrics(builder.oldMetrics, originalSymbolIdx)...)
+	builder.offsets = append(builder.offsets, builder.pos)
 
-		offsets = append(offsets, pos)
-		symbolPos := utf.symbolPosition[originalSymbolIdx]
-		symbolLen := utf.symbolPosition[originalSymbolIdx+1] - symbolPos
-		data, ok := utf.glyphData(symbolData, symbolPos, symbolLen)
-		if !ok {
-			return nil
-		}
-		var up int
-		if symbolLen > 0 {
-			up = unpackUint16(data[0:2])
-		}
-
-		if symbolLen > 2 && (up&(1<<15)) != 0 {
-			data = utf.rewriteCompositeGlyph(data, originalSymbolIdx, symbolArray)
-			if utf.err != nil {
-				return nil
-			}
-		}
-
-		glyfData = append(glyfData, data...)
-		pos += symbolLen
-		if pos%4 != 0 {
-			padding := 4 - (pos % 4)
-			glyfData = append(glyfData, make([]byte, padding)...)
-			pos += padding
+	symbolPos := builder.utf.symbolPosition[originalSymbolIdx]
+	symbolLen := builder.utf.symbolPosition[originalSymbolIdx+1] - symbolPos
+	data, ok := builder.utf.glyphData(builder.symbolData, symbolPos, symbolLen)
+	if !ok {
+		return false
+	}
+	if builder.isCompositeGlyph(data, symbolLen) {
+		data = builder.utf.rewriteCompositeGlyph(data, originalSymbolIdx, builder.symbolArray)
+		if builder.utf.err != nil {
+			return false
 		}
 	}
 
-	offsets = append(offsets, pos)
-	utf.setOutTable("glyf", glyfData)
+	builder.glyfData = append(builder.glyfData, data...)
+	builder.pos += symbolLen
+	builder.pad()
+	return true
+}
 
-	utf.setOutTable("hmtx", hmtxData)
+func (builder *cutFontGlyphBuilder) isCompositeGlyph(data []byte, symbolLen int) bool {
+	if symbolLen <= 2 {
+		return false
+	}
+	return unpackUint16(data[0:2])&(1<<15) != 0
+}
 
-	locaData := make([]byte, 0)
+func (builder *cutFontGlyphBuilder) pad() {
+	if builder.pos%4 == 0 {
+		return
+	}
+	padding := 4 - (builder.pos % 4)
+	builder.glyfData = append(builder.glyfData, make([]byte, padding)...)
+	builder.pos += padding
+}
+
+func (builder *cutFontGlyphBuilder) finish() int {
+	builder.offsets = append(builder.offsets, builder.pos)
+	builder.utf.setOutTable("glyf", builder.glyfData)
+	builder.utf.setOutTable("hmtx", builder.hmtxData)
+	return builder.utf.setCutFontLocaTable(builder.pos, builder.offsets)
+}
+
+func (utf *utf8FontFile) setCutFontLocaTable(pos int, offsets []int) int {
 	if ((pos + 1) >> 1) > 0xFFFF {
-		LocaFormat = 1
+		locaData := make([]byte, 0, len(offsets)*4)
 		for _, offset := range offsets {
 			locaData = append(locaData, packUint32(offset)...)
 		}
-	} else {
-		LocaFormat = 0
-		for _, offset := range offsets {
-			locaData = append(locaData, packUint16(offset/2)...)
-		}
+		utf.setOutTable("loca", locaData)
+		return 1
+	}
+
+	locaData := make([]byte, 0, len(offsets)*2)
+	for _, offset := range offsets {
+		locaData = append(locaData, packUint16(offset/2)...)
 	}
 	utf.setOutTable("loca", locaData)
+	return 0
+}
 
-	headData := utf.getTableData("head")
-	if utf.err != nil {
-		return nil
+func (utf *utf8FontFile) updateCutFontHeaderTables(locaFormat, metricsCount, numSymbols int) bool {
+	if !utf.updateCutFontUint16Table("head", 50, locaFormat) {
+		return false
 	}
-	headData = utf.insertUint16(headData, 50, LocaFormat)
-	if utf.err != nil {
-		return nil
+	if !utf.updateCutFontUint16Table("hhea", 34, metricsCount) {
+		return false
 	}
-	utf.setOutTable("head", headData)
+	if !utf.updateCutFontUint16Table("maxp", 4, numSymbols) {
+		return false
+	}
+	utf.setOutTable("OS/2", utf.getTableData("OS/2"))
+	return true
+}
 
-	hheaData := utf.getTableData("hhea")
+func (utf *utf8FontFile) updateCutFontUint16Table(name string, offset, value int) bool {
+	data := utf.getTableData(name)
 	if utf.err != nil {
-		return nil
+		return false
 	}
-	hheaData = utf.insertUint16(hheaData, 34, metricsCount)
+	data = utf.insertUint16(data, offset, value)
 	if utf.err != nil {
-		return nil
+		return false
 	}
-	utf.setOutTable("hhea", hheaData)
-
-	maxp := utf.getTableData("maxp")
-	if utf.err != nil {
-		return nil
-	}
-	maxp = utf.insertUint16(maxp, 4, numSymbols)
-	if utf.err != nil {
-		return nil
-	}
-	utf.setOutTable("maxp", maxp)
-
-	os2Data := utf.getTableData("OS/2")
-	utf.setOutTable("OS/2", os2Data)
-
-	return utf.assembleTables()
+	utf.setOutTable(name, data)
+	return true
 }
 
 func (utf *utf8FontFile) glyphData(symbolData []byte, symbolPos, symbolLen int) ([]byte, bool) {
@@ -1746,11 +1937,12 @@ func (utf *utf8FontFile) rewriteCompositeGlyph(data []byte, originalSymbolIdx in
 		} else {
 			componentEnd += 2
 		}
-		if flags&symbolScale != 0 {
+		switch {
+		case flags&symbolScale != 0:
 			componentEnd += 2
-		} else if flags&symbolAllScale != 0 {
+		case flags&symbolAllScale != 0:
 			componentEnd += 4
-		} else if flags&symbol2x2 != 0 {
+		case flags&symbol2x2 != 0:
 			componentEnd += 8
 		}
 		if componentEnd > len(data) {
@@ -1774,15 +1966,21 @@ func (utf *utf8FontFile) rewriteCompositeGlyph(data []byte, originalSymbolIdx in
 	return data
 }
 
-func (utf *utf8FontFile) getSymbols(originalSymbolIdx int, start *int, symbolSet map[int]int, SymbolsCollection map[int]int, SymbolsCollectionKeys []int) (*int, map[int]int, map[int]int, []int) {
+func (utf *utf8FontFile) getSymbols(
+	originalSymbolIdx int,
+	start *int,
+	symbolSet map[int]int,
+	symbolsCollection map[int]int,
+	symbolsCollectionKeys []int,
+) (map[int]int, map[int]int, []int) {
 	if originalSymbolIdx < 0 || originalSymbolIdx+1 >= len(utf.symbolPosition) {
 		utf.setErrorf("glyph location index %d is out of range", originalSymbolIdx)
-		return start, symbolSet, SymbolsCollection, SymbolsCollectionKeys
+		return symbolSet, symbolsCollection, symbolsCollectionKeys
 	}
 	symbolPos := utf.symbolPosition[originalSymbolIdx]
 	symbolSize := utf.symbolPosition[originalSymbolIdx+1] - symbolPos
 	if symbolSize == 0 {
-		return start, symbolSet, SymbolsCollection, SymbolsCollectionKeys
+		return symbolSet, symbolsCollection, symbolsCollectionKeys
 	}
 	utf.seek(*start + symbolPos)
 
@@ -1795,33 +1993,39 @@ func (utf *utf8FontFile) getSymbols(originalSymbolIdx int, start *int, symbolSet
 			flags = utf.readUint16()
 			symbolIndex := utf.readUint16()
 			if _, OK := symbolSet[symbolIndex]; !OK {
-				symbolSet[symbolIndex] = len(SymbolsCollection)
-				SymbolsCollection[symbolIndex] = 1
-				SymbolsCollectionKeys = append(SymbolsCollectionKeys, symbolIndex)
+				symbolSet[symbolIndex] = len(symbolsCollection)
+				symbolsCollection[symbolIndex] = 1
+				symbolsCollectionKeys = append(symbolsCollectionKeys, symbolIndex)
 			}
 			oldPosition, _ := utf.fileReader.seek(0, 1)
-			_, _, _, SymbolsCollectionKeys = utf.getSymbols(symbolIndex, start, symbolSet, SymbolsCollection, SymbolsCollectionKeys)
+			_, _, symbolsCollectionKeys = utf.getSymbols(
+				symbolIndex,
+				start,
+				symbolSet,
+				symbolsCollection,
+				symbolsCollectionKeys,
+			)
 			utf.seek(int(oldPosition))
 			if flags&symbolWords != 0 {
 				utf.skip(4)
 			} else {
 				utf.skip(2)
 			}
-			if flags&symbolScale != 0 {
+			switch {
+			case flags&symbolScale != 0:
 				utf.skip(2)
-			} else if flags&symbolAllScale != 0 {
+			case flags&symbolAllScale != 0:
 				utf.skip(4)
-			} else if flags&symbol2x2 != 0 {
+			case flags&symbol2x2 != 0:
 				utf.skip(8)
 			}
 		}
 	}
-	return start, symbolSet, SymbolsCollection, SymbolsCollectionKeys
+	return symbolSet, symbolsCollection, symbolsCollectionKeys
 }
 
 func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbolToChar map[int][]int, scale float64) {
-	var widths int
-	start := utf.seekTable("hmtx", 0)
+	start := utf.seekTable("hmtx")
 	arrayWidths := 0
 	var arr []int
 	utf.charWidths = make([]int, 256*256)
@@ -1837,43 +2041,47 @@ func (utf *utf8FontFile) parseHMTXTable(numberOfHMetrics, numSymbols int, symbol
 	}
 	for symbol := range numberOfHMetrics {
 		arrayWidths = arr[(symbol*2)+1]
-		if _, OK := symbolToChar[symbol]; OK || symbol == 0 {
-			if arrayWidths >= (1 << 15) {
-				arrayWidths = 0
-			}
-			if symbol == 0 {
-				utf.defaultWidth = scale * float64(arrayWidths)
-				continue
-			}
-			for _, char := range symbolToChar[symbol] {
-				if char != 0 && char != 65535 {
-					widths = int(math.Round(scale * float64(arrayWidths)))
-					if widths == 0 {
-						widths = 65535
-					}
-					utf.setCharWidth(char, widths)
-					charCount++
-				}
-			}
-		}
+		charCount += utf.applyHMTXWidth(symbol, arrayWidths, symbolToChar, scale)
 	}
 	diff := numSymbols - numberOfHMetrics
 	for pos := range diff {
 		symbol := pos + numberOfHMetrics
-		if _, OK := symbolToChar[symbol]; OK {
-			for _, char := range symbolToChar[symbol] {
-				if char != 0 && char != 65535 {
-					widths = int(math.Round(scale * float64(arrayWidths)))
-					if widths == 0 {
-						widths = 65535
-					}
-					utf.setCharWidth(char, widths)
-					charCount++
-				}
-			}
-		}
+		charCount += utf.applyHMTXWidth(symbol, arrayWidths, symbolToChar, scale)
 	}
 	utf.charWidths[0] = charCount
+}
+
+func (utf *utf8FontFile) applyHMTXWidth(symbol, arrayWidth int, symbolToChar map[int][]int, scale float64) int {
+	chars, ok := symbolToChar[symbol]
+	if !ok && symbol != 0 {
+		return 0
+	}
+	if arrayWidth >= (1 << 15) {
+		arrayWidth = 0
+	}
+	if symbol == 0 {
+		utf.defaultWidth = scale * float64(arrayWidth)
+		return 0
+	}
+
+	width := scaledGlyphWidth(arrayWidth, scale)
+	count := 0
+	for _, char := range chars {
+		if char == 0 || char == 65535 {
+			continue
+		}
+		utf.setCharWidth(char, width)
+		count++
+	}
+	return count
+}
+
+func scaledGlyphWidth(arrayWidth int, scale float64) int {
+	width := int(math.Round(scale * float64(arrayWidth)))
+	if width == 0 {
+		return 65535
+	}
+	return width
 }
 
 func (utf *utf8FontFile) setCharWidth(char, width int) {
@@ -1888,7 +2096,7 @@ func (utf *utf8FontFile) setCharWidth(char, width int) {
 }
 
 func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
-	start := utf.seekTable("hmtx", 0)
+	start := utf.seekTable("hmtx")
 	var metrics []byte
 	if gid < metricCount {
 		utf.seek(start + (gid * 4))
@@ -1903,7 +2111,7 @@ func (utf *utf8FontFile) getMetrics(metricCount, gid int) []byte {
 }
 
 func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
-	start := utf.seekTable("loca", 0)
+	start := utf.seekTable("loca")
 	utf.symbolPosition = make([]int, 0)
 	switch format {
 	case 0:
@@ -1937,7 +2145,11 @@ func (utf *utf8FontFile) parseLOCATable(format, numSymbols int) {
 	}
 }
 
-func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCharDictionary map[int][]int, charSymbolDictionary map[int]int) {
+func (utf *utf8FontFile) generateSCCSDictionaries(
+	runeCmapPosition int,
+	symbolCharDictionary map[int][]int,
+	charSymbolDictionary map[int]int,
+) {
 	utf.seek(runeCmapPosition)
 	format := utf.readUint16()
 	if format == 12 {
@@ -1987,24 +2199,10 @@ func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCh
 	for range segmentSize {
 		positions = append(positions, utf.readUint16())
 	}
-	var symbol int
 	for n := range segmentSize {
 		completePosition := completers[n] + 1
 		for char := beginners[n]; char < completePosition; char++ {
-			if positions[n] == 0 {
-				symbol = (char + sizes[n]) & 0xFFFF
-			} else {
-				position := (char-beginners[n])*2 + positions[n]
-				position = int(readerPositionStart) + 2*n + position
-				if position >= rim {
-					symbol = 0
-				} else {
-					symbol = utf.getUint16(position)
-					if symbol != 0 {
-						symbol = (symbol + sizes[n]) & 0xFFFF
-					}
-				}
-			}
+			symbol := utf.cmapFormat4Symbol(char, n, readerPositionStart, rim, beginners, sizes, positions)
 			charSymbolDictionary[char] = symbol
 			if char < 196608 {
 				maxRune = max(char, maxRune)
@@ -2014,16 +2212,37 @@ func (utf *utf8FontFile) generateSCCSDictionaries(runeCmapPosition int, symbolCh
 	}
 }
 
+func (utf *utf8FontFile) cmapFormat4Symbol(
+	char, segment int,
+	readerPositionStart int64,
+	rim int,
+	beginners, sizes, positions []int,
+) int {
+	if positions[segment] == 0 {
+		return (char + sizes[segment]) & 0xFFFF
+	}
+	position := (char-beginners[segment])*2 + positions[segment]
+	position = int(readerPositionStart) + 2*segment + position
+	if position >= rim {
+		return 0
+	}
+	symbol := utf.getUint16(position)
+	if symbol != 0 {
+		return (symbol + sizes[segment]) & 0xFFFF
+	}
+	return 0
+}
+
 func (utf *utf8FontFile) assembleTables() []byte {
 	answer := make([]byte, 0)
 	tablesCount := len(utf.outTablesData)
 	findSize := 1
 	writer := 0
 	for findSize*2 <= tablesCount {
-		findSize = findSize * 2
-		writer = writer + 1
+		findSize *= 2
+		writer++
 	}
-	findSize = findSize * 16
+	findSize *= 16
 	rOffset := tablesCount*16 - findSize
 
 	answer = append(answer, packHeader(0x00010000, tablesCount, findSize, writer, rOffset)...)
@@ -2043,7 +2262,7 @@ func (utf *utf8FontFile) assembleTables() []byte {
 		answer = append(answer, pack2Uint16(checksum[0], checksum[1])...)
 		answer = append(answer, pack2Uint32(offset, len(tables[name]))...)
 		paddedLength := (len(tables[name]) + 3) &^ 3
-		offset = offset + paddedLength
+		offset += paddedLength
 	}
 
 	for _, key := range tablesNames {
@@ -2052,7 +2271,7 @@ func (utf *utf8FontFile) assembleTables() []byte {
 		answer = append(answer, data[:(len(data)&^3)]...)
 	}
 
-	checksum := utf.generateChecksum([]byte(answer))
+	checksum := utf.generateChecksum(answer)
 	checksum = utf.calcInt32([]int{0xB1B0, 0xAFBA}, checksum)
 	answer = utf.splice(answer, (begin + 8), pack2Uint16(checksum[0], checksum[1]))
 	return answer

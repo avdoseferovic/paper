@@ -478,32 +478,7 @@ func (f *PDF) putpages() {
 		}
 		f.out("/Resources 2 0 R")
 
-		if len(f.pageLinks[n])+len(f.pageAttachments[n]) > 0 {
-			var annots fmtBuffer
-			annots.printf("/Annots [")
-			for _, pl := range f.pageLinks[n] {
-				annots.printf("<</Type /Annot /Subtype /Link /Rect [%.2f %.2f %.2f %.2f] /Border [0 0 0] ",
-					pl.x, pl.y, pl.x+pl.wd, pl.y-pl.ht)
-				if pl.link == 0 {
-					annots.printf("/A <</S /URI /URI %s>>>>", f.textstring(pl.linkStr))
-				} else {
-					l := f.links[pl.link]
-					var sz SizeType
-					var h float64
-					sz, ok = f.pageSizes[l.page]
-					if ok {
-						h = sz.Ht
-					} else {
-						h = hPt
-					}
-
-					annots.printf("/Dest [%d 0 R /XYZ 0 %.2f null]>>", 1+2*l.page, h-l.y*f.k)
-				}
-			}
-			f.putAttachmentAnnotationLinks(&annots, n)
-			annots.printf("]")
-			f.out(annots.String())
-		}
+		f.putPageAnnotations(n, hPt)
 		if f.pdfVersion > "1.3" {
 			f.out("/Group <</Type /Group /S /Transparency /CS /DeviceRGB>>")
 		}
@@ -536,4 +511,34 @@ func (f *PDF) putpages() {
 	f.outf("/MediaBox [0 0 %.2f %.2f]", wPt, hPt)
 	f.out(">>")
 	f.out("endobj")
+}
+
+func (f *PDF) putPageAnnotations(pageNum int, defaultHeight float64) {
+	if len(f.pageLinks[pageNum])+len(f.pageAttachments[pageNum]) == 0 {
+		return
+	}
+	var annots fmtBuffer
+	annots.printf("/Annots [")
+	for _, pl := range f.pageLinks[pageNum] {
+		f.putPageLinkAnnotation(&annots, pl, defaultHeight)
+	}
+	f.putAttachmentAnnotationLinks(&annots, pageNum)
+	annots.printf("]")
+	f.out(annots.String())
+}
+
+func (f *PDF) putPageLinkAnnotation(annots *fmtBuffer, pl linkType, defaultHeight float64) {
+	annots.printf("<</Type /Annot /Subtype /Link /Rect [%.2f %.2f %.2f %.2f] /Border [0 0 0] ",
+		pl.x, pl.y, pl.x+pl.wd, pl.y-pl.ht)
+	if pl.link == 0 {
+		annots.printf("/A <</S /URI /URI %s>>>>", f.textstring(pl.linkStr))
+		return
+	}
+
+	l := f.links[pl.link]
+	h := defaultHeight
+	if sz, ok := f.pageSizes[l.page]; ok {
+		h = sz.Ht
+	}
+	annots.printf("/Dest [%d 0 R /XYZ 0 %.2f null]>>", 1+2*l.page, h-l.y*f.k)
 }

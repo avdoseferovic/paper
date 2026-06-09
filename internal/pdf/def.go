@@ -182,7 +182,8 @@ func (info *ImageInfoType) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
 	for j, field := range fields {
-		if err := encoder.Encode(field); err != nil {
+		err := encoder.Encode(field)
+		if err != nil {
 			return nil, fmt.Errorf("encode image field %d: %w", j, err)
 		}
 	}
@@ -199,7 +200,8 @@ func (info *ImageInfoType) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	for j, field := range fields {
-		if err := decoder.Decode(field); err != nil {
+		err := decoder.Decode(field)
+		if err != nil {
 			return fmt.Errorf("decode image field %d: %w", j, err)
 		}
 	}

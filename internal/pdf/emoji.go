@@ -2,11 +2,19 @@ package pdf
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"strings"
 )
+
+func int16FromUint16Bits(v uint16) int16 {
+	return int16(v) // #nosec G115 -- TrueType stores signed int16 values as uint16 bits.
+}
+
+func int8FromByteBits(v byte) int8 {
+	return int8(v) // #nosec G115 -- TrueType stores signed int8 values as byte bits.
+}
 
 // SetColorEmojiEnabled enables or disables color emoji rendering for COLR/CPAL,
 // CBDT/CBLC, and sbix emoji fonts. When disabled, emoji-capable outline fonts
@@ -25,8 +33,12 @@ func (f *PDF) stringToCIDs(s string) string {
 	var b bytes.Buffer
 	for _, r := range s {
 		cid := f.getOrAssignCID(int(r))
-		b.WriteByte(byte(cid >> 8))
-		b.WriteByte(byte(cid))
+		cid16, ok := checkedUint16(cid)
+		if !ok {
+			continue
+		}
+		b.WriteByte(byte(cid16 >> 8)) // #nosec G115 -- high byte of a uint16 CID.
+		b.WriteByte(byte(cid16))      // #nosec G115 -- low byte of a uint16 CID.
 	}
 	return b.String()
 }
@@ -77,10 +89,14 @@ func (f *PDF) isColorGlyph(r rune) bool {
 	if !ok {
 		return false
 	}
-	if f.currentFont.utf8File.bitmapGlyphImage(uint16(glyphID), f.fontSizePt) != nil {
+	glyphID16, ok := checkedUint16(glyphID)
+	if !ok {
+		return false
+	}
+	if f.currentFont.utf8File.bitmapGlyphImage(glyphID16, f.fontSizePt) != nil {
 		return true
 	}
-	return f.currentFont.utf8File.colorGlyphLayers(uint16(glyphID)) != nil
+	return f.currentFont.utf8File.colorGlyphLayers(glyphID16) != nil
 }
 
 func (f *PDF) textContainsColorEmoji(txtStr string) bool {
@@ -103,25 +119,9 @@ func (f *PDF) textWithColorEmoji(x, y float64, txtStr string) {
 	for _, r := range txtStr {
 		charWidth := f.GetStringWidth(string(r))
 		if f.isColorGlyph(r) {
-			if colorPath := f.renderColorGlyph(r, currentX, y); colorPath != "" {
-				s.WriteString(colorPath)
-			}
-			if f.currentFont.Tp != "UTF8Bitmap" {
-				txt := f.escape(f.stringToCIDs(string(r)))
-				s.WriteString(sprintf("q 3 Tr BT %.2f %.2f Td (%s) Tj ET Q ", currentX*f.k, (f.h-y)*f.k, txt))
-			}
+			s.WriteString(f.colorGlyphTextSegment(r, currentX, y))
 		} else {
-			if f.currentFont.Tp == "UTF8Bitmap" {
-				currentX += charWidth
-				continue
-			}
-			txt := f.escape(f.stringToCIDs(string(r)))
-			textOp := sprintf("BT %.2f %.2f Td (%s) Tj ET", currentX*f.k, (f.h-y)*f.k, txt)
-			if f.colorFlag {
-				textOp = sprintf("q %s %s Q", f.color.text.str, textOp)
-			}
-			s.WriteString(textOp)
-			s.WriteByte(' ')
+			s.WriteString(f.monochromeGlyphTextSegment(r, currentX, y))
 		}
 		currentX += charWidth
 	}
@@ -137,6 +137,31 @@ func (f *PDF) textWithColorEmoji(x, y float64, txtStr string) {
 	f.out(s.String())
 }
 
+func (f *PDF) colorGlyphTextSegment(r rune, x, y float64) string {
+	var s strings.Builder
+	if colorPath := f.renderColorGlyph(r, x, y); colorPath != "" {
+		s.WriteString(colorPath)
+	}
+	if f.currentFont.Tp == fontTypeUTF8Bitmap {
+		return s.String()
+	}
+	txt := f.escape(f.stringToCIDs(string(r)))
+	s.WriteString(sprintf("q 3 Tr BT %.2f %.2f Td (%s) Tj ET Q ", x*f.k, (f.h-y)*f.k, txt))
+	return s.String()
+}
+
+func (f *PDF) monochromeGlyphTextSegment(r rune, x, y float64) string {
+	if f.currentFont.Tp == fontTypeUTF8Bitmap {
+		return ""
+	}
+	txt := f.escape(f.stringToCIDs(string(r)))
+	textOp := sprintf("BT %.2f %.2f Td (%s) Tj ET", x*f.k, (f.h-y)*f.k, txt)
+	if f.colorFlag {
+		textOp = sprintf("q %s %s Q", f.color.text.str, textOp)
+	}
+	return textOp + " "
+}
+
 func (f *PDF) renderColorGlyph(r rune, x, y float64) string {
 	if f.currentFont.utf8File == nil {
 		return ""
@@ -145,14 +170,18 @@ func (f *PDF) renderColorGlyph(r rune, x, y float64) string {
 	if !ok {
 		return ""
 	}
-	if bitmapGlyph := f.currentFont.utf8File.bitmapGlyphImage(uint16(glyphID), f.fontSizePt); bitmapGlyph != nil {
-		return f.renderBitmapGlyph(uint16(glyphID), bitmapGlyph, x, y)
+	glyphID16, ok := checkedUint16(glyphID)
+	if !ok {
+		return ""
+	}
+	if bitmapGlyph := f.currentFont.utf8File.bitmapGlyphImage(glyphID16, f.fontSizePt); bitmapGlyph != nil {
+		return f.renderBitmapGlyph(glyphID16, bitmapGlyph, x, y)
 	}
 	renderer := colorEmojiRenderer{
 		utf8File:   f.currentFont.utf8File,
 		unitsPerEm: f.currentFont.utf8File.fontElementSize,
 	}
-	return renderer.renderColorGlyph(uint16(glyphID), x, f.h-y, f.fontSize, f.k)
+	return renderer.renderColorGlyph(glyphID16, x, f.h-y, f.fontSize, f.k)
 }
 
 func (f *PDF) renderBitmapGlyph(glyphID uint16, glyph *bitmapGlyphImage, x, baselineY float64) string {
@@ -170,8 +199,7 @@ func (f *PDF) renderBitmapGlyph(glyphID uint16, glyph *bitmapGlyphImage, x, base
 
 	scaleX := f.fontSize / float64(ppemX)
 	scaleY := f.fontSize / float64(ppemY)
-	drawX := x
-	drawY := baselineY - float64(glyph.height)*scaleY
+	var drawX, drawY float64
 	if glyph.advance > 0 || glyph.bearingY != 0 || glyph.bearingX != 0 {
 		drawX = x + float64(glyph.bearingX)*scaleX
 		drawY = baselineY - float64(glyph.bearingY)*scaleY
@@ -182,7 +210,7 @@ func (f *PDF) renderBitmapGlyph(glyphID uint16, glyph *bitmapGlyphImage, x, base
 	w := float64(glyph.width) * scaleX
 	h := float64(glyph.height) * scaleY
 
-	hash := sha1.Sum(glyph.data)
+	hash := sha256.Sum256(glyph.data)
 	name := fmt.Sprintf("emoji-%s-%d-%x", f.currentFont.Name, glyphID, hash[:6])
 	info := f.RegisterImageOptionsReader(name, ImageOptions{ImageType: glyph.imageType}, bytes.NewReader(glyph.data))
 	if f.err != nil || info == nil {
@@ -266,13 +294,13 @@ func (utf *utf8FontFile) parseGlyphData(data []byte, glyfData []byte) *glyphOutl
 	if len(data) < 10 {
 		return nil
 	}
-	numContours := int16(binary.BigEndian.Uint16(data[0:2]))
+	numContours := int16FromUint16Bits(binary.BigEndian.Uint16(data[0:2]))
 	outline := &glyphOutline{
 		bounds: [4]int16{
-			int16(binary.BigEndian.Uint16(data[2:4])),
-			int16(binary.BigEndian.Uint16(data[4:6])),
-			int16(binary.BigEndian.Uint16(data[6:8])),
-			int16(binary.BigEndian.Uint16(data[8:10])),
+			int16FromUint16Bits(binary.BigEndian.Uint16(data[2:4])),
+			int16FromUint16Bits(binary.BigEndian.Uint16(data[4:6])),
+			int16FromUint16Bits(binary.BigEndian.Uint16(data[6:8])),
+			int16FromUint16Bits(binary.BigEndian.Uint16(data[8:10])),
 		},
 	}
 	if numContours >= 0 {
@@ -303,10 +331,26 @@ func (utf *utf8FontFile) parseSimpleGlyph(data []byte, numContours int, outline 
 		return
 	}
 
+	flags, offset, ok := readSimpleGlyphFlags(data, offset, numPoints)
+	if !ok {
+		return
+	}
+	xCoords, offset, ok := readSimpleGlyphCoords(data, flags, offset, glyphXShortVector, glyphXSameOrPosShort)
+	if !ok {
+		return
+	}
+	yCoords, _, ok := readSimpleGlyphCoords(data, flags, offset, glyphYShortVector, glyphYSameOrPosShort)
+	if !ok {
+		return
+	}
+	outline.contours = buildSimpleGlyphContours(endPtsOfContours, flags, xCoords, yCoords)
+}
+
+func readSimpleGlyphFlags(data []byte, offset, numPoints int) ([]byte, int, bool) {
 	flags := make([]byte, numPoints)
 	for i := 0; i < numPoints; {
 		if offset >= len(data) {
-			return
+			return nil, offset, false
 		}
 		flag := data[offset]
 		offset++
@@ -316,68 +360,63 @@ func (utf *utf8FontFile) parseSimpleGlyph(data []byte, numContours int, outline 
 			continue
 		}
 		if offset >= len(data) {
-			return
+			return nil, offset, false
 		}
 		repeatCount := int(data[offset])
 		offset++
-		for j := 0; j < repeatCount && i < numPoints; j++ {
+		for range repeatCount {
+			if i >= numPoints {
+				break
+			}
 			flags[i] = flag
 			i++
 		}
 	}
+	return flags, offset, true
+}
 
-	xCoords := make([]int, numPoints)
-	x := 0
+func readSimpleGlyphCoords(data []byte, flags []byte, offset int, shortFlag, sameFlag byte) ([]int, int, bool) {
+	coords := make([]int, len(flags))
+	current := 0
 	for i, flag := range flags {
-		if flag&glyphXShortVector != 0 {
-			if offset >= len(data) {
-				return
-			}
-			dx := int(data[offset])
-			offset++
-			if flag&glyphXSameOrPosShort != 0 {
-				x += dx
-			} else {
-				x -= dx
-			}
-		} else if flag&glyphXSameOrPosShort == 0 {
-			if offset+2 > len(data) {
-				return
-			}
-			x += int(int16(binary.BigEndian.Uint16(data[offset : offset+2])))
-			offset += 2
+		delta, nextOffset, ok := readSimpleGlyphCoordDelta(data, offset, flag, shortFlag, sameFlag)
+		if !ok {
+			return nil, offset, false
 		}
-		xCoords[i] = x
+		current += delta
+		offset = nextOffset
+		coords[i] = current
 	}
+	return coords, offset, true
+}
 
-	yCoords := make([]int, numPoints)
-	y := 0
-	for i, flag := range flags {
-		if flag&glyphYShortVector != 0 {
-			if offset >= len(data) {
-				return
-			}
-			dy := int(data[offset])
-			offset++
-			if flag&glyphYSameOrPosShort != 0 {
-				y += dy
-			} else {
-				y -= dy
-			}
-		} else if flag&glyphYSameOrPosShort == 0 {
-			if offset+2 > len(data) {
-				return
-			}
-			y += int(int16(binary.BigEndian.Uint16(data[offset : offset+2])))
-			offset += 2
+func readSimpleGlyphCoordDelta(data []byte, offset int, flag, shortFlag, sameFlag byte) (int, int, bool) {
+	switch {
+	case flag&shortFlag != 0:
+		if offset >= len(data) {
+			return 0, offset, false
 		}
-		yCoords[i] = y
+		delta := int(data[offset])
+		if flag&sameFlag == 0 {
+			delta = -delta
+		}
+		return delta, offset + 1, true
+	case flag&sameFlag == 0:
+		if offset+2 > len(data) {
+			return 0, offset, false
+		}
+		delta := int(int16FromUint16Bits(binary.BigEndian.Uint16(data[offset : offset+2])))
+		return delta, offset + 2, true
+	default:
+		return 0, offset, true
 	}
+}
 
-	outline.contours = make([]glyphContour, numContours)
+func buildSimpleGlyphContours(endPtsOfContours []uint16, flags []byte, xCoords, yCoords []int) []glyphContour {
+	contours := make([]glyphContour, len(endPtsOfContours))
 	pointIdx := 0
-	for c := range numContours {
-		endPt := int(endPtsOfContours[c])
+	for c, endPtRaw := range endPtsOfContours {
+		endPt := int(endPtRaw)
 		contourLen := endPt - pointIdx + 1
 		contour := make(glyphContour, contourLen)
 		for i := range contourLen {
@@ -388,8 +427,14 @@ func (utf *utf8FontFile) parseSimpleGlyph(data []byte, numContours int, outline 
 			}
 			pointIdx++
 		}
-		outline.contours[c] = contour
+		contours[c] = contour
 	}
+	return contours
+}
+
+type glyphTransform struct {
+	a, b, c, d float64
+	e, f       float64
 }
 
 func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outline *glyphOutline) {
@@ -403,49 +448,11 @@ func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outli
 		glyphIndex := int(binary.BigEndian.Uint16(data[offset+2 : offset+4]))
 		offset += 4
 
-		var arg1, arg2 int
-		if flags&symbolWords != 0 {
-			if offset+4 > len(data) {
-				return
-			}
-			arg1 = int(int16(binary.BigEndian.Uint16(data[offset : offset+2])))
-			arg2 = int(int16(binary.BigEndian.Uint16(data[offset+2 : offset+4])))
-			offset += 4
-		} else {
-			if offset+2 > len(data) {
-				return
-			}
-			arg1 = int(int8(data[offset]))
-			arg2 = int(int8(data[offset+1]))
-			offset += 2
+		transform, nextOffset, ok := readCompositeGlyphTransform(data, offset, flags)
+		if !ok {
+			return
 		}
-
-		a, b, c, d := 1.0, 0.0, 0.0, 1.0
-		e, ff := float64(arg1), float64(arg2)
-		if flags&symbolScale != 0 {
-			if offset+2 > len(data) {
-				return
-			}
-			scale := read2Dot14(data[offset : offset+2])
-			offset += 2
-			a, d = scale, scale
-		} else if flags&symbolAllScale != 0 {
-			if offset+4 > len(data) {
-				return
-			}
-			a = read2Dot14(data[offset : offset+2])
-			d = read2Dot14(data[offset+2 : offset+4])
-			offset += 4
-		} else if flags&symbol2x2 != 0 {
-			if offset+8 > len(data) {
-				return
-			}
-			a = read2Dot14(data[offset : offset+2])
-			b = read2Dot14(data[offset+2 : offset+4])
-			c = read2Dot14(data[offset+4 : offset+6])
-			d = read2Dot14(data[offset+6 : offset+8])
-			offset += 8
-		}
+		offset = nextOffset
 
 		if glyphIndex >= len(utf.symbolPosition)-1 {
 			continue
@@ -459,22 +466,83 @@ func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outli
 		if compOutline == nil {
 			continue
 		}
-		for _, contour := range compOutline.contours {
-			transformed := make(glyphContour, len(contour))
-			for i, pt := range contour {
-				transformed[i] = glyphPoint{
-					x:       a*pt.x + c*pt.y + e,
-					y:       b*pt.x + d*pt.y + ff,
-					onCurve: pt.onCurve,
-				}
-			}
-			outline.contours = append(outline.contours, transformed)
+		appendTransformedContours(outline, compOutline, transform)
+	}
+}
+
+func readCompositeGlyphTransform(data []byte, offset int, flags uint16) (glyphTransform, int, bool) {
+	arg1, arg2, nextOffset, ok := readCompositeGlyphArgs(data, offset, flags)
+	if !ok {
+		return glyphTransform{}, offset, false
+	}
+	transform := glyphTransform{a: 1, d: 1, e: float64(arg1), f: float64(arg2)}
+	transform, nextOffset, ok = readCompositeGlyphScale(data, nextOffset, flags, transform)
+	return transform, nextOffset, ok
+}
+
+func readCompositeGlyphArgs(data []byte, offset int, flags uint16) (int, int, int, bool) {
+	if flags&symbolWords != 0 {
+		if offset+4 > len(data) {
+			return 0, 0, offset, false
 		}
+		arg1 := int(int16FromUint16Bits(binary.BigEndian.Uint16(data[offset : offset+2])))
+		arg2 := int(int16FromUint16Bits(binary.BigEndian.Uint16(data[offset+2 : offset+4])))
+		return arg1, arg2, offset + 4, true
+	}
+	if offset+2 > len(data) {
+		return 0, 0, offset, false
+	}
+	arg1 := int(int8FromByteBits(data[offset]))
+	arg2 := int(int8FromByteBits(data[offset+1]))
+	return arg1, arg2, offset + 2, true
+}
+
+func readCompositeGlyphScale(data []byte, offset int, flags uint16, transform glyphTransform) (glyphTransform, int, bool) {
+	switch {
+	case flags&symbolScale != 0:
+		if offset+2 > len(data) {
+			return transform, offset, false
+		}
+		scale := read2Dot14(data[offset : offset+2])
+		transform.a, transform.d = scale, scale
+		return transform, offset + 2, true
+	case flags&symbolAllScale != 0:
+		if offset+4 > len(data) {
+			return transform, offset, false
+		}
+		transform.a = read2Dot14(data[offset : offset+2])
+		transform.d = read2Dot14(data[offset+2 : offset+4])
+		return transform, offset + 4, true
+	case flags&symbol2x2 != 0:
+		if offset+8 > len(data) {
+			return transform, offset, false
+		}
+		transform.a = read2Dot14(data[offset : offset+2])
+		transform.b = read2Dot14(data[offset+2 : offset+4])
+		transform.c = read2Dot14(data[offset+4 : offset+6])
+		transform.d = read2Dot14(data[offset+6 : offset+8])
+		return transform, offset + 8, true
+	default:
+		return transform, offset, true
+	}
+}
+
+func appendTransformedContours(outline, compOutline *glyphOutline, transform glyphTransform) {
+	for _, contour := range compOutline.contours {
+		transformed := make(glyphContour, len(contour))
+		for i, pt := range contour {
+			transformed[i] = glyphPoint{
+				x:       transform.a*pt.x + transform.c*pt.y + transform.e,
+				y:       transform.b*pt.x + transform.d*pt.y + transform.f,
+				onCurve: pt.onCurve,
+			}
+		}
+		outline.contours = append(outline.contours, transformed)
 	}
 }
 
 func read2Dot14(data []byte) float64 {
-	return float64(int16(binary.BigEndian.Uint16(data))) / 16384
+	return float64(int16FromUint16Bits(binary.BigEndian.Uint16(data))) / 16384
 }
 
 func glyphOutlineToPDFPath(outline *glyphOutline, x, y, scale, k float64) string {

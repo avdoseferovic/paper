@@ -11,7 +11,7 @@ func TestUTF8FontFileParseCMAPPrefersFormat12(t *testing.T) {
 		tableDescriptions: map[string]*tableDescription{"cmap": {position: 0, size: len(cmap)}},
 	}
 
-	got := utf.parseCMAPTable(0)
+	got := utf.parseCMAPTable()
 	if got != 36 {
 		t.Fatalf("expected format-12 cmap at offset 36, got %d", got)
 	}

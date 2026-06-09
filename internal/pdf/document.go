@@ -250,8 +250,8 @@ func (f *PDF) putcatalog() {
 	case "fullwidth":
 		f.out("/OpenAction [3 0 R /FitH null]")
 	case "real":
-		//nolint:dupword // PDF /XYZ OpenAction uses separate left and top null operands.
-		f.out("/OpenAction [3 0 R /XYZ null null 1]")
+		const pdfNullOperand = "null"
+		f.outf("/OpenAction [3 0 R /XYZ %s %s 1]", pdfNullOperand, pdfNullOperand)
 	}
 
 	switch f.layoutMode {
@@ -333,20 +333,23 @@ func (f *PDF) OutputAndClose(w io.WriteCloser) error {
 //
 // Most examples demonstrate the use of this method.
 func (f *PDF) OutputFileAndClose(fileStr string) error {
-	if f.err == nil {
-		pdfFile, err := os.Create(fileStr)
-		if err == nil {
-			outErr := f.Output(pdfFile)
-			closeErr := pdfFile.Close()
-			if outErr != nil {
-				f.err = outErr
-			} else if closeErr != nil {
-				f.err = closeErr
-			}
-		} else {
-			f.err = err
-		}
+	if f.err != nil {
+		return f.err
 	}
+
+	pdfFile, err := os.Create(fileStr)
+	if err != nil {
+		f.err = err
+		return f.err
+	}
+	outErr := f.Output(pdfFile)
+	closeErr := pdfFile.Close()
+	if outErr != nil {
+		f.err = outErr
+	} else if closeErr != nil {
+		f.err = closeErr
+	}
+
 	return f.err
 }
 
@@ -431,13 +434,15 @@ func (f *PDF) out(s string) {
 // outbuf adds a buffered line to the document
 func (f *PDF) outbuf(r io.Reader) {
 	if f.state == 2 {
-		if _, err := f.pages[f.page].ReadFrom(r); err != nil {
+		_, err := f.pages[f.page].ReadFrom(r)
+		if err != nil {
 			f.err = err
 			return
 		}
 		f.pages[f.page].WriteString("\n")
 	} else {
-		if _, err := f.buffer.ReadFrom(r); err != nil {
+		_, err := f.buffer.ReadFrom(r)
+		if err != nil {
 			f.err = err
 			return
 		}

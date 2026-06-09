@@ -50,8 +50,8 @@ func (p *protectType) objectKey(n uint32) []byte {
 
 func oValueGen(userPass, ownerPass []byte) []byte {
 	var c *rc4.Cipher
-	tmp := md5.Sum(ownerPass)        // #nosec G401 -- required by the PDF security handler.
-	c, _ = rc4.NewCipher(tmp[0:5])   // #nosec G405 -- required by the PDF security handler.
+	tmp := md5.Sum(ownerPass)      // #nosec G401 -- required by the PDF security handler.
+	c, _ = rc4.NewCipher(tmp[0:5]) // #nosec G405 -- required by the PDF security handler.
 	size := len(userPass)
 	v := make([]byte, size)
 	c.XORKeyStream(v, userPass)
@@ -88,7 +88,8 @@ func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr str
 	var ownerPass []byte
 	if ownerPassStr == "" {
 		ownerPass = make([]byte, 8)
-		if _, err := rand.Read(ownerPass); err != nil {
+		_, err := rand.Read(ownerPass)
+		if err != nil {
 			copy(ownerPass, p.padding[:8])
 		}
 	} else {
