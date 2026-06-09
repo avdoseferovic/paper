@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"maps"
 	"math"
 	"regexp"
 	"strconv"
@@ -41,7 +42,7 @@ var (
 	ErrSVGTooLarge          = errors.New("svg raster dimensions exceed pixel budget")
 
 	fontsOnce sync.Once
-	fontsErr  error
+	errFonts  error
 	regular   *opentype.Font
 	bold      *opentype.Font
 	mono      *opentype.Font
@@ -72,7 +73,8 @@ func Rasterize(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int, er
 
 	var buf bytes.Buffer
 	enc := png.Encoder{CompressionLevel: png.NoCompression}
-	if err := enc.Encode(&buf, rgba); err != nil {
+	err = enc.Encode(&buf, rgba)
+	if err != nil {
 		return nil, 0, 0, fmt.Errorf("png encode: %w", err)
 	}
 	return buf.Bytes(), pxW, pxH, nil
@@ -223,14 +225,14 @@ func parseTextRuns(svgBytes []byte) []textRun {
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "style":
-				styles = mergeStyleMaps(styles, parseStyleElement(decoder, t.Name.Local))
+				styles = mergeStyleMaps(styles, parseStyleElement(decoder))
 				continue
 			case "text":
 				current := stack[len(stack)-1].multiply(parseTransform(attrValue(t.Attr, "transform")))
 				run := textRun{
 					x:       parseNumber(attrValue(t.Attr, "x")),
 					y:       parseNumber(attrValue(t.Attr, "y")),
-					content: collectElementText(decoder, t.Name.Local),
+					content: collectElementText(decoder),
 					style:   resolveTextStyle(t.Attr, styles),
 					matrix:  current,
 				}
@@ -247,8 +249,8 @@ func parseTextRuns(svgBytes []byte) []textRun {
 	return runs
 }
 
-func parseStyleElement(decoder *xml.Decoder, name string) map[string]map[string]string {
-	content := collectElementText(decoder, name)
+func parseStyleElement(decoder *xml.Decoder) map[string]map[string]string {
+	content := collectElementText(decoder)
 	ruleRe := regexp.MustCompile(`(?s)\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}`)
 	styles := map[string]map[string]string{}
 	for _, match := range ruleRe.FindAllStringSubmatch(content, -1) {
@@ -257,7 +259,7 @@ func parseStyleElement(decoder *xml.Decoder, name string) map[string]map[string]
 	return styles
 }
 
-func collectElementText(decoder *xml.Decoder, name string) string {
+func collectElementText(decoder *xml.Decoder) string {
 	depth := 1
 	var parts []string
 	for depth > 0 {
@@ -278,9 +280,7 @@ func collectElementText(decoder *xml.Decoder, name string) string {
 }
 
 func mergeStyleMaps(base, extra map[string]map[string]string) map[string]map[string]string {
-	for name, declarations := range extra {
-		base[name] = declarations
-	}
+	maps.Copy(base, extra)
 	return base
 }
 
@@ -291,14 +291,10 @@ func resolveTextStyle(attrs []xml.Attr, styles map[string]map[string]string) tex
 		"font-weight": "400",
 		"font-family": "sans-serif",
 	}
-	for _, className := range strings.Fields(attrValue(attrs, "class")) {
-		for key, value := range styles[className] {
-			declarations[key] = value
-		}
+	for className := range strings.FieldsSeq(attrValue(attrs, "class")) {
+		maps.Copy(declarations, styles[className])
 	}
-	for key, value := range parseDeclarations(attrValue(attrs, "style")) {
-		declarations[key] = value
-	}
+	maps.Copy(declarations, parseDeclarations(attrValue(attrs, "style")))
 	for _, attr := range attrs {
 		switch attr.Name.Local {
 		case "fill", "font-size", "font-weight", "font-family", "text-anchor":
@@ -317,7 +313,7 @@ func resolveTextStyle(attrs []xml.Attr, styles map[string]map[string]string) tex
 
 func parseDeclarations(value string) map[string]string {
 	declarations := map[string]string{}
-	for _, part := range strings.Split(value, ";") {
+	for part := range strings.SplitSeq(value, ";") {
 		key, val, ok := strings.Cut(part, ":")
 		if !ok {
 			continue
@@ -394,15 +390,14 @@ func parseColor(value string) color.RGBA {
 	case "white":
 		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	}
-	if strings.HasPrefix(value, "#") {
-		hex := strings.TrimPrefix(value, "#")
+	if hex, ok := strings.CutPrefix(value, "#"); ok {
 		if len(hex) == 3 {
 			hex = string([]byte{hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]})
 		}
 		if len(hex) == 6 {
 			n, err := strconv.ParseUint(hex, 16, 32)
 			if err == nil {
-				return color.RGBA{R: byte(n >> 16), G: byte(n >> 8), B: byte(n), A: 255}
+				return color.RGBA{R: byte((n >> 16) & 0xFF), G: byte((n >> 8) & 0xFF), B: byte(n & 0xFF), A: 255}
 			}
 		}
 	}
@@ -424,22 +419,22 @@ func attrValue(attrs []xml.Attr, name string) string {
 
 func fontFace(style textStyle, size float64) (font.Face, error) {
 	fontsOnce.Do(func() {
-		regular, fontsErr = opentype.Parse(goregular.TTF)
-		if fontsErr != nil {
+		regular, errFonts = opentype.Parse(goregular.TTF)
+		if errFonts != nil {
 			return
 		}
-		bold, fontsErr = opentype.Parse(gobold.TTF)
-		if fontsErr != nil {
+		bold, errFonts = opentype.Parse(gobold.TTF)
+		if errFonts != nil {
 			return
 		}
-		mono, fontsErr = opentype.Parse(gomono.TTF)
-		if fontsErr != nil {
+		mono, errFonts = opentype.Parse(gomono.TTF)
+		if errFonts != nil {
 			return
 		}
-		monoBold, fontsErr = opentype.Parse(gomonobold.TTF)
+		monoBold, errFonts = opentype.Parse(gomonobold.TTF)
 	})
-	if fontsErr != nil {
-		return nil, fontsErr
+	if errFonts != nil {
+		return nil, fmt.Errorf("load svg fonts: %w", errFonts)
 	}
 
 	selected := regular
@@ -453,11 +448,15 @@ func fontFace(style textStyle, size float64) (font.Face, error) {
 		}
 	}
 
-	return opentype.NewFace(selected, &opentype.FaceOptions{
+	face, err := opentype.NewFace(selected, &opentype.FaceOptions{
 		Size:    size,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("new svg font face: %w", err)
+	}
+	return face, nil
 }
 
 func isBold(value string) bool {

@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/merge"
 	"github.com/avdoseferovic/paper/pkg/metrics"
 )
+
+var errPanicProcessingPageGroup = errors.New("panic processing page group")
 
 type pageProcessResult struct {
 	bytes  []byte
@@ -146,39 +149,20 @@ func processPageGroupsConcurrently(
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
 	var firstErr error
+	recordErr := func(err error) {
+		errMu.Lock()
+		if firstErr == nil {
+			firstErr = err
+		}
+		errMu.Unlock()
+	}
 
 	wg.Add(workerCount)
 	for range workerCount {
 		go func() {
 			defer wg.Done()
 			for index := range jobs {
-				// Process each job in its own scope so a panic in the
-				// processor is recovered and converted into firstErr.
-				// Without this, an unrecovered panic in a worker goroutine
-				// crashes the whole process (it cannot be recovered by the
-				// caller, since recover only works within the same goroutine).
-				func() {
-					defer func() {
-						if r := recover(); r != nil {
-							errMu.Lock()
-							if firstErr == nil {
-								firstErr = fmt.Errorf("panic processing page group %d: %v", index, r)
-							}
-							errMu.Unlock()
-						}
-					}()
-
-					result, err := processor(pageGroups[index])
-					if err != nil {
-						errMu.Lock()
-						if firstErr == nil {
-							firstErr = err
-						}
-						errMu.Unlock()
-						return
-					}
-					results[index] = result
-				}()
+				runPageGroupJob(index, pageGroups, processor, results, recordErr)
 			}
 		}()
 	}
@@ -193,6 +177,30 @@ func processPageGroupsConcurrently(
 		return nil, firstErr
 	}
 	return results, nil
+}
+
+// runPageGroupJob processes a single page group in an isolated scope so that a
+// panic in the processor is recovered and reported via recordErr instead of
+// crashing the worker goroutine (recover only works within the same goroutine).
+func runPageGroupJob(
+	index int,
+	pageGroups [][]core.Page,
+	processor func([]core.Page) (pageProcessResult, error),
+	results []pageProcessResult,
+	recordErr func(error),
+) {
+	defer func() {
+		if r := recover(); r != nil {
+			recordErr(fmt.Errorf("%w %d: %v", errPanicProcessingPageGroup, index, r))
+		}
+	}()
+
+	result, err := processor(pageGroups[index])
+	if err != nil {
+		recordErr(err)
+		return
+	}
+	results[index] = result
 }
 
 func ensureProviderPage(provider core.Provider, pageNumber int) {
