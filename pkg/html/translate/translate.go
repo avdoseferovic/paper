@@ -52,8 +52,30 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 // TranslateCtx walks the styled DOM and emits Paper rows. It observes ctx at
 // cheap phase and recursive traversal boundaries.
 func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
+	document, err := translateDocumentCtx(ctx, doc, false, opts...)
+	if err != nil || document == nil {
+		return nil, err
+	}
+	return document.Rows, nil
+}
+
+// TranslateDocument walks the styled DOM and returns the full Document
+// result: content rows plus @page options.
+func TranslateDocument(doc *dom.Document, opts ...Option) (*Document, error) {
+	return TranslateDocumentCtx(context.TODO(), doc, opts...)
+}
+
+// TranslateDocumentCtx walks the styled DOM and returns the full Document
+// result. It observes ctx at cheap phase and recursive traversal boundaries.
+// Unlike TranslateCtx, the first top-level <header>/<footer> elements are
+// extracted into HeaderRows/FooterRows instead of rendering inline.
+func TranslateDocumentCtx(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
+	return translateDocumentCtx(ctx, doc, true, opts...)
+}
+
+func translateDocumentCtx(ctx context.Context, doc *dom.Document, extractBands bool, opts ...Option) (*Document, error) {
 	if doc == nil {
-		return nil, nil
+		return &Document{}, nil
 	}
 	tr := &translator{
 		anchorReg: newAnchorRegistry(),
@@ -108,6 +130,11 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 		return nil, err
 	}
 	tr.sheet = sheet
+	if tr.unsupportedHandler != nil {
+		for _, prelude := range sheet.skippedPages {
+			tr.unsupportedHandler("page-rule.skipped", prelude)
+		}
+	}
 	err = translationCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -122,17 +149,16 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 	if err != nil {
 		return nil, err
 	}
-	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
-		return rows, nil
+		return &Document{Page: tr.pageOptions()}, nil
 	}
 	// Pre-pass: collect all id values so forward references (link before
 	// target) resolve correctly at render time via the shared anchor registry.
 	tr.anchorIDs = collectAnchorIDs(body)
 	// Prepend font-face registration rows (zero-height) so any subsequent
 	// row that uses font-family: "MyFont" finds the font already registered.
-	rows = append(rows, tr.fontRegistrationRows()...)
+	rows := tr.fontRegistrationRows()
 	// Seed the cascade so :root and html-level rules (CSS variables, etc)
 	// propagate into body's descendants. Without this, `:root { --x: red }`
 	// is parsed but never inherited because computeNodeStyle is called with
@@ -141,21 +167,45 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 	tr.counters = newCounterState()
 	tr.quotes = newQuoteState()
 	rootCounters := tr.counters.enter(tr.rootStyle)
-	for _, child := range body.Children() {
-		err = translationCanceled(ctx)
-		if err != nil {
-			return nil, err
-		}
-		rows = append(rows, tr.blockRowsWithParent(ctx, child, tr.rootStyle)...)
-		if tr.err != nil {
-			return nil, tr.err
-		}
+	document, err := tr.walkBody(ctx, body, rows, extractBands)
+	if err != nil {
+		return nil, err
 	}
 	tr.counters.exit(rootCounters)
 	if tr.err != nil {
 		return nil, tr.err
 	}
-	return rows, nil
+	document.Page = tr.pageOptions()
+	return document, nil
+}
+
+// walkBody converts the body's children into rows. When extractBands is set,
+// the first top-level <header>/<footer> land in HeaderRows/FooterRows instead
+// of the content rows.
+func (tr *translator) walkBody(ctx context.Context, body *dom.Node, rows []core.Row, extractBands bool) (*Document, error) {
+	var headerRows, footerRows []core.Row
+	headerTaken, footerTaken := false, false
+	for _, child := range body.Children() {
+		err := translationCanceled(ctx)
+		if err != nil {
+			return nil, err
+		}
+		childRows := tr.blockRowsWithParent(ctx, child, tr.rootStyle)
+		if tr.err != nil {
+			return nil, tr.err
+		}
+		switch {
+		case extractBands && !headerTaken && child.Tag() == "header":
+			headerRows = childRows
+			headerTaken = true
+		case extractBands && !footerTaken && child.Tag() == "footer":
+			footerRows = childRows
+			footerTaken = true
+		default:
+			rows = append(rows, childRows...)
+		}
+	}
+	return &Document{Rows: rows, HeaderRows: headerRows, FooterRows: footerRows}, nil
 }
 
 // seedRootStyle computes the ComputedStyle of the html element so :root vars

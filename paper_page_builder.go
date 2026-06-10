@@ -218,6 +218,16 @@ func (b *pageBuilder) fitInCurrentPage(heightNewLine float64) bool {
 	return contentSize+heightNewLine < b.cell.Height
 }
 
+// hasContent reports whether any pages or rows were already added.
+func (b *pageBuilder) hasContent() bool {
+	return len(b.pages) > 0 || len(b.rows) > 0
+}
+
+// hasHeaderOrFooter reports whether a header or footer is already registered.
+func (b *pageBuilder) hasHeaderOrFooter() bool {
+	return len(b.header) > 0 || len(b.footer) > 0
+}
+
 func (b *pageBuilder) registerHeader(rows ...core.Row) error {
 	height := b.getRowsHeight(rows...)
 	if height+b.footerHeight > b.cell.Height {

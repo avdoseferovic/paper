@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
@@ -109,31 +108,7 @@ func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.
 	if err != nil {
 		return nil, err
 	}
-	var tOpts []translate.Option
-	if cfg.gridSize > 0 {
-		tOpts = append(tOpts, translate.WithGridSize(cfg.gridSize))
-	}
-	if cfg.contentWidthMM > 0 {
-		tOpts = append(tOpts, translate.WithContentWidth(cfg.contentWidthMM))
-	}
-	if cfg.imageBaseDir != "" {
-		tOpts = append(tOpts, translate.WithImageBaseDir(cfg.imageBaseDir))
-	}
-	if cfg.stylesheetBaseDir != "" {
-		tOpts = append(tOpts, translate.WithStylesheetBaseDir(cfg.stylesheetBaseDir))
-	}
-	if cfg.limitsSet {
-		tOpts = append(tOpts, translate.WithLimits(cfg.limits))
-	} else {
-		tOpts = append(tOpts, translate.WithLimits(htmllimits.Default()))
-	}
-	if cfg.unsupportedHandler != nil {
-		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))
-	}
-	if cfg.outlineFromHeadings {
-		tOpts = append(tOpts, translate.WithOutlineFromHeadings())
-	}
-	return translate.TranslateCtx(ctx, doc, tOpts...)
+	return translate.TranslateCtx(ctx, doc, cfg.translateOptions()...)
 }
 
 // FromReader parses HTML from an io.Reader and returns the corresponding rows.

@@ -188,6 +188,57 @@ p { font-family: "MyFont" }
 - Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped because the internal backend cannot decode them, and they are logged via `unsupportedHandler`.
 - Failures (resolver refused, malformed font bytes) log via `unsupportedHandler` and fall back to default fonts — never a panic.
 
+### Repeating page header and footer
+
+When converting via `paper.FromHTML` / `paper.AddHTML`, the **first** top-level
+`<header>` and `<footer>` (direct children of `<body>`) become the document's
+repeating page header/footer (Paper's `RegisterHeader`/`RegisterFooter`):
+
+```html
+<header><p>Acme Corp — Quarterly Report</p></header>
+<p>page content…</p>
+<footer><p>Confidential</p></footer>
+```
+
+Rules:
+
+- Only DIRECT children of `<body>` are promoted; `<header>` inside
+  `<article>`/`<section>` keeps its normal inline rendering.
+- Only the first of each is promoted; additional top-level header/footer
+  elements render inline.
+- `AddHTML` returns `paper.ErrHTMLHeaderAfterContent` when the document
+  already has rows or a registered header/footer — bands must come first.
+- A header/footer taller than the page returns the corresponding
+  `ErrHeaderHeightIsGreaterThanUsefulArea` / footer error.
+- The rows-only `html.FromString` API keeps the legacy inline behavior; use
+  `html.DocumentFromString` to access `HeaderRows`/`FooterRows` directly.
+- To keep a top-level header inline (pre-v0.2 behavior), wrap it in a `<div>`
+  or use `<section>`.
+
+### @page (size and margins)
+
+A plain `@page` rule sets the document's page size and margins when the HTML
+is converted via `paper.FromHTML` / `paper.FromHTMLReader` **without** an
+explicit config argument:
+
+```html
+<style>
+@page {
+    size: A5 landscape;   /* named size, optional landscape/portrait */
+    /* or explicit dimensions: size: 200mm 100mm; */
+    margin: 10mm 15mm;    /* 1-4 value shorthand, or margin-left etc. */
+}
+</style>
+```
+
+Precedence is all-or-nothing: passing a config to `FromHTML` disables `@page`
+entirely (no field-level merging). `AddHTML` on an existing document ignores
+`@page` (the page is already configured). Named sizes: `A1`–`A6`, `letter`,
+`legal`, `tabloid`. Pseudo and named pages (`@page :first`, `@page chapter`)
+are not supported and reported via the unsupported handler. The rows-only
+`html.FromString` API ignores `@page`; use `html.DocumentFromString` to read
+the parsed `PageOptions` yourself.
+
 ### Document outline from headings
 
 `h1`–`h6` headings can be added to the PDF document outline (the bookmark

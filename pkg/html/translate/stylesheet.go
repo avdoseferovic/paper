@@ -18,6 +18,13 @@ type stylesheet struct {
 	rules     []compiledRule
 	pseudos   []compiledPseudoRule
 	fontFaces []fontFaceRule
+
+	// pageDecls accumulates declarations from plain `@page { ... }` rules in
+	// source order (later rules override earlier ones at consumption time).
+	// skippedPages records preludes of unsupported page rules (`:first`,
+	// named pages) for unsupported-handler reporting.
+	pageDecls    []cssDeclaration
+	skippedPages []string
 }
 
 type compiledRule struct {
@@ -95,6 +102,13 @@ func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM flo
 					s.addParsedRule(nested, order, contentWidthMM)
 				}
 			}
+		case "@page":
+			if prelude := strings.TrimSpace(rule.prelude); prelude != "" {
+				// `:first`, `:left/:right`, and named pages are out of scope.
+				s.skippedPages = append(s.skippedPages, "@page "+prelude)
+				return
+			}
+			s.pageDecls = append(s.pageDecls, rule.declarations...)
 		}
 		return
 	}

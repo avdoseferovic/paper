@@ -20,6 +20,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **BREAKING:** top-level `<header>`/`<footer>` elements (direct children of
+  `<body>`) now become the repeating page header/footer in `paper.FromHTML`
+  and `paper.AddHTML` instead of rendering inline once. Wrap the element in a
+  `<div>` (or use `<section>`) to keep the old inline rendering. The rows-only
+  `html.FromString` API is unchanged.
 - **BREAKING:** folded the `pkg/test` nested module back into the root module
   (supersedes the earlier nested-module split for `pkg/test` below). It is now
   a dependency-free re-export of the internal golden-structure helper and its
