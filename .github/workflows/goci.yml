@@ -42,8 +42,10 @@ jobs:
         run: go test -v ./...
 
       - name: Dead code check
+        # Findings go to stdout only; stderr stays on the job log so module
+        # download notices ("go: downloading ...") can't trip the gate.
         run: |
-          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out 2>&1
+          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out
           if [ -s deadcode.out ]; then
             echo "Dead code found:"
             cat deadcode.out
