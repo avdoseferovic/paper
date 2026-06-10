@@ -62,6 +62,7 @@ examples:
 	go run docs/assets/examples/background/main.go
 	go run docs/assets/examples/barcodegrid/main.go
 	go run docs/assets/examples/billing/main.go
+	go run docs/assets/examples/bookmark/main.go
 	cd examples && go run ./cmd/paper-showcase ../docs/assets/pdf/showcase.pdf
 	go run docs/assets/examples/cellstyle/main.go
 	go run docs/assets/examples/checkbox/main.go
@@ -89,4 +90,5 @@ examples:
 	go run docs/assets/examples/signaturegrid/main.go
 	go run docs/assets/examples/simplest/main.go
 	go run docs/assets/examples/textgrid/main.go
+	go run docs/assets/examples/watermark/main.go
 	go test docs/assets/examples/unittests/main_test.go

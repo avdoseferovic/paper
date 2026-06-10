@@ -41,6 +41,9 @@ var _ core.LinkProvider = (*provider)(nil)
 // compile-time assertion: *provider satisfies core.OutlineProvider.
 var _ core.OutlineProvider = (*provider)(nil)
 
+// compile-time assertion: *provider satisfies core.WatermarkProvider.
+var _ core.WatermarkProvider = (*provider)(nil)
+
 // compile-time assertion: *provider satisfies core.LateFontProvider.
 var _ core.LateFontProvider = (*provider)(nil)
 
@@ -52,41 +55,43 @@ var _ core.LateFontProvider = (*provider)(nil)
 var _ core.CharSpacingProvider = (*provider)(nil)
 
 type provider struct {
-	fpdf        providerPDF
-	documentPDF providerDocumentPDF
-	metadataPDF providerMetadataPDF
-	errorPDF    providerErrorPDF
-	font        core.Font
-	text        core.Text
-	richText    *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
-	code        core.Code
-	image       core.Image
-	line        core.Line
-	checkbox    core.Checkbox
-	cache       cache.Cache
-	cellWriter  cellwriter.CellWriter
-	cfg         *entity.Config
-	issues      []metrics.RenderIssue
+	fpdf         providerPDF
+	transformPDF providerTransformPDF
+	documentPDF  providerDocumentPDF
+	metadataPDF  providerMetadataPDF
+	errorPDF     providerErrorPDF
+	font         core.Font
+	text         core.Text
+	richText     *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
+	code         core.Code
+	image        core.Image
+	line         core.Line
+	checkbox     core.Checkbox
+	cache        cache.Cache
+	cellWriter   cellwriter.CellWriter
+	cfg          *entity.Config
+	issues       []metrics.RenderIssue
 }
 
 // New is the constructor of provider for gofpdf.
 func New(dep *Dependencies) core.Provider {
 	richText, _ := dep.Text.(*Text)
 	return &provider{
-		fpdf:        asProviderPDF[providerPDF](dep.PDF),
-		documentPDF: asProviderPDF[providerDocumentPDF](dep.PDF),
-		metadataPDF: asProviderPDF[providerMetadataPDF](dep.PDF),
-		errorPDF:    asProviderPDF[providerErrorPDF](dep.PDF),
-		font:        dep.Font,
-		text:        dep.Text,
-		richText:    richText,
-		code:        dep.Code,
-		image:       dep.Image,
-		line:        dep.Line,
-		checkbox:    dep.Checkbox,
-		cellWriter:  dep.CellWriter,
-		cfg:         dep.Cfg,
-		cache:       dep.Cache,
+		fpdf:         asProviderPDF[providerPDF](dep.PDF),
+		transformPDF: asProviderPDF[providerTransformPDF](dep.PDF),
+		documentPDF:  asProviderPDF[providerDocumentPDF](dep.PDF),
+		metadataPDF:  asProviderPDF[providerMetadataPDF](dep.PDF),
+		errorPDF:     asProviderPDF[providerErrorPDF](dep.PDF),
+		font:         dep.Font,
+		text:         dep.Text,
+		richText:     richText,
+		code:         dep.Code,
+		image:        dep.Image,
+		line:         dep.Line,
+		checkbox:     dep.Checkbox,
+		cellWriter:   dep.CellWriter,
+		cfg:          dep.Cfg,
+		cache:        dep.Cache,
 	}
 }
 

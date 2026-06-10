@@ -24,6 +24,7 @@ type Config struct {
 	DisableAutoPageBreak bool
 	HTMLLimits           HTMLLimits
 	OutlineFromHeadings  bool
+	Watermark            *props.Watermark
 }
 
 // ToMap converts Config to a map[string]any .
@@ -83,6 +84,10 @@ func (c *Config) ToMap() map[string]any {
 
 	if c.OutlineFromHeadings {
 		m["config_outline_from_headings"] = c.OutlineFromHeadings
+	}
+
+	if c.Watermark != nil {
+		m = c.Watermark.ToMap(m)
 	}
 
 	if c.HTMLLimits != (HTMLLimits{}) {

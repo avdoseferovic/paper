@@ -58,6 +58,7 @@ type documentBuilder interface {
 	WithHTMLLimits(limits entity.HTMLLimits) Builder
 	WithUnsafeNoHTMLLimits() Builder
 	WithOutlineFromHeadings(enabled bool) Builder
+	WithWatermark(text string, ps ...props.Watermark) Builder
 }
 
 type metadataBuilder interface {
@@ -88,6 +89,7 @@ type CfgBuilder struct {
 	backgroundImage      *entity.Image
 	disableAutoPageBreak bool
 	outlineFromHeadings  bool
+	watermark            *props.Watermark
 	generationMode       consts.GenerationMode
 	htmlLimits           entity.HTMLLimits
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // WithProtection defines protection types to the PDF document.
@@ -78,6 +79,24 @@ func (b *CfgBuilder) WithDisableAutoPageBreak(disabled bool) Builder {
 // level-1 entry, and so on. Hidden headings are skipped. Default: off.
 func (b *CfgBuilder) WithOutlineFromHeadings(enabled bool) Builder {
 	b.outlineFromHeadings = enabled
+	return b
+}
+
+// WithWatermark stamps every page with translucent diagonal text, drawn under
+// the page content. Optional props customize font, size, color, opacity, and
+// angle; zero values fall back to defaults (48pt, alpha 0.12, 45 degrees).
+// An empty text removes the watermark.
+func (b *CfgBuilder) WithWatermark(text string, ps ...props.Watermark) Builder {
+	if text == "" {
+		b.watermark = nil
+		return b
+	}
+	prop := props.Watermark{}
+	if len(ps) > 0 {
+		prop = ps[0]
+	}
+	prop.Text = text
+	b.watermark = &prop
 	return b
 }
 

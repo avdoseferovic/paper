@@ -33,3 +33,4 @@
   * [Signature](features/signature.md?id=signature)
   * [Text](features/text.md?id=text)
   * [Unit Testing](features/unittests.md?id=unit-testing)
+  * [Watermark](features/watermark.md?id=watermark)

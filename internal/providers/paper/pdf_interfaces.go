@@ -24,6 +24,12 @@ type providerPDF interface {
 	SetXY(x, y float64)
 }
 
+type providerTransformPDF interface {
+	TransformBegin()
+	TransformEnd()
+	TransformRotate(angle, x, y float64)
+}
+
 type providerDocumentPDF interface {
 	Ln(h float64)
 	Output(w io.Writer) error
