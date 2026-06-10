@@ -2,7 +2,7 @@ module github.com/avdoseferovic/paper/docs
 
 go 1.26.4
 
-require github.com/avdoseferovic/paper v0.0.0
+require github.com/avdoseferovic/paper v0.1.0
 
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
@@ -14,5 +14,3 @@ require (
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 )
-
-replace github.com/avdoseferovic/paper => ..
