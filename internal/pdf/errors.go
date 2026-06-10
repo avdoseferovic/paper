@@ -17,7 +17,10 @@ const (
 	imageTypeJPG = "jpg"
 	imageTypePNG = "png"
 
-	colorSpaceIndexed = "Indexed"
+	colorSpaceIndexed    = "Indexed"
+	colorSpaceDeviceRGB  = "DeviceRGB"
+	colorSpaceDeviceGray = "DeviceGray"
+	colorSpaceDeviceCMYK = "DeviceCMYK"
 )
 
 var (
