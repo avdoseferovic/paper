@@ -2,6 +2,7 @@ package html_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -39,6 +40,18 @@ func TestDocumentFromString_WhenPageRule_ShouldExposePageOptions(t *testing.T) {
 	require.NotNil(t, doc.Page)
 	assert.Equal(t, "a5", doc.Page.PageSize)
 	assert.Equal(t, 12.0, doc.Page.MarginTop)
+}
+
+func TestDocumentFromReader_WhenPageRule_ShouldMatchDocumentFromString(t *testing.T) {
+	t.Parallel()
+
+	input := `<style>@page { size: letter }</style><p>x</p>`
+
+	doc, err := html.DocumentFromReader(strings.NewReader(input))
+
+	require.NoError(t, err)
+	require.NotNil(t, doc.Page)
+	assert.Equal(t, "letter", doc.Page.PageSize)
 }
 
 func TestDocumentFromString_WhenPseudoPageRule_ShouldNotifyUnsupportedHandler(t *testing.T) {

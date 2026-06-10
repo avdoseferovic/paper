@@ -46,6 +46,19 @@ func TestTranslate_WhenOutlineFromHeadings_ShouldSetOutlineOnHeadingLevels(t *te
 	assert.Equal(t, 2, levels[1])
 }
 
+func TestTranslateDocument_WhenTopLevelHeader_ShouldExtractHeaderRows(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse("<header><p>band</p></header><p>content</p>")
+	require.NoError(t, err)
+
+	document, err := translate.TranslateDocument(doc)
+
+	require.NoError(t, err)
+	assert.Len(t, document.HeaderRows, 1)
+	assert.Len(t, document.Rows, 1)
+}
+
 func TestTranslate_WhenOptionAbsent_ShouldNotSetOutline(t *testing.T) {
 	t.Parallel()
 

@@ -133,9 +133,14 @@ the useful page area after margins, headers, and footers are reserved.
 ## Key Features
 
 - HTML-to-PDF conversion through `paper.FromHTML`, `paper.FromHTMLReader`, and
-  `pkg/html`.
+  `pkg/html` — including `@page` size/margins and repeating top-level
+  `<header>`/`<footer>` bands.
 - Programmatic PDF layout with rows, columns, text, images, codes, tables,
   signatures, page numbers, headers, and footers.
+- PDF outline bookmarks via `props.Outline` (and auto-generated from HTML
+  headings with `WithOutlineFromHeadings`), preserved in every generation
+  mode.
+- Per-page text watermarks via `config.WithWatermark`.
 - Document output as bytes, base64, saved files, or merged PDFs (see
   [Merging PDFs](#merging-pdfs) for limitations).
 - PDF permission protection for casual copy/print deterrence, not confidentiality-grade encryption. RC4 is the compatibility default; AES-128 is available with `WithProtectionAlgorithm`.

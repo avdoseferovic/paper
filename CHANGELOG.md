@@ -9,6 +9,30 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Added a public PDF outline (bookmarks) API: `props.Outline` on `props.Text`
+  and the richtext paragraph prop adds entries to the viewer's bookmark
+  sidebar (`Level` 0-n nesting, optional `Title` override).
+- Added `config.WithOutlineFromHeadings(true)`: HTML conversion turns `h1`-`h6`
+  headings into outline entries (also `html.WithOutlineFromHeadings()` for the
+  rows-only API). Hidden headings are skipped.
+- Added outline preservation to `merge.Bytes`: merged documents now carry a
+  rebuilt outline tree, so bookmarks survive concurrent and low-memory
+  generation modes.
+- Added `config.WithWatermark(text, ...props.Watermark)`: translucent diagonal
+  text stamped under the content of every page (auto-scales to the page
+  diagonal; defaults 48pt / 12% alpha / 45°).
+- Added CSS `@page` support (`size` with named sizes, explicit dimensions, and
+  `landscape`; `margin` shorthand and per-side) applied by `paper.FromHTML`
+  and `paper.FromHTMLReader` when no explicit config is passed.
+- Added repeating HTML page headers/footers: the first top-level `<header>` /
+  `<footer>` in `FromHTML`/`AddHTML` registers as the document header/footer.
+- Added `html.DocumentFromString`/`DocumentFromReader` (+`Ctx` variants)
+  returning rows plus parsed `@page` options and header/footer rows.
+- Added a committed `go.work` workspace, `DEVELOPMENT.md` contributor guide,
+  and `RELEASING.md` release checklist.
+- Added a benchstat-based informational benchmark comparison workflow for
+  pull requests, a Go version matrix and module caching in CI, and a blocking
+  dead-code check.
 - Added release engineering scaffolding for the first tagged release.
 - Added nested module coverage in CI for `pkg/test`, `examples`, and docs examples.
 - Added `govulncheck` CI coverage for pull requests, manual runs, and weekly scheduled scans.
@@ -20,6 +44,24 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **BREAKING:** consolidated eight one-type packages under `pkg/consts/*`
+  into the single `pkg/consts` package. Constant string values are unchanged;
+  only Go identifiers moved:
+
+  | Old | New |
+  | --- | --- |
+  | `align.Type` / `align.Left`, `Center`, … | `consts.Align` / `consts.AlignLeft`, `consts.AlignCenter`, … |
+  | `align.Justify` (untyped) | `consts.AlignJustify` (typed `consts.Align`) |
+  | `orientation.Type` / `Vertical`, `Horizontal` | `consts.Orientation` / `consts.OrientationVertical`, `consts.OrientationHorizontal` |
+  | `linestyle.Type` / `Solid`, `Dashed`, `Dotted` | `consts.LineStyle` / `consts.LineStyleSolid`, `consts.LineStyleDashed`, `consts.LineStyleDotted` |
+  | `linestyle.DefaultLineThickness` | `consts.DefaultLineThickness` |
+  | `breakline.Strategy` / `EmptySpaceStrategy`, `DashStrategy` | `consts.BreakLineStrategy` / `consts.BreakLineEmptySpace`, `consts.BreakLineDash` |
+  | `fontfamily.Arial`, `Helvetica`, `Symbol`, `ZapBats`, `Courier` | `consts.FontFamilyArial`, …`Helvetica`, …`Symbol`, …`ZapBats`, …`Courier` |
+  | `barcode.Type` / `Code128`, `EAN` | `consts.BarcodeType` / `consts.BarcodeCode128`, `consts.BarcodeEAN` |
+  | `generation.Mode` / `Sequential`, `Concurrent`, `SequentialLowMemory` | `consts.GenerationMode` / `consts.GenerationSequential`, `consts.GenerationConcurrent`, `consts.GenerationSequentialLowMemory` |
+  | `provider.Type` / `Paper` | `consts.ProviderType` / `consts.ProviderPaper` |
+
+  `pkg/consts/{border,extension,fontstyle,pagesize,protection}` are unchanged.
 - **BREAKING:** top-level `<header>`/`<footer>` elements (direct children of
   `<body>`) now become the repeating page header/footer in `paper.FromHTML`
   and `paper.AddHTML` instead of rendering inline once. Wrap the element in a
