@@ -54,7 +54,7 @@ godoc:
 mocks:
 	find internal/mocks -type f -name '*.go' -delete
 	go run github.com/vektra/mockery/v2@v2.53.6
-	perl -0pi -e 's#github\.com/stretchr/testify/mock#github.com/avdoseferovic/paper/internal/mocktest#g' internal/mocks/*.go
+	go run ./internal/cmd/mockfix internal/mocks
 	make fmt
 
 .PHONY: examples

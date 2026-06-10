@@ -1,0 +1,42 @@
+name: benchmark
+# Informational benchmark comparison between the PR head and its base.
+# Never blocks a merge: shared runners are noisy, so results are advisory
+# and reported in the job summary via benchstat.
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: benchstat
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: go.sum
+
+      - name: Benchmark base
+        run: go test -run='^$' -bench=BenchmarkPDFGeneration -benchtime=3x -count=6 . | tee /tmp/base.txt
+
+      - name: Checkout PR head
+        run: git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Benchmark head
+        run: go test -run='^$' -bench=BenchmarkPDFGeneration -benchtime=3x -count=6 . | tee /tmp/head.txt
+
+      - name: Compare with benchstat
+        run: |
+          {
+            echo '## Benchmark comparison (informational)'
+            echo '```'
+            go run golang.org/x/perf/cmd/benchstat@latest /tmp/base.txt /tmp/head.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

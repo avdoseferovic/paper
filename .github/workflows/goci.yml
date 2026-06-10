@@ -16,13 +16,20 @@ jobs:
   build:
     name: run
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.26.x', 'stable']
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.4'
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
 
       - name: Build
         run: go build ./...
@@ -43,8 +50,14 @@ jobs:
       - name: Fuzz SVG smoke
         run: go test -run='^$' -fuzz=FuzzRasterize -fuzztime=30s ./internal/svg
 
-      - name: Dead code report
-        run: go run golang.org/x/tools/cmd/deadcode@latest -test ./... || true
+      - name: Dead code check
+        run: |
+          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out 2>&1 || true
+          if [ -s deadcode.out ]; then
+            echo "Dead code found:"
+            cat deadcode.out
+            exit 1
+          fi
 
       - name: Test pkg/test module
         run: go test -v ./...
