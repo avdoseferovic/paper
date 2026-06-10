@@ -447,8 +447,8 @@ func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outli
 		if offset+4 > len(data) {
 			return
 		}
-		flags = binary.BigEndian.Uint16(data[offset : offset+2])
-		glyphIndex := int(binary.BigEndian.Uint16(data[offset+2 : offset+4]))
+		flags = binary.BigEndian.Uint16(data[offset : offset+2])              // #nosec G602 -- guarded by the offset+4 bounds check above.
+		glyphIndex := int(binary.BigEndian.Uint16(data[offset+2 : offset+4])) // #nosec G602 -- guarded by the offset+4 bounds check above.
 		offset += 4
 
 		transform, nextOffset, ok := readCompositeGlyphTransform(data, offset, flags)

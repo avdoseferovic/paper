@@ -65,7 +65,7 @@ func TestImageInfoGobRoundTrip(t *testing.T) {
 		n:     2,
 		w:     10,
 		h:     20,
-		cs:    "DeviceRGB",
+		cs:    colorSpaceDeviceRGB,
 		pal:   []byte{9},
 		bpc:   8,
 		f:     "FlateDecode",
@@ -82,7 +82,7 @@ func TestImageInfoGobRoundTrip(t *testing.T) {
 	if err := decoded.GobDecode(encoded); err != nil {
 		t.Fatalf("GobDecode: %v", err)
 	}
-	if decoded.w != 10 || decoded.h != 20 || decoded.cs != "DeviceRGB" || decoded.bpc != 8 {
+	if decoded.w != 10 || decoded.h != 20 || decoded.cs != colorSpaceDeviceRGB || decoded.bpc != 8 {
 		t.Fatalf("decoded fields mismatch: %+v", decoded)
 	}
 	// GobDecode computes the checksum id; it must be populated.

@@ -308,11 +308,11 @@ func (f *PDF) parsejpg(r io.Reader) *ImageInfoType {
 	info.bpc = 8
 	switch config.ColorModel {
 	case color.GrayModel:
-		info.cs = "DeviceGray"
+		info.cs = colorSpaceDeviceGray
 	case color.YCbCrModel:
-		info.cs = "DeviceRGB"
+		info.cs = colorSpaceDeviceRGB
 	case color.CMYKModel:
-		info.cs = "DeviceCMYK"
+		info.cs = colorSpaceDeviceCMYK
 	default:
 		f.err = fmt.Errorf("%w: %v", errUnsupportedJPEGColorSpace, config.ColorModel)
 		return info
@@ -408,7 +408,7 @@ func (f *PDF) putimage(info *ImageInfoType) {
 		f.outf("/ColorSpace [/Indexed /DeviceRGB %d %d 0 R]", len(info.pal)/3-1, f.n+1)
 	} else {
 		f.outf("/ColorSpace /%s", info.cs)
-		if info.cs == "DeviceCMYK" {
+		if info.cs == colorSpaceDeviceCMYK {
 			f.out("/Decode [1 0 1 0 1 0 1 0]")
 		}
 	}
@@ -441,7 +441,7 @@ func (f *PDF) putimage(info *ImageInfoType) {
 		smask := &ImageInfoType{
 			w:     info.w,
 			h:     info.h,
-			cs:    "DeviceGray",
+			cs:    colorSpaceDeviceGray,
 			bpc:   8,
 			f:     info.f,
 			dp:    sprintf("/Predictor 15 /Colors 1 /BitsPerComponent 8 /Columns %d", int(info.w)),
@@ -485,9 +485,9 @@ func (f *PDF) pngColorSpace(ct byte) (string, int) {
 	colorVal := 1
 	switch ct {
 	case 0, 4:
-		return "DeviceGray", colorVal
+		return colorSpaceDeviceGray, colorVal
 	case 2, 6:
-		colspace := "DeviceRGB"
+		colspace := colorSpaceDeviceRGB
 		colorVal = 3
 		return colspace, colorVal
 	case 3:
