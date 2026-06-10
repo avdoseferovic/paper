@@ -52,7 +52,7 @@ jobs:
 
       - name: Dead code check
         run: |
-          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out 2>&1 || true
+          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out 2>&1
           if [ -s deadcode.out ]; then
             echo "Dead code found:"
             cat deadcode.out

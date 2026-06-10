@@ -112,10 +112,16 @@ func (g *provider) AddWatermark(cell *entity.Cell, prop *props.Watermark) {
 	}
 	defer g.font.SetColor(originalColor)
 
+	// AddTextAt positions the glyph BASELINE at the given y; lower the
+	// baseline by ~35% of the font height so the glyph body is visually
+	// centered on the cell center (the rotation pivot).
+	fontHeightMM := textProp.Size * 25.4 / 72.0
+	baselineY := centerY + fontHeightMM*0.35
+
 	g.WithAlpha(p.Alpha, func() {
 		g.transformPDF.TransformBegin()
 		g.transformPDF.TransformRotate(p.Angle, centerX+left, centerY+top)
-		g.richText.AddTextAt(centerX-width/2, centerY, p.Text, textProp)
+		g.richText.AddTextAt(centerX-width/2, baselineY, p.Text, textProp)
 		g.transformPDF.TransformEnd()
 	})
 }

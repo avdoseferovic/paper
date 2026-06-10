@@ -44,7 +44,8 @@ func TestFromHTML_WhenOutlineFromHeadingsEnabled_ShouldEmitOutlineFromHeadings(t
 		WithOutlineFromHeadings(true).
 		Build()
 
-	doc, err := paper.FromHTML("<h1>Alpha</h1><p>prose</p><h2>Beta</h2><h1 hidden>Skipped</h1>", cfg)
+	doc, err := paper.FromHTML(
+		"<h1>Alpha</h1><p>prose</p><h2>Beta</h2><h1 hidden>Skipped</h1><h2><strong>Bold</strong> Title</h2>", cfg)
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -52,6 +53,7 @@ func TestFromHTML_WhenOutlineFromHeadingsEnabled_ShouldEmitOutlineFromHeadings(t
 	assert.True(t, bytes.Contains(pdfBytes, []byte("Alpha")), "h1 title present")
 	assert.True(t, bytes.Contains(pdfBytes, []byte("Beta")), "h2 title present")
 	assert.False(t, outlineTitleCount(pdfBytes, "Skipped") > 0, "hidden heading must not create an outline entry")
+	assert.True(t, outlineTitleCount(pdfBytes, "Bold Title") > 0, "multi-run heading title must concatenate runs")
 }
 
 func TestFromHTML_WhenOutlineFromHeadingsDisabled_ShouldNotEmitOutline(t *testing.T) {

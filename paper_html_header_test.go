@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/components/col"
+	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/html"
@@ -70,6 +71,17 @@ func TestAddHTML_WhenDocumentAlreadyHasRows_ShouldRejectTopLevelHeader(t *testin
 
 	m := paper.New()
 	m.AddAutoRow(col.New(12).Add(text.New("existing content", props.Text{})))
+
+	err := m.AddHTML("<header><p>late header</p></header><p>body</p>")
+
+	require.ErrorIs(t, err, paper.ErrHTMLHeaderAfterContent)
+}
+
+func TestAddHTML_WhenHeaderAlreadyRegistered_ShouldRejectTopLevelHeader(t *testing.T) {
+	t.Parallel()
+
+	m := paper.New()
+	require.NoError(t, m.RegisterHeader(row.New(10).Add(col.New(12).Add(text.New("registered", props.Text{})))))
 
 	err := m.AddHTML("<header><p>late header</p></header><p>body</p>")
 

@@ -16,9 +16,11 @@ import (
 func TestGenerate_WhenWatermarkConfigured_ShouldStampEveryPage(t *testing.T) {
 	t.Parallel()
 
+	// Sentinel string that cannot collide with PDF structure bytes.
+	const sentinel = "XWMKSENTINEL"
 	cfg := config.NewBuilder().
 		WithCompression(false).
-		WithWatermark("DRAFT").
+		WithWatermark(sentinel).
 		Build()
 	m := paper.New(cfg)
 	for range 3 {
@@ -29,8 +31,8 @@ func TestGenerate_WhenWatermarkConfigured_ShouldStampEveryPage(t *testing.T) {
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
-	assert.Equal(t, 3, bytes.Count(pdfBytes, []byte("DRAFT")), "watermark text once per page")
-	assert.True(t, bytes.Contains(pdfBytes, []byte(" cm\n")), "rotation transform ops present")
+	assert.Equal(t, 3, bytes.Count(pdfBytes, []byte(sentinel)), "watermark text once per page")
+	assert.Equal(t, 3, bytes.Count(pdfBytes, []byte(" cm\n")), "rotation transform op once per page")
 }
 
 func TestGenerate_WhenNoWatermark_ShouldNotStamp(t *testing.T) {
