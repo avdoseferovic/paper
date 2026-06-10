@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -10,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -61,6 +63,49 @@ func TestFromHTML_WhenOutlineFromHeadingsDisabled_ShouldNotEmitOutline(t *testin
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without the option")
+}
+
+func TestGenerateCtx_WhenConcurrentModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().
+		WithCompression(false).
+		WithConcurrentMode(4).
+		Build()
+	assertOutlineSurvivesGeneration(t, cfg)
+}
+
+func TestGenerateCtx_WhenLowMemoryModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().
+		WithCompression(false).
+		WithSequentialLowMemoryMode(4).
+		Build()
+	assertOutlineSurvivesGeneration(t, cfg)
+}
+
+func assertOutlineSurvivesGeneration(t *testing.T, cfg *entity.Config) {
+	t.Helper()
+
+	m := paper.New(cfg)
+	for page := 1; page <= 12; page++ {
+		m.AddAutoRow(col.New(12).Add(text.New(fmt.Sprintf("Chapter %d", page), props.Text{
+			Outline: &props.Outline{Level: 0},
+		})))
+		m.AddRow(250, col.New(12).Add(text.New("filler", props.Text{})))
+	}
+
+	doc, err := m.Generate()
+
+	require.NoError(t, err)
+	pdfBytes := doc.GetBytes()
+	assert.True(t, bytes.Contains(pdfBytes, []byte("/Outlines")), "outline must survive chunked generation + merge")
+	assert.True(t, bytes.Contains(pdfBytes, []byte("/PageMode /UseOutlines")))
+	for page := 1; page <= 12; page++ {
+		title := fmt.Sprintf("Chapter %d", page)
+		assert.True(t, outlineTitleCount(pdfBytes, title) > 0, "missing outline title "+title)
+	}
 }
 
 // outlineTitleCount counts outline objects whose /Title contains title text.

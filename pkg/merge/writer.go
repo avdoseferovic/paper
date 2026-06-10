@@ -60,11 +60,21 @@ func writeMergedPDF(documents []*pdfDocument) ([]byte, error) {
 		return nil, fmt.Errorf("%w: no pages to merge", errUnsupportedPDF)
 	}
 
-	return renderMergedPDF(maxPDFVersion(documents), pageIDs, copiedObjects, nextObjectID), nil
+	mergedOutlineRootID := 0
+	if tops := collectMergedOutlineTops(documents, objectMap); len(tops) > 0 {
+		mergedOutlineRootID = nextObjectID
+		nextObjectID++
+		rewireMergedOutline(tops, copiedObjects, mergedOutlineRootID)
+	}
+
+	return renderMergedPDF(maxPDFVersion(documents), pageIDs, copiedObjects, nextObjectID, mergedOutlineRootID), nil
 }
 
 func shouldSkipObject(document *pdfDocument, objectID int) bool {
 	if objectID == document.rootID {
+		return true
+	}
+	if document.outlineRootID != 0 && objectID == document.outlineRootID {
 		return true
 	}
 	_, isPageTree := document.pageTreeIDs[objectID]
@@ -125,7 +135,7 @@ func rewriteOutsideStreams(content []byte, rewrite func([]byte) []byte) []byte {
 	return out.Bytes()
 }
 
-func renderMergedPDF(version string, pageIDs []int, copiedObjects map[int][]byte, nextObjectID int) []byte {
+func renderMergedPDF(version string, pageIDs []int, copiedObjects map[int][]byte, nextObjectID, outlineRootID int) []byte {
 	var out bytes.Buffer
 	fmt.Fprintf(&out, "%%PDF-%s\n", version)
 
@@ -137,7 +147,11 @@ func renderMergedPDF(version string, pageIDs []int, copiedObjects map[int][]byte
 		out.WriteString("\nendobj\n")
 	}
 
-	writeObject(mergedCatalogObjectID, []byte("<<\n/Type /Catalog\n/Pages 2 0 R\n>>"))
+	catalog := "<<\n/Type /Catalog\n/Pages 2 0 R\n>>"
+	if outlineRootID != 0 {
+		catalog = fmt.Sprintf("<<\n/Type /Catalog\n/Pages 2 0 R\n/Outlines %d 0 R\n/PageMode /UseOutlines\n>>", outlineRootID)
+	}
+	writeObject(mergedCatalogObjectID, []byte(catalog))
 	writeObject(mergedPagesObjectID, []byte(pagesTreeContent(pageIDs)))
 	for objectID := firstCopiedObjectID; objectID < nextObjectID; objectID++ {
 		writeObject(objectID, copiedObjects[objectID])
