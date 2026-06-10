@@ -39,7 +39,6 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added `core.Document.Write(io.Writer)` and `(*core.Pdf).Write` for HTTP-handler friendly output.
 - Added `GenerateCtx`, `AddHTMLCtx`, `FromHTMLCtx`, `FromHTMLReaderCtx`, and context-aware HTML translation entry points.
 - Added default resource limits for HTML input, including image, SVG, DOM, and CSS rule caps.
-- Added fuzz targets for HTML, CSS, and SVG processing.
 - Added opt-in AES-128 PDF protection through `WithProtectionAlgorithm(protection.AES128)`.
 
 ### Changed

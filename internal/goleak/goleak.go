@@ -28,9 +28,6 @@ func VerifyTestMain(m *testing.M) {
 	baselineMu.Unlock()
 
 	code := m.Run()
-	if isFuzzRun(os.Args) {
-		os.Exit(code)
-	}
 	if extras := waitForNoExtras(currentBaseline()); len(extras) > 0 {
 		_, _ = fmt.Fprintf(os.Stderr, "goleak: found unexpected goroutines after tests:\n%s\n", strings.Join(extras, "\n\n"))
 		code = 1
@@ -101,21 +98,6 @@ func isIgnored(stack string) bool {
 	for _, pattern := range ignored {
 		if strings.Contains(stack, pattern) {
 			return true
-		}
-	}
-	return false
-}
-
-func isFuzzRun(args []string) bool {
-	for i, arg := range args {
-		for _, prefix := range []string{"-test.fuzz=", "--test.fuzz="} {
-			target, ok := strings.CutPrefix(arg, prefix)
-			if ok {
-				return target != ""
-			}
-		}
-		if arg == "-test.fuzz" || arg == "--test.fuzz" {
-			return i+1 < len(args) && args[i+1] != ""
 		}
 	}
 	return false

@@ -61,13 +61,6 @@ make lint       # golangci-lint across all modules + mock pattern check
   (via `internal/test`, or `pkg/test` for consumers). When you intentionally
   change document structure, update the matching JSON fixture and inspect the
   diff carefully — fixtures are the API contract for layout.
-- **Fuzzing:** CI smoke-runs `FuzzFromHTML` (root), `FuzzParseStylesheet`
-  (`pkg/html/css`), and `FuzzRasterize` (`internal/svg`). Run locally, e.g.:
-
-  ```bash
-  go test -run='^$' -fuzz=FuzzFromHTML -fuzztime=30s .
-  ```
-
 - **Benchmarks:** `paper_benchmark_test.go`; PRs get an informational
   benchstat comparison via `.github/workflows/benchmark.yml`.
 

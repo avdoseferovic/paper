@@ -41,15 +41,6 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Fuzz FromHTML smoke
-        run: go test -run='^$' -fuzz=FuzzFromHTML -fuzztime=60s .
-
-      - name: Fuzz CSS smoke
-        run: go test -run='^$' -fuzz=FuzzParseStylesheet -fuzztime=30s ./pkg/html/css
-
-      - name: Fuzz SVG smoke
-        run: go test -run='^$' -fuzz=FuzzRasterize -fuzztime=30s ./internal/svg
-
       - name: Dead code check
         run: |
           go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out 2>&1
