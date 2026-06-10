@@ -20,6 +20,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **BREAKING:** folded the `pkg/test` nested module back into the root module
+  (supersedes the earlier nested-module split for `pkg/test` below). It is now
+  a dependency-free re-export of the internal golden-structure helper and its
+  testify dependency was removed. The import path is unchanged
+  (`github.com/avdoseferovic/paper/pkg/test`), no separate `go get` is needed,
+  and the historical `pkg/test/v0.1.0` tag remains usable.
 - Renamed the current-page fit check method to `FitInCurrentPage`.
 - Split `pkg/test`, `examples`, and `docs` into nested Go modules to keep root consumer dependencies and module downloads lean.
 - Moved generated mocks under `internal/mocks` and removed the root-level generated `mocks` package.

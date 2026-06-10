@@ -1,164 +1,33 @@
-// Package test implements unit test feature.
-package test
+package test_test
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/test"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
-const (
-	file = "paper_test.json"
-)
-
-func TestNew(t *testing.T) {
-	t.Parallel()
-	t.Run("when called first, should setup singleton and set t", func(t *testing.T) {
-		t.Parallel()
-		// Act
-		sut := New(t)
-
-		// Assert
-		assert.Equal(t, t, sut.t)
-	})
-	t.Run("when called not first, should use singleton and set t", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		_ = New(t)
-
-		// Act
-		sut := New(t)
-
-		// Assert
-		assert.Equal(t, t, sut.t)
-	})
-}
-
-func fixtureNode(rootType string) *node.Node[core.Structure] {
-	rootNode := node.New[core.Structure](core.Structure{
-		Type: rootType,
-	})
-	pageNode := node.New[core.Structure](core.Structure{
-		Type: "page",
-	})
-
-	rootNode.AddNext(pageNode)
-	return rootNode
-}
-
-func TestPaperTest_Assert(t *testing.T) {
-	t.Parallel()
-	t.Run("when call assert, should set node", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		n := fixtureNode("paper")
-		sut := New(t)
-
-		// Act
-		sut.Assert(n)
-
-		// Assert
-		assert.Equal(t, n, sut.node)
-	})
-}
-
-func TestPaperTest_Save(t *testing.T) {
-	t.Parallel()
-	t.Run("when cannot save, should not create file", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		file := ""
-		n := fixtureNode("paper")
-		innerT := &testing.T{}
-		sut := New(innerT).Assert(n)
-
-		// Act
-		sut.Equals(file)
-
-		// Assert
-		path := configSingleton.getAbsoluteFilePath(file)
-		_, err := os.ReadFile(path)
-		assert.NotNil(t, err)
-		assert.True(t, innerT.Failed())
-	})
-	t.Run("when can save, should create file", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		n := fixtureNode("paper")
-		sut := New(t).Assert(n)
-
-		// Act
-		sut.Equals(file)
-
-		// Assert
-		path := configSingleton.getAbsoluteFilePath(file)
-		bytes, err := os.ReadFile(path)
-		assert.Nil(t, err)
-
-		testNode := &Node{}
-		_ = json.Unmarshal(bytes, testNode)
-		assert.Equal(t, "paper", testNode.Type)
-		assert.Equal(t, "page", testNode.Nodes[0].Type)
-	})
-}
-
-func TestPaperTest_Equals(t *testing.T) {
-	t.Parallel()
-	t.Run("when file saved is not equals to current, should fail", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		n := fixtureNode("not_maroto")
-		innerT := &testing.T{}
-		sut := New(innerT).Assert(n)
-
-		// Act
-		sut.Equals(file)
-
-		// Assert
-		assert.True(t, innerT.Failed())
-	})
-	t.Run("when file saved is equals to current, should be success", func(t *testing.T) {
-		t.Parallel()
-		// Arrange
-		n := fixtureNode("paper")
-		innerT := &testing.T{}
-		sut := New(innerT).Assert(n)
-
-		// Act
-		sut.Equals(file)
-
-		// Assert
-		assert.False(t, innerT.Failed())
-	})
-}
-
-func TestGetPaperConfigFilePathRecursive_ReturnsModuleRootWhenPaperConfigIsMissing(t *testing.T) {
+// The package is a thin re-export of internal/test; this smoke test exercises
+// only the public surface against a root test/paper golden file.
+func TestNew_WhenAssertingMatchingStructure_ShouldPassAgainstRootGolden(t *testing.T) {
 	t.Parallel()
 
-	root := t.TempDir()
-	nested := filepath.Join(root, "pkg", "test")
-	err := os.MkdirAll(nested, os.ModePerm)
-	assert.NoError(t, err)
-	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module example.test\n"), os.ModePerm)
-	assert.NoError(t, err)
+	rootNode := node.New[core.Structure](core.Structure{Type: "paper"})
+	rootNode.AddNext(node.New[core.Structure](core.Structure{Type: "page"}))
 
-	path, err := getPaperConfigFilePathRecursive(nested + string(os.PathSeparator))
-
-	assert.NoError(t, err)
-	assert.Equal(t, root+string(os.PathSeparator), path)
+	test.New(t).Assert(rootNode).Equals("paper_test.json")
 }
 
-func TestGetPaperConfigFilePathRecursive_ReturnsErrorWhenGoModIsMissing(t *testing.T) {
+func TestNew_WhenAssertingMismatchedStructure_ShouldFail(t *testing.T) {
 	t.Parallel()
 
-	path, err := getPaperConfigFilePathRecursive(t.TempDir())
+	rootNode := node.New[core.Structure](core.Structure{Type: "not_paper"})
+	innerT := &testing.T{}
 
-	assert.Empty(t, path)
-	assert.ErrorIs(t, err, ErrGoModNotFound)
+	test.New(innerT).Assert(rootNode).Equals("paper_test.json")
+
+	if !innerT.Failed() {
+		t.Fatal("expected mismatched structure to fail the assertion")
+	}
 }

@@ -22,12 +22,9 @@ control over document generation.
 go get github.com/avdoseferovic/paper
 ```
 
-The optional structure assertion helper is published as a separate module so
-normal Paper consumers do not pull assertion-library dependencies:
-
-```bash
-go get github.com/avdoseferovic/paper/pkg/test
-```
+The structure assertion helper ships with the root module and adds no
+third-party dependencies — import `github.com/avdoseferovic/paper/pkg/test`
+directly.
 
 ## HTML to PDF
 
@@ -233,6 +230,10 @@ generating documents in parallel.
 | `make dod`      | Run the local definition-of-done checks           |
 | `make examples` | Run documentation examples                        |
 | `make docs`     | Start the local docs server                       |
+
+Contributor onboarding — toolchain setup, the multi-module workspace layout,
+golden-file tests, and mock generation — is covered in
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Credits
 
