@@ -139,13 +139,26 @@ the useful page area after margins, headers, and footers are reserved.
   `pkg/html`.
 - Programmatic PDF layout with rows, columns, text, images, codes, tables,
   signatures, page numbers, headers, and footers.
-- Document output as bytes, base64, saved files, or merged PDFs.
+- Document output as bytes, base64, saved files, or merged PDFs (see
+  [Merging PDFs](#merging-pdfs) for limitations).
 - PDF permission protection for casual copy/print deterrence, not confidentiality-grade encryption. RC4 is the compatibility default; AES-128 is available with `WithProtectionAlgorithm`.
 - Component-tree inspection through `GetStructure`, designed for deterministic
   unit tests.
 - Optional generation metrics through `decorator.NewMetrics`.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
+
+## Merging PDFs
+
+`merge.Bytes` (package `pkg/merge`) concatenates the pages of multiple PDFs
+into one document. It is designed for PDFs produced by Paper itself and has
+two hard limitations for external input:
+
+- **Encrypted PDFs are not supported.** Password-protected input returns an
+  error; decrypt before merging.
+- **Cross-reference streams are not supported.** Many modern tools emit PDFs
+  with xref streams (PDF 1.5+ compressed object streams); those inputs are
+  rejected. Re-save such files with a classic xref table first.
 
 ## Performance
 
