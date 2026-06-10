@@ -20,6 +20,18 @@ func (g *provider) RegisterFont(family string, style fontstyle.Type, bytes []byt
 	g.fpdf.AddUTF8FontFromBytes(family, string(style), bytes)
 }
 
+// Bookmark records a PDF outline entry on the current page. y is measured
+// from the top of the page content area (entity.Cell convention); the page
+// top margin is added so the destination matches where components draw.
+func (g *provider) Bookmark(title string, level int, y float64) {
+	if level < 0 {
+		level = 0
+	}
+	left, top, _, _ := g.fpdf.GetMargins()
+	_ = left // only the top margin matters for the outline destination
+	g.fpdf.Bookmark(title, level, y+top)
+}
+
 // AddLink reserves a new internal link target ID.
 func (g *provider) AddLink() int { return g.fpdf.AddLink() }
 

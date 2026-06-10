@@ -57,6 +57,7 @@ type documentBuilder interface {
 	WithDisableAutoPageBreak(disabled bool) Builder
 	WithHTMLLimits(limits entity.HTMLLimits) Builder
 	WithUnsafeNoHTMLLimits() Builder
+	WithOutlineFromHeadings(enabled bool) Builder
 }
 
 type metadataBuilder interface {
@@ -86,6 +87,7 @@ type CfgBuilder struct {
 	metadata             *entity.Metadata
 	backgroundImage      *entity.Image
 	disableAutoPageBreak bool
+	outlineFromHeadings  bool
 	generationMode       consts.GenerationMode
 	htmlLimits           entity.HTMLLimits
 }

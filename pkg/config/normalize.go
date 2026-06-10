@@ -31,6 +31,7 @@ func NormalizeConfig(cfg *entity.Config) *entity.Config {
 		BackgroundImage:      cloneImage(cfg.BackgroundImage),
 		DisableAutoPageBreak: cfg.DisableAutoPageBreak,
 		HTMLLimits:           cfg.HTMLLimits,
+		OutlineFromHeadings:  cfg.OutlineFromHeadings,
 	}
 
 	if normalized.ProviderType == "" {

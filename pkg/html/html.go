@@ -19,13 +19,23 @@ import (
 type Option func(*config)
 
 type config struct {
-	unsupportedHandler func(thing, value string)
-	gridSize           int
-	contentWidthMM     float64
-	imageBaseDir       string
-	stylesheetBaseDir  string
-	limits             Limits
-	limitsSet          bool
+	unsupportedHandler  func(thing, value string)
+	gridSize            int
+	contentWidthMM      float64
+	imageBaseDir        string
+	stylesheetBaseDir   string
+	limits              Limits
+	limitsSet           bool
+	outlineFromHeadings bool
+}
+
+// WithOutlineFromHeadings adds h1-h6 headings to the PDF document outline:
+// h1 becomes a level-0 entry, h2 a level-1 entry, and so on. Hidden headings
+// are skipped.
+func WithOutlineFromHeadings() Option {
+	return func(c *config) {
+		c.outlineFromHeadings = true
+	}
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -119,6 +129,9 @@ func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.
 	}
 	if cfg.unsupportedHandler != nil {
 		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))
+	}
+	if cfg.outlineFromHeadings {
+		tOpts = append(tOpts, translate.WithOutlineFromHeadings())
 	}
 	return translate.TranslateCtx(ctx, doc, tOpts...)
 }

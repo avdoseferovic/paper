@@ -1,6 +1,8 @@
 package paper
 
 import (
+	"strings"
+
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -35,6 +37,9 @@ var _ core.AlphaProvider = (*provider)(nil)
 
 // compile-time assertion: *provider satisfies core.LinkProvider.
 var _ core.LinkProvider = (*provider)(nil)
+
+// compile-time assertion: *provider satisfies core.OutlineProvider.
+var _ core.OutlineProvider = (*provider)(nil)
 
 // compile-time assertion: *provider satisfies core.LateFontProvider.
 var _ core.LateFontProvider = (*provider)(nil)
@@ -108,7 +113,20 @@ func (g *provider) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *pr
 	if g.richText == nil {
 		return
 	}
+	if prop != nil && prop.Outline != nil {
+		g.Bookmark(prop.Outline.ResolveTitle(joinRunText(runs)), prop.Outline.NormalizedLevel(), cell.Y+prop.Top)
+	}
 	g.richText.AddRichText(runs, cell, prop)
+}
+
+// joinRunText concatenates the text content of runs for use as an outline
+// title fallback.
+func joinRunText(runs []props.RichRun) string {
+	var sb strings.Builder
+	for _, run := range runs {
+		sb.WriteString(run.Text)
+	}
+	return strings.TrimSpace(sb.String())
 }
 
 func (g *provider) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64 {

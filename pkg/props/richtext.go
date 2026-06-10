@@ -69,6 +69,11 @@ type RichText struct {
 	// at render time by richtext.RichText.Render when the provider implements
 	// core.LinkProvider and the component was built with an anchor registry.
 	AnchorResolver func(name string) int
+
+	// Outline, when set, adds this paragraph as an entry in the PDF document
+	// outline (the bookmark sidebar). When Title is empty, the concatenated
+	// run text is used.
+	Outline *Outline
 }
 
 // MakeValid fills in default values for RichText paragraph props.

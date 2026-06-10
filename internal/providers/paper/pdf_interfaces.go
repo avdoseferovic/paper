@@ -11,6 +11,7 @@ type providerPDF interface {
 	AddLink() int
 	AddPage()
 	AddUTF8FontFromBytes(familyStr, styleStr string, bytes []byte)
+	Bookmark(txtStr string, level int, y float64)
 	Circle(x, y, r float64, styleStr string)
 	GetFillColor() (int, int, int)
 	GetMargins() (left, top, right, bottom float64)

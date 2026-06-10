@@ -157,6 +157,9 @@ func (m *Paper) AddHTMLCtx(ctx context.Context, htmlStr string) error {
 	if m.config.HTMLLimits != (entity.HTMLLimits{}) {
 		opts = append(opts, html.WithLimits(m.config.HTMLLimits))
 	}
+	if m.config.OutlineFromHeadings {
+		opts = append(opts, html.WithOutlineFromHeadings())
+	}
 	if m.config.Dimensions != nil {
 		contentWidth := m.config.Dimensions.Width - m.config.Margins.Left - m.config.Margins.Right
 		if contentWidth > 0 {

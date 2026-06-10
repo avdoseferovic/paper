@@ -188,6 +188,25 @@ p { font-family: "MyFont" }
 - Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped because the internal backend cannot decode them, and they are logged via `unsupportedHandler`.
 - Failures (resolver refused, malformed font bytes) log via `unsupportedHandler` and fall back to default fonts — never a panic.
 
+### Document outline from headings
+
+`h1`–`h6` headings can be added to the PDF document outline (the bookmark
+sidebar) automatically. The feature is opt-in:
+
+```go
+// Component/document API:
+cfg := config.NewBuilder().WithOutlineFromHeadings(true).Build()
+doc, _ := paper.FromHTML("<h1>Intro</h1><h2>Detail</h2>", cfg)
+
+// Rows-only API:
+rows, _ := html.FromString(input, html.WithOutlineFromHeadings())
+```
+
+`h1` becomes a level-0 entry, `h2` level-1, … `h6` level-5. The entry title is
+the heading's text content. Hidden headings (`hidden`, `display:none`) produce
+no entry. Outline entries survive all generation modes, including concurrent
+and low-memory generation.
+
 ### Internal anchors
 
 ```html

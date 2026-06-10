@@ -99,6 +99,9 @@ func (r *RichText) GetStructure() *node.Node[core.Structure] {
 	if ws := normalizeWhiteSpace(r.prop.WhiteSpace); ws != "normal" {
 		details["white_space"] = ws
 	}
+	if r.prop.Outline != nil {
+		details = r.prop.Outline.ToMap(details)
+	}
 	str := core.Structure{
 		Type:    "richtext",
 		Value:   r.allText(),

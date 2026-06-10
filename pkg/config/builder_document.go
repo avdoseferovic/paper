@@ -73,6 +73,14 @@ func (b *CfgBuilder) WithDisableAutoPageBreak(disabled bool) Builder {
 	return b
 }
 
+// WithOutlineFromHeadings makes HTML conversion (AddHTML/FromHTML) add h1-h6
+// headings to the PDF document outline: h1 becomes a level-0 entry, h2 a
+// level-1 entry, and so on. Hidden headings are skipped. Default: off.
+func (b *CfgBuilder) WithOutlineFromHeadings(enabled bool) Builder {
+	b.outlineFromHeadings = enabled
+	return b
+}
+
 // WithHTMLLimits configures resource limits for AddHTML/FromHTML translation.
 func (b *CfgBuilder) WithHTMLLimits(limits entity.HTMLLimits) Builder {
 	b.htmlLimits = htmllimits.Normalize(limits)

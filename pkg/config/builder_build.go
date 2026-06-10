@@ -30,6 +30,7 @@ func (b *CfgBuilder) Build() *entity.Config {
 		BackgroundImage:      cloneImage(b.backgroundImage),
 		DisableAutoPageBreak: b.disableAutoPageBreak,
 		HTMLLimits:           b.htmlLimits,
+		OutlineFromHeadings:  b.outlineFromHeadings,
 	}
 }
 

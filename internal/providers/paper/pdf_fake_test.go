@@ -86,6 +86,10 @@ func (e *pdfExpecter) AddPage(args ...any) *pdfCall {
 	return &pdfCall{Call: e.mock.On("AddPage", args...)}
 }
 
+func (e *pdfExpecter) Bookmark(args ...any) *pdfCall {
+	return &pdfCall{Call: e.mock.On("Bookmark", args...)}
+}
+
 func (e *pdfExpecter) Circle(args ...any) *pdfCall {
 	return &pdfCall{Call: e.mock.On("Circle", args...)}
 }
@@ -253,6 +257,10 @@ func (m *pdfMock) AddPage() {
 
 func (m *pdfMock) AddUTF8FontFromBytes(familyStr, styleStr string, bytes []byte) {
 	m.Called(familyStr, styleStr, bytes)
+}
+
+func (m *pdfMock) Bookmark(txtStr string, level int, y float64) {
+	m.Called(txtStr, level, y)
 }
 
 func (m *pdfMock) Circle(x, y, r float64, styleStr string) {

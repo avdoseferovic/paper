@@ -23,6 +23,7 @@ type Config struct {
 	BackgroundImage      *Image
 	DisableAutoPageBreak bool
 	HTMLLimits           HTMLLimits
+	OutlineFromHeadings  bool
 }
 
 // ToMap converts Config to a map[string]any .
@@ -78,6 +79,10 @@ func (c *Config) ToMap() map[string]any {
 
 	if c.DisableAutoPageBreak {
 		m["config_disable_auto_page_break"] = c.DisableAutoPageBreak
+	}
+
+	if c.OutlineFromHeadings {
+		m["config_outline_from_headings"] = c.OutlineFromHeadings
 	}
 
 	if c.HTMLLimits != (HTMLLimits{}) {

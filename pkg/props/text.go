@@ -31,6 +31,10 @@ type Text struct {
 	Color *Color
 	// Hyperlink define a link to be opened when the text is clicked.
 	Hyperlink *string
+	// Outline, when set, adds this text as an entry in the PDF document
+	// outline (the bookmark sidebar). Outline entries only survive
+	// concurrent/low-memory generation when merged documents preserve them.
+	Outline *Outline
 }
 
 // ToMap converts a Text to a map.
@@ -81,6 +85,10 @@ func (t *Text) ToMap() map[string]any {
 
 	if t.Hyperlink != nil {
 		m["prop_hyperlink"] = *t.Hyperlink
+	}
+
+	if t.Outline != nil {
+		m = t.Outline.ToMap(m)
 	}
 
 	return m
@@ -146,6 +154,8 @@ func NormalizeText(t Text, font *Font) Text {
 	if t.BreakLineStrategy == "" {
 		t.BreakLineStrategy = consts.BreakLineEmptySpace
 	}
+
+	t.Outline = CloneOutline(t.Outline)
 
 	return t
 }
