@@ -5,7 +5,7 @@ import (
 
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -34,7 +34,7 @@ func TestOutlineStyler_Apply(t *testing.T) {
 
 		prop := &props.Cell{
 			OutlineWidth:  0.5,
-			OutlineStyle:  linestyle.Solid,
+			OutlineStyle:  consts.LineStyleSolid,
 			OutlineColor:  &props.Color{Red: 255, Green: 0, Blue: 0},
 			OutlineOffset: 0,
 		}

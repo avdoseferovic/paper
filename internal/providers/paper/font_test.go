@@ -7,7 +7,7 @@ import (
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 
 	"github.com/avdoseferovic/paper/internal/assert"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -16,7 +16,7 @@ func TestNewFont(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	size := 10.0
-	family := fontfamily.Arial
+	family := consts.FontFamilyArial
 	style := fontstyle.Bold
 
 	fpdf := newPDF(t)
@@ -38,7 +38,7 @@ func TestFont_GetHeight(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	size := 10.0
-	family := fontfamily.Arial
+	family := consts.FontFamilyArial
 	style := fontstyle.Bold
 
 	fpdf := newPDF(t)
@@ -56,26 +56,26 @@ func TestFont_SetFamily(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	size := 10.0
-	family := fontfamily.Arial
+	family := consts.FontFamilyArial
 	style := fontstyle.Bold
 
 	fpdf := newPDF(t)
 	fpdf.EXPECT().SetFont(family, string(style), size)
-	fpdf.EXPECT().SetFont(fontfamily.Helvetica, string(style), size)
+	fpdf.EXPECT().SetFont(consts.FontFamilyHelvetica, string(style), size)
 	font := gofpdf.NewFont(fpdf, size, family, style)
 
 	// Act
-	font.SetFamily(fontfamily.Helvetica)
+	font.SetFamily(consts.FontFamilyHelvetica)
 
 	// Assert
-	assert.Equal(t, fontfamily.Helvetica, font.GetFamily())
+	assert.Equal(t, consts.FontFamilyHelvetica, font.GetFamily())
 }
 
 func TestFont_SetStyle(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	size := 10.0
-	family := fontfamily.Arial
+	family := consts.FontFamilyArial
 	style := fontstyle.Bold
 
 	fpdf := newPDF(t)
@@ -94,7 +94,7 @@ func TestFont_SetSize(t *testing.T) {
 	t.Parallel()
 	// Arrange
 	size := 10.0
-	family := fontfamily.Arial
+	family := consts.FontFamilyArial
 	style := fontstyle.Bold
 
 	fpdf := newPDF(t)
@@ -115,7 +115,7 @@ func TestFont_SetColor(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		size := 10.0
-		family := fontfamily.Arial
+		family := consts.FontFamilyArial
 		style := fontstyle.Bold
 
 		fpdf := newPDF(t)
@@ -133,7 +133,7 @@ func TestFont_SetColor(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		size := 10.0
-		family := fontfamily.Arial
+		family := consts.FontFamilyArial
 		style := fontstyle.Bold
 
 		fpdf := newPDF(t)

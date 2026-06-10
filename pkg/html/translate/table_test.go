@@ -5,7 +5,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 )
@@ -149,7 +149,7 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 1.0, cells[0].Style.BorderRightThickness)
 		assert.Equal(t, 1.0, cells[0].Style.BorderBottomThickness)
 		assert.Equal(t, 1.0, cells[0].Style.BorderLeftThickness)
-		assert.Equal(t, linestyle.Dashed, cells[0].Style.BorderTopStyle)
+		assert.Equal(t, consts.LineStyleDashed, cells[0].Style.BorderTopStyle)
 		require.NotNil(t, cells[0].Style.BorderTopColor)
 		assert.Equal(t, 255, cells[0].Style.BorderTopColor.Red)
 	})
@@ -174,7 +174,7 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 2.0, cells[0].Style.BorderRadiusBottomLeft)
 		require.Len(t, cells[0].Style.BoxShadow, 1)
 		assert.Equal(t, 0.5, cells[0].Style.OutlineWidth)
-		assert.Equal(t, linestyle.Dotted, cells[0].Style.OutlineStyle)
+		assert.Equal(t, consts.LineStyleDotted, cells[0].Style.OutlineStyle)
 	})
 }
 

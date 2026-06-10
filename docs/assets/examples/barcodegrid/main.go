@@ -3,8 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
-
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
@@ -99,30 +98,30 @@ func GetPaper() core.Paper {
 	m.AddRow(40,
 		code.NewBarCol(2, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 		code.NewBarCol(4, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 		code.NewBarCol(6, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 	)
 
 	m.AddAutoRow(
 		code.NewBarCol(2, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 		code.NewBarCol(4, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 		code.NewBarCol(6, "123456789123", props.Barcode{
 			Center: true,
-			Type:   barcode.EAN,
+			Type:   consts.BarcodeEAN,
 		}),
 	)
 

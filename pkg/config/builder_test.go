@@ -6,20 +6,17 @@ import (
 	"time"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
-	"github.com/avdoseferovic/paper/pkg/consts/provider"
 	"github.com/avdoseferovic/paper/pkg/html"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -43,20 +40,20 @@ func TestBuilder_Build(t *testing.T) {
 	cfg := sut.Build()
 
 	// Assert
-	assert.Equal(t, provider.Paper, cfg.ProviderType)
+	assert.Equal(t, consts.ProviderPaper, cfg.ProviderType)
 	assert.Equal(t, 210.0, cfg.Dimensions.Width)
 	assert.Equal(t, 297.0, cfg.Dimensions.Height)
 	assert.Equal(t, 10.0, cfg.Margins.Top)
 	assert.Equal(t, 10.0, cfg.Margins.Left)
 	assert.Equal(t, 10.0, cfg.Margins.Right)
-	assert.Equal(t, fontfamily.Arial, cfg.DefaultFont.Family)
+	assert.Equal(t, consts.FontFamilyArial, cfg.DefaultFont.Family)
 	assert.Equal(t, 10.0, cfg.DefaultFont.Size)
 	assert.Equal(t, fontstyle.Normal, cfg.DefaultFont.Style)
 	assert.Equal(t, 0, cfg.DefaultFont.Color.Red)
 	assert.Equal(t, 0, cfg.DefaultFont.Color.Green)
 	assert.Equal(t, 0, cfg.DefaultFont.Color.Blue)
 	assert.Nil(t, cfg.CustomFonts)
-	assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+	assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 	assert.Equal(t, 1, cfg.ChunkWorkers)
 	assert.False(t, cfg.Debug)
 	assert.Equal(t, 12, cfg.MaxGridSize)
@@ -263,7 +260,7 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		cfg := sut.WithConcurrentMode(-1).Build()
 
 		// Assert
-		assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 		assert.Equal(t, 1, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should change the default value", func(t *testing.T) {
@@ -275,7 +272,7 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		cfg := sut.WithConcurrentMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.Concurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override sequential", func(t *testing.T) {
@@ -288,7 +285,7 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		cfg := sut.WithConcurrentMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.Concurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override sequential low memory", func(t *testing.T) {
@@ -301,7 +298,7 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		cfg := sut.WithConcurrentMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.Concurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 }
@@ -317,7 +314,7 @@ func TestCfgBuilder_WithSequentialMode(t *testing.T) {
 		cfg := sut.WithSequentialMode().Build()
 
 		// Assert
-		assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 		assert.Equal(t, 1, cfg.ChunkWorkers)
 	})
 	t.Run("when sequential, should override sequential low memory", func(t *testing.T) {
@@ -330,7 +327,7 @@ func TestCfgBuilder_WithSequentialMode(t *testing.T) {
 		cfg := sut.WithSequentialMode().Build()
 
 		// Assert
-		assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 		assert.Equal(t, 1, cfg.ChunkWorkers)
 	})
 	t.Run("when sequential, should override concurrent", func(t *testing.T) {
@@ -343,7 +340,7 @@ func TestCfgBuilder_WithSequentialMode(t *testing.T) {
 		cfg := sut.WithSequentialMode().Build()
 
 		// Assert
-		assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 		assert.Equal(t, 1, cfg.ChunkWorkers)
 	})
 }
@@ -359,7 +356,7 @@ func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 		cfg := sut.WithSequentialLowMemoryMode(-1).Build()
 
 		// Assert
-		assert.Equal(t, generation.Sequential, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
 		assert.Equal(t, 1, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should change the default value", func(t *testing.T) {
@@ -371,7 +368,7 @@ func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 		cfg := sut.WithSequentialLowMemoryMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.SequentialLowMemory, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequentialLowMemory, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override sequential low memory", func(t *testing.T) {
@@ -384,7 +381,7 @@ func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 		cfg := sut.WithSequentialLowMemoryMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.SequentialLowMemory, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequentialLowMemory, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override concurrent", func(t *testing.T) {
@@ -397,7 +394,7 @@ func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 		cfg := sut.WithSequentialLowMemoryMode(7).Build()
 
 		// Assert
-		assert.Equal(t, generation.SequentialLowMemory, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationSequentialLowMemory, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 }
@@ -462,7 +459,7 @@ func TestBuilder_WithDefaultFont(t *testing.T) {
 		cfg := sut.WithDefaultFont(nil).Build()
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, cfg.DefaultFont.Family)
+		assert.Equal(t, consts.FontFamilyArial, cfg.DefaultFont.Family)
 		assert.Equal(t, 10.0, cfg.DefaultFont.Size)
 		assert.Equal(t, fontstyle.Normal, cfg.DefaultFont.Style)
 		assert.Equal(t, 0, cfg.DefaultFont.Color.Red)
@@ -498,7 +495,7 @@ func TestBuilder_WithDefaultFont(t *testing.T) {
 		}).Build()
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, cfg.DefaultFont.Family)
+		assert.Equal(t, consts.FontFamilyArial, cfg.DefaultFont.Family)
 		assert.Equal(t, 10.0, cfg.DefaultFont.Size)
 		assert.Equal(t, fontstyle.Bold, cfg.DefaultFont.Style)
 		assert.Equal(t, 0, cfg.DefaultFont.Color.Red)
@@ -516,7 +513,7 @@ func TestBuilder_WithDefaultFont(t *testing.T) {
 		}).Build()
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, cfg.DefaultFont.Family)
+		assert.Equal(t, consts.FontFamilyArial, cfg.DefaultFont.Family)
 		assert.Equal(t, 13.0, cfg.DefaultFont.Size)
 		assert.Equal(t, fontstyle.Normal, cfg.DefaultFont.Style)
 		assert.Equal(t, 0, cfg.DefaultFont.Color.Red)
@@ -534,7 +531,7 @@ func TestBuilder_WithDefaultFont(t *testing.T) {
 		}).Build()
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, cfg.DefaultFont.Family)
+		assert.Equal(t, consts.FontFamilyArial, cfg.DefaultFont.Family)
 		assert.Equal(t, 10.0, cfg.DefaultFont.Size)
 		assert.Equal(t, fontstyle.Normal, cfg.DefaultFont.Style)
 		assert.Equal(t, 10, cfg.DefaultFont.Color.Red)
@@ -557,7 +554,7 @@ func TestCfgBuilder_WithPageNumber(t *testing.T) {
 		assert.Equal(t, "{current} / {total}", cfg.PageNumber.Pattern)
 		assert.Equal(t, props.Bottom, cfg.PageNumber.Place)
 		assert.Equal(t, fontstyle.Normal, cfg.PageNumber.Style)
-		assert.Equal(t, fontfamily.Arial, cfg.PageNumber.Family)
+		assert.Equal(t, consts.FontFamilyArial, cfg.PageNumber.Family)
 		assert.Equal(t, 10.0, cfg.PageNumber.Size)
 		assert.Equal(t, 0, cfg.PageNumber.Color.Red)
 		assert.Equal(t, 0, cfg.PageNumber.Color.Green)
@@ -717,7 +714,7 @@ func TestBuilder_WithOrientation(t *testing.T) {
 		sut := config.NewBuilder()
 
 		// Act
-		cfg := sut.WithOrientation(orientation.Horizontal).Build()
+		cfg := sut.WithOrientation(consts.OrientationHorizontal).Build()
 
 		// Assert
 		assert.Equal(t, 297.0, cfg.Dimensions.Width)
@@ -743,7 +740,7 @@ func TestBuilder_WithOrientation(t *testing.T) {
 		sut := config.NewBuilder()
 
 		// Act
-		cfg := sut.WithPageSize(pagesize.A5).WithOrientation(orientation.Horizontal).Build()
+		cfg := sut.WithPageSize(pagesize.A5).WithOrientation(consts.OrientationHorizontal).Build()
 
 		// Assert
 		assert.Equal(t, 210.0, cfg.Dimensions.Width)

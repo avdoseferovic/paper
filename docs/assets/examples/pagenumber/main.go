@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -38,7 +38,7 @@ func GetPaper() core.Paper {
 	pageNumber := props.PageNumber{
 		Pattern: "Page {current} of {total}",
 		Place:   props.Bottom,
-		Family:  fontfamily.Courier,
+		Family:  consts.FontFamilyCourier,
 		Style:   fontstyle.Bold,
 		Size:    9,
 		Color: &props.Color{

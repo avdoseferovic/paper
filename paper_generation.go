@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/avdoseferovic/paper/internal/cache"
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/merge"
 	"github.com/avdoseferovic/paper/pkg/metrics"
@@ -49,11 +49,11 @@ func (m *Paper) generateDocumentCtx(ctx context.Context) (*core.Pdf, error) {
 		return m.generateCtx(ctx)
 	}
 
-	if m.config.GenerationMode == generation.Concurrent {
+	if m.config.GenerationMode == consts.GenerationConcurrent {
 		return m.generateConcurrentlyCtx(ctx)
 	}
 
-	if m.config.GenerationMode == generation.SequentialLowMemory {
+	if m.config.GenerationMode == consts.GenerationSequentialLowMemory {
 		return m.generateLowMemoryCtx(ctx)
 	}
 

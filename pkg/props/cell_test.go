@@ -6,8 +6,8 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -97,7 +97,7 @@ func TestCell_ToMap(t *testing.T) {
 		// Assert
 		assert.Equal(t, border.Left, m["prop_border_type"])
 		assert.Equal(t, 0.6, m["prop_border_thickness"])
-		assert.Equal(t, linestyle.Dashed, m["prop_border_line_style"])
+		assert.Equal(t, consts.LineStyleDashed, m["prop_border_line_style"])
 		assert.Equal(t, "RGB(255, 100, 50)", m["prop_background_color"])
 		assert.Equal(t, "RGB(200, 80, 60)", m["prop_border_color"])
 	})

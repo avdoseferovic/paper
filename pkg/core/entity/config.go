@@ -1,19 +1,18 @@
 package entity
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
-	"github.com/avdoseferovic/paper/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // Config is the configuration of a paper instance.
 type Config struct {
-	ProviderType         provider.Type
+	ProviderType         consts.ProviderType
 	Dimensions           *Dimensions
 	Margins              *Margins
 	DefaultFont          *props.Font
 	CustomFonts          []CustomFont
-	GenerationMode       generation.Mode
+	GenerationMode       consts.GenerationMode
 	ChunkWorkers         int
 	Debug                bool
 	MaxGridSize          int

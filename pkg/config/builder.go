@@ -4,18 +4,14 @@ package config
 import (
 	"time"
 
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
-
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
-	"github.com/avdoseferovic/paper/pkg/consts/provider"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -55,7 +51,7 @@ type documentBuilder interface {
 	WithProtection(protectionType protection.Type, userPassword, ownerPassword string) Builder
 	WithProtectionAlgorithm(algorithm protection.Encryption) Builder
 	WithCompression(compression bool) Builder
-	WithOrientation(orientation orientation.Type) Builder
+	WithOrientation(orientation consts.Orientation) Builder
 	WithCustomFonts(customFonts []entity.CustomFont) Builder
 	WithBackgroundImage(bytes []byte, extensionType extension.Type) Builder
 	WithDisableAutoPageBreak(disabled bool) Builder
@@ -73,7 +69,7 @@ type metadataBuilder interface {
 }
 
 type CfgBuilder struct {
-	providerType         provider.Type
+	providerType         consts.ProviderType
 	dimensions           *entity.Dimensions
 	margins              *entity.Margins
 	chunkWorkers         int
@@ -86,11 +82,11 @@ type CfgBuilder struct {
 	protectionAlgorithm  protection.Encryption
 	compression          bool
 	pageSize             *pagesize.Type
-	orientation          orientation.Type
+	orientation          consts.Orientation
 	metadata             *entity.Metadata
 	backgroundImage      *entity.Image
 	disableAutoPageBreak bool
-	generationMode       generation.Mode
+	generationMode       consts.GenerationMode
 	htmlLimits           entity.HTMLLimits
 }
 
@@ -105,7 +101,7 @@ func NewBuilder() Builder {
 func NewCfgBuilder() *CfgBuilder {
 	defaultFontColor := props.Black()
 	return &CfgBuilder{
-		providerType: provider.Paper,
+		providerType: consts.ProviderPaper,
 		margins: &entity.Margins{
 			Left:   pagesize.DefaultLeftMargin,
 			Right:  pagesize.DefaultRightMargin,
@@ -115,11 +111,11 @@ func NewCfgBuilder() *CfgBuilder {
 		maxGridSize: pagesize.DefaultMaxGridSum,
 		defaultFont: &props.Font{
 			Size:   pagesize.DefaultFontSize,
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Color:  &defaultFontColor,
 		},
-		generationMode: generation.Sequential,
+		generationMode: consts.GenerationSequential,
 		chunkWorkers:   1,
 	}
 }

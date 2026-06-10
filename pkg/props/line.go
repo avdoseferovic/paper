@@ -1,20 +1,17 @@
 package props
 
-import (
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
-)
+import "github.com/avdoseferovic/paper/pkg/consts"
 
 // Line represents properties from a Line inside a cell.
 type Line struct {
 	// Color define the line color.
 	Color *Color
 	// Style define the line style (solid or dashed).
-	Style linestyle.Type
+	Style consts.LineStyle
 	// Thickness define the line thicknesl.
 	Thickness float64
 	// Orientation define if line would be horizontal or vertical.
-	Orientation orientation.Type
+	Orientation consts.Orientation
 	// OffsetPercent define where the line would be placed, 0 is the start of cell, 50 the middle and 100 the end.
 	OffsetPercent float64
 	// SizePercent define the size of the line inside cell.
@@ -64,15 +61,15 @@ func (l *Line) MakeValid() {
 // NormalizeLine returns a defaulted copy of l.
 func NormalizeLine(l Line) Line {
 	if l.Style == "" {
-		l.Style = linestyle.Solid
+		l.Style = consts.LineStyleSolid
 	}
 
 	if l.Thickness == 0 {
-		l.Thickness = linestyle.DefaultLineThickness
+		l.Thickness = consts.DefaultLineThickness
 	}
 
 	if l.Orientation == "" {
-		l.Orientation = orientation.Horizontal
+		l.Orientation = consts.OrientationHorizontal
 	}
 
 	if l.OffsetPercent < 5 {

@@ -2,7 +2,7 @@ package paper
 
 import (
 	"github.com/avdoseferovic/paper/internal/merror"
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -99,7 +99,7 @@ func (g *provider) GetDimensionsByQrCode(code string) (*entity.Dimensions, error
 
 func (g *provider) getBarcodeImageName(code string, prop *props.Barcode) string {
 	if prop == nil {
-		return code + string(barcode.Code128)
+		return code + string(consts.BarcodeCode128)
 	}
 
 	return code + string(prop.Type)

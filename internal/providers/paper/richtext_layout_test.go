@@ -5,7 +5,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -14,7 +14,7 @@ func TestLayoutRichTextTokensWrapsAndPreservesOrder(t *testing.T) {
 
 	runs := []resolvedRun{{RichRun: props.RichRun{Text: "alpha beta gamma"}}}
 	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
-		prop:       &props.RichText{Align: align.Left},
+		prop:       &props.RichText{Align: consts.AlignLeft},
 		width:      9,
 		whiteSpace: "normal",
 		measure: func(_ resolvedRun, text string) (string, float64) {
@@ -44,7 +44,7 @@ func TestLayoutRichTextTokensAddsLetterSpacingToMeasuredWidth(t *testing.T) {
 		LetterSpacing: 0.5,
 	}}}
 	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
-		prop:       &props.RichText{Align: align.Left},
+		prop:       &props.RichText{Align: consts.AlignLeft},
 		width:      10,
 		whiteSpace: "normal",
 		measure: func(_ resolvedRun, text string) (string, float64) {
@@ -62,7 +62,7 @@ func TestLayoutRichTextTokensJustifiesWrappedLines(t *testing.T) {
 
 	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb cc"}}}
 	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
-		prop:       &props.RichText{Align: align.Justify},
+		prop:       &props.RichText{Align: consts.AlignJustify},
 		width:      5.5,
 		whiteSpace: "normal",
 		measure: func(_ resolvedRun, text string) (string, float64) {
@@ -93,7 +93,7 @@ func TestLayoutRichTextTokensTreatsOnlyEmptyImageTokenAsImage(t *testing.T) {
 		{RichRun: props.RichRun{Image: &props.RichImage{Width: 4, Height: 3}}},
 	}
 	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
-		prop:       &props.RichText{Align: align.Left},
+		prop:       &props.RichText{Align: consts.AlignLeft},
 		width:      20,
 		whiteSpace: "normal",
 		measure: func(_ resolvedRun, text string) (string, float64) {

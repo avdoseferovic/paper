@@ -1,8 +1,7 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -18,12 +17,12 @@ func NewLine(pdf linePDF) *Line {
 	return &Line{
 		pdf:              pdf,
 		defaultColor:     &defaultColor,
-		defaultThickness: linestyle.DefaultLineThickness,
+		defaultThickness: consts.DefaultLineThickness,
 	}
 }
 
 func (l *Line) Add(cell *entity.Cell, prop *props.Line) {
-	if prop.Orientation == orientation.Vertical {
+	if prop.Orientation == consts.OrientationVertical {
 		l.renderVertical(cell, prop)
 	} else {
 		l.renderHorizontal(cell, prop)
@@ -80,20 +79,20 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 
 // setDashPattern applies the gofpdf dash pattern for the given line style.
 // Solid is a no-op; Dashed uses [1,1]; Dotted uses [0.4,0.4].
-func setDashPattern(pdf linePDF, style linestyle.Type) {
+func setDashPattern(pdf linePDF, style consts.LineStyle) {
 	switch style {
-	case linestyle.Solid:
+	case consts.LineStyleSolid:
 		// no dash pattern needed
-	case linestyle.Dashed:
+	case consts.LineStyleDashed:
 		pdf.SetDashPattern([]float64{1, 1}, 0)
-	case linestyle.Dotted:
+	case consts.LineStyleDotted:
 		pdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 }
 
 // resetDashPattern restores the solid (no-dash) pattern after a non-solid line.
-func resetDashPattern(pdf linePDF, style linestyle.Type) {
-	if style != linestyle.Solid {
+func resetDashPattern(pdf linePDF, style consts.LineStyle) {
+	if style != consts.LineStyleSolid {
 		pdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

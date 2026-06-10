@@ -1,14 +1,10 @@
 package fixture
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -26,8 +22,8 @@ func TextProp() props.Text {
 		Family:            fontProp.Family,
 		Style:             fontProp.Style,
 		Size:              fontProp.Size,
-		Align:             align.Right,
-		BreakLineStrategy: breakline.DashStrategy,
+		Align:             consts.AlignRight,
+		BreakLineStrategy: consts.BreakLineDash,
 		VerticalPadding:   20,
 		Color:             fontProp.Color,
 		Hyperlink:         &google,
@@ -40,12 +36,12 @@ func TextProp() props.Text {
 func FontProp() props.Font {
 	colorProp := ColorProp()
 	prop := props.Font{
-		Family: fontfamily.Helvetica,
+		Family: consts.FontFamilyHelvetica,
 		Style:  fontstyle.Bold,
 		Size:   14,
 		Color:  &colorProp,
 	}
-	prop.MakeValid(fontfamily.Arial)
+	prop.MakeValid(consts.FontFamilyArial)
 	return prop
 }
 
@@ -132,7 +128,7 @@ func CellProp() props.Cell {
 		},
 		BorderType:      border.Left,
 		BorderThickness: 0.6,
-		LineStyle:       linestyle.Dashed,
+		LineStyle:       consts.LineStyleDashed,
 	}
 	return prop
 }
@@ -163,9 +159,9 @@ func LineProp() props.Line {
 	colorProp := ColorProp()
 	prop := props.Line{
 		Color:         &colorProp,
-		Style:         linestyle.Dashed,
+		Style:         consts.LineStyleDashed,
 		Thickness:     1.1,
-		Orientation:   orientation.Vertical,
+		Orientation:   consts.OrientationVertical,
 		OffsetPercent: 50,
 		SizePercent:   20,
 	}

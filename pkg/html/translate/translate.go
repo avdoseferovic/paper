@@ -11,7 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/line"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
 	"github.com/avdoseferovic/paper/pkg/components/row"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -430,14 +430,14 @@ func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {
 	return rt
 }
 
-func richTextAlignFromCSS(value string) align.Type {
+func richTextAlignFromCSS(value string) consts.Align {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case flexAlignCenter:
-		return align.Center
+		return consts.AlignCenter
 	case "right", "end":
-		return align.Right
+		return consts.AlignRight
 	case "justify":
-		return align.Justify
+		return consts.AlignJustify
 	default:
 		return ""
 	}

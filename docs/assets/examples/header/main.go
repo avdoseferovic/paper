@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -46,7 +46,7 @@ func GetPaper() core.Paper {
 	err := m.RegisterHeader(text.NewRow(20, "Header", props.Text{
 		Size:  10,
 		Style: fontstyle.Bold,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 	}))
 	if err != nil {
 		log.Fatal(err)

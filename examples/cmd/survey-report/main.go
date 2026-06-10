@@ -16,8 +16,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html"
@@ -76,16 +75,16 @@ func buildHeader() []core.Row {
 
 	title := row.New(7).Add(
 		col.New(7).Add(text.New("PAPER MEDICAL CENTER", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Style:  fontstyle.Bold,
 			Size:   9,
 			Color:  brand,
 		})),
 		col.New(5).Add(text.New("CONFIDENTIAL · PATIENT RECORD", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Style:  fontstyle.Bold,
 			Size:   7,
-			Align:  align.Right,
+			Align:  consts.AlignRight,
 			Color:  muted,
 		})),
 	)
@@ -101,14 +100,14 @@ func buildFooter() []core.Row {
 	})))
 	footRow := row.New(5).Add(
 		col.New(8).Add(text.New("Document ref: ANAM-2026-04812 · Paper Medical Center", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Size:   7,
 			Color:  muted,
 		})),
 		col.New(4).Add(text.New("Page {current} of {total}", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Size:   7,
-			Align:  align.Right,
+			Align:  consts.AlignRight,
 			Color:  muted,
 		})),
 	)

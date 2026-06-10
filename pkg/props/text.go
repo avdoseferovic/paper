@@ -1,8 +1,7 @@
 package props
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
@@ -23,9 +22,9 @@ type Text struct {
 	// Size of the text.
 	Size float64
 	// Align of the text.
-	Align align.Type
+	Align consts.Align
 	// BreakLineStrategy define the break line strategy.
-	BreakLineStrategy breakline.Strategy
+	BreakLineStrategy consts.BreakLineStrategy
 	// VerticalPadding define an additional space between linet.
 	VerticalPadding float64
 	// Color define the font style color.
@@ -121,7 +120,7 @@ func NormalizeText(t Text, font *Font) Text {
 	}
 
 	if t.Align == "" {
-		t.Align = align.Left
+		t.Align = consts.AlignLeft
 	}
 
 	if t.Top < minValue {
@@ -145,7 +144,7 @@ func NormalizeText(t Text, font *Font) Text {
 	}
 
 	if t.BreakLineStrategy == "" {
-		t.BreakLineStrategy = breakline.EmptySpaceStrategy
+		t.BreakLineStrategy = consts.BreakLineEmptySpace
 	}
 
 	return t

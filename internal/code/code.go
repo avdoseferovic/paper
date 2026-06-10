@@ -15,7 +15,7 @@ import (
 	"github.com/boombuler/barcode/ean"
 	"github.com/boombuler/barcode/qr"
 
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -77,12 +77,12 @@ func (c *Code) GenBar(code string, _ *entity.Cell, prop *props.Barcode) (*entity
 }
 
 func getBarcodeClosure(
-	barcodeType barcode.Type,
+	barcodeType consts.BarcodeType,
 ) func(code string) (libBarcode.BarcodeIntCS, error) {
 	switch barcodeType {
-	case barcode.EAN:
+	case consts.BarcodeEAN:
 		return ean.Encode
-	case barcode.Code128:
+	case consts.BarcodeCode128:
 		return code128.Encode
 	default:
 

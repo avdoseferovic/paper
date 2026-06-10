@@ -4,8 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -288,17 +287,17 @@ func firstXForLine(lineY int, firstLineIndent float64) float64 {
 	return 0
 }
 
-func alignmentOffset(a align.Type, width, lineWidth float64) float64 {
+func alignmentOffset(a consts.Align, width, lineWidth float64) float64 {
 	slack := width - lineWidth
 	if slack <= 0 {
 		return 0
 	}
 	switch a {
-	case align.Left, align.Top, align.Bottom, align.Middle:
+	case consts.AlignLeft, consts.AlignTop, consts.AlignBottom, consts.AlignMiddle, consts.AlignJustify:
 		return 0
-	case align.Center:
+	case consts.AlignCenter:
 		return slack / 2
-	case align.Right:
+	case consts.AlignRight:
 		return slack
 	default:
 		return 0
@@ -338,8 +337,8 @@ func (r resolvedRun) styleWithUnderline() fontstyle.Type {
 // the fontfamily constants are lowercase. For custom (UTF-8) fonts text passes through.
 func (s *Text) translateUnicode(text, family string) string {
 	switch strings.ToLower(family) {
-	case fontfamily.Arial, fontfamily.Helvetica, fontfamily.Symbol,
-		fontfamily.ZapBats, fontfamily.Courier:
+	case consts.FontFamilyArial, consts.FontFamilyHelvetica, consts.FontFamilySymbol,
+		consts.FontFamilyZapBats, consts.FontFamilyCourier:
 		return s.translateDefaultCodePage(text)
 	default:
 		return text

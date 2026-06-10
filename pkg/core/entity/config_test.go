@@ -3,17 +3,14 @@ package entity_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
-
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
 
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
-	"github.com/avdoseferovic/paper/pkg/consts/provider"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -26,18 +23,18 @@ func TestConfig_ToMap(t *testing.T) {
 	m := sut.ToMap()
 
 	// Assert
-	assert.Equal(t, provider.Paper, m["config_provider_type"])
+	assert.Equal(t, consts.ProviderPaper, m["config_provider_type"])
 	assert.Equal(t, 100.0, m["paper_dimension_width"])
 	assert.Equal(t, 200.0, m["paper_dimension_height"])
 	assert.Equal(t, 20.0, m["config_margin_left"])
 	assert.Equal(t, 30.0, m["config_margin_top"])
 	assert.Equal(t, 40.0, m["config_margin_right"])
 	assert.Equal(t, 50.0, m["config_margin_bottom"])
-	assert.Equal(t, fontfamily.Helvetica, m["prop_font_family"])
+	assert.Equal(t, consts.FontFamilyHelvetica, m["prop_font_family"])
 	assert.Equal(t, fontstyle.Bold, m["prop_font_style"])
 	assert.Equal(t, 15.0, m["prop_font_size"])
 	assert.Equal(t, "RGB(255, 0, 0)", m["prop_font_color"])
-	assert.Equal(t, generation.Concurrent, m["generation_mode"])
+	assert.Equal(t, consts.GenerationConcurrent, m["generation_mode"])
 	assert.Equal(t, 7, m["chunk_workers"])
 	assert.Equal(t, true, m["config_debug"])
 	assert.Equal(t, 15, m["config_max_grid_sum"])
@@ -74,11 +71,11 @@ func fixtureConfig() entity.Config {
 	pageNumber := fixturePageNumber()
 
 	return entity.Config{
-		ProviderType:         provider.Paper,
+		ProviderType:         consts.ProviderPaper,
 		Dimensions:           &dimensions,
 		Margins:              &margins,
 		DefaultFont:          &font,
-		GenerationMode:       generation.Concurrent,
+		GenerationMode:       consts.GenerationConcurrent,
 		ChunkWorkers:         7,
 		Debug:                true,
 		MaxGridSize:          15,
@@ -93,7 +90,7 @@ func fixtureConfig() entity.Config {
 
 func fixtureFont() props.Font {
 	return props.Font{
-		Family: fontfamily.Helvetica,
+		Family: consts.FontFamilyHelvetica,
 		Style:  fontstyle.Bold,
 		Size:   15,
 		Color:  &props.RedColor,
@@ -104,7 +101,7 @@ func fixturePageNumber() *props.PageNumber {
 	return &props.PageNumber{
 		Pattern: "Page {current} of {total}",
 		Place:   props.RightBottom,
-		Family:  fontfamily.Helvetica,
+		Family:  consts.FontFamilyHelvetica,
 		Style:   fontstyle.Bold,
 		Size:    15,
 		Color:   &props.RedColor,

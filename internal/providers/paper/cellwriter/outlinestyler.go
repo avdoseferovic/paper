@@ -1,7 +1,7 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -58,16 +58,16 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 	rh := height + 2*expansion
 
 	switch prop.OutlineStyle {
-	case linestyle.Solid:
-	case linestyle.Dashed:
+	case consts.LineStyleSolid:
+	case consts.LineStyleDashed:
 		fpdf.SetDashPattern([]float64{1, 1}, 0)
-	case linestyle.Dotted:
+	case consts.LineStyleDotted:
 		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 
 	fpdf.Rect(rx, ry, rw, rh, "D")
 
-	if prop.OutlineStyle != linestyle.Solid && prop.OutlineStyle != "" {
+	if prop.OutlineStyle != consts.LineStyleSolid && prop.OutlineStyle != "" {
 		fpdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

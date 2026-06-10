@@ -4,13 +4,8 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -29,7 +24,7 @@ func TestNormalizeTextReturnsDefaultedCopy(t *testing.T) {
 
 	input := props.Text{Left: -10, Top: -5}
 	font := &props.Font{
-		Family: fontfamily.Helvetica,
+		Family: consts.FontFamilyHelvetica,
 		Style:  fontstyle.Bold,
 		Size:   11,
 		Color:  &props.RedColor,
@@ -38,11 +33,11 @@ func TestNormalizeTextReturnsDefaultedCopy(t *testing.T) {
 	normalized := props.NormalizeText(input, font)
 
 	assert.Equal(t, props.Text{Left: -10, Top: -5}, input)
-	assert.Equal(t, fontfamily.Helvetica, normalized.Family)
+	assert.Equal(t, consts.FontFamilyHelvetica, normalized.Family)
 	assert.Equal(t, fontstyle.Bold, normalized.Style)
 	assert.Equal(t, 11.0, normalized.Size)
-	assert.Equal(t, align.Left, normalized.Align)
-	assert.Equal(t, breakline.EmptySpaceStrategy, normalized.BreakLineStrategy)
+	assert.Equal(t, consts.AlignLeft, normalized.Align)
+	assert.Equal(t, consts.BreakLineEmptySpace, normalized.BreakLineStrategy)
 	assert.Equal(t, 0.0, normalized.Left)
 	assert.Equal(t, 0.0, normalized.Top)
 	assert.NotSame(t, font.Color, normalized.Color)
@@ -71,7 +66,7 @@ func TestNormalizeShapePropsReturnDefaultedCopies(t *testing.T) {
 	assert.Equal(t, props.Barcode{Left: -1, Top: -2, Percent: -3}, codeProp)
 	assert.Equal(t, 100.0, normalizedBarcode.Percent)
 	assert.Equal(t, props.Proportion{Width: 1, Height: 0.2}, normalizedBarcode.Proportion)
-	assert.Equal(t, barcode.Code128, normalizedBarcode.Type)
+	assert.Equal(t, consts.BarcodeCode128, normalizedBarcode.Type)
 }
 
 func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
@@ -79,8 +74,8 @@ func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
 
 	lineColor := &props.Color{Red: 1, Green: 2, Blue: 3}
 	line := props.NormalizeLine(props.Line{Color: lineColor, OffsetPercent: 1000})
-	assert.Equal(t, linestyle.Solid, line.Style)
-	assert.Equal(t, orientation.Horizontal, line.Orientation)
+	assert.Equal(t, consts.LineStyleSolid, line.Style)
+	assert.Equal(t, consts.OrientationHorizontal, line.Orientation)
 	assert.NotSame(t, lineColor, line.Color)
 	lineColor.Red = 99
 	assert.Equal(t, 1, line.Color.Red)
@@ -89,7 +84,7 @@ func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
 	normalizedSignature := props.NormalizeSignature(props.Signature{
 		FontColor: fontColor,
 		LineColor: lineColor,
-	}, fontfamily.Arial)
+	}, consts.FontFamilyArial)
 	assert.NotSame(t, fontColor, normalizedSignature.FontColor)
 	assert.NotSame(t, lineColor, normalizedSignature.LineColor)
 	fontColor.Red = 99
@@ -97,14 +92,14 @@ func TestNormalizeColorBearingPropsClonePointers(t *testing.T) {
 
 	background := &props.Color{Red: 7, Green: 8, Blue: 9}
 	shadowColor := &props.Color{Red: 10, Green: 11, Blue: 12}
-	defaultFont := &props.Font{Family: fontfamily.Helvetica, Style: fontstyle.Italic, Size: 13, Color: fontColor}
+	defaultFont := &props.Font{Family: consts.FontFamilyHelvetica, Style: fontstyle.Italic, Size: 13, Color: fontColor}
 	run := props.NormalizeRichRun(props.RichRun{
 		Color:       fontColor,
 		Background:  background,
 		TextShadow:  &props.Shadow{Color: shadowColor},
 		TextShadows: []props.Shadow{{Color: shadowColor}},
 	}, defaultFont)
-	assert.Equal(t, fontfamily.Helvetica, run.Family)
+	assert.Equal(t, consts.FontFamilyHelvetica, run.Family)
 	assert.Equal(t, fontstyle.Italic, run.Style)
 	assert.Equal(t, 13.0, run.Size)
 	assert.NotSame(t, fontColor, run.Color)
@@ -122,9 +117,9 @@ func TestNormalizeRichTextAndCloneCellCopyNestedPointers(t *testing.T) {
 	t.Parallel()
 
 	rich := props.NormalizeRichText(props.RichText{})
-	assert.Equal(t, align.Left, rich.Align)
+	assert.Equal(t, consts.AlignLeft, rich.Align)
 	assert.Equal(t, 1.0, rich.LineHeight)
-	assert.Equal(t, breakline.EmptySpaceStrategy, rich.BreakLineStrategy)
+	assert.Equal(t, consts.BreakLineEmptySpace, rich.BreakLineStrategy)
 	assert.Equal(t, "normal", rich.WhiteSpace)
 
 	alpha := 0.5

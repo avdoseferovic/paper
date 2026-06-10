@@ -3,12 +3,11 @@ package main
 import (
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/decorator"
-
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -34,7 +33,7 @@ func main() {
 
 func GetPaper() core.Paper {
 	cfg := config.NewBuilder().
-		WithOrientation(orientation.Horizontal).
+		WithOrientation(consts.OrientationHorizontal).
 		WithDebug(true).
 		Build()
 

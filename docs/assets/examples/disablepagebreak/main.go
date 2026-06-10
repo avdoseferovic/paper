@@ -4,11 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/page"
@@ -45,7 +45,7 @@ func GetPaper(image string) core.Paper {
 		WithLeftMargin(0).
 		WithDimensions(361.8, 203.2).
 		WithDisableAutoPageBreak(true).
-		WithOrientation(orientation.Horizontal).
+		WithOrientation(consts.OrientationHorizontal).
 		WithMaxGridSize(20).
 		WithBackgroundImage(bytes, extension.Png).
 		Build()

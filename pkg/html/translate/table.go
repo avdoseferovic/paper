@@ -7,7 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/table"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -115,7 +115,7 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 	if len(runs) == 0 {
 		runs = []props.RichRun{{Text: ""}}
 	}
-	rt := richtext.New(runs, props.RichText{Align: align.Center})
+	rt := richtext.New(runs, props.RichText{Align: consts.AlignCenter})
 	return row.New().Add(col.New().Add(rt))
 }
 

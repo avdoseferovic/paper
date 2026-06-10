@@ -1,9 +1,8 @@
 package props
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 )
 
 // Signature represents properties from a signature.
@@ -19,7 +18,7 @@ type Signature struct {
 	// LineColor define the line color.
 	LineColor *Color
 	// LineStyle define the line style (solid or dashed).
-	LineStyle linestyle.Type
+	LineStyle consts.LineStyle
 	// LineThickness define the line thickness.
 	LineThickness float64
 
@@ -85,11 +84,11 @@ func NormalizeSignature(s Signature, defaultFontFamily string) Signature {
 	}
 
 	if s.LineStyle == "" {
-		s.LineStyle = linestyle.Solid
+		s.LineStyle = consts.LineStyleSolid
 	}
 
 	if s.LineThickness == 0 {
-		s.LineThickness = linestyle.DefaultLineThickness
+		s.LineThickness = consts.DefaultLineThickness
 	}
 	if s.SafePadding <= 0 {
 		s.SafePadding = 1.5
@@ -124,7 +123,7 @@ func (s *Signature) ToFontProp() *Font {
 }
 
 // ToTextProp from Signature return a Text based on Signature.
-func (s *Signature) ToTextProp(align align.Type, top float64, verticalPadding float64) *Text {
+func (s *Signature) ToTextProp(align consts.Align, top float64, verticalPadding float64) *Text {
 	font := s.ToFontProp()
 	text := &Text{
 		Family:          font.Family,

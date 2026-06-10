@@ -1,7 +1,7 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -17,7 +17,7 @@ func NewBorderThicknessStyler(fpdf any) *BorderThicknessStyler {
 			fpdf: fpdf,
 			name: "borderThicknessStyler",
 		},
-		defaultLineThickness: linestyle.DefaultLineThickness,
+		defaultLineThickness: consts.DefaultLineThickness,
 	}
 }
 

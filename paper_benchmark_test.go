@@ -15,7 +15,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -154,7 +154,7 @@ func benchmarkHeader() []core.Row {
 			})),
 			col.New(4).Add(text.New("benchmark@paper.example", props.Text{
 				Size:  9,
-				Align: align.Right,
+				Align: consts.AlignRight,
 				Color: muted,
 			})),
 		),
@@ -169,7 +169,7 @@ func benchmarkTextRows(count int) []core.Row {
 	rows := make([]core.Row, 0, count+1)
 	rows = append(rows, text.NewRow(12, "Generation benchmark: text-heavy document", props.Text{
 		Size:  14,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 	}))
 
 	base := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac condimentum sem. "
@@ -187,19 +187,19 @@ func benchmarkMixedRows(imageBytes []byte, groups int) []core.Row {
 	for range groups {
 		rows = append(rows,
 			row.New(14).Add(
-				text.NewCol(4, "Barcode", props.Text{Size: 10, Top: 4, Align: align.Center}),
+				text.NewCol(4, "Barcode", props.Text{Size: 10, Top: 4, Align: consts.AlignCenter}),
 				code.NewBarCol(8, "paper-benchmark", props.Barcode{Center: true, Percent: 70}),
 			),
 			row.New(18).Add(
-				text.NewCol(4, "QR", props.Text{Size: 10, Top: 5, Align: align.Center}),
+				text.NewCol(4, "QR", props.Text{Size: 10, Top: 5, Align: consts.AlignCenter}),
 				code.NewQrCol(8, "https://github.com/avdoseferovic/paper", props.Rect{Center: true, Percent: 70}),
 			),
 			row.New(18).Add(
-				text.NewCol(4, "Image", props.Text{Size: 10, Top: 5, Align: align.Center}),
+				text.NewCol(4, "Image", props.Text{Size: 10, Top: 5, Align: consts.AlignCenter}),
 				componentimage.NewFromBytesCol(8, imageBytes, extension.Png, props.Rect{Center: true, Percent: 60}),
 			),
 			row.New(16).Add(
-				text.NewCol(4, "Signature", props.Text{Size: 10, Top: 5, Align: align.Center}),
+				text.NewCol(4, "Signature", props.Text{Size: 10, Top: 5, Align: consts.AlignCenter}),
 				signature.NewCol(8, "Paper Benchmark", props.Signature{FontSize: 9}),
 			),
 			text.NewRow(8, "Mixed row payload for PDF generation timing.", props.Text{Size: 8}),

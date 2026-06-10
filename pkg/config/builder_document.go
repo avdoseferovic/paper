@@ -2,8 +2,8 @@ package config
 
 import (
 	"github.com/avdoseferovic/paper/internal/htmllimits"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
@@ -46,7 +46,7 @@ func (b *CfgBuilder) WithCompression(compression bool) Builder {
 
 // WithOrientation defines the page orientation. The default orientation is vertical,
 // if horizontal is defined width and height will be flipped.
-func (b *CfgBuilder) WithOrientation(pageOrientation orientation.Type) Builder {
+func (b *CfgBuilder) WithOrientation(pageOrientation consts.Orientation) Builder {
 	b.orientation = pageOrientation
 	return b
 }

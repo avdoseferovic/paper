@@ -16,7 +16,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/image"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -128,7 +128,7 @@ func generateLinkedPDF(t *testing.T) []byte {
 
 	link := "https://example.com"
 	m := paper.New()
-	m.AddRows(text.NewRow(10, "linked text", props.Text{Hyperlink: &link, Align: align.Center}))
+	m.AddRows(text.NewRow(10, "linked text", props.Text{Hyperlink: &link, Align: consts.AlignCenter}))
 	doc, err := m.Generate()
 	require.NoError(t, err)
 

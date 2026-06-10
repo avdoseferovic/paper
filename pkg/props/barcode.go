@@ -1,6 +1,6 @@
 package props
 
-import "github.com/avdoseferovic/paper/pkg/consts/barcode"
+import "github.com/avdoseferovic/paper/pkg/consts"
 
 // Barcode represents properties from a barcode inside a cell.
 type Barcode struct {
@@ -18,7 +18,7 @@ type Barcode struct {
 	// Center define that the barcode will be vertically and horizontally centralized.
 	Center bool
 	// Type represents the barcode type. Default: code128
-	Type barcode.Type
+	Type consts.BarcodeType
 }
 
 // ToMap from Barcode will return a map representation from Barcode.
@@ -113,7 +113,7 @@ func NormalizeBarcode(b Barcode) Barcode {
 	}
 
 	if b.Type == "" {
-		b.Type = barcode.Code128
+		b.Type = consts.BarcodeCode128
 	}
 
 	return b

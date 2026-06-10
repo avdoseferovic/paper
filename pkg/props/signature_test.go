@@ -6,11 +6,8 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -36,10 +33,10 @@ func TestSignature_ToMap(t *testing.T) {
 		m := sut.ToMap()
 
 		// Assert
-		assert.Equal(t, fontfamily.Helvetica, m["prop_font_family"])
+		assert.Equal(t, consts.FontFamilyHelvetica, m["prop_font_family"])
 		assert.Equal(t, fontstyle.Bold, m["prop_font_style"])
 		assert.Equal(t, 14.0, m["prop_font_size"])
-		assert.Equal(t, linestyle.Dashed, m["prop_line_style"])
+		assert.Equal(t, consts.LineStyleDashed, m["prop_line_style"])
 		assert.Equal(t, 1.1, m["prop_line_thickness"])
 		assert.Equal(t, "RGB(100, 50, 200)", m["prop_font_color"])
 		assert.Equal(t, "RGB(100, 50, 200)", m["prop_line_color"])
@@ -54,10 +51,10 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{FontFamily: ""}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, prop.FontFamily)
+		assert.Equal(t, consts.FontFamilyArial, prop.FontFamily)
 	})
 	t.Run("when font style is empty, should apply bold", func(t *testing.T) {
 		t.Parallel()
@@ -65,7 +62,7 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{FontStyle: ""}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, fontstyle.Bold, prop.FontStyle)
@@ -76,7 +73,7 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{FontSize: 0}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, 8.0, prop.FontSize)
@@ -87,10 +84,10 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{LineStyle: ""}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
-		assert.Equal(t, linestyle.Solid, prop.LineStyle)
+		assert.Equal(t, consts.LineStyleSolid, prop.LineStyle)
 	})
 	t.Run("when line thickness is zero, should apply default thickness", func(t *testing.T) {
 		t.Parallel()
@@ -98,10 +95,10 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{LineThickness: 0}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
-		assert.Equal(t, linestyle.DefaultLineThickness, prop.LineThickness)
+		assert.Equal(t, consts.DefaultLineThickness, prop.LineThickness)
 	})
 	t.Run("when safe padding is zero, should apply 1.5", func(t *testing.T) {
 		t.Parallel()
@@ -109,7 +106,7 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{SafePadding: 0}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, 1.5, prop.SafePadding)
@@ -120,7 +117,7 @@ func TestSignature_MakeValid(t *testing.T) {
 		prop := props.Signature{SafePadding: -1}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, 1.5, prop.SafePadding)
@@ -139,7 +136,7 @@ func TestSignature_ToLineProp(t *testing.T) {
 	assert.Equal(t, prop.LineColor, lineProp.Color)
 	assert.Equal(t, prop.LineStyle, lineProp.Style)
 	assert.Equal(t, prop.LineThickness, lineProp.Thickness)
-	assert.Equal(t, orientation.Horizontal, lineProp.Orientation)
+	assert.Equal(t, consts.OrientationHorizontal, lineProp.Orientation)
 	assert.Equal(t, 55.0, lineProp.OffsetPercent)
 	assert.Equal(t, 90.0, lineProp.SizePercent)
 }
@@ -165,13 +162,13 @@ func TestSignature_ToTextProp(t *testing.T) {
 	prop := fixture.SignatureProp()
 
 	// Act
-	textProp := prop.ToTextProp(align.Center, 5.0, 2.0)
+	textProp := prop.ToTextProp(consts.AlignCenter, 5.0, 2.0)
 
 	// Assert
 	assert.Equal(t, prop.FontFamily, textProp.Family)
 	assert.Equal(t, prop.FontStyle, textProp.Style)
 	assert.Equal(t, prop.FontSize, textProp.Size)
-	assert.Equal(t, align.Center, textProp.Align)
+	assert.Equal(t, consts.AlignCenter, textProp.Align)
 	assert.Equal(t, 5.0, textProp.Top)
 	assert.Equal(t, 2.0, textProp.VerticalPadding)
 	assert.Equal(t, prop.FontColor, textProp.Color)

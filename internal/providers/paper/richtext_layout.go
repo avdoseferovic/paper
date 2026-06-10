@@ -1,7 +1,7 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -72,7 +72,7 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 	}
 
 	lineWidths := lineWidths(tokens)
-	if input.prop != nil && input.prop.Align == align.Justify {
+	if input.prop != nil && input.prop.Align == consts.AlignJustify {
 		justifyRichTextLines(tokens, lineWidths, input.width)
 	}
 	return tokens, lineWidths

@@ -8,7 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -434,7 +434,7 @@ two</p></body></html>`)
 	require.NotNil(t, details)
 	assert.Equal(t, "pre-line", details["white_space"])
 	assert.Equal(t, 5.0, details["first_line_indent"])
-	assert.Equal(t, align.Right, details["align"])
+	assert.Equal(t, consts.AlignRight, details["align"])
 	assert.Zero(t, details["left"], "text-indent should not shift every line through left padding")
 }
 
@@ -488,5 +488,5 @@ func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
 		}
 	})
 	require.NotNil(t, details)
-	assert.Equal(t, align.Type(align.Justify), details["align"])
+	assert.Equal(t, consts.Align(consts.AlignJustify), details["align"])
 }

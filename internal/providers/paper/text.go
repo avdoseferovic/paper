@@ -6,9 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -110,7 +108,7 @@ func (s *Text) GetLinesQuantity(text string, textProp *props.Text, colWidth floa
 
 	textTranslated := s.textToUnicode(text, textProp)
 
-	if textProp.BreakLineStrategy == breakline.DashStrategy {
+	if textProp.BreakLineStrategy == consts.BreakLineDash {
 		lines := s.getLinesBreakingLineWithDash(text, colWidth)
 		s.setCachedLines(textTranslated, textProp, colWidth, lines)
 		return len(lines)
@@ -128,7 +126,7 @@ func (s *Text) getCachedLines(text string, textProp *props.Text, width float64) 
 	}
 
 	var lines []string
-	if textProp.BreakLineStrategy == breakline.DashStrategy {
+	if textProp.BreakLineStrategy == consts.BreakLineDash {
 		lines = s.getLinesBreakingLineWithDash(text, width)
 	} else {
 		lines = s.getLinesBreakingLineFromSpace(strings.Split(text, " "), width)
@@ -219,7 +217,7 @@ func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, t
 
 	fontHeight := s.font.GetHeight(textProp.Family, textProp.Style, textProp.Size)
 
-	if textProp.Align == align.Left {
+	if textProp.Align == consts.AlignLeft {
 		s.pdf.Text(xColOffset+left, yColOffset+top, text)
 
 		if textProp.Hyperlink != nil {
@@ -229,7 +227,7 @@ func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, t
 		return
 	}
 
-	if textProp.Align == align.Justify {
+	if textProp.Align == consts.AlignJustify {
 		const spaceString = " "
 		const emptyString = ""
 
@@ -263,7 +261,7 @@ func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, t
 
 	var modifier float64 = 2
 
-	if textProp.Align == align.Right {
+	if textProp.Align == consts.AlignRight {
 		modifier = 1
 	}
 
@@ -277,11 +275,11 @@ func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, t
 }
 
 func (s *Text) textToUnicode(txt string, props *props.Text) string {
-	if props.Family == fontfamily.Arial ||
-		props.Family == fontfamily.Helvetica ||
-		props.Family == fontfamily.Symbol ||
-		props.Family == fontfamily.ZapBats ||
-		props.Family == fontfamily.Courier {
+	if props.Family == consts.FontFamilyArial ||
+		props.Family == consts.FontFamilyHelvetica ||
+		props.Family == consts.FontFamilySymbol ||
+		props.Family == consts.FontFamilyZapBats ||
+		props.Family == consts.FontFamilyCourier {
 		return s.translateDefaultCodePage(txt)
 	}
 

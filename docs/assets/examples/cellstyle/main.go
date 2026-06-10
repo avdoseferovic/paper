@@ -4,14 +4,12 @@ import (
 	"log"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
@@ -46,7 +44,7 @@ func GetPaper() core.Paper {
 		BackgroundColor: &props.Color{Red: 80, Green: 80, Blue: 80},
 		BorderType:      border.Full,
 		BorderColor:     &props.Color{Red: 200},
-		LineStyle:       linestyle.Dashed,
+		LineStyle:       consts.LineStyleDashed,
 		BorderThickness: 0.5,
 	}
 
@@ -107,14 +105,14 @@ func GetPaper() core.Paper {
 		Color: &props.Color{Red: 255, Green: 255, Blue: 255},
 		Style: fontstyle.Bold,
 		Size:  12,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 		Top:   2,
 	}
 
 	blackText := props.Text{
 		Style: fontstyle.Bold,
 		Size:  12,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 		Top:   2,
 	}
 

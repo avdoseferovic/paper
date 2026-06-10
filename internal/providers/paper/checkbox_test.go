@@ -7,7 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/mocks"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -96,8 +96,8 @@ func TestCheckbox_Add(t *testing.T) {
 		fpdf.EXPECT().Text(17.0, 14.5, "label")
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(3.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(3.0)
 
 		sut := gofpdf.NewCheckbox(fpdf, font)
 
@@ -126,8 +126,8 @@ func TestCheckbox_Add(t *testing.T) {
 		fpdf.EXPECT().Text(11.0, 7.0, "option")
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 12.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 12.0).Return(4.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 12.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 12.0).Return(4.0)
 
 		sut := gofpdf.NewCheckbox(fpdf, font)
 

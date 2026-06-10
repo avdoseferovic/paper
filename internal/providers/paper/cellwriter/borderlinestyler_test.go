@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/mocks"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 
@@ -64,7 +64,7 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		height := 100.0
 		cfg := &entity.Config{}
 		prop := &props.Cell{
-			LineStyle: linestyle.Solid,
+			LineStyle: consts.LineStyleSolid,
 		}
 
 		inner := mocks.NewCellWriter(t)
@@ -100,7 +100,7 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		height := 100.0
 		cfg := &entity.Config{}
 		prop := &props.Cell{
-			LineStyle: linestyle.Dashed,
+			LineStyle: consts.LineStyleDashed,
 		}
 
 		inner := mocks.NewCellWriter(t)

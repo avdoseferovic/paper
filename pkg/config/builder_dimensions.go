@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
@@ -86,7 +86,7 @@ func (b *CfgBuilder) getDimensions() *entity.Dimensions {
 		Height: height,
 	}
 
-	if b.orientation == orientation.Horizontal && height > width {
+	if b.orientation == consts.OrientationHorizontal && height > width {
 		dimensions.Width, dimensions.Height = dimensions.Height, dimensions.Width
 	}
 

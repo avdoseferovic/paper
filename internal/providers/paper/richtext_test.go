@@ -10,9 +10,8 @@ import (
 	pdfbackend "github.com/avdoseferovic/paper/internal/pdf"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 	"github.com/avdoseferovic/paper/internal/require"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -25,7 +24,7 @@ func baseRichTextSetup(t *testing.T) (*pdfMock, *mocks.Font) {
 	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 	font := mocks.NewFont(t)
-	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 	font.EXPECT().GetColor().Return(origColor)
 	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -63,7 +62,7 @@ func TestAddRichText_LocalAnchor(t *testing.T) {
 		prop := &props.RichText{AnchorResolver: resolver}
 		prop.MakeValid(nil)
 
-		runs := []props.RichRun{{Text: "click", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10, LocalAnchor: "section1"}}
+		runs := []props.RichRun{{Text: "click", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, LocalAnchor: "section1"}}
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
 	})
@@ -77,7 +76,7 @@ func TestAddRichText_LocalAnchor(t *testing.T) {
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
-		runs := []props.RichRun{{Text: "plain", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		runs := []props.RichRun{{Text: "plain", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
 	})
@@ -88,7 +87,7 @@ func TestAddRichText_HiddenRunMeasuresButSkipsPainting(t *testing.T) {
 
 	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 	font := mocks.NewFont(t)
-	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 	font.EXPECT().GetColor().Return(origColor)
 	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -102,7 +101,7 @@ func TestAddRichText_HiddenRunMeasuresButSkipsPainting(t *testing.T) {
 	link := "https://example.com"
 	runs := []props.RichRun{{
 		Text:      "hidden",
-		Family:    fontfamily.Arial,
+		Family:    consts.FontFamilyArial,
 		Style:     fontstyle.Normal,
 		Size:      10,
 		Hidden:    true,
@@ -123,7 +122,7 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -140,7 +139,7 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
 			Run(func(x, y float64, s string) { textCallCount++ }).Maybe()
 
-		runs := []props.RichRun{{Text: "ab", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10, LetterSpacing: 0.5}}
+		runs := []props.RichRun{{Text: "ab", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, LetterSpacing: 0.5}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
@@ -159,7 +158,7 @@ func TestMeasureRichText_UsesTokenLayoutForLetterSpacing(t *testing.T) {
 
 	origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 	font := mocks.NewFont(t)
-	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 	font.EXPECT().GetColor().Return(origColor).Maybe()
 	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 	font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -175,7 +174,7 @@ func TestMeasureRichText_UsesTokenLayoutForLetterSpacing(t *testing.T) {
 	prop.MakeValid(nil)
 	runs := []props.RichRun{{
 		Text:          "x ab",
-		Family:        fontfamily.Arial,
+		Family:        consts.FontFamilyArial,
 		Style:         fontstyle.Normal,
 		Size:          10,
 		LetterSpacing: 20,
@@ -190,10 +189,10 @@ func TestMeasureRichText_UsesTallestRunLineHeight(t *testing.T) {
 	t.Parallel()
 
 	font := mocks.NewFont(t)
-	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
-	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(4.0).Maybe()
-	font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Bold, 20.0).Return(9.0).Maybe()
+	font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(4.0).Maybe()
+	font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Bold, 20.0).Return(9.0).Maybe()
 
 	pdf := newPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
@@ -202,8 +201,8 @@ func TestMeasureRichText_UsesTallestRunLineHeight(t *testing.T) {
 	prop := &props.RichText{}
 	prop.MakeValid(nil)
 	runs := []props.RichRun{
-		{Text: "small", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10},
-		{Text: "big", Family: fontfamily.Arial, Style: fontstyle.Bold, Size: 20},
+		{Text: "small", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10},
+		{Text: "big", Family: consts.FontFamilyArial, Style: fontstyle.Bold, Size: 20},
 	}
 
 	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
@@ -219,7 +218,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -239,7 +238,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 
 		shadowColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		runs := []props.RichRun{{
-			Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10,
+			Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10,
 			TextShadow: &props.Shadow{OffsetX: 2, OffsetY: 2, Color: shadowColor},
 		}}
 		prop := &props.RichText{}
@@ -265,7 +264,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 			Run(func(r, g, b int) { textColorCalls++ }).Maybe()
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
 
-		runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
@@ -279,7 +278,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -298,7 +297,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 			Run(func(_, _ float64, s string) { textCalls = append(textCalls, s) }).Maybe()
 
 		runs := []props.RichRun{{
-			Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10,
+			Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10,
 			TextShadows: []props.Shadow{
 				{OffsetX: 1, OffsetY: 1, Color: &props.Color{Red: 255, Green: 0, Blue: 0}},
 				{OffsetX: 2, OffsetY: 2, Color: &props.Color{Red: 0, Green: 0, Blue: 255}},
@@ -323,7 +322,7 @@ func TestAddRichText_WhiteSpace(t *testing.T) {
 		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -339,7 +338,7 @@ func TestAddRichText_WhiteSpace(t *testing.T) {
 
 		prop := &props.RichText{WhiteSpace: "nowrap"}
 		prop.MakeValid(nil)
-		runs := []props.RichRun{{Text: "one two three", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		runs := []props.RichRun{{Text: "one two three", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 10, Height: 20}, prop)
@@ -359,7 +358,7 @@ func TestAddRichText_FirstLineIndent(t *testing.T) {
 		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -379,7 +378,7 @@ func TestAddRichText_FirstLineIndent(t *testing.T) {
 
 		prop := &props.RichText{FirstLineIndent: 5}
 		prop.MakeValid(nil)
-		runs := []props.RichRun{{Text: "one two", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		runs := []props.RichRun{{Text: "one two", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 16, Height: 20}, prop)
@@ -397,11 +396,11 @@ func TestAddRichText_Align(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		align align.Type
+		align consts.Align
 		wantX float64
 	}{
-		{name: "center", align: align.Center, wantX: 10},
-		{name: "right", align: align.Right, wantX: 20},
+		{name: "center", align: consts.AlignCenter, wantX: 10},
+		{name: "right", align: consts.AlignRight, wantX: 20},
 	}
 
 	for _, tt := range tests {
@@ -410,7 +409,7 @@ func TestAddRichText_Align(t *testing.T) {
 			origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 
 			font := mocks.NewFont(t)
-			font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+			font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 			font.EXPECT().GetColor().Return(origColor)
 			font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 			font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -426,7 +425,7 @@ func TestAddRichText_Align(t *testing.T) {
 
 			prop := &props.RichText{Align: tt.align}
 			prop.MakeValid(nil)
-			runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+			runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 
 			sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 			sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 30, Height: 20}, prop)
@@ -444,7 +443,7 @@ func TestAddRichText_VerticalAlign(t *testing.T) {
 	var sizes []float64
 
 	font := mocks.NewFont(t)
-	font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 	font.EXPECT().GetColor().Return(origColor)
 	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).
 		Run(func(_ string, _ fontstyle.Type, size float64) {
@@ -466,9 +465,9 @@ func TestAddRichText_VerticalAlign(t *testing.T) {
 	prop := &props.RichText{}
 	prop.MakeValid(nil)
 	runs := []props.RichRun{
-		{Text: "base", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10},
-		{Text: "sub", Family: fontfamily.Arial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "sub"},
-		{Text: "super", Family: fontfamily.Arial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "super"},
+		{Text: "base", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10},
+		{Text: "sub", Family: consts.FontFamilyArial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "sub"},
+		{Text: "super", Family: consts.FontFamilyArial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "super"},
 	}
 
 	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
@@ -568,7 +567,7 @@ func TestAddRichText_Background(t *testing.T) {
 		// Fill color is reset to white after background rect
 		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
 
-		runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10, Background: bg}}
+		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, Background: bg}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
@@ -584,7 +583,7 @@ func TestAddRichText_Background(t *testing.T) {
 		pdf.AssertNotCalled(t, "SetFillColor", mock.Anything, mock.Anything, mock.Anything)
 		pdf.AssertNotCalled(t, "Rect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 
-		runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
@@ -610,7 +609,7 @@ func TestAddRichText_Background(t *testing.T) {
 		pdf.EXPECT().SetAlpha(1.0, "Normal").Once()
 		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
 
-		runs := []props.RichRun{{Text: "hello", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10, Background: bg}}
+		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, Background: bg}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 

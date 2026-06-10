@@ -4,8 +4,8 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -869,15 +869,15 @@ func splitStyleDeclarations(decl string) []string {
 	return parts
 }
 
-// cssBorderStyleToLineStyle maps a CSS border-style string to a linestyle.Type.
-// Unmapped or empty values default to linestyle.Solid.
-func cssBorderStyleToLineStyle(s string) linestyle.Type {
+// cssBorderStyleToLineStyle maps a CSS border-style string to a consts.LineStyle.
+// Unmapped or empty values default to consts.LineStyleSolid.
+func cssBorderStyleToLineStyle(s string) consts.LineStyle {
 	switch s {
 	case "dashed":
-		return linestyle.Dashed
+		return consts.LineStyleDashed
 	case "dotted":
-		return linestyle.Dotted
+		return consts.LineStyleDotted
 	default:
-		return linestyle.Solid
+		return consts.LineStyleSolid
 	}
 }
