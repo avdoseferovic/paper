@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"

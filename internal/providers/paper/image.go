@@ -13,7 +13,6 @@ import (
 	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
 	svgraster "github.com/avdoseferovic/paper/internal/svg"
 
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -23,7 +22,7 @@ import (
 var ErrCouldNotRegisterImageOptions = errors.New("could not register image options, maybe path/name is wrong")
 
 type Image struct {
-	pdf        gofpdfwrapper.PDF
+	pdf        imagePDF
 	math       core.Math
 	registered map[imageCacheKey]registeredImage
 }
@@ -40,7 +39,7 @@ type registeredImage struct {
 }
 
 // NewImage create an Image.
-func NewImage(pdf gofpdfwrapper.PDF, math core.Math) *Image {
+func NewImage(pdf imagePDF, math core.Math) *Image {
 	return &Image{
 		pdf:        pdf,
 		math:       math,

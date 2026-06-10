@@ -114,20 +114,6 @@ func TestTransformKeepsFirstError(t *testing.T) {
 	}
 }
 
-func TestSpotColorKeepsFirstError(t *testing.T) {
-	f := NewCustom(&InitType{})
-	first := errors.New("first error")
-	f.SetError(first)
-
-	f.SetDrawSpotColor("missing", 100)
-	f.AddSpotColor("ink", 0, 0, 0, 100)
-	f.AddSpotColor("ink", 0, 0, 0, 100)
-
-	if !errors.Is(f.Error(), first) {
-		t.Fatalf("expected first error to remain, got %v", f.Error())
-	}
-}
-
 func malformedPNGHeader(compression, filter byte) []byte {
 	var b bytes.Buffer
 	b.WriteString("\x89PNG\x0d\x0a\x1a\x0a")

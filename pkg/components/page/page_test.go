@@ -3,16 +3,16 @@ package page_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
+	"github.com/avdoseferovic/paper/internal/test"
 	"github.com/avdoseferovic/paper/pkg/components/image"
 	"github.com/avdoseferovic/paper/pkg/components/page"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/avdoseferovic/paper/pkg/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {

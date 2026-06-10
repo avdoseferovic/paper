@@ -3,7 +3,7 @@ package css
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestComputedStyle_LetterSpacing(t *testing.T) {

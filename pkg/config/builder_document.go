@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
@@ -8,11 +9,30 @@ import (
 )
 
 // WithProtection defines protection types to the PDF document.
+//
+// Protection uses the PDF standard security handler. RC4 is the compatibility
+// default; use WithProtectionAlgorithm to select AES-128. Protection deters
+// casual copying or printing, but is not confidentiality-grade encryption. For
+// confidentiality, encrypt the file at rest or in transit.
 func (b *CfgBuilder) WithProtection(protectionType protection.Type, userPassword, ownerPassword string) Builder {
 	b.protection = &entity.Protection{
 		Type:          protectionType,
 		UserPassword:  userPassword,
 		OwnerPassword: ownerPassword,
+		Algorithm:     b.protectionAlgorithm,
+	}
+
+	return b
+}
+
+// WithProtectionAlgorithm selects the protection encryption algorithm.
+//
+// The default remains the legacy RC4 security handler for compatibility.
+// AES128 selects AESV2, PDF standard security handler revision 4.
+func (b *CfgBuilder) WithProtectionAlgorithm(algorithm protection.Encryption) Builder {
+	b.protectionAlgorithm = algorithm
+	if b.protection != nil {
+		b.protection.Algorithm = algorithm
 	}
 
 	return b
@@ -50,5 +70,17 @@ func (b *CfgBuilder) WithBackgroundImage(bytes []byte, ext extension.Type) Build
 // WithDisableAutoPageBreak defines the option to disable automatic page breaks.
 func (b *CfgBuilder) WithDisableAutoPageBreak(disabled bool) Builder {
 	b.disableAutoPageBreak = disabled
+	return b
+}
+
+// WithHTMLLimits configures resource limits for AddHTML/FromHTML translation.
+func (b *CfgBuilder) WithHTMLLimits(limits entity.HTMLLimits) Builder {
+	b.htmlLimits = htmllimits.Normalize(limits)
+	return b
+}
+
+// WithUnsafeNoHTMLLimits disables resource limits for AddHTML/FromHTML.
+func (b *CfgBuilder) WithUnsafeNoHTMLLimits() Builder {
+	b.htmlLimits = htmllimits.NoLimits()
 	return b
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
@@ -41,7 +42,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddRow(40,
 		signature.NewCol(2, "Signature 1"),

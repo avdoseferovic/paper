@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/components/image"
@@ -23,6 +23,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/fontrepository"
 	"github.com/avdoseferovic/paper/pkg/merge"
 	"github.com/avdoseferovic/paper/pkg/props"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 func TestBytes(t *testing.T) {
@@ -92,7 +93,7 @@ func generateTextPDF(t *testing.T, value string, cfg ...*entity.Config) []byte {
 func generateImagePDF(t *testing.T) []byte {
 	t.Helper()
 
-	img, err := os.ReadFile("../../docs/assets/images/frontpage.png")
+	img, err := os.ReadFile("../../test/assets/images/frontpage.png")
 	require.NoError(t, err)
 
 	m := paper.New()
@@ -139,7 +140,7 @@ func generateCustomFontPDF(t *testing.T) []byte {
 
 	const customFont = "arial-unicode-ms"
 	fonts, err := fontrepository.New().
-		AddUTF8Font(customFont, fontstyle.Normal, "../../docs/assets/fonts/arial-unicode-ms.ttf").
+		AddUTF8Font(customFont, fontstyle.Normal, writeTestFont(t)).
 		Load()
 	require.NoError(t, err)
 
@@ -153,6 +154,14 @@ func generateCustomFontPDF(t *testing.T) []byte {
 	require.NoError(t, err)
 
 	return doc.GetBytes()
+}
+
+func writeTestFont(t *testing.T) string {
+	t.Helper()
+
+	path := t.TempDir() + "/goregular.ttf"
+	require.NoError(t, os.WriteFile(path, goregular.TTF, 0o600))
+	return path
 }
 
 func assertPDFPageGraph(t *testing.T, pdf []byte, expectedPages int) {

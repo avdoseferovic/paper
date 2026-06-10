@@ -13,6 +13,9 @@ import (
 // Option configures HTML component translation.
 type Option = paperhtml.Option
 
+// Limits caps resource use while translating untrusted HTML.
+type Limits = paperhtml.Limits
+
 // Re-exported translation options. These alias pkg/html so the component
 // facade stays in sync with the underlying translator's signatures.
 var (
@@ -27,6 +30,10 @@ var (
 	WithImageBaseDir = paperhtml.WithImageBaseDir
 	// WithStylesheetBaseDir scopes local stylesheet reads to a single directory.
 	WithStylesheetBaseDir = paperhtml.WithStylesheetBaseDir
+	// WithLimits configures resource limits for untrusted HTML.
+	WithLimits = paperhtml.WithLimits
+	// WithUnsafeNoLimits disables resource limits for trusted HTML.
+	WithUnsafeNoLimits = paperhtml.WithUnsafeNoLimits
 )
 
 // HTML is a core.Component backed by rows produced from an HTML fragment.

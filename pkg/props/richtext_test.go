@@ -3,11 +3,11 @@ package props_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRichRun(t *testing.T) {

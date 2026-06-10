@@ -23,6 +23,7 @@ type Config struct {
 	Metadata             *Metadata
 	BackgroundImage      *Image
 	DisableAutoPageBreak bool
+	HTMLLimits           HTMLLimits
 }
 
 // ToMap converts Config to a map[string]any .
@@ -78,6 +79,15 @@ func (c *Config) ToMap() map[string]any {
 
 	if c.DisableAutoPageBreak {
 		m["config_disable_auto_page_break"] = c.DisableAutoPageBreak
+	}
+
+	if c.HTMLLimits != (HTMLLimits{}) {
+		m["config_html_max_image_pixels"] = c.HTMLLimits.MaxImagePixels
+		m["config_html_max_image_bytes"] = c.HTMLLimits.MaxImageBytes
+		m["config_html_max_dom_depth"] = c.HTMLLimits.MaxDOMDepth
+		m["config_html_max_dom_nodes"] = c.HTMLLimits.MaxDOMNodes
+		m["config_html_max_svg_pixels"] = c.HTMLLimits.MaxSVGPixels
+		m["config_html_max_style_rules"] = c.HTMLLimits.MaxStyleRules
 	}
 
 	return m

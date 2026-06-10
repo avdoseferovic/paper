@@ -1,7 +1,6 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -21,7 +20,7 @@ type shadowStyler struct {
 // behind the cell. It must be the FIRST node in the chain so it draws beneath
 // all other decorations. The cursor position is saved and restored so
 // downstream nodes see the original coordinates.
-func NewShadowStyler(fpdf gofpdfwrapper.PDF) CellWriter {
+func NewShadowStyler(fpdf any) CellWriter {
 	return &shadowStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "shadowStyler"},
 	}
@@ -36,18 +35,19 @@ func (s *shadowStyler) Apply(width, height float64, config *entity.Config, prop 
 	// Save cursor so downstream chain nodes draw at the correct position.
 	// GetXY() returns absolute page coordinates (already including margins),
 	// so DO NOT add page margins again to shadow rect positions.
-	origX, origY := s.fpdf.GetXY()
+	fpdf := asPDF[shadowPDF](s.fpdf)
+	origX, origY := fpdf.GetXY()
 
 	for _, shadow := range prop.BoxShadow {
-		s.drawShadow(origX, origY, width, height, shadow)
+		s.drawShadow(fpdf, origX, origY, width, height, shadow)
 	}
 
 	// Restore cursor before forwarding.
-	s.fpdf.SetXY(origX, origY)
+	fpdf.SetXY(origX, origY)
 	s.GoToNext(width, height, config, prop)
 }
 
-func (s *shadowStyler) drawShadow(cellX, cellY, width, height float64, sh props.Shadow) {
+func (s *shadowStyler) drawShadow(fpdf shadowPDF, cellX, cellY, width, height float64, sh props.Shadow) {
 	cr, cg, cb := 0, 0, 0
 	if sh.Color != nil {
 		cr, cg, cb = sh.Color.Red, sh.Color.Green, sh.Color.Blue
@@ -68,37 +68,37 @@ func (s *shadowStyler) drawShadow(cellX, cellY, width, height float64, sh props.
 		ry = cellY - sh.OffsetY
 		rw = width
 		rh = height
-		s.fpdf.SetFillColor(cr, cg, cb)
+		fpdf.SetFillColor(cr, cg, cb)
 		a := 0.3
 		if sh.Color != nil && sh.Color.Alpha != nil {
 			a = *sh.Color.Alpha
 		}
-		s.fpdf.SetAlpha(a, "Normal")
-		s.fpdf.Rect(rx, ry, rw, rh, "F")
-		s.fpdf.SetAlpha(1, "Normal")
+		fpdf.SetAlpha(a, "Normal")
+		fpdf.Rect(rx, ry, rw, rh, "F")
+		fpdf.SetAlpha(1, "Normal")
 		return
 	}
 
 	if sh.BlurRadius <= 0 || shadowBlurIterations == 1 {
-		s.fpdf.SetFillColor(cr, cg, cb)
+		fpdf.SetFillColor(cr, cg, cb)
 		a := 1.0
 		if sh.Color != nil && sh.Color.Alpha != nil {
 			a = *sh.Color.Alpha
 		}
-		s.fpdf.SetAlpha(a, "Normal")
-		s.fpdf.Rect(rx, ry, rw, rh, "F")
-		s.fpdf.SetAlpha(1, "Normal")
+		fpdf.SetAlpha(a, "Normal")
+		fpdf.Rect(rx, ry, rw, rh, "F")
+		fpdf.SetAlpha(1, "Normal")
 	} else {
 		alphas := [shadowBlurIterations]float64{shadowAlphaOuter, shadowAlphaMid, shadowAlphaInner}
 		step := sh.BlurRadius / float64(shadowBlurIterations)
 		for i := range shadowBlurIterations {
 			expand := sh.BlurRadius - float64(i)*step
-			s.fpdf.SetFillColor(cr, cg, cb)
-			s.fpdf.SetAlpha(alphas[i], "Normal")
-			s.fpdf.Rect(rx-expand, ry-expand, rw+2*expand, rh+2*expand, "F")
+			fpdf.SetFillColor(cr, cg, cb)
+			fpdf.SetAlpha(alphas[i], "Normal")
+			fpdf.Rect(rx-expand, ry-expand, rw+2*expand, rh+2*expand, "F")
 		}
-		s.fpdf.SetAlpha(1, "Normal")
+		fpdf.SetAlpha(1, "Normal")
 	}
 	// Reset fill colour to avoid leaking into downstream nodes.
-	s.fpdf.SetFillColor(255, 255, 255)
+	fpdf.SetFillColor(255, 255, 255)
 }

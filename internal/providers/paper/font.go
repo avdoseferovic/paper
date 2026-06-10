@@ -1,7 +1,6 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -12,7 +11,7 @@ const (
 )
 
 type Font struct {
-	pdf         gofpdfwrapper.PDF
+	pdf         fontPDF
 	size        float64
 	family      string
 	style       fontstyle.Type
@@ -21,7 +20,7 @@ type Font struct {
 }
 
 // NewFont create a Font.
-func NewFont(pdf gofpdfwrapper.PDF, size float64, family string, style fontstyle.Type) *Font {
+func NewFont(pdf fontPDF, size float64, family string, style fontstyle.Type) *Font {
 	pdf.SetFont(family, string(style), size)
 
 	return &Font{

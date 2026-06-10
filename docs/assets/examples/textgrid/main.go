@@ -8,6 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
 
@@ -43,7 +44,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	longText := "This is a longer sentence that will be broken into multiple lines " +
 		"as it does not fit into the column otherwise."

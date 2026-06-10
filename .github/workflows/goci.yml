@@ -22,10 +22,38 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.1'
+          go-version: '1.26.4'
 
       - name: Build
-        run: go build $(go list -f '{{ .Dir }}' ./... | grep -E -v 'docs|cmd|mocks')
+        run: go build ./...
+
+      - name: Build examples module
+        run: go build ./...
+        working-directory: examples
 
       - name: Test
-        run: go test -v $(go list -f '{{ .Dir }}' ./... | grep -E -v 'docs|cmd|mocks') && go test -v $(go list -f '{{ .Dir }}' ./docs/assets/examples/...)
+        run: go test -v ./...
+
+      - name: Fuzz FromHTML smoke
+        run: go test -run='^$' -fuzz=FuzzFromHTML -fuzztime=60s .
+
+      - name: Fuzz CSS smoke
+        run: go test -run='^$' -fuzz=FuzzParseStylesheet -fuzztime=30s ./pkg/html/css
+
+      - name: Fuzz SVG smoke
+        run: go test -run='^$' -fuzz=FuzzRasterize -fuzztime=30s ./internal/svg
+
+      - name: Dead code report
+        run: go run golang.org/x/tools/cmd/deadcode@latest -test ./... || true
+
+      - name: Test pkg/test module
+        run: go test -v ./...
+        working-directory: pkg/test
+
+      - name: Test examples module
+        run: go test -v ./...
+        working-directory: examples
+
+      - name: Test docs examples module
+        run: go test -v ./assets/examples/...
+        working-directory: docs

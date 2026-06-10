@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	htmlcomponent "github.com/avdoseferovic/paper/pkg/components/html"
 	"github.com/avdoseferovic/paper/pkg/components/row"
@@ -14,8 +16,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {

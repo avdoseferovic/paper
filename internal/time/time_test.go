@@ -6,7 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestGetTimeSpent(t *testing.T) {

@@ -2,6 +2,9 @@
 package core
 
 import (
+	"context"
+	"io"
+
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -17,17 +20,22 @@ type Paper interface {
 	AddRow(rowHeight float64, cols ...Col) Row
 	AddAutoRow(cols ...Col) Row
 	AddHTML(htmlStr string) error
-	FitlnCurrentPage(heightNewLine float64) bool
+	AddHTMLCtx(ctx context.Context, htmlStr string) error
+	// FitInCurrentPage reports whether a row of the given height fits in the remaining useful area of the current page.
+	FitInCurrentPage(heightNewLine float64) bool
 	GetCurrentConfig() *entity.Config
 	AddPages(pages ...Page)
 	GetStructure() *node.Node[Structure]
-	Generate() (Document, error)
+	Generate() (*Pdf, error)
+	GenerateCtx(ctx context.Context) (*Pdf, error)
 }
 
 // Document is the interface that wraps the basic methods of a document.
 type Document interface {
 	GetBytes() []byte
 	GetBase64() string
+	// Write streams the document to w without an intermediate copy beyond the already-generated buffer.
+	Write(w io.Writer) (int64, error)
 	Save(file string) error
 	GetReport() *metrics.Report
 	Merge(bytes []byte) error

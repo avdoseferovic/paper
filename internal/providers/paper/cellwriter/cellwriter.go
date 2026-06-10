@@ -1,7 +1,6 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -19,7 +18,7 @@ type cellWriter struct {
 	defaultColor *props.Color
 }
 
-func NewCellWriter(fpdf gofpdfwrapper.PDF) CellWriter {
+func NewCellWriter(fpdf any) CellWriter {
 	defaultColor := props.Black()
 	return &cellWriter{
 		stylerTemplate: stylerTemplate{
@@ -31,13 +30,14 @@ func NewCellWriter(fpdf gofpdfwrapper.PDF) CellWriter {
 }
 
 func (c *cellWriter) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
+	fpdf := asPDF[cellFormatPDF](c.fpdf)
 	if prop == nil {
 		bd := border.None
 		if config.Debug {
 			bd = border.Full
 		}
 
-		c.fpdf.CellFormat(width, height, "", bd.String(), 0, "C", false, 0, "")
+		fpdf.CellFormat(width, height, "", bd.String(), 0, "C", false, 0, "")
 		return
 	}
 
@@ -46,5 +46,5 @@ func (c *cellWriter) Apply(width, height float64, config *entity.Config, prop *p
 		bd = border.Full
 	}
 
-	c.fpdf.CellFormat(width, height, "", bd.String(), 0, "C", prop.BackgroundColor != nil, 0, "")
+	fpdf.CellFormat(width, height, "", bd.String(), 0, "C", prop.BackgroundColor != nil, 0, "")
 }

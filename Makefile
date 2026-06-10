@@ -1,6 +1,8 @@
 GO_FILES = $(shell find . '(' -path '*/.*' -o -path './vendor' ')' -prune -o -name '*.go' -print | cut -b3-)
 GO_PATHS =  $(shell go list -f '{{ .Dir }}' ./... | grep -E -v 'docs|cmd|mocks')
-GO_EXAMPLES =  $(shell go list -f '{{ .Dir }}' ./docs/assets/examples/...)
+EXAMPLES_PATHS = $(shell cd examples && go list -f '{{ .Dir }}' ./...)
+DOCS_PATHS = $(shell cd docs && go list -f '{{ .Dir }}' ./...)
+GOIMPORTS ?= $(shell if command -v goimports >/dev/null 2>&1; then command -v goimports; else echo "go run golang.org/x/tools/cmd/goimports@latest"; fi)
 
 .PHONY: dod
 dod: build test fmt lint
@@ -8,21 +10,27 @@ dod: build test fmt lint
 .PHONY: build
 build:
 	go build $(GO_PATHS)
+	cd examples && go build ./...
 
 .PHONY: test
 test:
 	go test $(GO_PATHS)
-	go test $(GO_EXAMPLES)
+	cd pkg/test && go test ./...
+	cd examples && go test ./...
+	cd docs && go test ./assets/examples/...
 
 .PHONY: fmt
 fmt:
 	gofmt -s -w ${GO_FILES}
 	gofumpt -l -w ${GO_FILES}
-	goimports -w ${GO_PATHS}
+	$(GOIMPORTS) -w ${GO_PATHS} ${EXAMPLES_PATHS} ${DOCS_PATHS}
 
 .PHONY: lint
 lint:
 	golangci-lint run --config=.golangci.yml ./...
+	cd pkg/test && golangci-lint run --config=../../.golangci.yml --disable=gomoddirectives .
+	cd examples && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./...
+	cd docs && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./assets/examples/...
 	make mock-lint
 
 .PHONY: mock-lint
@@ -44,8 +52,9 @@ godoc:
 
 .PHONY: mocks
 mocks:
-	rm -R mocks || true
-	mockery
+	find internal/mocks -type f -name '*.go' -delete
+	go run github.com/vektra/mockery/v2@v2.53.6
+	perl -0pi -e 's#github\.com/stretchr/testify/mock#github.com/avdoseferovic/paper/internal/mocktest#g' internal/mocks/*.go
 	make fmt
 
 .PHONY: examples
@@ -55,7 +64,7 @@ examples:
 	go run docs/assets/examples/background/main.go
 	go run docs/assets/examples/barcodegrid/main.go
 	go run docs/assets/examples/billing/main.go
-	go run ./cmd/paper-showcase
+	cd examples && go run ./cmd/paper-showcase ../docs/assets/pdf/showcase.pdf
 	go run docs/assets/examples/cellstyle/main.go
 	go run docs/assets/examples/checkbox/main.go
 	go run docs/assets/examples/compression/main.go

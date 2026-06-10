@@ -8,6 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 )
 
 func main() {
@@ -36,7 +37,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddPages(
 		page.New().Add(

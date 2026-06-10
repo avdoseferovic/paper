@@ -5,6 +5,7 @@ import (
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 
@@ -118,7 +119,7 @@ func GetPaper() core.Paper {
 	}
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	count := 0
 	for range 15 {

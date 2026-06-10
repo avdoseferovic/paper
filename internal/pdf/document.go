@@ -1,12 +1,11 @@
 package pdf
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -275,16 +274,11 @@ func (f *PDF) putcatalog() {
 		f.out("/PageMode /UseOutlines")
 	}
 
-	f.layerPutCatalog()
-
-	f.out("/Names <<")
-
 	if f.javascript != nil {
+		f.out("/Names <<")
 		f.outf("/JavaScript %d 0 R", f.nJs)
+		f.out(">>")
 	}
-
-	f.outf("/EmbeddedFiles %s", f.getEmbeddedFiles())
-	f.out(">>")
 }
 
 // SetProtection applies certain constraints on the finished PDF document.
@@ -310,6 +304,15 @@ func (f *PDF) SetProtection(actionFlag byte, userPassStr, ownerPassStr string) {
 		return
 	}
 	f.protect.setProtection(actionFlag, userPassStr, ownerPassStr)
+}
+
+// SetProtectionAlgorithm selects the encryption algorithm for protected PDFs.
+// It must be called before SetProtection.
+func (f *PDF) SetProtectionAlgorithm(algorithm ProtectionAlgorithm) {
+	if f.err != nil {
+		return
+	}
+	f.protect.algorithm = algorithm
 }
 
 // OutputAndClose sends the PDF document to the writer specified by w. This
@@ -390,7 +393,12 @@ func (f *PDF) textstring(s string) string {
 			return "(" + f.escape(s) + ")"
 		}
 		b := []byte(s)
-		f.protect.rc4(objectNumber, &b)
+		encrypted, err := f.protect.encryptBytes(objectNumber, b)
+		if err != nil {
+			f.err = err
+			return "(" + f.escape(s) + ")"
+		}
+		b = encrypted
 		s = string(b)
 	}
 	return "(" + f.escape(s) + ")"
@@ -406,15 +414,24 @@ func (f *PDF) newobj() {
 	f.outf("%d 0 obj", f.n)
 }
 
-func (f *PDF) putstream(b []byte) {
+func (f *PDF) encryptedStream(b []byte) []byte {
 	if f.protect.encrypted {
 		objectNumber, ok := checkedUint32(f.n)
 		if !ok {
 			f.err = staticErrorf(errObjectNumberOutOfRange, "%d", f.n)
-			return
+			return nil
 		}
-		f.protect.rc4(objectNumber, &b)
+		encrypted, err := f.protect.encryptBytes(objectNumber, b)
+		if err != nil {
+			f.err = err
+			return nil
+		}
+		return encrypted
 	}
+	return b
+}
+
+func (f *PDF) putstream(b []byte) {
 	f.out("stream")
 	f.out(string(b))
 	f.out("endstream")
@@ -494,8 +511,17 @@ func (f *PDF) puttrailer() {
 	f.outf("/Info %d 0 R", f.n-1)
 	if f.protect.encrypted {
 		f.outf("/Encrypt %d 0 R", f.protect.objNum)
-		f.out("/ID [()()]")
+		if f.protect.algorithm == ProtectionAES128 && len(f.protect.fileID) > 0 {
+			id := pdfHexString(f.protect.fileID)
+			f.outf("/ID [%s%s]", id, id)
+		} else {
+			f.out("/ID [()()]")
+		}
 	}
+}
+
+func pdfHexString(data []byte) string {
+	return "<" + hex.EncodeToString(data) + ">"
 }
 
 func (f *PDF) putxmp() {
@@ -503,8 +529,12 @@ func (f *PDF) putxmp() {
 		return
 	}
 	f.newobj()
-	f.outf("<< /Type /Metadata /Subtype /XML /Length %d >>", len(f.xmp))
-	f.putstream(f.xmp)
+	stream := f.encryptedStream(f.xmp)
+	if f.err != nil {
+		return
+	}
+	f.outf("<< /Type /Metadata /Subtype /XML /Length %d >>", len(stream))
+	f.putstream(stream)
 	f.out("endobj")
 }
 
@@ -512,11 +542,8 @@ func (f *PDF) enddoc() {
 	if f.err != nil {
 		return
 	}
-	f.layerEndDoc()
 	f.putheader()
 
-	f.putAttachments()
-	f.putAnnotationsAttachments()
 	f.putpages()
 	f.putresources()
 	if f.err != nil {
@@ -558,39 +585,17 @@ func (f *PDF) enddoc() {
 }
 
 func (f *PDF) putxobjectdict() {
-	{
-		var image *ImageInfoType
-		var key string
-		keyList := make([]string, 0, len(f.images))
-		for key = range f.images {
-			keyList = append(keyList, key)
-		}
-		if f.catalogSort {
-			sort.SliceStable(keyList, func(i, j int) bool { return f.images[keyList[i]].i < f.images[keyList[j]].i })
-		}
-		for _, key = range keyList {
-			image = f.images[key]
-			f.outf("/I%s %d 0 R", image.i, image.n)
-		}
+	var image *ImageInfoType
+	keyList := make([]string, 0, len(f.images))
+	for key := range f.images {
+		keyList = append(keyList, key)
 	}
-	{
-		var keyList []string
-		var key string
-		var tpl Template
-		keyList = templateKeyList(f.templates, f.catalogSort)
-		for _, key = range keyList {
-			tpl = f.templates[key]
-
-			id := tpl.ID()
-			if objID, ok := f.templateObjects[id]; ok {
-				f.outf("/TPL%s %d 0 R", id, objID)
-			}
-		}
+	if f.catalogSort {
+		sort.SliceStable(keyList, func(i, j int) bool { return f.images[keyList[i]].i < f.images[keyList[j]].i })
 	}
-	{
-		for tplName, objID := range f.importedTplObjs {
-			f.outf("%s %d 0 R", tplName, f.importedTplIDs[objID])
-		}
+	for _, key := range keyList {
+		image = f.images[key]
+		f.outf("/I%s %d 0 R", image.i, image.n)
 	}
 }
 
@@ -632,26 +637,19 @@ func (f *PDF) putresourcedict() {
 		}
 		f.out(">>")
 	}
-
-	f.layerPutResourceDict()
-	f.spotColorPutResourceDict()
 }
 
 func (f *PDF) putresources() {
 	if f.err != nil {
 		return
 	}
-	f.layerPutLayers()
 	f.putBlendModes()
 	f.putGradients()
-	f.putSpotColors()
 	f.putfonts()
 	if f.err != nil {
 		return
 	}
 	f.putimages()
-	f.putTemplates()
-	f.putImportedTemplates()
 
 	f.offsets[2] = f.buffer.Len()
 	f.out("2 0 obj")
@@ -665,79 +663,26 @@ func (f *PDF) putresources() {
 		f.protect.objNum = f.n
 		f.out("<<")
 		f.out("/Filter /Standard")
-		f.out("/V 1")
-		f.out("/R 2")
-		f.outf("/O (%s)", f.escape(string(f.protect.oValue)))
-		f.outf("/U (%s)", f.escape(string(f.protect.uValue)))
-		f.outf("/P %d", f.protect.pValue)
+		if f.protect.algorithm == ProtectionAES128 {
+			f.out("/V 4")
+			f.out("/R 4")
+			f.out("/Length 128")
+			f.outf("/O %s", pdfHexString(f.protect.oValue))
+			f.outf("/U %s", pdfHexString(f.protect.uValue))
+			f.outf("/P %d", f.protect.pValue)
+			f.out("/CF <</StdCF <</CFM /AESV2 /AuthEvent /DocOpen /Length 128>>>>")
+			f.out("/StmF /StdCF")
+			f.out("/StrF /StdCF")
+		} else {
+			f.out("/V 1")
+			f.out("/R 2")
+			f.outf("/O (%s)", f.escape(string(f.protect.oValue)))
+			f.outf("/U (%s)", f.escape(string(f.protect.uValue)))
+			f.outf("/P %d", f.protect.pValue)
+		}
 		f.out(">>")
 		f.out("endobj")
 	}
-}
-
-// ImportObjects imports objects from gofpdi into current document
-func (f *PDF) ImportObjects(objs map[string][]byte) {
-	maps.Copy(f.importedObjs, objs)
-}
-
-// ImportObjPos imports object hash positions from gofpdi
-func (f *PDF) ImportObjPos(objPos map[string]map[int]string) {
-	maps.Copy(f.importedObjPos, objPos)
-}
-
-// putImportedTemplates writes the imported template objects to the PDF
-func (f *PDF) putImportedTemplates() {
-	nOffset := f.n + 1
-
-	objsIDHash := make([]string, len(f.importedObjs))
-
-	objsIDData := make([][]byte, len(f.importedObjs))
-
-	i := 0
-	for k, v := range f.importedObjs {
-		objsIDHash[i] = k
-		objsIDData[i] = v
-
-		i++
-	}
-
-	hashToObjID := make(map[string]int, len(f.importedObjs))
-	for i = range objsIDHash {
-		hashToObjID[objsIDHash[i]] = i + nOffset
-	}
-
-	for i = 0; i < len(objsIDData); i++ {
-		hash := objsIDHash[i]
-
-		for pos, h := range f.importedObjPos[hash] {
-			objIDPadded := fmt.Sprintf("%40s", strconv.Itoa(hashToObjID[h]))
-
-			objIDBytes := []byte(objIDPadded)
-
-			for j := pos; j < pos+40; j++ {
-				objsIDData[i][j] = objIDBytes[j-pos]
-			}
-		}
-
-		f.importedTplIDs[hash] = i + nOffset
-	}
-
-	for i = range objsIDData {
-		f.newobj()
-		f.out(string(objsIDData[i]))
-	}
-}
-
-// UseImportedTemplate uses imported template from gofpdi. It draws imported
-// PDF page onto page.
-func (f *PDF) UseImportedTemplate(tplName string, scaleX float64, scaleY float64, tX float64, tY float64) {
-	f.outf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q\n", scaleX*f.k, scaleY*f.k, tX*f.k, (tY+f.h)*f.k, tplName)
-}
-
-// ImportTemplates imports gofpdi template names into importedTplObjs for
-// inclusion in the procset dictionary
-func (f *PDF) ImportTemplates(tpls map[string]string) {
-	maps.Copy(f.importedTplObjs, tpls)
 }
 
 // GetConversionRatio returns the conversion ratio based on the unit given when

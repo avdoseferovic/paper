@@ -27,8 +27,8 @@ import (
 var benchmarkPDFBytes int
 
 func BenchmarkPDFGeneration(b *testing.B) {
-	htmlBody := mustReadString(b, "cmd/html-demo/assets/body.html")
-	imageBytes := mustReadFile(b, "docs/assets/images/frontpage.png")
+	htmlBody := mustReadString(b, "examples/cmd/html-demo/assets/body.html")
+	imageBytes := mustReadFile(b, "test/assets/images/frontpage.png")
 	cfg := benchmarkConfig()
 
 	b.Run("HTMLDemoFull", func(b *testing.B) {

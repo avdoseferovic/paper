@@ -1,14 +1,13 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 type stylerTemplate struct {
 	next CellWriter
-	fpdf gofpdfwrapper.PDF
+	fpdf any
 	name string
 }
 

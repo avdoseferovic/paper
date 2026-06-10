@@ -8,6 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/code"
 
@@ -39,7 +40,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddRow(40,
 		code.NewBarCol(2, "https://github.com/avdoseferovic/paper", props.Barcode{

@@ -1,4 +1,3 @@
-// nolint:errchkjson // not needed
 package test
 
 import (
@@ -74,17 +73,30 @@ func (m *PaperTest) Assert(structure *node.Node[core.Structure]) *PaperTest {
 func (m *PaperTest) Equals(file string) *PaperTest {
 	m.t.Helper()
 	actual := m.buildNode(m.node)
-	actualBytes, _ := json.Marshal(actual)
+	actualBytes, err := json.Marshal(actual)
+	if err != nil {
+		assert.Fail(m.t, err.Error())
+		return m
+	}
 	actualString := string(actualBytes)
 
 	indentedExpectBytes, err := os.ReadFile(configSingleton.getAbsoluteFilePath(file))
 	if err != nil {
 		assert.Fail(m.t, err.Error())
+		return m
 	}
 
 	savedNode := &Node{}
-	_ = json.Unmarshal(indentedExpectBytes, savedNode)
-	expectedBytes, _ := json.Marshal(savedNode)
+	err = json.Unmarshal(indentedExpectBytes, savedNode)
+	if err != nil {
+		assert.Fail(m.t, err.Error())
+		return m
+	}
+	expectedBytes, err := json.Marshal(savedNode)
+	if err != nil {
+		assert.Fail(m.t, err.Error())
+		return m
+	}
 
 	assert.Equal(m.t, string(expectedBytes), actualString)
 	return m

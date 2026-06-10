@@ -8,12 +8,12 @@ import (
 )
 
 func (g *provider) CreateRow(height float64) {
-	g.fpdf.Ln(height)
+	g.documentPDF.Ln(height)
 }
 
 func (g *provider) GenerateBytes() ([]byte, error) {
 	var buffer bytes.Buffer
-	err := g.fpdf.Output(&buffer)
+	err := g.documentPDF.Output(&buffer)
 
 	return buffer.Bytes(), err
 }
@@ -23,5 +23,5 @@ func (g *provider) CreateCol(width, height float64, config *entity.Config, prop 
 }
 
 func (g *provider) SetCompression(compression bool) {
-	g.fpdf.SetCompression(compression)
+	g.documentPDF.SetCompression(compression)
 }

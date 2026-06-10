@@ -9,7 +9,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
-	"github.com/aymerick/douceur/css"
 )
 
 // loadedFont is a font that's been resolved via the stylesheet resolver
@@ -105,16 +104,16 @@ type fontFaceRule struct {
 
 // extractFontFace pulls family and src URL from a parsed @font-face rule.
 // Returns ok=false on missing/malformed family or src.
-func extractFontFace(rule *css.Rule) (fontFaceRule, bool) {
+func extractFontFace(rule *cssRule) (fontFaceRule, bool) {
 	out := fontFaceRule{}
-	for _, d := range rule.Declarations {
-		switch strings.ToLower(d.Property) {
+	for _, d := range rule.declarations {
+		switch strings.ToLower(d.property) {
 		case "font-family":
 			// Lower-case the family name so case-insensitive matching against
 			// CSS `font-family: "MyFont"` declarations works predictably.
-			out.family = strings.ToLower(strings.Trim(strings.TrimSpace(d.Value), `"'`))
+			out.family = strings.ToLower(strings.Trim(strings.TrimSpace(d.value), `"'`))
 		case "src":
-			if u, ok := parseFontFaceSrc(d.Value); ok {
+			if u, ok := parseFontFaceSrc(d.value); ok {
 				out.srcURL = u
 			}
 		}

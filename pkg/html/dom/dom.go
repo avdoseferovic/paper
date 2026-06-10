@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"golang.org/x/net/html"
 )
 
@@ -19,6 +20,9 @@ type Document struct {
 func Parse(src string) (*Document, error) {
 	root, err := html.Parse(strings.NewReader(src))
 	if err != nil {
+		if strings.Contains(err.Error(), "open stack of elements exceeds") {
+			return nil, fmt.Errorf("%w: parser depth limit: %w", htmllimits.ErrDOMTooDeep, err)
+		}
 		return nil, fmt.Errorf("html: parsing document: %w", err)
 	}
 	doc := &Document{root: root}
@@ -42,11 +46,28 @@ func (d *Document) StyleSources() (string, []string) {
 // Walk performs a depth-first traversal starting from the document body.
 // The callback returns true to continue traversal, false to stop.
 func (d *Document) Walk(fn func(*Node) bool) {
+	_ = d.WalkWithLimits(htmllimits.NoLimits(), fn)
+}
+
+// WalkWithLimits performs a depth-first traversal starting from the document
+// body while enforcing DOM resource limits.
+func (d *Document) WalkWithLimits(l htmllimits.Limits, fn func(*Node) bool) error {
 	body := findTag(d.root, "body")
 	if body == nil {
 		body = d.root
 	}
-	walkNode(body, fn)
+	_, err := walkNode(body, 1, 0, htmllimits.Normalize(l), fn)
+	return err
+}
+
+// ValidateLimits checks DOM depth and node count without invoking a callback.
+func (d *Document) ValidateLimits(l htmllimits.Limits) error {
+	body := findTag(d.root, "body")
+	if body == nil {
+		body = d.root
+	}
+	_, err := walkNode(body, 1, 0, htmllimits.Normalize(l), nil)
+	return err
 }
 
 // HTMLElement returns the <html> element wrapped as a *Node, or nil when
@@ -118,16 +139,28 @@ func (n *Node) Children() []*Node {
 	return out
 }
 
-func walkNode(n *html.Node, fn func(*Node) bool) {
+func walkNode(n *html.Node, depth, count int, limits htmllimits.Limits, fn func(*Node) bool) (int, error) {
+	if htmllimits.IntExceeded(limits.MaxDOMDepth, depth) {
+		return count, fmt.Errorf("%w: depth %d exceeds limit %d", htmllimits.ErrDOMTooDeep, depth, limits.MaxDOMDepth)
+	}
+	count++
+	if htmllimits.IntExceeded(limits.MaxDOMNodes, count) {
+		return count, fmt.Errorf("%w: nodes %d exceeds limit %d", htmllimits.ErrDOMTooLarge, count, limits.MaxDOMNodes)
+	}
 	if n.Type == html.ElementNode {
 		node := &Node{raw: n}
-		if !fn(node) {
-			return
+		if fn != nil && !fn(node) {
+			return count, nil
 		}
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		walkNode(c, fn)
+		nextCount, err := walkNode(c, depth+1, count, limits, fn)
+		count = nextCount
+		if err != nil {
+			return count, err
+		}
 	}
+	return count, nil
 }
 
 func findTag(n *html.Node, tag string) *html.Node {

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/metrics"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTime_Normalize(t *testing.T) {

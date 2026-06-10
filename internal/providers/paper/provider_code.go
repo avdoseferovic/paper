@@ -21,7 +21,7 @@ func (g *provider) AddMatrixCode(code string, cell *entity.Cell, prop *props.Rec
 	if err != nil {
 		message := "could not add matrixcode to document"
 		g.recordRenderIssue("matrixcode.add", message, err)
-		g.fpdf.ClearError()
+		g.errorPDF.ClearError()
 		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 }
@@ -39,7 +39,7 @@ func (g *provider) AddQrCode(code string, cell *entity.Cell, prop *props.Rect) {
 	if err != nil {
 		message := "could not add qrcode to document"
 		g.recordRenderIssue("qrcode.add", message, err)
-		g.fpdf.ClearError()
+		g.errorPDF.ClearError()
 		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 }
@@ -61,7 +61,7 @@ func (g *provider) AddBarCode(code string, cell *entity.Cell, prop *props.Barcod
 	if err != nil {
 		message := "could not add barcode to document"
 		g.recordRenderIssue("barcode.add", message, err)
-		g.fpdf.ClearError()
+		g.errorPDF.ClearError()
 		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 }

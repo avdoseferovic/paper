@@ -3,7 +3,6 @@ package paper
 import (
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/metrics"
@@ -48,36 +47,47 @@ var _ core.LateFontProvider = (*provider)(nil)
 var _ core.CharSpacingProvider = (*provider)(nil)
 
 type provider struct {
-	fpdf       gofpdfwrapper.PDF
-	font       core.Font
-	text       core.Text
-	richText   *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
-	code       core.Code
-	image      core.Image
-	line       core.Line
-	checkbox   core.Checkbox
-	cache      cache.Cache
-	cellWriter cellwriter.CellWriter
-	cfg        *entity.Config
-	issues     []metrics.RenderIssue
+	fpdf        providerPDF
+	documentPDF providerDocumentPDF
+	metadataPDF providerMetadataPDF
+	errorPDF    providerErrorPDF
+	font        core.Font
+	text        core.Text
+	richText    *Text // typed pointer for RichTextProvider; nil-safe when text is a mock
+	code        core.Code
+	image       core.Image
+	line        core.Line
+	checkbox    core.Checkbox
+	cache       cache.Cache
+	cellWriter  cellwriter.CellWriter
+	cfg         *entity.Config
+	issues      []metrics.RenderIssue
 }
 
 // New is the constructor of provider for gofpdf.
 func New(dep *Dependencies) core.Provider {
 	richText, _ := dep.Text.(*Text)
 	return &provider{
-		fpdf:       dep.PDF,
-		font:       dep.Font,
-		text:       dep.Text,
-		richText:   richText,
-		code:       dep.Code,
-		image:      dep.Image,
-		line:       dep.Line,
-		checkbox:   dep.Checkbox,
-		cellWriter: dep.CellWriter,
-		cfg:        dep.Cfg,
-		cache:      dep.Cache,
+		fpdf:        asProviderPDF[providerPDF](dep.PDF),
+		documentPDF: asProviderPDF[providerDocumentPDF](dep.PDF),
+		metadataPDF: asProviderPDF[providerMetadataPDF](dep.PDF),
+		errorPDF:    asProviderPDF[providerErrorPDF](dep.PDF),
+		font:        dep.Font,
+		text:        dep.Text,
+		richText:    richText,
+		code:        dep.Code,
+		image:       dep.Image,
+		line:        dep.Line,
+		checkbox:    dep.Checkbox,
+		cellWriter:  dep.CellWriter,
+		cfg:         dep.Cfg,
+		cache:       dep.Cache,
 	}
+}
+
+func asProviderPDF[T any](pdf any) T {
+	typed, _ := pdf.(T)
+	return typed
 }
 
 func (g *provider) MeasureString(text string, prop *props.Text) float64 {

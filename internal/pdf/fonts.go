@@ -661,7 +661,11 @@ func (f *PDF) putFontFileObject(file string, info fontFileType) {
 		buf = append(buf, font[6+info.length1+6:info.length2]...)
 		font = buf
 	}
-	f.outf("<</Length %d", len(font))
+	stream := f.encryptedStream(font)
+	if f.err != nil {
+		return
+	}
+	f.outf("<</Length %d", len(stream))
 	if compressed {
 		f.out("/Filter /FlateDecode")
 	}
@@ -670,7 +674,7 @@ func (f *PDF) putFontFileObject(file string, info fontFileType) {
 		f.outf("/Length2 %d /Length3 0", info.length2)
 	}
 	f.out(">>")
-	f.putstream(font)
+	f.putstream(stream)
 	f.out("endobj")
 }
 
@@ -855,8 +859,12 @@ func (f *PDF) putUTF8CIDFontObject(fontName string, font fontDefType) {
 func (f *PDF) putUTF8ToUnicodeObject(usedRunes map[int]int) {
 	toUnicodeMap := buildToUnicodeCMap(usedRunes)
 	f.newobj()
-	f.out("<</Length " + strconv.Itoa(len(toUnicodeMap)) + ">>")
-	f.putstream([]byte(toUnicodeMap))
+	stream := f.encryptedStream([]byte(toUnicodeMap))
+	if f.err != nil {
+		return
+	}
+	f.out("<</Length " + strconv.Itoa(len(stream)) + ">>")
+	f.putstream(stream)
 	f.out("endobj")
 }
 
@@ -901,18 +909,26 @@ func (f *PDF) putUTF8CIDToGIDMapObject(codeSignDictionary map[int]int) {
 
 	cidToGidMap = sliceCompress(cidToGidMap)
 	f.newobj()
-	f.out("<</Length " + strconv.Itoa(len(cidToGidMap)) + "/Filter /FlateDecode>>")
-	f.putstream(cidToGidMap)
+	stream := f.encryptedStream(cidToGidMap)
+	if f.err != nil {
+		return
+	}
+	f.out("<</Length " + strconv.Itoa(len(stream)) + "/Filter /FlateDecode>>")
+	f.putstream(stream)
 	f.out("endobj")
 }
 
 func (f *PDF) putUTF8FontStreamObject(compressedFontStream []byte, utf8FontSize int) {
 	f.newobj()
-	f.out("<</Length " + strconv.Itoa(len(compressedFontStream)))
+	stream := f.encryptedStream(compressedFontStream)
+	if f.err != nil {
+		return
+	}
+	f.out("<</Length " + strconv.Itoa(len(stream)))
 	f.out("/Filter /FlateDecode")
 	f.out("/Length1 " + strconv.Itoa(utf8FontSize))
 	f.out(">>")
-	f.putstream(compressedFontStream)
+	f.putstream(stream)
 	f.out("endobj")
 }
 

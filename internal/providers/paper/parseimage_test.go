@@ -5,8 +5,8 @@ import (
 
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFromBytes(t *testing.T) {

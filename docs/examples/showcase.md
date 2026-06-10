@@ -9,8 +9,9 @@ The showcase PDF is the broad reference document for Paper's public authoring pa
 
 ## Rebuild
 ```bash
-go run ./cmd/paper-showcase
+cd examples
+go run ./cmd/paper-showcase ../docs/assets/pdf/showcase.pdf
 ```
 
 ## Source
-[cmd/paper-showcase](https://github.com/avdoseferovic/paper/tree/master/cmd/paper-showcase)
+[examples/cmd/paper-showcase](https://github.com/avdoseferovic/paper/tree/master/examples/cmd/paper-showcase)

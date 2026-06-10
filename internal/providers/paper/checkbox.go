@@ -1,7 +1,6 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -10,12 +9,12 @@ import (
 const labelGap = 1.0
 
 type Checkbox struct {
-	pdf  gofpdfwrapper.PDF
+	pdf  checkboxPDF
 	font core.Font
 }
 
 // NewCheckbox create a Checkbox.
-func NewCheckbox(pdf gofpdfwrapper.PDF, font core.Font) *Checkbox {
+func NewCheckbox(pdf checkboxPDF, font core.Font) *Checkbox {
 	return &Checkbox{pdf: pdf, font: font}
 }
 

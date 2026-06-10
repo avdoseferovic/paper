@@ -3,7 +3,7 @@ package layout
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestHamilton(t *testing.T) {

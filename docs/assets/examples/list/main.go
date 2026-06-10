@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/list"
 	"github.com/avdoseferovic/paper/pkg/components/row"
@@ -41,7 +42,7 @@ func main() {
 
 func GetPaper() core.Paper {
 	mrt := paper.New()
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	objects := getObjects(100)
 	rows, err := list.Build[Object](objects)

@@ -3,10 +3,10 @@ package paper
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
+	pdf "github.com/avdoseferovic/paper/internal/pdf"
 )
 
 // alphaPDFStub embeds the PDF interface so it satisfies the type with all
@@ -14,7 +14,7 @@ import (
 // calls. Using embedding avoids the import cycle that would come from the
 // generated mocks/ package and avoids hand-stubbing the ~180-method interface.
 type alphaPDFStub struct {
-	gofpdfwrapper.PDF
+	*pdf.PDF
 	calls []alphaCall
 }
 

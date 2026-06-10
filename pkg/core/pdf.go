@@ -1,9 +1,11 @@
 package core
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/avdoseferovic/paper/internal/time"
@@ -21,8 +23,8 @@ type Pdf struct {
 	report *metrics.Report
 }
 
-// NewPDF is responsible to create a new instance of PDF.
-func NewPDF(bytes []byte, report *metrics.Report) Document {
+// NewPDF creates a concrete PDF document.
+func NewPDF(bytes []byte, report *metrics.Report) *Pdf {
 	return &Pdf{
 		bytes:  bytes,
 		report: report,
@@ -39,6 +41,16 @@ func (p *Pdf) GetBase64() string {
 	return base64.StdEncoding.EncodeToString(p.bytes)
 }
 
+// Write streams the document to w without an intermediate copy beyond the already-generated buffer.
+func (p *Pdf) Write(w io.Writer) (int64, error) {
+	written, err := bytes.NewReader(p.bytes).WriteTo(w)
+	if err != nil {
+		return written, fmt.Errorf("cannot write document: %w", err)
+	}
+
+	return written, nil
+}
+
 // GetReport returns the metrics.Report.
 func (p *Pdf) GetReport() *metrics.Report {
 	return p.report
@@ -46,10 +58,18 @@ func (p *Pdf) GetReport() *metrics.Report {
 
 // Save saves the PDF in a file.
 func (p *Pdf) Save(file string) error {
-	err := os.WriteFile(file, p.bytes, os.ModePerm)
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrCannotWriteFile, err)
 	}
+
+	_, writeErr := p.Write(f)
+	closeErr := f.Close()
+	err = errors.Join(writeErr, closeErr)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrCannotWriteFile, err)
+	}
+
 	return nil
 }
 

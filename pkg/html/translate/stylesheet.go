@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/andybalholm/cascadia"
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/html/css"
-	douceurcss "github.com/aymerick/douceur/css"
-	"github.com/aymerick/douceur/parser"
 	"golang.org/x/net/html"
 )
 
@@ -60,50 +59,57 @@ func parseStylesheet(text string) *stylesheet {
 }
 
 func parseStylesheetWithContentWidth(text string, contentWidthMM float64) *stylesheet {
-	ss := &stylesheet{}
-	text = builtinCSS + "\n" + text
-	sheet, err := parser.Parse(text)
-	if err != nil || sheet == nil {
-		return ss
-	}
-	order := 0
-	for _, rule := range sheet.Rules {
-		ss.addParsedRule(rule, &order, contentWidthMM)
-	}
+	ss, _ := parseStylesheetWithLimits(text, contentWidthMM, htmllimits.NoLimits())
 	return ss
 }
 
-func (s *stylesheet) addParsedRule(rule *douceurcss.Rule, order *int, contentWidthMM float64) {
+func parseStylesheetWithLimits(text string, contentWidthMM float64, limits htmllimits.Limits) (*stylesheet, error) {
+	ss := &stylesheet{}
+	order := 0
+	for _, rule := range parseCSS(builtinCSS) {
+		ss.addParsedRule(rule, &order, contentWidthMM)
+	}
+	rules, err := parseCSSWithLimit(text, limits.MaxStyleRules)
+	if err != nil {
+		return nil, err
+	}
+	for _, rule := range rules {
+		ss.addParsedRule(rule, &order, contentWidthMM)
+	}
+	return ss, nil
+}
+
+func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM float64) {
 	if rule == nil {
 		return
 	}
-	if rule.Kind == douceurcss.AtRule {
-		switch rule.Name {
+	if rule.kind == atRule {
+		switch rule.name {
 		case "@font-face":
 			if face, ok := extractFontFace(rule); ok {
 				s.fontFaces = append(s.fontFaces, face)
 			}
 		case "@media":
-			if mediaAppliesToPrintAtWidth(rule.Prelude, contentWidthMM) {
-				for _, nested := range rule.Rules {
+			if mediaAppliesToPrintAtWidth(rule.prelude, contentWidthMM) {
+				for _, nested := range rule.rules {
 					s.addParsedRule(nested, order, contentWidthMM)
 				}
 			}
 		}
 		return
 	}
-	if rule.Kind != douceurcss.QualifiedRule {
+	if rule.kind != qualifiedRule {
 		return
 	}
-	decls := make(map[string]string, len(rule.Declarations))
-	for _, d := range rule.Declarations {
-		if d == nil || d.Property == "" {
+	decls := make(map[string]string, len(rule.declarations))
+	for _, d := range rule.declarations {
+		if d.property == "" {
 			continue
 		}
-		decls[d.Property] = d.Value
+		decls[d.property] = d.value
 	}
 	decls = css.ExpandShorthands(decls)
-	for _, sel := range rule.Selectors {
+	for _, sel := range rule.selectors {
 		baseSelector, pseudo := splitPseudoElementSelector(sel)
 		m, err := cascadia.Parse(baseSelector)
 		if err != nil {

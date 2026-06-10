@@ -6,7 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestNewBuilder(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/code"
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -46,7 +47,7 @@ func GetPaper() core.Paper {
 
 	darkGrayColor := getDarkGrayColor()
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	err := m.RegisterHeader(getPageHeader())
 	if err != nil {

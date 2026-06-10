@@ -2,14 +2,13 @@ package fontrepository_test
 
 import (
 	"os"
-	"path"
-	"strings"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/fontrepository"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 func TestRepository_AddUTF8Font(t *testing.T) {
@@ -56,7 +55,7 @@ func TestRepository_AddUTF8Font(t *testing.T) {
 		sut := fontrepository.New()
 
 		// Act
-		customFonts, err := sut.AddUTF8Font("family", fontstyle.Bold, buildPath("/docs/assets/fonts/arial-unicode-ms.ttf")).Load()
+		customFonts, err := sut.AddUTF8Font("family", fontstyle.Bold, writeTestFont(t)).Load()
 
 		// Assert
 		assert.Nil(t, err)
@@ -110,11 +109,9 @@ func TestRepository_AddUTF8FontFromBytes(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		sut := fontrepository.New()
-		ttf, err := os.ReadFile(buildPath("/docs/assets/fonts/arial-unicode-ms.ttf"))
-		require.NoError(t, err)
 
 		// Act
-		customFonts, err := sut.AddUTF8FontFromBytes("family", fontstyle.Bold, ttf).Load()
+		customFonts, err := sut.AddUTF8FontFromBytes("family", fontstyle.Bold, goregular.TTF).Load()
 
 		// Assert
 		assert.Nil(t, err)
@@ -126,12 +123,10 @@ func TestRepository_AddUTF8FontFromBytes(t *testing.T) {
 	})
 }
 
-func buildPath(file string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
+func writeTestFont(t *testing.T) string {
+	t.Helper()
 
-	dir = strings.ReplaceAll(dir, "pkg/fontrepository", "")
-	return path.Join(dir, file)
+	path := t.TempDir() + "/goregular.ttf"
+	require.NoError(t, os.WriteFile(path, goregular.TTF, 0o600))
+	return path
 }

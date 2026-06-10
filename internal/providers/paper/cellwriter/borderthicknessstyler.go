@@ -1,7 +1,6 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -12,7 +11,7 @@ type BorderThicknessStyler struct {
 	defaultLineThickness float64
 }
 
-func NewBorderThicknessStyler(fpdf gofpdfwrapper.PDF) *BorderThicknessStyler {
+func NewBorderThicknessStyler(fpdf any) *BorderThicknessStyler {
 	return &BorderThicknessStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,
@@ -33,7 +32,8 @@ func (b *BorderThicknessStyler) Apply(width, height float64, config *entity.Conf
 		return
 	}
 
-	b.fpdf.SetLineWidth(prop.BorderThickness)
+	fpdf := asPDF[lineWidthPDF](b.fpdf)
+	fpdf.SetLineWidth(prop.BorderThickness)
 	b.GoToNext(width, height, config, prop)
-	b.fpdf.SetLineWidth(b.defaultLineThickness)
+	fpdf.SetLineWidth(b.defaultLineThickness)
 }

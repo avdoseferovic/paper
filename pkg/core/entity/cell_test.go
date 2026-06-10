@@ -3,7 +3,7 @@ package entity_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )

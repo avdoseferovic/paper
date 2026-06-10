@@ -13,7 +13,7 @@ Read the target file(s) provided by the user. Then read 1-2 existing test files 
 ### 1. Package and imports
 - Use the **external test package**: `package <pkg>_test` (not `package <pkg>`).
 - Import `"testing"`, `"fmt"`, `"github.com/stretchr/testify/assert"`.
-- Import mocks from `github.com/avdoseferovic/paper/mocks` when dependencies need to be mocked.
+- Import mocks from `github.com/avdoseferovic/paper/internal/mocks` when dependencies need to be mocked.
 - Import `github.com/avdoseferovic/paper/internal/fixture` for pre-built prop values when available.
 
 ### 2. Test function structure

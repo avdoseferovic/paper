@@ -3,7 +3,7 @@ package cellwriter
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestBackgroundImageSize(t *testing.T) {

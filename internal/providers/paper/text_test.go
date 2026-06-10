@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
@@ -12,14 +13,13 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 
-	"github.com/avdoseferovic/paper/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/mocks"
 )
 
 func TestNewText(t *testing.T) {
 	t.Parallel()
-	text := gofpdf.NewText(mocks.NewPDF(t), mocks.NewMath(t), mocks.NewFont(t))
+	text := gofpdf.NewText(newPDF(t), mocks.NewMath(t), mocks.NewFont(t))
 
 	assert.NotNil(t, text)
 	assert.Equal(t, "*paper.Text", fmt.Sprintf("%T", text))
@@ -35,7 +35,7 @@ func TestGetLinesHeight(t *testing.T) {
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(textProp.Family, textProp.Style, textProp.Size)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("text").Return(5.0)  // First token just returns text
 		pdf.EXPECT().GetStringWidth(" text").Return(6.0) // subsequent tokens return leading space
@@ -55,7 +55,7 @@ func TestGetLinesHeight(t *testing.T) {
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(textProp.Family, textProp.Style, textProp.Size)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().GetStringWidth("t").Return(1)
 		pdf.EXPECT().GetStringWidth(" ").Return(1)
 		pdf.EXPECT().GetStringWidth(" - ").Return(1)
@@ -92,7 +92,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -126,7 +126,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().SetColor(customColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -158,7 +158,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().SetColor(&props.BlueColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -189,7 +189,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -220,7 +220,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -251,7 +251,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// initial width check in Add: fits in 100
 		pdf.EXPECT().GetStringWidth("hello world").Return(30.0)
@@ -292,7 +292,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// full text does not fit in width=40
 		pdf.EXPECT().GetStringWidth("word1 word2").Return(60.0)
@@ -331,7 +331,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// full text "ab" does not fit in width=8
 		pdf.EXPECT().GetStringWidth("ab").Return(12.0)
@@ -374,7 +374,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hi").Return(5.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
@@ -405,7 +405,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// left clamped to 100, right=0 → width = 100-100-0 = 0
 		// x = 0 + 100 = 100
@@ -439,7 +439,7 @@ func TestText_Add(t *testing.T) {
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// right clamped to 100, left=0 → width = 100-0-100 = 0
 		// x = 0 + 0 = 0
@@ -464,7 +464,7 @@ func TestMeasureString(t *testing.T) {
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetStringWidth("hello").Return(30.5)
 
@@ -483,7 +483,7 @@ func TestMeasureStringCachesDefaultCodePageTranslator(t *testing.T) {
 	font := mocks.NewFont(t)
 	font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0).Twice()
 
-	pdf := mocks.NewPDF(t)
+	pdf := newPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Once()
 	pdf.EXPECT().GetStringWidth("hello").Return(20.0).Once()
 	pdf.EXPECT().GetStringWidth("world").Return(25.0).Once()
@@ -503,7 +503,7 @@ func TestAddTextAt(t *testing.T) {
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		pdf.EXPECT().GetMargins().Return(5.0, 10.0, 5.0, 5.0)
 		pdf.EXPECT().Text(15.0, 25.0, "hello") // x+left=10+5=15, y+top=15+10=25
@@ -534,7 +534,7 @@ func TestAddRichText(t *testing.T) {
 		font.EXPECT().SetColor(origColor).Maybe()
 		font.EXPECT().GetColor().Return(origColor).Maybe()
 
-		pdf := mocks.NewPDF(t)
+		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
@@ -571,7 +571,7 @@ func TestAddRichText(t *testing.T) {
 				font.EXPECT().GetColor().Return(origColor).Maybe()
 				font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(4.0).Maybe()
 
-				pdf := mocks.NewPDF(t)
+				pdf := newPDF(t)
 				pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
 				pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(5.0).Maybe()
 				pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()

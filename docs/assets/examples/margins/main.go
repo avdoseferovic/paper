@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -41,7 +42,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	err := m.RegisterHeader(
 		row.New(40).Add(

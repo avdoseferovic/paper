@@ -1,5 +1,4 @@
 // Package test implements unit test feature.
-// nolint:testpackage // that's the integration test of paper
 package test
 
 import (
@@ -10,7 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
 const (
@@ -40,12 +40,24 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func fixtureNode(rootType string) *node.Node[core.Structure] {
+	rootNode := node.New[core.Structure](core.Structure{
+		Type: rootType,
+	})
+	pageNode := node.New[core.Structure](core.Structure{
+		Type: "page",
+	})
+
+	rootNode.AddNext(pageNode)
+	return rootNode
+}
+
 func TestPaperTest_Assert(t *testing.T) {
 	t.Parallel()
 	t.Run("when call assert, should set node", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("paper")
+		n := fixtureNode("paper")
 		sut := New(t)
 
 		// Act
@@ -62,7 +74,7 @@ func TestPaperTest_Save(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		file := ""
-		n := fixture.Node("paper")
+		n := fixtureNode("paper")
 		innerT := &testing.T{}
 		sut := New(innerT).Assert(n)
 
@@ -78,7 +90,7 @@ func TestPaperTest_Save(t *testing.T) {
 	t.Run("when can save, should create file", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("paper")
+		n := fixtureNode("paper")
 		sut := New(t).Assert(n)
 
 		// Act
@@ -101,7 +113,7 @@ func TestPaperTest_Equals(t *testing.T) {
 	t.Run("when file saved is not equals to current, should fail", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("not_maroto")
+		n := fixtureNode("not_maroto")
 		innerT := &testing.T{}
 		sut := New(innerT).Assert(n)
 
@@ -114,7 +126,7 @@ func TestPaperTest_Equals(t *testing.T) {
 	t.Run("when file saved is equals to current, should be success", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
-		n := fixture.Node("paper")
+		n := fixtureNode("paper")
 		innerT := &testing.T{}
 		sut := New(innerT).Assert(n)
 

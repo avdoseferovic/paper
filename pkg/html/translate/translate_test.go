@@ -1,12 +1,13 @@
 package translate_test
 
 import (
+	"context"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func parseDoc(t *testing.T, src string) *dom.Document {
@@ -58,6 +59,20 @@ func TestTranslate_Block(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, rows, 2)
 	})
+}
+
+func TestTranslateCtx_ReturnsContextErrorAfterStylesheetPhase(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doc := parseDoc(t, `<html><head><link rel="stylesheet" href="local.css"></head><body><p>hello</p></body></html>`)
+
+	rows, err := translate.TranslateCtx(ctx, doc, translate.WithUnsupportedHandler(func(_, _ string) {
+		cancel()
+	}))
+
+	assert.Nil(t, rows)
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestTranslate_Inline(t *testing.T) {

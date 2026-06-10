@@ -1,10 +1,28 @@
-all: True
-dir: "mocks/"
+dir: "internal/mocks/"
 outpkg: "mocks"
 filename: "{{.InterfaceName}}.go"
 mockname: "{{.InterfaceName}}"
 with-expecter: True
 packages:
-  github.com/avdoseferovic/paper:
-    config:
-      recursive: True
+  github.com/avdoseferovic/paper/internal/cache:
+    interfaces:
+      Cache:
+  github.com/avdoseferovic/paper/internal/providers/paper/cellwriter:
+    interfaces:
+      CellWriter:
+  github.com/avdoseferovic/paper/pkg/core:
+    interfaces:
+      Checkbox:
+      Code:
+      Col:
+      Component:
+      Document:
+      Font:
+      Image:
+      Line:
+      Math:
+      Paper:
+      Provider:
+      RichTextProvider:
+      Row:
+      Text:

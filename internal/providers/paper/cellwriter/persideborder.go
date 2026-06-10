@@ -1,7 +1,6 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -17,7 +16,7 @@ type perSideBorderStyler struct {
 // calls per side (with per-side color/thickness) and clears BorderType before passing
 // through — so the downstream CellFormat call does not double-draw borders.
 // When no per-side fields are set it passes through unchanged (zero cost for legacy callers).
-func NewPerSideBorderStyler(fpdf gofpdfwrapper.PDF) CellWriter {
+func NewPerSideBorderStyler(fpdf any) CellWriter {
 	return &perSideBorderStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,
@@ -39,21 +38,22 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 	}
 
 	// Save and defer-restore draw state so we don't leak colour/thickness.
-	origLineWidth := p.fpdf.GetLineWidth()
-	origR, origG, origB := p.fpdf.GetDrawColor()
+	fpdf := asPDF[perSideBorderPDF](p.fpdf)
+	origLineWidth := fpdf.GetLineWidth()
+	origR, origG, origB := fpdf.GetDrawColor()
 	defer func() {
-		p.fpdf.SetLineWidth(origLineWidth)
-		p.fpdf.SetDrawColor(origR, origG, origB)
+		fpdf.SetLineWidth(origLineWidth)
+		fpdf.SetDrawColor(origR, origG, origB)
 	}()
 
 	// Snapshot the pen position at the start of Apply — gofpdf places the pen at the
 	// cell's top-left before any drawing calls, so GetXY gives the true cell origin.
-	x, y := p.fpdf.GetXY()
+	x, y := fpdf.GetXY()
 
-	p.drawSide(prop.BorderTopThickness, prop.BorderTopColor, prop.BorderTopStyle, prop, x, y, x+width, y)
-	p.drawSide(prop.BorderRightThickness, prop.BorderRightColor, prop.BorderRightStyle, prop, x+width, y, x+width, y+height)
-	p.drawSide(prop.BorderBottomThickness, prop.BorderBottomColor, prop.BorderBottomStyle, prop, x, y+height, x+width, y+height)
-	p.drawSide(prop.BorderLeftThickness, prop.BorderLeftColor, prop.BorderLeftStyle, prop, x, y, x, y+height)
+	p.drawSide(fpdf, prop.BorderTopThickness, prop.BorderTopColor, prop.BorderTopStyle, prop, x, y, x+width, y)
+	p.drawSide(fpdf, prop.BorderRightThickness, prop.BorderRightColor, prop.BorderRightStyle, prop, x+width, y, x+width, y+height)
+	p.drawSide(fpdf, prop.BorderBottomThickness, prop.BorderBottomColor, prop.BorderBottomStyle, prop, x, y+height, x+width, y+height)
+	p.drawSide(fpdf, prop.BorderLeftThickness, prop.BorderLeftColor, prop.BorderLeftStyle, prop, x, y, x, y+height)
 
 	// Clear BorderType so downstream CellFormat doesn't also draw borders.
 	modified := *prop
@@ -62,6 +62,7 @@ func (p *perSideBorderStyler) Apply(width, height float64, config *entity.Config
 }
 
 func (p *perSideBorderStyler) drawSide(
+	fpdf perSideBorderPDF,
 	thickness float64,
 	color *props.Color,
 	style linestyle.Type,
@@ -72,25 +73,25 @@ func (p *perSideBorderStyler) drawSide(
 		return
 	}
 
-	p.fpdf.SetLineWidth(thickness)
+	fpdf.SetLineWidth(thickness)
 
 	if color != nil {
-		p.fpdf.SetDrawColor(color.Red, color.Green, color.Blue)
+		fpdf.SetDrawColor(color.Red, color.Green, color.Blue)
 	} else if prop.BorderColor != nil {
-		p.fpdf.SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
+		fpdf.SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
 	}
 
 	switch style {
 	case linestyle.Solid:
 	case linestyle.Dashed:
-		p.fpdf.SetDashPattern([]float64{1, 1}, 0)
+		fpdf.SetDashPattern([]float64{1, 1}, 0)
 	case linestyle.Dotted:
-		p.fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
+		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 
-	p.fpdf.Line(x1, y1, x2, y2)
+	fpdf.Line(x1, y1, x2, y2)
 
 	if style != linestyle.Solid && style != "" {
-		p.fpdf.SetDashPattern([]float64{1, 0}, 0)
+		fpdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

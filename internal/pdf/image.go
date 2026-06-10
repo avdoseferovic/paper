@@ -429,8 +429,12 @@ func (f *PDF) putimage(info *ImageInfoType) {
 	if info.smask != nil {
 		f.outf("/SMask %d 0 R", f.n+1)
 	}
-	f.outf("/Length %d>>", len(info.data))
-	f.putstream(info.data)
+	stream := f.encryptedStream(info.data)
+	if f.err != nil {
+		return
+	}
+	f.outf("/Length %d>>", len(stream))
+	f.putstream(stream)
 	f.out("endobj")
 
 	if len(info.smask) > 0 {
@@ -447,18 +451,34 @@ func (f *PDF) putimage(info *ImageInfoType) {
 		f.putimage(smask)
 	}
 
-	if info.cs == colorSpaceIndexed {
-		f.newobj()
-		if f.compress {
-			pal := sliceCompress(info.pal)
-			f.outf("<</Filter /FlateDecode /Length %d>>", len(pal))
-			f.putstream(pal)
-		} else {
-			f.outf("<</Length %d>>", len(info.pal))
-			f.putstream(info.pal)
-		}
-		f.out("endobj")
+	f.putIndexedColorPalette(info)
+}
+
+func (f *PDF) putIndexedColorPalette(info *ImageInfoType) {
+	if info.cs != colorSpaceIndexed {
+		return
 	}
+
+	f.newobj()
+	if f.compress {
+		pal := sliceCompress(info.pal)
+		stream := f.encryptedStream(pal)
+		if f.err != nil {
+			return
+		}
+		f.outf("<</Filter /FlateDecode /Length %d>>", len(stream))
+		f.putstream(stream)
+		f.out("endobj")
+		return
+	}
+
+	stream := f.encryptedStream(info.pal)
+	if f.err != nil {
+		return
+	}
+	f.outf("<</Length %d>>", len(stream))
+	f.putstream(stream)
+	f.out("endobj")
 }
 
 func (f *PDF) pngColorSpace(ct byte) (string, int) {

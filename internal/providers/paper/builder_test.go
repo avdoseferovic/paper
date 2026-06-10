@@ -9,8 +9,8 @@ import (
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewBuilder(t *testing.T) {

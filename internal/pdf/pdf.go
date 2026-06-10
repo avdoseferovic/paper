@@ -54,19 +54,11 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	f.fonts = make(map[string]fontDefType)
 	f.fontFiles = make(map[string]fontFileType)
 	f.diffs = make([]string, 0, 8)
-	f.templates = make(map[string]Template)
-	f.templateObjects = make(map[string]int)
-	f.importedObjs = make(map[string][]byte, 0)
-	f.importedObjPos = make(map[string]map[int]string, 0)
-	f.importedTplObjs = make(map[string]string)
-	f.importedTplIDs = make(map[string]int, 0)
 	f.images = make(map[string]*ImageInfoType)
 	f.pageLinks = make([][]linkType, 0, 8)
 	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
 	f.links = make([]intLinkType, 0, 8)
 	f.links = append(f.links, intLinkType{})
-	f.pageAttachments = make([][]annotationAttach, 0, 8)
-	f.pageAttachments = append(f.pageAttachments, []annotationAttach{})
 	f.aliasMap = make(map[string]string)
 	f.inHeader = false
 	f.inFooter = false
@@ -145,7 +137,6 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	}
 
 	f.SetCompression(!gl.noCompress)
-	f.spotColorMap = make(map[string]spotColorType)
 	f.blendList = make([]blendModeType, 0, 8)
 	f.blendList = append(f.blendList, blendModeType{})
 	f.blendMap = make(map[string]int)
@@ -156,7 +147,6 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 
 	f.pdfVersion = "1.3"
 	f.SetProducer("FPDF "+cnPDFVersion, true)
-	f.layerInit()
 	f.catalogSort = gl.catalogSort
 	f.creationDate = gl.creationDate
 	f.modDate = gl.modDate

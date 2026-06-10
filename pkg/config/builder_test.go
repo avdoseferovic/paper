@@ -13,13 +13,14 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/generation"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 	"github.com/avdoseferovic/paper/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/pkg/html"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -251,7 +252,6 @@ func TestCfgBuilder_WithBottomMargin(t *testing.T) {
 	})
 }
 
-// nolint:dupl // dupl is good here
 func TestBuilder_WithConcurrentMode(t *testing.T) {
 	t.Parallel()
 	t.Run("when chunk size is invalid, should not change the default value", func(t *testing.T) {
@@ -348,7 +348,6 @@ func TestCfgBuilder_WithSequentialMode(t *testing.T) {
 	})
 }
 
-// nolint:dupl // dupl is good here
 func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 	t.Parallel()
 	t.Run("when chunk size is invalid, should not change the default value", func(t *testing.T) {
@@ -650,6 +649,35 @@ func TestCfgBuilder_WithProtection(t *testing.T) {
 		assert.Equal(t, protection.Copy, cfg.Protection.Type)
 		assert.Equal(t, "password", cfg.Protection.UserPassword)
 		assert.Equal(t, "owner-password", cfg.Protection.OwnerPassword)
+		assert.Equal(t, protection.RC4128, cfg.Protection.Algorithm)
+	})
+	t.Run("when algorithm is applied after protection, should apply correct", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithProtection(protection.Copy, "password", "owner-password").
+			WithProtectionAlgorithm(protection.AES128).
+			Build()
+
+		// Assert
+		assert.Equal(t, protection.AES128, cfg.Protection.Algorithm)
+	})
+	t.Run("when algorithm is applied before protection, should apply correct", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithProtectionAlgorithm(protection.AES128).
+			WithProtection(protection.Copy, "password", "owner-password").
+			Build()
+
+		// Assert
+		assert.Equal(t, protection.AES128, cfg.Protection.Algorithm)
 	})
 }
 
@@ -919,6 +947,34 @@ func TestBuilder_WithDisableAutoPageBreak(t *testing.T) {
 
 		// Assert
 		assert.True(t, cfg.DisableAutoPageBreak)
+	})
+}
+
+func TestBuilder_WithHTMLLimits(t *testing.T) {
+	t.Parallel()
+	t.Run("when HTML limits are partial, should apply safe defaults for zero fields", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithHTMLLimits(entity.HTMLLimits{MaxDOMDepth: 32}).Build()
+
+		// Assert
+		assert.Equal(t, 32, cfg.HTMLLimits.MaxDOMDepth)
+		assert.Equal(t, html.DefaultLimits().MaxImagePixels, cfg.HTMLLimits.MaxImagePixels)
+	})
+	t.Run("when unsafe no limits is configured, should disable HTML limits", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithUnsafeNoHTMLLimits().Build()
+
+		// Assert
+		assert.True(t, cfg.HTMLLimits.MaxDOMDepth < 0)
+		assert.True(t, cfg.HTMLLimits.MaxImagePixels < 0)
 	})
 }
 

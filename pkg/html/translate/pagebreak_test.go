@@ -3,10 +3,10 @@ package translate_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPageBreakRow_IsPageBreak(t *testing.T) {

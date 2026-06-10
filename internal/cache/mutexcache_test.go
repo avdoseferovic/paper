@@ -7,11 +7,11 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/cache"
 
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestNewMutexDecorator(t *testing.T) {

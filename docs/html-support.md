@@ -312,7 +312,42 @@ rows, _ := html.FromString(input,
 m.AddRows(rows...)
 ```
 
-The `WithImageBaseDir` resolver uses `filepath.Clean` + prefix check to reject `..` traversal and absolute paths.
+The `WithImageBaseDir` and `WithStylesheetBaseDir` resolvers use `os.OpenRoot` to confine reads to the configured directory. This rejects `..` traversal, absolute paths, and symlinks that point outside the base directory. Without an explicit base dir, the default image and stylesheet resolvers accept only `data:` URIs.
+
+## Untrusted input
+
+HTML translation applies resource caps by default so malformed or hostile input fails before expensive decode, raster, cascade, or layout work. Configure them with `html.WithLimits`; zero fields keep their safe defaults. Use `html.WithUnsafeNoLimits()` only for trusted input.
+
+```go
+rows, err := html.FromString(input, html.WithLimits(html.Limits{
+    MaxImagePixels: 20_000_000,
+    MaxImageBytes:  16 << 20,
+    MaxDOMDepth:    128,
+    MaxDOMNodes:    50_000,
+    MaxSVGPixels:   20_000_000,
+    MaxStyleRules:  10_000,
+}))
+```
+
+Default limits:
+
+| Limit | Default | Error |
+|---|---:|---|
+| `MaxImagePixels` | 50,000,000 | `html.ErrImageTooLarge` |
+| `MaxImageBytes` | 32 MiB | `html.ErrImageTooLarge` |
+| `MaxDOMDepth` | 256 | `html.ErrDOMTooDeep` |
+| `MaxDOMNodes` | 200,000 | `html.ErrDOMTooLarge` |
+| `MaxSVGPixels` | 50,000,000 | `html.ErrSVGTooLarge` |
+| `MaxStyleRules` | 50,000 | `html.ErrStyleRulesTooLarge` |
+
+`paper.AddHTML` and `paper.FromHTML` use the same defaults. To configure those paths, set limits on the document config:
+
+```go
+cfg := config.NewBuilder().
+    WithHTMLLimits(html.Limits{MaxDOMDepth: 128}).
+    Build()
+doc, err := paper.FromHTML(input, cfg)
+```
 
 ### Supported `<img>` units
 

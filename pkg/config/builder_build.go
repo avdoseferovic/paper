@@ -29,6 +29,7 @@ func (b *CfgBuilder) Build() *entity.Config {
 		CustomFonts:          append([]entity.CustomFont(nil), b.customFonts...),
 		BackgroundImage:      cloneImage(b.backgroundImage),
 		DisableAutoPageBreak: b.disableAutoPageBreak,
+		HTMLLimits:           b.htmlLimits,
 	}
 }
 

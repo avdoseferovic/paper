@@ -7,12 +7,12 @@ import (
 
 	"github.com/avdoseferovic/paper"
 
+	"github.com/avdoseferovic/paper/internal/test"
 	"github.com/avdoseferovic/paper/pkg/components/code"
 	"github.com/avdoseferovic/paper/pkg/components/image"
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/test"
 )
 
 func TestPaper_GetStructure(t *testing.T) {

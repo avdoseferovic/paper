@@ -2,6 +2,13 @@
 
 paper provides a dedicated `pkg/test` package that lets you write deterministic unit tests for your PDF-generating code. Instead of comparing binary PDF output, the test package serialises the document's **component tree** to JSON and compares it against a saved fixture. This makes tests fast, readable, and diff-friendly.
 
+`pkg/test` is published as a separate Go module. Add it explicitly in projects
+that use the helper:
+
+```bash
+go get github.com/avdoseferovic/paper/pkg/test
+```
+
 ## How it works
 
 1. Build your paper document normally.

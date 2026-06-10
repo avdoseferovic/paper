@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/avdoseferovic/paper/pkg/test"
+	"github.com/avdoseferovic/paper/internal/test"
 )
 
 func TestGetPaper(t *testing.T) {

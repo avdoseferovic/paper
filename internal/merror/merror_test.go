@@ -5,9 +5,9 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/merror"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultErrorText(t *testing.T) {

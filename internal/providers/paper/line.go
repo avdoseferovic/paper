@@ -1,7 +1,6 @@
 package paper
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -9,12 +8,12 @@ import (
 )
 
 type Line struct {
-	pdf              gofpdfwrapper.PDF
+	pdf              linePDF
 	defaultColor     *props.Color
 	defaultThickness float64
 }
 
-func NewLine(pdf gofpdfwrapper.PDF) *Line {
+func NewLine(pdf linePDF) *Line {
 	defaultColor := props.Black()
 	return &Line{
 		pdf:              pdf,
@@ -81,7 +80,7 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 
 // setDashPattern applies the gofpdf dash pattern for the given line style.
 // Solid is a no-op; Dashed uses [1,1]; Dotted uses [0.4,0.4].
-func setDashPattern(pdf gofpdfwrapper.PDF, style linestyle.Type) {
+func setDashPattern(pdf linePDF, style linestyle.Type) {
 	switch style {
 	case linestyle.Solid:
 		// no dash pattern needed
@@ -93,7 +92,7 @@ func setDashPattern(pdf gofpdfwrapper.PDF, style linestyle.Type) {
 }
 
 // resetDashPattern restores the solid (no-dash) pattern after a non-solid line.
-func resetDashPattern(pdf gofpdfwrapper.PDF, style linestyle.Type) {
+func resetDashPattern(pdf linePDF, style linestyle.Type) {
 	if style != linestyle.Solid {
 		pdf.SetDashPattern([]float64{1, 0}, 0)
 	}

@@ -3,10 +3,10 @@ package translate
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
-	"github.com/stretchr/testify/assert"
 )
 
 type fixedHeightComponent struct {

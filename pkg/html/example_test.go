@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/html"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestExample_FromString_GeneratesPDF(t *testing.T) {

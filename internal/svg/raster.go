@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	"golang.org/x/image/font"
@@ -35,11 +36,11 @@ const DPIForRaster = 150.0
 // MaxRasterPixels caps the total pixel count of an SVG raster target. The
 // dimensions feeding the rasteriser can be attacker-controlled in untrusted
 // SVG input, so an unbounded image.NewRGBA allocation is a memory risk.
-const MaxRasterPixels = 16 << 20
+const MaxRasterPixels = 50_000_000
 
 var (
 	ErrSVGHasZeroDimensions = errors.New("svg has zero dimensions")
-	ErrSVGTooLarge          = errors.New("svg raster dimensions exceed pixel budget")
+	ErrSVGTooLarge          = htmllimits.ErrSVGTooLarge
 
 	fontsOnce sync.Once
 	errFonts  error
@@ -52,6 +53,11 @@ var (
 // Rasterize converts SVG bytes into PNG bytes at the requested mm dimensions
 // using DPIForRaster. When widthMM/heightMM are zero it uses the SVG's viewBox.
 func Rasterize(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int, error) {
+	return RasterizeWithLimit(svgBytes, widthMM, heightMM, MaxRasterPixels)
+}
+
+// RasterizeWithLimit converts SVG bytes into PNG bytes with a custom pixel cap.
+func RasterizeWithLimit(svgBytes []byte, widthMM, heightMM float64, maxPixels int64) ([]byte, int, int, error) {
 	icon, err := oksvg.ReadIconStream(bytes.NewReader(svgBytes), oksvg.IgnoreErrorMode)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("svg parse: %w", err)
@@ -60,8 +66,8 @@ func Rasterize(svgBytes []byte, widthMM, heightMM float64) ([]byte, int, int, er
 	if pxW <= 0 || pxH <= 0 {
 		return nil, 0, 0, ErrSVGHasZeroDimensions
 	}
-	if int64(pxW)*int64(pxH) > MaxRasterPixels {
-		return nil, 0, 0, fmt.Errorf("%w: %dx%d", ErrSVGTooLarge, pxW, pxH)
+	if maxPixels > 0 && int64(pxW) > maxPixels/int64(pxH) {
+		return nil, 0, 0, fmt.Errorf("%w: %dx%d exceeds limit %d", ErrSVGTooLarge, pxW, pxH, maxPixels)
 	}
 
 	icon.SetTarget(0, 0, float64(pxW), float64(pxH))

@@ -3,7 +3,7 @@ package paper
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestObjectImageRect(t *testing.T) {

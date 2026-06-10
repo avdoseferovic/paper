@@ -7,7 +7,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/consts/generation"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
@@ -49,6 +49,7 @@ func TestConfig_ToMap(t *testing.T) {
 	assert.Equal(t, protection.Print, m["config_protection_type"])
 	assert.Equal(t, "654321", m["config_user_password"])
 	assert.Equal(t, "123456", m["config_owner_password"])
+	assert.Equal(t, protection.AES128, m["config_protection_algorithm"])
 	assert.Equal(t, true, m["config_compression"])
 	assert.Equal(t, "Utf8Text(author, true)", m["config_metadata_author"])
 	assert.Equal(t, "Utf8Text(creator, false)", m["config_metadata_creator"])

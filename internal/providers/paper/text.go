@@ -6,7 +6,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
 	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
@@ -16,7 +15,7 @@ import (
 )
 
 type Text struct {
-	pdf                   gofpdfwrapper.PDF
+	pdf                   textPDF
 	math                  core.Math
 	font                  core.Font
 	layoutCache           map[textLayoutKey][]string
@@ -33,7 +32,7 @@ type textLayoutKey struct {
 }
 
 // NewText create a Text.
-func NewText(pdf gofpdfwrapper.PDF, math core.Math, font core.Font) *Text {
+func NewText(pdf textPDF, math core.Math, font core.Font) *Text {
 	return &Text{
 		pdf:         pdf,
 		math:        math,

@@ -6,6 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/image"
 
@@ -37,7 +38,7 @@ func GetPaper() core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddRow(40,
 		image.NewFromFileCol(2, "docs/assets/images/biplane.jpg", props.Rect{

@@ -3,6 +3,8 @@ package translate
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
@@ -11,8 +13,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBlockContainer_DivWithBackground_ProducesSingleStyledRow(t *testing.T) {

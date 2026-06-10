@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/mocks"
-	"github.com/avdoseferovic/paper/pkg/test"
+	"github.com/avdoseferovic/paper/internal/mocks"
+	"github.com/avdoseferovic/paper/internal/test"
 
 	"github.com/avdoseferovic/paper/pkg/components/line"
 )

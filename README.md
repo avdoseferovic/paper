@@ -22,6 +22,13 @@ control over document generation.
 go get github.com/avdoseferovic/paper
 ```
 
+The optional structure assertion helper is published as a separate module so
+normal Paper consumers do not pull assertion-library dependencies:
+
+```bash
+go get github.com/avdoseferovic/paper/pkg/test
+```
+
 ## HTML to PDF
 
 For HTML-only documents, use `paper.FromHTML`.
@@ -133,9 +140,10 @@ the useful page area after margins, headers, and footers are reserved.
 - Programmatic PDF layout with rows, columns, text, images, codes, tables,
   signatures, page numbers, headers, and footers.
 - Document output as bytes, base64, saved files, or merged PDFs.
+- PDF permission protection for casual copy/print deterrence, not confidentiality-grade encryption. RC4 is the compatibility default; AES-128 is available with `WithProtectionAlgorithm`.
 - Component-tree inspection through `GetStructure`, designed for deterministic
   unit tests.
-- Optional generation metrics through `paper.NewMetricsDecorator`.
+- Optional generation metrics through `decorator.NewMetrics`.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
 
@@ -159,7 +167,7 @@ go test -run='^$' -bench=BenchmarkPDFGeneration -benchmem -count=6 .
 go test -run='^$' -bench=BenchmarkPDFScaling -benchmem -count=6 .
 ```
 
-The numbers below are the median of 6 runs on an Apple M1 Pro (Go 1.26.1),
+The numbers below are the median of 6 checked runs on an Apple M1 Pro (Go 1.26.4),
 single-threaded. They are representative of the bundled fixtures, not a
 universal guarantee — actual time scales with page count, image size, and
 component mix.
@@ -168,28 +176,28 @@ component mix.
 
 | Scenario           | Document                                                | Time / doc | Mem / doc | Allocs / doc |
 |--------------------|---------------------------------------------------------|-----------:|----------:|-------------:|
-| `TextHeavy`        | 180 text rows (~6 pages)                                |    1.23 ms |  1.30 MiB |        9,326 |
-| `HTMLDemoTranslateOnly` | HTML → component rows without PDF generation       |    3.54 ms |  3.74 MiB |       18,477 |
-| `MixedComponents`  | 40× (barcode + QR + image + signature + text)           |    5.63 ms |  3.64 MiB |       12,402 |
-| `HTMLDemoFull`     | HTML → PDF: header + styled body + embedded PNG         |    9.62 ms | 14.03 MiB |       44,198 |
+| `TextHeavy`        | 180 text rows (~6 pages)                                |    1.13 ms |  1.31 MiB |        9,501 |
+| `HTMLDemoTranslateOnly` | HTML → component rows without PDF generation       |    1.43 ms |  2.00 MiB |       12,807 |
+| `MixedComponents`  | 40× (barcode + QR + image + signature + text)           |    5.11 ms |  3.66 MiB |       12,799 |
+| `HTMLDemoFull`     | HTML → PDF: header + styled body + embedded PNG         |    6.01 ms |  9.72 MiB |       38,271 |
 
 ### Size scaling (`BenchmarkPDFScaling`)
 
 | Rows | ~Pages (A4) | Time / doc | Mem / doc | Allocs / doc |
 |-----:|------------:|-----------:|----------:|-------------:|
-|   10 |           1 |    0.32 ms |   151 KiB |        2,271 |
-|   50 |           2 |    0.53 ms |   421 KiB |        3,918 |
-|  100 |           4 |    0.80 ms |   753 KiB |        6,001 |
-|  500 |          17 |    2.88 ms |  3.19 MiB |       22,590 |
-| 1000 |          34 |    5.35 ms |  6.30 MiB |       43,270 |
+|   10 |           1 |    0.32 ms |   165 KiB |        2,276 |
+|   50 |           2 |    0.51 ms |   435 KiB |        3,963 |
+|  100 |           4 |    0.75 ms |   768 KiB |        6,096 |
+|  500 |          17 |    2.77 ms |  3.21 MiB |       23,084 |
+| 1000 |          34 |    5.24 ms |  6.32 MiB |       44,265 |
 
 The curve is linear, giving a simple cost model for text content:
 
 ```
-time(N rows) ≈ 0.28 ms (fixed setup) + 5.1 µs × N
+time(N rows) ≈ 0.27 ms (fixed setup) + 5.0 µs × N
 ```
 
-That is roughly **~140 µs per A4 page** and **~42 allocations per row**. Generation
+That is roughly **~145 µs per A4 page** and **~42 allocations per row**. Generation
 is single-threaded and the internal compression writers are pooled in a
 concurrency-safe way, so throughput scales ~linearly across cores when
 generating documents in parallel.

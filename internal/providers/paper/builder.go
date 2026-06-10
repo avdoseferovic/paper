@@ -1,20 +1,18 @@
 package paper
 
 import (
-	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
-
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/code"
 	"github.com/avdoseferovic/paper/internal/math"
+	pdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
 // Dependencies is the dependencies provider for gofpdf.
 type Dependencies struct {
-	PDF        gofpdfwrapper.PDF
+	PDF        any
 	Font       core.Font
 	Text       core.Text
 	Code       core.Code
@@ -40,11 +38,11 @@ func NewBuilder() Builder {
 
 // Build create a new Dependencies.
 func (b *builder) Build(cfg *entity.Config, cache cache.Cache) *Dependencies {
-	fpdf := gofpdfwrapper.NewCustom(&gofpdf.InitType{
+	fpdf := pdf.NewCustom(&pdf.InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
 		FontDirStr:     "",
-		Size: gofpdf.SizeType{
+		Size: pdf.SizeType{
 			Wd: cfg.Dimensions.Width,
 			Ht: cfg.Dimensions.Height,
 		},

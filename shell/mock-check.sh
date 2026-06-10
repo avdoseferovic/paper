@@ -4,9 +4,7 @@ RED='\033[0;31m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-mockOccurrences="`grep -n --include \*.go --exclude-dir=vendor -R mocks.`"
-mocksNotInImports="`echo "$mockOccurrences" | grep -v "/mocks"`"
-mocksCreatedWithoutNew="`echo "$mocksNotInImports" | grep -v "New"`"
+mocksCreatedWithoutNew="$(rg -n --glob '*.go' --glob '!vendor/**' '(&mocks\.[[:upper:]][[:alnum:]_]*\{|[^[:alnum:]_]mocks\.[[:upper:]][[:alnum:]_]*\{|new\(mocks\.[[:upper:]][[:alnum:]_]*\))' . || true)"
 
 if [ -z "$mocksCreatedWithoutNew" ];
 then

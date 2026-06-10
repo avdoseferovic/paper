@@ -22,7 +22,6 @@ func rgbColorValue(r, g, b int, grayStr, fullStr string) colorType {
 	clr.ir, clr.r = colorComp(r)
 	clr.ig, clr.g = colorComp(g)
 	clr.ib, clr.b = colorComp(b)
-	clr.mode = colorModeRGB
 	clr.gray = clr.ir == clr.ig && clr.r == clr.b
 	if len(grayStr) > 0 {
 		if clr.gray {
@@ -52,8 +51,7 @@ func (f *PDF) setDrawColor(r, g, b int) {
 }
 
 // GetDrawColor returns the most recently set draw color as RGB components (0 -
-// 255). This will not be the current value if a draw color of some other type
-// (for example, spot) has been more recently set.
+// 255).
 func (f *PDF) GetDrawColor() (int, int, int) {
 	return f.color.draw.ir, f.color.draw.ig, f.color.draw.ib
 }
@@ -75,8 +73,7 @@ func (f *PDF) setFillColor(r, g, b int) {
 }
 
 // GetFillColor returns the most recently set fill color as RGB components (0 -
-// 255). This will not be the current value if a fill color of some other type
-// (for example, spot) has been more recently set.
+// 255).
 func (f *PDF) GetFillColor() (int, int, int) {
 	return f.color.fill.ir, f.color.fill.ig, f.color.fill.ib
 }
@@ -94,8 +91,7 @@ func (f *PDF) setTextColor(r, g, b int) {
 }
 
 // GetTextColor returns the most recently set text color as RGB components (0 -
-// 255). This will not be the current value if a text color of some other type
-// (for example, spot) has been more recently set.
+// 255).
 func (f *PDF) GetTextColor() (int, int, int) {
 	return f.color.text.ir, f.color.text.ig, f.color.text.ib
 }

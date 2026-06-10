@@ -9,9 +9,9 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/code"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/image"
@@ -53,7 +54,7 @@ func GetPaper(image string) core.Paper {
 		WithBackgroundImage(bytes, extension.Png)
 
 	mrt := paper.New(b.Build())
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddPages(AddPage(), AddPage(), AddPage(), AddPage(), AddPage())
 	return m

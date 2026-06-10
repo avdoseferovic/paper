@@ -246,7 +246,7 @@ func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) func(string) string 
 		if len(cpStr) == 0 {
 			cpStr = "cp1252"
 		}
-		str, ok = embeddedMapList[cpStr]
+		str, ok = embeddedCodepageMap(cpStr)
 		if ok {
 			var err error
 			rep, err := UnicodeTranslator(strings.NewReader(str))

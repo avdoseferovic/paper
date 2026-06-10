@@ -3,8 +3,8 @@ package extension_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestType_IsValid(t *testing.T) {

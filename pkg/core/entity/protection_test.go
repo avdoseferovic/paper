@@ -5,7 +5,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 )
@@ -23,6 +23,7 @@ func TestProtection_AppendMap(t *testing.T) {
 	assert.Equal(t, sut.Type, m["config_protection_type"])
 	assert.Equal(t, sut.UserPassword, m["config_user_password"])
 	assert.Equal(t, sut.OwnerPassword, m["config_owner_password"])
+	assert.Equal(t, sut.Algorithm, m["config_protection_algorithm"])
 }
 
 func fixtureProtection() entity.Protection {
@@ -30,5 +31,6 @@ func fixtureProtection() entity.Protection {
 		Type:          protection.Print,
 		OwnerPassword: "123456",
 		UserPassword:  "654321",
+		Algorithm:     protection.AES128,
 	}
 }

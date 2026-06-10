@@ -3,7 +3,7 @@ package props_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/pkg/consts/border"

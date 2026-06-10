@@ -5,9 +5,11 @@
 package html
 
 import (
+	"context"
 	"fmt"
 	"io"
 
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
@@ -22,6 +24,8 @@ type config struct {
 	contentWidthMM     float64
 	imageBaseDir       string
 	stylesheetBaseDir  string
+	limits             Limits
+	limitsSet          bool
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -70,14 +74,28 @@ func WithStylesheetBaseDir(dir string) Option {
 
 // FromString parses an HTML string and returns the corresponding Paper rows.
 func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
+	return FromStringCtx(context.TODO(), htmlStr, opts...)
+}
+
+// FromStringCtx parses an HTML string and returns the corresponding Paper rows.
+// It observes ctx before and after DOM parsing and during translation.
+func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
 		return nil, nil
+	}
+	err := conversionCanceled(ctx)
+	if err != nil {
+		return nil, err
 	}
 	cfg := &config{}
 	for _, opt := range opts {
 		opt(cfg)
 	}
 	doc, err := dom.Parse(htmlStr)
+	if err != nil {
+		return nil, err
+	}
+	err = conversionCanceled(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -94,17 +112,47 @@ func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
 	if cfg.stylesheetBaseDir != "" {
 		tOpts = append(tOpts, translate.WithStylesheetBaseDir(cfg.stylesheetBaseDir))
 	}
+	if cfg.limitsSet {
+		tOpts = append(tOpts, translate.WithLimits(cfg.limits))
+	} else {
+		tOpts = append(tOpts, translate.WithLimits(htmllimits.Default()))
+	}
 	if cfg.unsupportedHandler != nil {
 		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))
 	}
-	return translate.Translate(doc, tOpts...)
+	return translate.TranslateCtx(ctx, doc, tOpts...)
 }
 
 // FromReader parses HTML from an io.Reader and returns the corresponding rows.
 func FromReader(r io.Reader, opts ...Option) ([]core.Row, error) {
+	return FromReaderCtx(context.TODO(), r, opts...)
+}
+
+// FromReaderCtx parses HTML from an io.Reader and returns the corresponding
+// rows. It observes ctx before and after reading and during translation.
+func FromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row, error) {
+	err := conversionCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("html: reading input: %w", err)
 	}
-	return FromString(string(data), opts...)
+	err = conversionCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return FromStringCtx(ctx, string(data), opts...)
+}
+
+func conversionCanceled(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	err := ctx.Err()
+	if err != nil {
+		return fmt.Errorf("html: conversion canceled: %w", err)
+	}
+	return nil
 }

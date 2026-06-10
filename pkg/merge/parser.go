@@ -128,7 +128,6 @@ func parseStartXref(data []byte) (int, error) {
 	return offset, nil
 }
 
-//nolint:gocognit // Classic xref parsing is clearer as one stateful scan.
 func parseXrefTable(data []byte, xrefOffset int) ([]xrefEntry, error) {
 	segment := data[xrefOffset:]
 	if !bytes.HasPrefix(segment, []byte("xref")) {
@@ -141,6 +140,17 @@ func parseXrefTable(data []byte, xrefOffset int) ([]xrefEntry, error) {
 		return nil, fmt.Errorf("%w: xref table is empty", errUnsupportedPDF)
 	}
 
+	entries, err := parseXrefSubsections(scanner, data)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].offset < entries[j].offset
+	})
+	return entries, nil
+}
+
+func parseXrefSubsections(scanner *bufio.Scanner, data []byte) ([]xrefEntry, error) {
 	var entries []xrefEntry
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -151,47 +161,15 @@ func parseXrefTable(data []byte, xrefOffset int) ([]xrefEntry, error) {
 			break
 		}
 
-		parts := strings.Fields(line)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("%w: invalid xref subsection header %q", errUnsupportedPDF, line)
-		}
-		start, err := strconv.Atoi(parts[0])
+		start, count, err := parseXrefSubsectionHeader(line)
 		if err != nil {
-			return nil, fmt.Errorf("invalid xref subsection start: %w", err)
+			return nil, err
 		}
-		count, err := strconv.Atoi(parts[1])
+		subsectionEntries, err := parseXrefSubsectionEntries(scanner, data, start, count)
 		if err != nil {
-			return nil, fmt.Errorf("invalid xref subsection count: %w", err)
+			return nil, err
 		}
-
-		for i := range count {
-			if !scanner.Scan() {
-				return nil, fmt.Errorf("%w: xref subsection ended early", errUnsupportedPDF)
-			}
-			entryParts := strings.Fields(scanner.Text())
-			if len(entryParts) < 3 {
-				return nil, fmt.Errorf("%w: invalid xref entry", errUnsupportedPDF)
-			}
-			if entryParts[2] != "n" {
-				continue
-			}
-			offset, err := strconv.Atoi(entryParts[0])
-			if err != nil {
-				return nil, fmt.Errorf("invalid xref object offset: %w", err)
-			}
-			generation, err := strconv.Atoi(entryParts[1])
-			if err != nil {
-				return nil, fmt.Errorf("invalid xref object generation: %w", err)
-			}
-			if offset <= 0 || offset >= len(data) {
-				return nil, fmt.Errorf("%w: xref object offset out of bounds", errUnsupportedPDF)
-			}
-			entries = append(entries, xrefEntry{
-				number:     start + i,
-				generation: generation,
-				offset:     offset,
-			})
-		}
+		entries = append(entries, subsectionEntries...)
 	}
 	err := scanner.Err()
 	if err != nil {
@@ -200,11 +178,66 @@ func parseXrefTable(data []byte, xrefOffset int) ([]xrefEntry, error) {
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("%w: xref table has no in-use objects", errUnsupportedPDF)
 	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].offset < entries[j].offset
-	})
 	return entries, nil
+}
+
+func parseXrefSubsectionHeader(line string) (int, int, error) {
+	parts := strings.Fields(line)
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("%w: invalid xref subsection header %q", errUnsupportedPDF, line)
+	}
+	start, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid xref subsection start: %w", err)
+	}
+	count, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid xref subsection count: %w", err)
+	}
+	return start, count, nil
+}
+
+func parseXrefSubsectionEntries(scanner *bufio.Scanner, data []byte, start, count int) ([]xrefEntry, error) {
+	var entries []xrefEntry
+	for i := range count {
+		if !scanner.Scan() {
+			return nil, fmt.Errorf("%w: xref subsection ended early", errUnsupportedPDF)
+		}
+		entry, ok, err := parseXrefEntry(scanner.Text(), data, start+i)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+func parseXrefEntry(line string, data []byte, number int) (xrefEntry, bool, error) {
+	entryParts := strings.Fields(line)
+	if len(entryParts) < 3 {
+		return xrefEntry{}, false, fmt.Errorf("%w: invalid xref entry", errUnsupportedPDF)
+	}
+	if entryParts[2] != "n" {
+		return xrefEntry{}, false, nil
+	}
+	offset, err := strconv.Atoi(entryParts[0])
+	if err != nil {
+		return xrefEntry{}, false, fmt.Errorf("invalid xref object offset: %w", err)
+	}
+	generation, err := strconv.Atoi(entryParts[1])
+	if err != nil {
+		return xrefEntry{}, false, fmt.Errorf("invalid xref object generation: %w", err)
+	}
+	if offset <= 0 || offset >= len(data) {
+		return xrefEntry{}, false, fmt.Errorf("%w: xref object offset out of bounds", errUnsupportedPDF)
+	}
+	return xrefEntry{
+		number:     number,
+		generation: generation,
+		offset:     offset,
+	}, true, nil
 }
 
 func parseObjects(data []byte, entries []xrefEntry, xrefOffset int) (map[int]pdfObject, error) {

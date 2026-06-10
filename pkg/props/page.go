@@ -56,7 +56,6 @@ func ClonePageNumber(p PageNumber) PageNumber {
 }
 
 // GetNumberTextProp returns the Text properties of the page number.
-// nolint:staticcheck // builder
 func (p *PageNumber) GetNumberTextProp(height float64) *Text {
 	text := &Text{
 		Family: p.Family,
@@ -66,19 +65,31 @@ func (p *PageNumber) GetNumberTextProp(height float64) *Text {
 		Align:  align.Center,
 	}
 
-	if p.Place == LeftBottom || p.Place == LeftTop {
+	if isLeftPageNumberPlace(p.Place) {
 		text.Align = align.Left
-	} else if p.Place == RightBottom || p.Place == RightTop {
+	} else if isRightPageNumberPlace(p.Place) {
 		text.Align = align.Right
 	}
 
-	if p.Place == RightBottom || p.Place == Bottom || p.Place == LeftBottom {
+	if isBottomPageNumberPlace(p.Place) {
 		text.Top = height
 	}
 
 	text.BreakLineStrategy = breakline.EmptySpaceStrategy
 
 	return text
+}
+
+func isLeftPageNumberPlace(place Place) bool {
+	return place == LeftBottom || place == LeftTop
+}
+
+func isRightPageNumberPlace(place Place) bool {
+	return place == RightBottom || place == RightTop
+}
+
+func isBottomPageNumberPlace(place Place) bool {
+	return place == RightBottom || place == Bottom || place == LeftBottom
 }
 
 // GetPageString returns the page string.

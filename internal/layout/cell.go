@@ -29,13 +29,6 @@ func ApplyCellMargins(cell entity.Cell, style *props.Cell) entity.Cell {
 	return cell
 }
 
-func HorizontalCellMargins(style *props.Cell) float64 {
-	if style == nil {
-		return 0
-	}
-	return nonNegative(style.MarginLeft) + nonNegative(style.MarginRight)
-}
-
 func VerticalCellMargins(style *props.Cell) float64 {
 	if style == nil {
 		return 0

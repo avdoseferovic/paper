@@ -412,7 +412,6 @@ func (f *PDF) beginpage(orientationStr string, size SizeType) {
 	maps.Copy(f.pageBoxes[f.page], f.defPageBoxes)
 	f.pages = append(f.pages, bytes.NewBufferString(""))
 	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
-	f.pageAttachments = append(f.pageAttachments, []annotationAttach{})
 	f.state = 2
 	f.x = f.lMargin
 	f.y = f.tMargin
@@ -443,7 +442,6 @@ func (f *PDF) beginpage(orientationStr string, size SizeType) {
 }
 
 func (f *PDF) endpage() {
-	f.EndLayer()
 	f.state = 1
 }
 
@@ -488,11 +486,19 @@ func (f *PDF) putpages() {
 		f.newobj()
 		if f.compress {
 			data := sliceCompress(f.pages[n].Bytes())
-			f.outf("<</Filter /FlateDecode /Length %d>>", len(data))
-			f.putstream(data)
+			stream := f.encryptedStream(data)
+			if f.err != nil {
+				return
+			}
+			f.outf("<</Filter /FlateDecode /Length %d>>", len(stream))
+			f.putstream(stream)
 		} else {
-			f.outf("<</Length %d>>", f.pages[n].Len())
-			f.putstream(f.pages[n].Bytes())
+			stream := f.encryptedStream(f.pages[n].Bytes())
+			if f.err != nil {
+				return
+			}
+			f.outf("<</Length %d>>", len(stream))
+			f.putstream(stream)
 		}
 		f.out("endobj")
 	}
@@ -514,7 +520,7 @@ func (f *PDF) putpages() {
 }
 
 func (f *PDF) putPageAnnotations(pageNum int, defaultHeight float64) {
-	if len(f.pageLinks[pageNum])+len(f.pageAttachments[pageNum]) == 0 {
+	if len(f.pageLinks[pageNum]) == 0 {
 		return
 	}
 	var annots fmtBuffer
@@ -522,7 +528,6 @@ func (f *PDF) putPageAnnotations(pageNum int, defaultHeight float64) {
 	for _, pl := range f.pageLinks[pageNum] {
 		f.putPageLinkAnnotation(&annots, pl, defaultHeight)
 	}
-	f.putAttachmentAnnotationLinks(&annots, pageNum)
 	annots.printf("]")
 	f.out(annots.String())
 }

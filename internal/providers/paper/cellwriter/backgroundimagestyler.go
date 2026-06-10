@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -29,7 +28,7 @@ type backgroundImageStyler struct {
 	stylerTemplate
 }
 
-func NewBackgroundImageStyler(fpdf gofpdfwrapper.PDF) CellWriter {
+func NewBackgroundImageStyler(fpdf any) CellWriter {
 	return &backgroundImageStyler{
 		stylerTemplate: stylerTemplate{
 			fpdf: fpdf,
@@ -39,15 +38,20 @@ func NewBackgroundImageStyler(fpdf gofpdfwrapper.PDF) CellWriter {
 }
 
 func (b *backgroundImageStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
-	x, y := b.fpdf.GetXY()
+	fpdf := asPDF[backgroundImagePDF](b.fpdf)
+	x, y := fpdf.GetXY()
 	b.GoToNext(width, height, config, prop)
 	if prop == nil || prop.BackgroundImage == nil || len(prop.BackgroundImage.Bytes) == 0 {
 		return
 	}
-	b.drawBackgroundImage(x, y, width, height, prop.BackgroundImage)
+	b.drawBackgroundImage(fpdf, x, y, width, height, prop.BackgroundImage)
 }
 
-func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64, image *props.CellBackgroundImage) {
+func (b *backgroundImageStyler) drawBackgroundImage(
+	fpdf backgroundImagePDF,
+	x, y, width, height float64,
+	image *props.CellBackgroundImage,
+) {
 	if width <= 0 || height <= 0 || image == nil {
 		return
 	}
@@ -57,7 +61,7 @@ func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64,
 	if err != nil {
 		return
 	}
-	info := b.fpdf.RegisterImageOptionsReader(
+	info := fpdf.RegisterImageOptionsReader(
 		name,
 		gofpdf.ImageOptions{
 			ReadDpi:   false,
@@ -73,14 +77,14 @@ func (b *backgroundImageStyler) drawBackgroundImage(x, y, width, height float64,
 	ix, iy := backgroundImagePosition(image.Position, x, y, width, height, w, h)
 	repeatX, repeatY := backgroundImageRepeat(image.Repeat)
 
-	alpha, blend := b.fpdf.GetAlpha()
+	alpha, blend := fpdf.GetAlpha()
 	if alpha < 1 {
-		b.fpdf.SetAlpha(1, "Normal")
-		defer b.fpdf.SetAlpha(alpha, blend)
+		fpdf.SetAlpha(1, "Normal")
+		defer fpdf.SetAlpha(alpha, blend)
 	}
-	b.fpdf.ClipRect(x, y, width, height, false)
-	defer b.fpdf.ClipEnd()
-	b.drawTiles(name, ix, iy, x, y, width, height, w, h, repeatX, repeatY)
+	fpdf.ClipRect(x, y, width, height, false)
+	defer fpdf.ClipEnd()
+	b.drawTiles(fpdf, name, ix, iy, x, y, width, height, w, h, repeatX, repeatY)
 }
 
 func normalizeBackgroundImageBytes(imageBytes []byte, imageExtension extension.Type) ([]byte, extension.Type, error) {
@@ -95,6 +99,7 @@ func normalizeBackgroundImageBytes(imageBytes []byte, imageExtension extension.T
 }
 
 func (b *backgroundImageStyler) drawTiles(
+	fpdf backgroundImagePDF,
 	name string,
 	imageX, imageY float64,
 	cellX, cellY, cellWidth, cellHeight float64,
@@ -116,7 +121,7 @@ func (b *backgroundImageStyler) drawTiles(
 	endY := cellY + cellHeight
 	for y := startY; y < endY; y += imageHeight {
 		for x := startX; x < endX; x += imageWidth {
-			b.fpdf.Image(name, x, y, imageWidth, imageHeight, false, "", 0, "")
+			fpdf.Image(name, x, y, imageWidth, imageHeight, false, "", 0, "")
 			if !repeatX {
 				break
 			}

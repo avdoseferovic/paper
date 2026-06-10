@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	imagecomp "github.com/avdoseferovic/paper/pkg/components/image"
@@ -46,8 +47,12 @@ var (
 // safeDefaultResolver only accepts data: URIs. It refuses any other src to
 // prevent path-traversal attacks on user-controlled HTML.
 func safeDefaultResolver(src string) ([]byte, string, error) {
+	return safeDefaultResolverWithLimits(src, htmllimits.Default())
+}
+
+func safeDefaultResolverWithLimits(src string, limits htmllimits.Limits) ([]byte, string, error) {
 	if strings.HasPrefix(src, "data:") {
-		return decodeDataURI(src)
+		return decodeDataURIWithLimits(src, limits)
 	}
 	return nil, "", ErrImageResolverRefused
 }
@@ -55,6 +60,10 @@ func safeDefaultResolver(src string) ([]byte, string, error) {
 // decodeDataURI parses a data: URI of the form data:<mime>;base64,<payload>.
 // Returns the decoded bytes and an extension hint inferred from the MIME type.
 func decodeDataURI(uri string) ([]byte, string, error) {
+	return decodeDataURIWithLimits(uri, htmllimits.Default())
+}
+
+func decodeDataURIWithLimits(uri string, limits htmllimits.Limits) ([]byte, string, error) {
 	// data:<mediatype>;base64,<payload>
 	prefix := strings.TrimPrefix(uri, "data:")
 	header, payload, ok := strings.Cut(prefix, ",")
@@ -71,12 +80,24 @@ func decodeDataURI(uri string) ([]byte, string, error) {
 	}
 	var data []byte
 	if isB64 {
+		estimatedBytes := int64(base64.StdEncoding.DecodedLen(len(payload)))
+		if htmllimits.Int64Exceeded(limits.MaxImageBytes, estimatedBytes) {
+			return nil, "", fmt.Errorf(
+				"%w: data URI payload decodes to at most %d bytes; limit %d",
+				htmllimits.ErrImageTooLarge,
+				estimatedBytes,
+				limits.MaxImageBytes,
+			)
+		}
 		decoded, err := base64.StdEncoding.DecodeString(payload)
 		if err != nil {
 			return nil, "", fmt.Errorf("html: data URI base64 decode: %w", err)
 		}
 		data = decoded
 	} else {
+		if htmllimits.Int64Exceeded(limits.MaxImageBytes, int64(len(payload))) {
+			return nil, "", fmt.Errorf("%w: data URI payload is %d bytes; limit %d", htmllimits.ErrImageTooLarge, len(payload), limits.MaxImageBytes)
+		}
 		data = []byte(payload)
 	}
 	ext := imageExtPNG
@@ -94,9 +115,13 @@ func decodeDataURI(uri string) ([]byte, string, error) {
 // baseDirResolver returns a resolver that only loads files inside dir,
 // rejecting any path that would escape via "../" or absolute prefix.
 func baseDirResolver(dir string) ImageResolver {
+	return baseDirResolverWithLimits(dir, htmllimits.Default())
+}
+
+func baseDirResolverWithLimits(dir string, limits htmllimits.Limits) ImageResolver {
 	return func(src string) ([]byte, string, error) {
 		if strings.HasPrefix(src, "data:") {
-			return decodeDataURI(src)
+			return decodeDataURIWithLimits(src, limits)
 		}
 		data, err := readFileInRoot(dir, src)
 		if err != nil {
@@ -104,6 +129,16 @@ func baseDirResolver(dir string) ImageResolver {
 		}
 		return data, extFromFilename(src), nil
 	}
+}
+
+func (tr *translator) resolveImage(src string) ([]byte, string, error) {
+	if tr.imageResolver != nil {
+		return tr.imageResolver(src)
+	}
+	if tr.imageBaseDir != "" {
+		return baseDirResolverWithLimits(tr.imageBaseDir, tr.limits)(src)
+	}
+	return safeDefaultResolverWithLimits(src, tr.limits)
 }
 
 func extFromFilename(name string) string {
@@ -127,13 +162,12 @@ func (tr *translator) imageRowWithStyle(n *dom.Node, style *css.ComputedStyle) (
 }
 
 func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style *css.ComputedStyle) (core.Row, bool) {
-	resolver := tr.imageResolver
-	if resolver == nil {
-		resolver = safeDefaultResolver
-	}
-	data, ext, err := resolver(src)
+	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported("img.src", err.Error())
+		if errors.Is(err, htmllimits.ErrImageTooLarge) {
+			tr.err = err
+		}
 		return nil, false
 	}
 
@@ -143,18 +177,9 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	dimensions := imageDimensions(n, style)
 	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
-	if ext == imageExtSVG {
-		pngBytes, w, h, rerr := svgraster.Rasterize(data, dimensions.width, dimensions.height)
-		if rerr != nil {
-			tr.unsupported("img.svg", rerr.Error())
-			return nil, false
-		}
-		data = pngBytes
-		ext = imageExtPNG
-		intrinsicWidth = svgraster.MMFromPx(w)
-		intrinsicHeight = svgraster.MMFromPx(h)
-	} else {
-		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
+	data, ext, intrinsicWidth, intrinsicHeight, ok := tr.prepareImageData(data, ext, dimensions, "img")
+	if !ok {
+		return nil, false
 	}
 
 	extType := extensionType(ext)
@@ -215,30 +240,18 @@ func (tr *translator) richImageFromSource(
 	alt string,
 	unsupportedPrefix string,
 ) (*props.RichImage, bool) {
-	resolver := tr.imageResolver
-	if resolver == nil {
-		resolver = safeDefaultResolver
-	}
-	data, ext, err := resolver(src)
+	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported(unsupportedPrefix+".src", err.Error())
+		if errors.Is(err, htmllimits.ErrImageTooLarge) {
+			tr.err = err
+		}
 		return nil, false
 	}
 
-	intrinsicWidth, intrinsicHeight := 0.0, 0.0
-
-	if ext == imageExtSVG {
-		pngBytes, w, h, rerr := svgraster.Rasterize(data, dimensions.width, dimensions.height)
-		if rerr != nil {
-			tr.unsupported(unsupportedPrefix+".svg", rerr.Error())
-			return nil, false
-		}
-		data = pngBytes
-		ext = imageExtPNG
-		intrinsicWidth = svgraster.MMFromPx(w)
-		intrinsicHeight = svgraster.MMFromPx(h)
-	} else {
-		intrinsicWidth, intrinsicHeight = rasterImageSizeMM(data)
+	data, ext, intrinsicWidth, intrinsicHeight, ok := tr.prepareImageData(data, ext, dimensions, unsupportedPrefix)
+	if !ok {
+		return nil, false
 	}
 
 	extType := extensionType(ext)
@@ -610,9 +623,12 @@ func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (co
 		style = tr.imageStyle(n)
 	}
 	dimensions := imageDimensions(n, style)
-	pngBytes, widthPx, heightPx, err := svgraster.Rasterize(data, dimensions.width, dimensions.height)
+	pngBytes, widthPx, heightPx, err := svgraster.RasterizeWithLimit(data, dimensions.width, dimensions.height, tr.limits.MaxSVGPixels)
 	if err != nil {
 		tr.unsupported(tagSVG, err.Error())
+		if errors.Is(err, htmllimits.ErrSVGTooLarge) {
+			tr.err = err
+		}
 		return nil, false
 	}
 	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 10)
@@ -645,9 +661,12 @@ func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
 	}
 	style := tr.imageStyle(n)
 	dimensions := imageDimensions(n, style)
-	pngBytes, widthPx, heightPx, err := svgraster.Rasterize(data, dimensions.width, dimensions.height)
+	pngBytes, widthPx, heightPx, err := svgraster.RasterizeWithLimit(data, dimensions.width, dimensions.height, tr.limits.MaxSVGPixels)
 	if err != nil {
 		tr.unsupported(tagSVG, err.Error())
+		if errors.Is(err, htmllimits.ErrSVGTooLarge) {
+			tr.err = err
+		}
 		return nil, false
 	}
 	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 4)
@@ -684,19 +703,21 @@ func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackg
 	if src == "" {
 		return nil
 	}
-	resolver := tr.imageResolver
-	if resolver == nil {
-		resolver = safeDefaultResolver
-	}
-	data, ext, err := resolver(src)
+	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported("background-image.src", err.Error())
+		if errors.Is(err, htmllimits.ErrImageTooLarge) {
+			tr.err = err
+		}
 		return nil
 	}
 	if ext == imageExtSVG {
-		pngBytes, _, _, rerr := svgraster.Rasterize(data, 0, 0)
+		pngBytes, _, _, rerr := svgraster.RasterizeWithLimit(data, 0, 0, tr.limits.MaxSVGPixels)
 		if rerr != nil {
 			tr.unsupported("background-image.svg", rerr.Error())
+			if errors.Is(rerr, htmllimits.ErrSVGTooLarge) {
+				tr.err = rerr
+			}
 			return nil
 		}
 		data = pngBytes
@@ -755,6 +776,38 @@ func imageDimensionsFromStyle(style *css.ComputedStyle) imageDimensionStyle {
 	return applyImageDimensionStyle(imageDimensionStyle{}, style)
 }
 
+func (tr *translator) prepareImageData(
+	data []byte,
+	ext string,
+	dimensions imageDimensionStyle,
+	unsupportedPrefix string,
+) ([]byte, string, float64, float64, bool) {
+	if ext == imageExtSVG {
+		pngBytes, w, h, err := svgraster.RasterizeWithLimit(
+			data,
+			dimensions.width,
+			dimensions.height,
+			tr.limits.MaxSVGPixels,
+		)
+		if err != nil {
+			tr.unsupported(unsupportedPrefix+".svg", err.Error())
+			if errors.Is(err, htmllimits.ErrSVGTooLarge) {
+				tr.err = err
+			}
+			return nil, "", 0, 0, false
+		}
+		return pngBytes, imageExtPNG, svgraster.MMFromPx(w), svgraster.MMFromPx(h), true
+	}
+
+	intrinsicWidth, intrinsicHeight, err := tr.rasterImageSizeMM(data)
+	if err != nil {
+		tr.unsupported(unsupportedPrefix+".size", err.Error())
+		tr.err = err
+		return nil, "", 0, 0, false
+	}
+	return data, ext, intrinsicWidth, intrinsicHeight, true
+}
+
 func applyImageDimensionStyle(dimensions imageDimensionStyle, style *css.ComputedStyle) imageDimensionStyle {
 	if style != nil {
 		if style.Width > 0 {
@@ -771,12 +824,32 @@ func applyImageDimensionStyle(dimensions imageDimensionStyle, style *css.Compute
 	return dimensions
 }
 
-func rasterImageSizeMM(data []byte) (float64, float64) {
+func (tr *translator) rasterImageSizeMM(data []byte) (float64, float64, error) {
 	cfg, _, err := goimage.DecodeConfig(bytes.NewReader(data))
-	if err != nil || cfg.Width <= 0 || cfg.Height <= 0 {
-		return 0, 0
+	if err != nil {
+		// Malformed images have no intrinsic size here; the renderer reports
+		// decode failures later if the caller still embeds the bytes.
+		return unknownRasterImageSize()
 	}
-	return css.ParseLength(strconv.Itoa(cfg.Width)+"px", 0), css.ParseLength(strconv.Itoa(cfg.Height)+"px", 0)
+	if cfg.Width <= 0 || cfg.Height <= 0 {
+		return 0, 0, nil
+	}
+	pixels := int64(cfg.Width) * int64(cfg.Height)
+	if htmllimits.Int64Exceeded(tr.limits.MaxImagePixels, pixels) {
+		return 0, 0, fmt.Errorf(
+			"%w: %dx%d image has %d pixels; limit %d",
+			htmllimits.ErrImageTooLarge,
+			cfg.Width,
+			cfg.Height,
+			pixels,
+			tr.limits.MaxImagePixels,
+		)
+	}
+	return css.ParseLength(strconv.Itoa(cfg.Width)+"px", 0), css.ParseLength(strconv.Itoa(cfg.Height)+"px", 0), nil
+}
+
+func unknownRasterImageSize() (float64, float64, error) {
+	return 0, 0, nil
 }
 
 func resolveImageDimensions(dimensions imageDimensionStyle, intrinsicWidth, intrinsicHeight, fallbackSize float64) (float64, float64) {

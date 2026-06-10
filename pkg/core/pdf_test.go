@@ -1,15 +1,18 @@
 package core_test
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/components/text"
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/consts/protection"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/metrics"
 )
@@ -46,6 +49,22 @@ func TestPdf_GetBytes(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, []byte{1, 2, 3}, bytes)
+}
+
+func TestPdf_Write(t *testing.T) {
+	t.Parallel()
+	// Arrange
+	bytesToWrite := []byte{1, 2, 3}
+	sut := core.NewPDF(bytesToWrite, nil)
+	var writer bytes.Buffer
+
+	// Act
+	written, err := sut.Write(&writer)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(bytesToWrite)), written)
+	assert.Equal(t, bytesToWrite, writer.Bytes())
 }
 
 func TestPdf_GetReport(t *testing.T) {
@@ -147,4 +166,71 @@ func TestPdf_Merge(t *testing.T) {
 		assert.Equal(t, "merge_pdf", sut.GetReport().TimeMetrics[0].Key)
 		assert.Equal(t, "file_size", sut.GetReport().SizeMetric.Key)
 	})
+	t.Run("when target PDF is RC4 protected, should refuse merge predictably", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		protectedBytes := protectedPDFBytes(t, protection.RC4128)
+		plainBytes := plainPDFBytes(t)
+		sut := core.NewPDF(protectedBytes, nil)
+
+		// Act
+		err := sut.Merge(plainBytes)
+
+		// Assert
+		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
+	})
+	t.Run("when target PDF is AES protected, should refuse merge predictably", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		protectedBytes := protectedPDFBytes(t, protection.AES128)
+		plainBytes := plainPDFBytes(t)
+		sut := core.NewPDF(protectedBytes, nil)
+
+		// Act
+		err := sut.Merge(plainBytes)
+
+		// Assert
+		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
+	})
+	t.Run("when source PDF is AES protected, should refuse merge predictably", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		plainBytes := plainPDFBytes(t)
+		protectedBytes := protectedPDFBytes(t, protection.AES128)
+		sut := core.NewPDF(plainBytes, nil)
+
+		// Act
+		err := sut.Merge(protectedBytes)
+
+		// Assert
+		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
+	})
+}
+
+func plainPDFBytes(t *testing.T) []byte {
+	t.Helper()
+
+	m := paper.New()
+	m.AddRows(text.NewRow(10, "plain"))
+	doc, err := m.Generate()
+	if err != nil {
+		t.Fatalf("generate plain PDF: %v", err)
+	}
+	return doc.GetBytes()
+}
+
+func protectedPDFBytes(t *testing.T, algorithm protection.Encryption) []byte {
+	t.Helper()
+
+	cfg := config.NewBuilder().
+		WithProtection(protection.Copy, "user", "owner").
+		WithProtectionAlgorithm(algorithm).
+		Build()
+	m := paper.New(cfg)
+	m.AddRows(text.NewRow(10, "protected"))
+	doc, err := m.Generate()
+	if err != nil {
+		t.Fatalf("generate protected PDF: %v", err)
+	}
+	return doc.GetBytes()
 }

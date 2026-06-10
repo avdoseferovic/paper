@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -31,15 +32,14 @@ type Paper struct {
 	pageBuilder *pageBuilder
 }
 
-// New is responsible for create a new instance of core.Paper.
+// New creates a concrete Paper instance.
 // It's optional to provide an *entity.Config with customizations
 // those customization are created by using the config.Builder.
-func New(cfgs ...*entity.Config) core.Paper {
+func New(cfgs ...*entity.Config) *Paper {
 	return NewPaper(cfgs...)
 }
 
-// NewPaper creates a concrete Paper instance. Use New when the public
-// core.Paper interface is enough.
+// NewPaper creates a concrete Paper instance.
 func NewPaper(cfgs ...*entity.Config) *Paper {
 	cache := cache.New()
 	cfg := getConfig(cfgs...)
@@ -63,23 +63,44 @@ func (m *Paper) GetCurrentConfig() *entity.Config {
 // FromHTML converts an HTML string directly into a PDF document.
 // It is the shortest path for callers that only need HTML-to-PDF output.
 // Optional configs are the same configs accepted by New.
-func FromHTML(htmlStr string, cfgs ...*entity.Config) (core.Document, error) {
+func FromHTML(htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
+	return FromHTMLCtx(context.TODO(), htmlStr, cfgs...)
+}
+
+// FromHTMLCtx converts an HTML string directly into a PDF document.
+// It observes ctx while parsing/translating HTML and while generating the PDF.
+func FromHTMLCtx(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
 	m := New(cfgs...)
-	err := m.AddHTML(htmlStr)
+	err := m.AddHTMLCtx(ctx, htmlStr)
 	if err != nil {
 		return nil, err
 	}
-	return m.Generate()
+	return m.GenerateCtx(ctx)
 }
 
 // FromHTMLReader reads HTML from r and converts it directly into a PDF document.
 // Optional configs are the same configs accepted by New.
-func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (core.Document, error) {
+func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
+	return FromHTMLReaderCtx(context.TODO(), r, cfgs...)
+}
+
+// FromHTMLReaderCtx reads HTML from r and converts it directly into a PDF document.
+// It observes ctx before and after reading, while translating HTML, and while
+// generating the PDF.
+func FromHTMLReaderCtx(ctx context.Context, r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
+	err := generationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("paper: reading HTML: %w", err)
 	}
-	return FromHTML(string(data), cfgs...)
+	err = generationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return FromHTMLCtx(ctx, string(data), cfgs...)
 }
 
 // AddPages is responsible for add pages directly in the document.
@@ -126,14 +147,27 @@ func (m *Paper) AddAutoRow(cols ...core.Col) core.Row {
 // html.FromString directly and append the returned rows via m.AddRows(rows...).
 // Supported HTML subset is documented in docs/html-support.md.
 func (m *Paper) AddHTML(htmlStr string) error {
+	return m.AddHTMLCtx(context.TODO(), htmlStr)
+}
+
+// AddHTMLCtx parses an HTML string into Paper rows and adds them to the current
+// document. It observes ctx while parsing and translating the HTML.
+func (m *Paper) AddHTMLCtx(ctx context.Context, htmlStr string) error {
 	opts := []html.Option{html.WithGridSize(m.config.MaxGridSize)}
+	if m.config.HTMLLimits != (entity.HTMLLimits{}) {
+		opts = append(opts, html.WithLimits(m.config.HTMLLimits))
+	}
 	if m.config.Dimensions != nil {
 		contentWidth := m.config.Dimensions.Width - m.config.Margins.Left - m.config.Margins.Right
 		if contentWidth > 0 {
 			opts = append(opts, html.WithContentWidth(contentWidth))
 		}
 	}
-	rows, err := html.FromString(htmlStr, opts...)
+	rows, err := html.FromStringCtx(ctx, htmlStr, opts...)
+	if err != nil {
+		return err
+	}
+	err = generationCanceled(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,9 +175,8 @@ func (m *Paper) AddHTML(htmlStr string) error {
 	return nil
 }
 
-// FitlnCurrentPage is responsible to validating whether a line fits on
-// the current page.
-func (m *Paper) FitlnCurrentPage(heightNewLine float64) bool {
+// FitInCurrentPage reports whether a row of the given height fits in the remaining useful area of the current page.
+func (m *Paper) FitInCurrentPage(heightNewLine float64) bool {
 	return m.pageBuilder.fitInCurrentPage(heightNewLine)
 }
 

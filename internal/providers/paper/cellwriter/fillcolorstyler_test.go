@@ -1,16 +1,15 @@
-// nolint: dupl
 package cellwriter_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFillColorStyler(t *testing.T) {
@@ -86,7 +85,7 @@ func TestFillColorStyle_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().SetFillColor(prop.BackgroundColor.Red, prop.BackgroundColor.Green, prop.BackgroundColor.Blue).Once()
 		fpdf.EXPECT().SetFillColor(255, 255, 255).Once()
 

@@ -1,0 +1,44 @@
+name: changelog
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map((label) => label.name);
+            if (labels.includes("override-changelog")) {
+              core.info("override-changelog label present; skipping changelog check.");
+              return;
+            }
+
+            const changed = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+
+            const files = changed.map((file) => file.filename);
+            const needsChangelog = files.some((file) => {
+              if (file === "CHANGELOG.md") {
+                return false;
+              }
+              if (/^[^/]+\.go$/.test(file)) {
+                return true;
+              }
+              return file.startsWith("pkg/") && file.endsWith(".go");
+            });
+
+            const hasChangelog = files.includes("CHANGELOG.md");
+            if (needsChangelog && !hasChangelog) {
+              core.setFailed("Go changes under pkg/ or root .go files must update CHANGELOG.md, or use the override-changelog label.");
+            }

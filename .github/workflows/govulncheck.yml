@@ -1,0 +1,35 @@
+name: govulncheck
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Run govulncheck for pkg/test module
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: pkg/test
+
+      - name: Run govulncheck for examples module
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: examples
+
+      - name: Run govulncheck for docs examples module
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./assets/examples/...
+        working-directory: docs

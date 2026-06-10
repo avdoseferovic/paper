@@ -3,13 +3,13 @@ package signature_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
+	mock "github.com/avdoseferovic/paper/internal/mocktest"
+	"github.com/avdoseferovic/paper/internal/test"
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/avdoseferovic/paper/pkg/test"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestNew(t *testing.T) {

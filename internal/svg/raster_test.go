@@ -6,8 +6,8 @@ import (
 	"image/png"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 )
 
 func TestRasterize_ProducesPNGAtRequestedSize(t *testing.T) {
@@ -44,9 +44,17 @@ func TestRasterize_DrawsBasicText(t *testing.T) {
 
 func TestRasterize_RefusesOversize(t *testing.T) {
 	t.Parallel()
-	_, _, _, err := Rasterize([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000">
+	_, _, _, err := Rasterize([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10000 10000">
   <rect width="10" height="10"/>
 </svg>`), 0, 0)
+	require.ErrorIs(t, err, ErrSVGTooLarge)
+}
+
+func TestRasterizeWithLimit_RefusesCustomLimit(t *testing.T) {
+	t.Parallel()
+	_, _, _, err := RasterizeWithLimit([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <rect width="10" height="10"/>
+</svg>`), 0, 0, 1_000)
 	require.ErrorIs(t, err, ErrSVGTooLarge)
 }
 

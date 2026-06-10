@@ -3,17 +3,17 @@ package cellwriter_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/mocks"
+	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
-	"github.com/avdoseferovic/paper/mocks"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestNewPerSideBorderStyler(t *testing.T) {
 	t.Parallel()
-	sut := cellwriter.NewPerSideBorderStyler(mocks.NewPDF(t))
+	sut := cellwriter.NewPerSideBorderStyler(newPDF(t))
 	assert.NotNil(t, sut)
 }
 
@@ -28,7 +28,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		// Line must NOT be called when no per-side borders
 		sut := cellwriter.NewPerSideBorderStyler(fpdf)
 		sut.SetNext(next)
@@ -44,7 +44,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 
 		const cellX, cellY = 15.0, 30.0
 		origLineWidth := 0.2
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetXY().Return(cellX, cellY)
@@ -72,7 +72,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
 		origLineWidth := 0.2
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().GetLineWidth().Return(origLineWidth)
 		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetXY().Return(0.0, 0.0)
@@ -105,7 +105,7 @@ func TestPerSideBorderStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 
 		sut := cellwriter.NewPerSideBorderStyler(fpdf)
 		sut.SetNext(next)

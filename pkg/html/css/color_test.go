@@ -3,8 +3,8 @@ package css
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 )
 
 func TestParseColor_HexFormats(t *testing.T) {

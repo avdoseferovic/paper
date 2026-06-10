@@ -1,5 +1,4 @@
 // Package config implements custom configuration builder.
-// nolint:interfacebloat // there is no need to reduce this interface
 package config
 
 import (
@@ -22,32 +21,55 @@ import (
 
 // Builder is the abstraction responsible for global customizations on the document.
 type Builder interface {
+	dimensionsBuilder
+	generationBuilder
+	fontBuilder
+	documentBuilder
+	metadataBuilder
+	Build() *entity.Config
+}
+
+type dimensionsBuilder interface {
 	WithPageSize(size pagesize.Type) Builder
 	WithDimensions(width float64, height float64) Builder
 	WithLeftMargin(left float64) Builder
 	WithTopMargin(top float64) Builder
 	WithRightMargin(right float64) Builder
 	WithBottomMargin(bottom float64) Builder
+}
+
+type generationBuilder interface {
 	WithConcurrentMode(chunkWorkers int) Builder
 	WithSequentialMode() Builder
 	WithSequentialLowMemoryMode(chunkWorkers int) Builder
 	WithDebug(on bool) Builder
 	WithMaxGridSize(maxGridSize int) Builder
+}
+
+type fontBuilder interface {
 	WithDefaultFont(font *props.Font) Builder
 	WithPageNumber(pageNumber ...props.PageNumber) Builder
+}
+
+type documentBuilder interface {
 	WithProtection(protectionType protection.Type, userPassword, ownerPassword string) Builder
+	WithProtectionAlgorithm(algorithm protection.Encryption) Builder
 	WithCompression(compression bool) Builder
 	WithOrientation(orientation orientation.Type) Builder
+	WithCustomFonts(customFonts []entity.CustomFont) Builder
+	WithBackgroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithDisableAutoPageBreak(disabled bool) Builder
+	WithHTMLLimits(limits entity.HTMLLimits) Builder
+	WithUnsafeNoHTMLLimits() Builder
+}
+
+type metadataBuilder interface {
 	WithAuthor(author string, isUTF8 bool) Builder
 	WithCreator(creator string, isUTF8 bool) Builder
 	WithSubject(subject string, isUTF8 bool) Builder
 	WithTitle(title string, isUTF8 bool) Builder
 	WithCreationDate(time time.Time) Builder
-	WithCustomFonts(customFonts []entity.CustomFont) Builder
-	WithBackgroundImage(bytes []byte, extensionType extension.Type) Builder
-	WithDisableAutoPageBreak(disabled bool) Builder
 	WithKeywords(keywordsStr string, isUTF8 bool) Builder
-	Build() *entity.Config
 }
 
 type CfgBuilder struct {
@@ -61,6 +83,7 @@ type CfgBuilder struct {
 	customFonts          []entity.CustomFont
 	pageNumber           *props.PageNumber
 	protection           *entity.Protection
+	protectionAlgorithm  protection.Encryption
 	compression          bool
 	pageSize             *pagesize.Type
 	orientation          orientation.Type
@@ -68,6 +91,7 @@ type CfgBuilder struct {
 	backgroundImage      *entity.Image
 	disableAutoPageBreak bool
 	generationMode       generation.Mode
+	htmlLimits           entity.HTMLLimits
 }
 
 // NewBuilder is responsible to create an instance of Builder.

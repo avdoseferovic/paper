@@ -1,8 +1,6 @@
 package fixture
 
 import (
-	"github.com/avdoseferovic/paper/pkg/tree/node"
-
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
@@ -11,7 +9,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
-	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -138,19 +135,6 @@ func CellProp() props.Cell {
 		LineStyle:       linestyle.Dashed,
 	}
 	return prop
-}
-
-// Node is responsible to give a valid node.Node.
-func Node(rootType string) *node.Node[core.Structure] {
-	marotoNode := node.New[core.Structure](core.Structure{
-		Type: rootType,
-	})
-	pageNode := node.New[core.Structure](core.Structure{
-		Type: "page",
-	})
-
-	marotoNode.AddNext(pageNode)
-	return marotoNode
 }
 
 // ColorProp is responsible to give a valid props.Color.

@@ -3,6 +3,7 @@
 package translate
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -17,36 +18,48 @@ import (
 
 const defaultGridSize = 12
 
+type orderedFlexChild struct {
+	node     *dom.Node
+	domIndex int
+}
+
 // flexRows handles flex-wrap, order, and *-reverse, returning one []core.Row
 // per visual flex line. When flex-wrap is off (default) it returns exactly one
 // row.
-//
-//nolint:gocognit // Flex row construction is organized as ordered layout phases in one pass.
-func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
+func (tr *translator) flexRows(ctx context.Context, n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
 	children := flexItems(n)
 	if len(children) == 0 {
 		return nil
 	}
 
-	gridSize := tr.gridSize
-	if gridSize <= 0 {
-		gridSize = defaultGridSize
+	gridSize := normalizedFlexGridSize(tr.gridSize)
+	sortedChildren, sortedStyles := tr.sortedFlexItems(children, containerStyle)
+	logicalRows, logicalRowStyles := flexLogicalRows(sortedChildren, sortedStyles, containerStyle, gridSize)
+	if containerStyle.FlexWrap == "wrap-reverse" {
+		reverseFlexLogicalRows(logicalRows, logicalRowStyles)
 	}
+	return tr.buildFlexRows(ctx, logicalRows, logicalRowStyles, containerStyle, gridSize)
+}
 
-	// Sort by order (CSS order property, DOM index tiebreak).
-	type orderedChild struct {
-		node     *dom.Node
-		domIndex int
+func normalizedFlexGridSize(gridSize int) int {
+	if gridSize <= 0 {
+		return defaultGridSize
 	}
-	ordered := make([]orderedChild, len(children))
+	return gridSize
+}
+
+func (tr *translator) sortedFlexItems(
+	children []*dom.Node,
+	containerStyle *css.ComputedStyle,
+) ([]*dom.Node, []*css.ComputedStyle) {
+	ordered := make([]orderedFlexChild, len(children))
 	for i, c := range children {
-		ordered[i] = orderedChild{node: c, domIndex: i}
+		ordered[i] = orderedFlexChild{node: c, domIndex: i}
 	}
 	styles := make([]*css.ComputedStyle, len(children))
 	for i, c := range children {
 		styles[i] = computeNodeStyle(tr.sheet, c, containerStyle)
 	}
-
 	sort.SliceStable(ordered, func(a, b int) bool {
 		oa := styles[ordered[a].domIndex].Order
 		ob := styles[ordered[b].domIndex].Order
@@ -55,115 +68,187 @@ func (tr *translator) flexRows(n *dom.Node, containerStyle *css.ComputedStyle) [
 		}
 		return ordered[a].domIndex < ordered[b].domIndex
 	})
-
-	// Apply reverse for row-reverse.
 	if containerStyle.FlexDirection == "row-reverse" {
-		for i, j := 0, len(ordered)-1; i < j; i, j = i+1, j-1 {
-			ordered[i], ordered[j] = ordered[j], ordered[i]
-		}
+		reverseOrderedFlexChildren(ordered)
 	}
+	return orderedFlexItems(ordered, styles)
+}
 
-	// Reorder parallel slices to match sorted order.
+func reverseOrderedFlexChildren(children []orderedFlexChild) {
+	for i, j := 0, len(children)-1; i < j; i, j = i+1, j-1 {
+		children[i], children[j] = children[j], children[i]
+	}
+}
+
+func orderedFlexItems(
+	ordered []orderedFlexChild,
+	styles []*css.ComputedStyle,
+) ([]*dom.Node, []*css.ComputedStyle) {
 	sortedChildren := make([]*dom.Node, len(ordered))
 	sortedStyles := make([]*css.ComputedStyle, len(ordered))
 	for i, o := range ordered {
 		sortedChildren[i] = o.node
 		sortedStyles[i] = styles[o.domIndex]
 	}
+	return sortedChildren, sortedStyles
+}
 
-	// Determine if we should wrap.
+func flexLogicalRows(
+	sortedChildren []*dom.Node,
+	sortedStyles []*css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+	gridSize int,
+) ([][]*dom.Node, [][]*css.ComputedStyle) {
 	wrap := containerStyle.FlexWrap == "wrap" || containerStyle.FlexWrap == "wrap-reverse"
-
 	var logicalRows [][]*dom.Node
 	var logicalRowStyles [][]*css.ComputedStyle
-
 	if !wrap {
-		// Single row.
-		logicalRows = [][]*dom.Node{sortedChildren}
-		logicalRowStyles = [][]*css.ComputedStyle{sortedStyles}
-	} else {
-		// Greedy wrap: fill each row until adding the next item would exceed the grid.
-		rowChildren := []*dom.Node{}
-		rowStyles := []*css.ComputedStyle{}
-		usedPct := 0.0
-		for i, child := range sortedChildren {
-			s := sortedStyles[i]
-			pct := s.FlexBasisPct
-			if pct <= 0 {
-				pct = 100.0 / float64(gridSize) // default: equal share
-			}
-			if len(rowChildren) > 0 && usedPct+pct > 100.001 {
-				// Start a new row.
-				logicalRows = append(logicalRows, rowChildren)
-				logicalRowStyles = append(logicalRowStyles, rowStyles)
-				rowChildren = []*dom.Node{}
-				rowStyles = []*css.ComputedStyle{}
-				usedPct = 0
-			}
-			rowChildren = append(rowChildren, child)
-			rowStyles = append(rowStyles, s)
-			usedPct += pct
+		return [][]*dom.Node{sortedChildren}, [][]*css.ComputedStyle{sortedStyles}
+	}
+	return wrapFlexLogicalRows(sortedChildren, sortedStyles, gridSize, logicalRows, logicalRowStyles)
+}
+
+func wrapFlexLogicalRows(
+	sortedChildren []*dom.Node,
+	sortedStyles []*css.ComputedStyle,
+	gridSize int,
+	logicalRows [][]*dom.Node,
+	logicalRowStyles [][]*css.ComputedStyle,
+) ([][]*dom.Node, [][]*css.ComputedStyle) {
+	rowChildren := make([]*dom.Node, 0, len(sortedChildren))
+	rowStyles := make([]*css.ComputedStyle, 0, len(sortedChildren))
+	usedPct := 0.0
+	for i, child := range sortedChildren {
+		style := sortedStyles[i]
+		pct := style.FlexBasisPct
+		if pct <= 0 {
+			pct = 100.0 / float64(gridSize)
 		}
-		if len(rowChildren) > 0 {
+		if len(rowChildren) > 0 && usedPct+pct > 100.001 {
 			logicalRows = append(logicalRows, rowChildren)
 			logicalRowStyles = append(logicalRowStyles, rowStyles)
+			rowChildren = []*dom.Node{}
+			rowStyles = []*css.ComputedStyle{}
+			usedPct = 0
 		}
+		rowChildren = append(rowChildren, child)
+		rowStyles = append(rowStyles, style)
+		usedPct += pct
 	}
-
-	// Reverse row order for wrap-reverse.
-	if containerStyle.FlexWrap == "wrap-reverse" {
-		for i, j := 0, len(logicalRows)-1; i < j; i, j = i+1, j-1 {
-			logicalRows[i], logicalRows[j] = logicalRows[j], logicalRows[i]
-			logicalRowStyles[i], logicalRowStyles[j] = logicalRowStyles[j], logicalRowStyles[i]
-		}
+	if len(rowChildren) > 0 {
+		logicalRows = append(logicalRows, rowChildren)
+		logicalRowStyles = append(logicalRowStyles, rowStyles)
 	}
+	return logicalRows, logicalRowStyles
+}
 
-	// Build each logical row into a core.Row.
+func reverseFlexLogicalRows(logicalRows [][]*dom.Node, logicalRowStyles [][]*css.ComputedStyle) {
+	for i, j := 0, len(logicalRows)-1; i < j; i, j = i+1, j-1 {
+		logicalRows[i], logicalRows[j] = logicalRows[j], logicalRows[i]
+		logicalRowStyles[i], logicalRowStyles[j] = logicalRowStyles[j], logicalRowStyles[i]
+	}
+}
+
+func (tr *translator) buildFlexRows(
+	ctx context.Context,
+	logicalRows [][]*dom.Node,
+	logicalRowStyles [][]*css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+	gridSize int,
+) []core.Row {
 	var result []core.Row
 	for rowIdx, rowChildren := range logicalRows {
-		rowItemStyles := logicalRowStyles[rowIdx]
-		gapCols := tr.gapCols(containerStyle.ColumnGap, gridSize, len(rowChildren))
-		totalGap := gapCols * max(0, len(rowChildren)-1)
-		available := gridSize - totalGap
-		if available < len(rowChildren) {
-			gapCols = 0
-			totalGap = 0
-			available = gridSize
-		}
-
-		sizes := computeFlexSizes(rowItemStyles, available)
-		sizes = bumpZerosWithoutOverflow(sizes, available)
-
-		visualGap := 0.0
-		if gapCols == 0 {
-			visualGap = containerStyle.ColumnGap
-		}
-
-		itemCols := make([]core.Col, len(rowChildren))
-		used := 0
-		for i, child := range rowChildren {
-			used += sizes[i]
-			c := col.New(sizes[i])
-			if comp := tr.flexItemContent(child, rowItemStyles[i]); comp != nil {
-				comp = flexItemCrossAxisBox(comp, containerStyle, rowItemStyles[i])
-				if visualGap > 0 && i > 0 {
-					comp = &marginBox{child: comp, marginLeft: visualGap}
-				}
-				c = c.Add(comp)
-			}
-			itemCols[i] = c
-		}
-
-		slack := max(gridSize-used-totalGap, 0)
-		finalCols := assembleFlexCols(itemCols, gapCols, slack, containerStyle.JustifyContent)
-
-		r := row.New()
-		for _, c := range finalCols {
-			r = r.Add(c)
+		r, ok := tr.buildFlexRow(ctx, rowChildren, logicalRowStyles[rowIdx], containerStyle, gridSize)
+		if !ok {
+			return nil
 		}
 		result = append(result, r)
 	}
 	return result
+}
+
+func (tr *translator) buildFlexRow(
+	ctx context.Context,
+	rowChildren []*dom.Node,
+	rowItemStyles []*css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+	gridSize int,
+) (core.Row, bool) {
+	gapCols := tr.gapCols(containerStyle.ColumnGap, gridSize, len(rowChildren))
+	totalGap := gapCols * max(0, len(rowChildren)-1)
+	available := gridSize - totalGap
+	if available < len(rowChildren) {
+		gapCols = 0
+		totalGap = 0
+		available = gridSize
+	}
+
+	sizes := bumpZerosWithoutOverflow(computeFlexSizes(rowItemStyles, available), available)
+	visualGap := flexVisualGap(containerStyle, gapCols)
+	itemCols, used, ok := tr.flexItemCols(ctx, rowChildren, rowItemStyles, containerStyle, sizes, visualGap)
+	if !ok {
+		return nil, false
+	}
+	slack := max(gridSize-used-totalGap, 0)
+	return rowFromCols(assembleFlexCols(itemCols, gapCols, slack, containerStyle.JustifyContent)), true
+}
+
+func flexVisualGap(containerStyle *css.ComputedStyle, gapCols int) float64 {
+	if gapCols == 0 {
+		return containerStyle.ColumnGap
+	}
+	return 0
+}
+
+func (tr *translator) flexItemCols(
+	ctx context.Context,
+	rowChildren []*dom.Node,
+	rowItemStyles []*css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+	sizes []int,
+	visualGap float64,
+) ([]core.Col, int, bool) {
+	itemCols := make([]core.Col, len(rowChildren))
+	used := 0
+	for i, child := range rowChildren {
+		err := translationCanceled(ctx)
+		if err != nil {
+			tr.err = err
+			return nil, 0, false
+		}
+		used += sizes[i]
+		itemCols[i] = tr.flexItemCol(ctx, child, rowItemStyles[i], containerStyle, sizes[i], visualGap, i)
+	}
+	return itemCols, used, true
+}
+
+func (tr *translator) flexItemCol(
+	ctx context.Context,
+	child *dom.Node,
+	itemStyle *css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+	size int,
+	visualGap float64,
+	index int,
+) core.Col {
+	c := col.New(size)
+	comp := tr.flexItemContent(ctx, child, itemStyle)
+	if comp == nil {
+		return c
+	}
+	comp = flexItemCrossAxisBox(comp, containerStyle, itemStyle)
+	if visualGap > 0 && index > 0 {
+		comp = &marginBox{child: comp, marginLeft: visualGap}
+	}
+	return c.Add(comp)
+}
+
+func rowFromCols(cols []core.Col) core.Row {
+	r := row.New()
+	for _, c := range cols {
+		r = r.Add(c)
+	}
+	return r
 }
 
 // gapCols converts a CSS gap (in mm) to integer spacer cols, clamped to half the grid.
@@ -198,7 +283,7 @@ func isColumnDirection(d string) bool {
 
 // flexColumnRows handles flex-direction:column by emitting one row per child,
 // optionally inserting empty spacer rows between them based on row-gap.
-func (tr *translator) flexColumnRows(n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
+func (tr *translator) flexColumnRows(ctx context.Context, n *dom.Node, containerStyle *css.ComputedStyle) []core.Row {
 	children := flexItems(n)
 	if len(children) == 0 {
 		return nil
@@ -209,7 +294,12 @@ func (tr *translator) flexColumnRows(n *dom.Node, containerStyle *css.ComputedSt
 	gapMM := containerStyle.RowGap
 	var out []core.Row
 	for i, child := range children {
-		out = append(out, tr.blockRows(child)...)
+		err := translationCanceled(ctx)
+		if err != nil {
+			tr.err = err
+			return nil
+		}
+		out = append(out, tr.blockRows(ctx, child)...)
 		if gapMM > 0 && i < len(children)-1 {
 			out = append(out, spacerRow(gapMM))
 		}
@@ -251,7 +341,7 @@ func isWhitespaceNode(n *dom.Node) bool {
 // Leaf items (only inline content) render as RichText. Non-leaf items render
 // their block children sequentially via flexCellContent so nested headings and
 // paragraphs preserve their formatting.
-func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) core.Component {
+func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *css.ComputedStyle) core.Component {
 	if n.Tag() == "" {
 		text := strings.TrimSpace(n.TextContent())
 		if text == "" {
@@ -283,10 +373,15 @@ func (tr *translator) flexItemContent(n *dom.Node, style *css.ComputedStyle) cor
 
 	var subRows []core.Row
 	for _, c := range n.Children() {
+		err := translationCanceled(ctx)
+		if err != nil {
+			tr.err = err
+			return nil
+		}
 		if isWhitespaceNode(c) {
 			continue
 		}
-		subRows = append(subRows, tr.blockRows(c)...)
+		subRows = append(subRows, tr.blockRows(ctx, c)...)
 	}
 	if len(subRows) == 0 {
 		text := strings.TrimSpace(n.TextContent())

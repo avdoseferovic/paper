@@ -10,17 +10,18 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/internal/merror"
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
+	mock "github.com/avdoseferovic/paper/internal/mocktest"
+	pdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
-	"github.com/stretchr/testify/mock"
 
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -148,7 +149,6 @@ func TestProvider_AddCheckbox(t *testing.T) {
 	sut.AddCheckbox(label, cell, &prop)
 }
 
-// nolint: dupl
 func TestProvider_AddMatrixCode(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot generate data matrix, should apply error message", func(t *testing.T) {
@@ -206,7 +206,7 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
@@ -290,7 +290,6 @@ func TestProvider_AddMatrixCode(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_AddQrCode(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot generate qr code, should apply error message", func(t *testing.T) {
@@ -347,7 +346,7 @@ func TestProvider_AddQrCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
@@ -433,7 +432,6 @@ func TestProvider_AddQrCode(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_AddBarCode(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot generate bar code, should apply error message", func(t *testing.T) {
@@ -489,7 +487,7 @@ func TestProvider_AddBarCode(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, prop.ToRectProp(), extension.Png, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError()
 
 		dep := &gofpdf.Dependencies{
@@ -583,7 +581,7 @@ func TestProvider_CreateRow(t *testing.T) {
 	// Arrange
 	height := 10.0
 
-	fpdf := mocks.NewPDF(t)
+	fpdf := newPDF(t)
 	fpdf.EXPECT().Ln(height).Once()
 
 	dep := &gofpdf.Dependencies{
@@ -601,7 +599,7 @@ func TestProvider_EnsurePage(t *testing.T) {
 
 	t.Run("adds pages until requested page is current", func(t *testing.T) {
 		t.Parallel()
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().PageNo().Return(1).Once()
 		fpdf.EXPECT().AddPage().Once()
 		fpdf.EXPECT().PageNo().Return(2).Once()
@@ -613,7 +611,7 @@ func TestProvider_EnsurePage(t *testing.T) {
 
 	t.Run("does not add a page when already current", func(t *testing.T) {
 		t.Parallel()
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().PageNo().Return(2).Once()
 
 		sut := gofpdf.New(&gofpdf.Dependencies{PDF: fpdf})
@@ -671,7 +669,31 @@ func TestProvider_SetProtection(t *testing.T) {
 			OwnerPassword: "ownerPassword",
 		}
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
+		fpdf.EXPECT().SetProtectionAlgorithm(pdf.ProtectionRC4).Once()
+		fpdf.EXPECT().SetProtection(byte(p.Type), p.UserPassword, p.OwnerPassword).Once()
+
+		dep := &gofpdf.Dependencies{
+			PDF: fpdf,
+		}
+
+		sut := gofpdf.New(dep)
+
+		// Act
+		sut.SetProtection(p)
+	})
+	t.Run("when protection uses AES-128, should select AES backend algorithm", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		p := &entity.Protection{
+			Type:          protection.Print,
+			UserPassword:  "userPassword",
+			OwnerPassword: "ownerPassword",
+			Algorithm:     protection.AES128,
+		}
+
+		fpdf := newPDF(t)
+		fpdf.EXPECT().SetProtectionAlgorithm(pdf.ProtectionAES128).Once()
 		fpdf.EXPECT().SetProtection(byte(p.Type), p.UserPassword, p.OwnerPassword).Once()
 
 		dep := &gofpdf.Dependencies{
@@ -688,7 +710,7 @@ func TestProvider_SetProtection(t *testing.T) {
 func TestProvider_SetCompression(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewPDF(t)
+	fpdf := newPDF(t)
 	fpdf.EXPECT().SetCompression(true).Once()
 
 	dep := &gofpdf.Dependencies{
@@ -724,7 +746,7 @@ func TestProvider_SetMetadata(t *testing.T) {
 		// Arrange
 		timeNow := time.Now()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().SetAuthor("author", true).Once()
 		fpdf.EXPECT().SetCreator("creator", true).Once()
 		fpdf.EXPECT().SetSubject("subject", true).Once()
@@ -767,7 +789,7 @@ func TestProvider_SetMetadata(t *testing.T) {
 func TestProvider_GenerateBytes(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewPDF(t)
+	fpdf := newPDF(t)
 	fpdf.EXPECT().Output(mock.Anything).Return(errors.New("anyError")).Once()
 
 	dep := &gofpdf.Dependencies{
@@ -828,7 +850,7 @@ func TestProvider_AddImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError().Once()
 
 		dep := &gofpdf.Dependencies{
@@ -922,7 +944,7 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(errors.New("anyError")).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError().Once()
 		fpdf.EXPECT().SetHomeXY().Once()
 
@@ -960,7 +982,7 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		image := mocks.NewImage(t)
 		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(nil).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().SetHomeXY().Once()
 
 		dep := &gofpdf.Dependencies{
@@ -976,7 +998,6 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot generate data matrix, should return error", func(t *testing.T) {
@@ -1075,7 +1096,6 @@ func TestProvider_GetDimensionsByMatrixCode(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot generate qrCode, should return error", func(t *testing.T) {
@@ -1181,7 +1201,6 @@ func TestProvider_GetDimensionsByQrCode(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_GetDimensionsByImage(t *testing.T) {
 	t.Parallel()
 	t.Run("when cannot find image on cache and cannot load image, should return error", func(t *testing.T) {
@@ -1189,8 +1208,8 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(nil, errors.New("anyError1")).Once()
-		cache.EXPECT().LoadImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(errors.New("anyError1")).Once()
+		cache.EXPECT().GetImage("test/assets/images/biplane.jpg", extension.Jpg).Return(nil, errors.New("anyError1")).Once()
+		cache.EXPECT().LoadImage("test/assets/images/biplane.jpg", extension.Jpg).Return(errors.New("anyError1")).Once()
 
 		dep := &gofpdf.Dependencies{
 			Cache: cache,
@@ -1199,7 +1218,7 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		sut := gofpdf.New(dep)
 
 		// Act
-		dimensions, err := sut.GetDimensionsByImage("docs/assets/images/biplane.jpg")
+		dimensions, err := sut.GetDimensionsByImage("test/assets/images/biplane.jpg")
 
 		// Assert
 		assert.Nil(t, dimensions)
@@ -1213,7 +1232,7 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		// Arrange
 
 		cache := mocks.NewCache(t)
-		cache.EXPECT().GetImage("docs/assets/images/biplane.jpg", extension.Jpg).Return(img, nil).Once()
+		cache.EXPECT().GetImage("test/assets/images/biplane.jpg", extension.Jpg).Return(img, nil).Once()
 
 		image := mocks.NewImage(t)
 		image.EXPECT().GetImageDimensions(img, extension.Jpg).Return(&entity.Dimensions{Width: 1, Height: 1})
@@ -1226,7 +1245,7 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 		sut := gofpdf.New(dep)
 
 		// Act
-		dimensions, err := sut.GetDimensionsByImage("docs/assets/images/biplane.jpg")
+		dimensions, err := sut.GetDimensionsByImage("test/assets/images/biplane.jpg")
 
 		// Assert
 		assert.Nil(t, err)
@@ -1234,7 +1253,6 @@ func TestProvider_GetDimensionsByImage(t *testing.T) {
 	})
 }
 
-// nolint: dupl
 func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 	t.Parallel()
 	t.Run("when invalid format is sent, should return an error", func(t *testing.T) {
@@ -1279,7 +1297,7 @@ func TestProvider_GetDimensionsByImageByte(t *testing.T) {
 func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewPDF(t)
+	fpdf := newPDF(t)
 	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
 	fpdf.EXPECT().SetXY(15.0, 27.0).Once()
 
@@ -1295,7 +1313,7 @@ func TestProvider_SetCursor_AppliesPageMargins(t *testing.T) {
 func TestProvider_DrawFilledCircle_AppliesPageMargins(t *testing.T) {
 	t.Parallel()
 	// Arrange
-	fpdf := mocks.NewPDF(t)
+	fpdf := newPDF(t)
 	fpdf.EXPECT().GetMargins().Return(5.0, 7.0, 0.0, 0.0)
 	fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
 	fpdf.EXPECT().SetFillColor(1, 2, 3)

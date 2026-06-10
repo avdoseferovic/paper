@@ -1,7 +1,6 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -15,7 +14,7 @@ type outlineStyler struct {
 // OUTSIDE the cell box (does not affect layout). It must be the LAST node in
 // the chain so it can read the final cell position from GetXY after other nodes
 // have drawn. The cursor position is saved and restored before forwarding.
-func NewOutlineStyler(fpdf gofpdfwrapper.PDF) CellWriter {
+func NewOutlineStyler(fpdf any) CellWriter {
 	return &outlineStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "outlineStyler"},
 	}
@@ -26,9 +25,10 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 
 	// Capture the cell origin BEFORE the downstream chain moves the cursor
 	// (cellWriter's CellFormat advances X to the cell's right edge).
+	fpdf := asPDF[outlinePDF](o.fpdf)
 	var x, y float64
 	if needOutline {
-		x, y = o.fpdf.GetXY()
+		x, y = fpdf.GetXY()
 	}
 
 	o.GoToNext(width, height, config, prop)
@@ -38,16 +38,16 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 	}
 
 	// Save state.
-	origWidth := o.fpdf.GetLineWidth()
-	origR, origG, origB := o.fpdf.GetDrawColor()
+	origWidth := fpdf.GetLineWidth()
+	origR, origG, origB := fpdf.GetDrawColor()
 	defer func() {
-		o.fpdf.SetLineWidth(origWidth)
-		o.fpdf.SetDrawColor(origR, origG, origB)
+		fpdf.SetLineWidth(origWidth)
+		fpdf.SetDrawColor(origR, origG, origB)
 	}()
 
-	o.fpdf.SetLineWidth(prop.OutlineWidth)
+	fpdf.SetLineWidth(prop.OutlineWidth)
 	if prop.OutlineColor != nil {
-		o.fpdf.SetDrawColor(prop.OutlineColor.Red, prop.OutlineColor.Green, prop.OutlineColor.Blue)
+		fpdf.SetDrawColor(prop.OutlineColor.Red, prop.OutlineColor.Green, prop.OutlineColor.Blue)
 	}
 
 	// Outline rect sits outside the cell: expanded by (outlineOffset + width/2).
@@ -60,14 +60,14 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 	switch prop.OutlineStyle {
 	case linestyle.Solid:
 	case linestyle.Dashed:
-		o.fpdf.SetDashPattern([]float64{1, 1}, 0)
+		fpdf.SetDashPattern([]float64{1, 1}, 0)
 	case linestyle.Dotted:
-		o.fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
+		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 
-	o.fpdf.Rect(rx, ry, rw, rh, "D")
+	fpdf.Rect(rx, ry, rw, rh, "D")
 
 	if prop.OutlineStyle != linestyle.Solid && prop.OutlineStyle != "" {
-		o.fpdf.SetDashPattern([]float64{1, 0}, 0)
+		fpdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

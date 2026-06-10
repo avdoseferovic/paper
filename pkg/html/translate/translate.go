@@ -2,8 +2,11 @@
 package translate
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
+	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/line"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
@@ -39,14 +42,24 @@ func WithContentWidth(mm float64) Option {
 	}
 }
 
+// WithLimits configures resource limits for untrusted HTML translation.
+func WithLimits(l htmllimits.Limits) Option {
+	return func(tr *translator) {
+		tr.limits = htmllimits.Normalize(l)
+	}
+}
+
 // translator threads parsed stylesheet rules through the recursive walker.
 type translator struct {
 	sheet              *stylesheet
 	gridSize           int     // 0 = use defaultGridSize (12)
 	contentWidthMM     float64 // 0 = use default A4 estimate (170mm)
 	imageResolver      ImageResolver
+	imageBaseDir       string
 	stylesheetResolver StylesheetResolver
+	limits             htmllimits.Limits
 	unsupportedHandler func(thing, value string)
+	err                error
 	anchorReg          *anchorRegistry     // shared id→linkID map (Task 6)
 	anchorIDs          map[string]struct{} // pre-collected id values (forward refs)
 	loadedFonts        []loadedFont        // @font-face fonts (Task 10)
@@ -72,7 +85,7 @@ func WithImageResolver(fn ImageResolver) Option {
 // Local file reads outside this directory are refused (path-traversal safe).
 func WithImageBaseDir(dir string) Option {
 	return func(tr *translator) {
-		tr.imageResolver = baseDirResolver(dir)
+		tr.imageBaseDir = dir
 	}
 }
 
@@ -85,14 +98,33 @@ func WithUnsupportedHandler(fn func(thing, value string)) Option {
 
 // Translate walks the styled DOM and emits Paper rows.
 func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
+	return TranslateCtx(context.TODO(), doc, opts...)
+}
+
+// TranslateCtx walks the styled DOM and emits Paper rows. It observes ctx at
+// cheap phase and recursive traversal boundaries.
+func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	if doc == nil {
 		return nil, nil
 	}
 	tr := &translator{
 		anchorReg: newAnchorRegistry(),
+		limits:    htmllimits.Default(),
 	}
 	for _, opt := range opts {
 		opt(tr)
+	}
+	err := translationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = doc.ValidateLimits(tr.limits)
+	if err != nil {
+		return nil, err
+	}
+	err = translationCanceled(ctx)
+	if err != nil {
+		return nil, err
 	}
 	// External stylesheets load BEFORE inline <style> so browser-style
 	// cascade order applies. defer/recover is inside safeLoadStylesheet so
@@ -104,6 +136,10 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	}
 	var combined []byte
 	for _, href := range hrefs {
+		err = translationCanceled(ctx)
+		if err != nil {
+			return nil, err
+		}
 		data, ok := safeLoadStylesheet(resolver, href)
 		if !ok {
 			if tr.unsupportedHandler != nil {
@@ -115,13 +151,29 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 		combined = append(combined, '\n')
 	}
 	combined = append(combined, []byte(inlineCSS)...)
-	tr.sheet = parseStylesheetWithContentWidth(string(combined), tr.availableContentWidth())
+	err = translationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sheet, err := parseStylesheetWithLimits(string(combined), tr.availableContentWidth(), tr.limits)
+	if err != nil {
+		return nil, err
+	}
+	tr.sheet = sheet
+	err = translationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// Process @font-face declarations: resolve src URLs via the stylesheet
 	// resolver and emit a fontRegistration row that registers the bytes via
 	// LateFontProvider at render time. defer/recover inside processFontFace
 	// ensures a malformed font cannot crash translation.
 	tr.registerFontFaces(resolver)
+	err = translationCanceled(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
@@ -142,9 +194,19 @@ func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	tr.quotes = newQuoteState()
 	rootCounters := tr.counters.enter(tr.rootStyle)
 	for _, child := range body.Children() {
-		rows = append(rows, tr.blockRowsWithParent(child, tr.rootStyle)...)
+		err = translationCanceled(ctx)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, tr.blockRowsWithParent(ctx, child, tr.rootStyle)...)
+		if tr.err != nil {
+			return nil, tr.err
+		}
 	}
 	tr.counters.exit(rootCounters)
+	if tr.err != nil {
+		return nil, tr.err
+	}
 	return rows, nil
 }
 
@@ -184,12 +246,17 @@ func findBody(doc *dom.Document) *dom.Node {
 }
 
 // blockRows recursively converts a node into block-level Rows.
-func (tr *translator) blockRows(n *dom.Node) []core.Row {
-	return tr.blockRowsWithParent(n, nil)
+func (tr *translator) blockRows(ctx context.Context, n *dom.Node) []core.Row {
+	return tr.blockRowsWithParent(ctx, n, nil)
 }
 
-func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle) []core.Row {
-	if n == nil {
+func (tr *translator) blockRowsWithParent(ctx context.Context, n *dom.Node, parent *css.ComputedStyle) []core.Row {
+	if n == nil || tr.err != nil {
+		return nil
+	}
+	err := translationCanceled(ctx)
+	if err != nil {
+		tr.err = err
 		return nil
 	}
 	if isDisplayNone(n) {
@@ -207,7 +274,7 @@ func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle
 	counterScope := tr.counters.enter(style)
 	defer tr.counters.exit(counterScope)
 
-	rows := tr.dispatchBlockRowsWithStyle(n, style)
+	rows := tr.dispatchBlockRowsWithStyle(ctx, n, style)
 	// If the element has an id, wrap its first row in an anchorTarget so the
 	// PDF destination registers at the element's actual Y position.
 	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
@@ -227,7 +294,7 @@ func (tr *translator) blockRowsWithParent(n *dom.Node, parent *css.ComputedStyle
 
 // dispatchBlockRows is the original blockRows tag switch (split out so the
 // outer blockRows can handle anchor wrapping uniformly).
-func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.ComputedStyle) []core.Row {
+func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
 	tag := n.Tag()
 	// Drop metadata tags that may appear in the body — their text content
 	// (CSS source, script source, meta values) must not render as visible
@@ -251,10 +318,13 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 	case "dl":
 		return tr.definitionListRows(n)
 	case "details":
-		return tr.detailsRows(n)
+		return tr.detailsRows(ctx, n)
 	case tagImg:
 		if r, ok := tr.imageRowWithStyle(n, style); ok {
 			return []core.Row{r}
+		}
+		if tr.err != nil {
+			return nil
 		}
 		return altRowStyled(n, style)
 	case "picture":
@@ -262,6 +332,9 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 	case tagSVG:
 		if r, ok := tr.svgRowWithStyle(n, style); ok {
 			return []core.Row{r}
+		}
+		if tr.err != nil {
+			return nil
 		}
 		return nil
 	case "br":
@@ -274,9 +347,9 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 		}
 		if style.Display == displayFlex {
 			if isColumnDirection(style.FlexDirection) {
-				return tr.flexColumnRows(n, style)
+				return tr.flexColumnRows(ctx, n, style)
 			}
-			rows := tr.flexRows(n, style)
+			rows := tr.flexRows(ctx, n, style)
 			if len(rows) == 0 {
 				return nil
 			}
@@ -285,7 +358,12 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 		// Default: collect children's rows.
 		var rows []core.Row
 		for _, c := range n.Children() {
-			rows = append(rows, tr.blockRowsWithParent(c, style)...)
+			err := translationCanceled(ctx)
+			if err != nil {
+				tr.err = err
+				return nil
+			}
+			rows = append(rows, tr.blockRowsWithParent(ctx, c, style)...)
 		}
 		// When the container has background/border/padding, wrap children
 		// in a single styled blockContainer so the styling spans them all.
@@ -294,6 +372,17 @@ func (tr *translator) dispatchBlockRowsWithStyle(n *dom.Node, style *css.Compute
 		}
 		return rows
 	}
+}
+
+func translationCanceled(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	err := ctx.Err()
+	if err != nil {
+		return fmt.Errorf("html: translation canceled: %w", err)
+	}
+	return nil
 }
 
 // paragraphRow converts a block element with inline content into a single auto-height row.

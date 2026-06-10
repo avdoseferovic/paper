@@ -41,21 +41,6 @@ func TestUTF8ToUTF16SupplementaryPlaneUsesSurrogatePair(t *testing.T) {
 	}
 }
 
-func TestTemplateKeyListSortsWhenRequested(t *testing.T) {
-	t.Parallel()
-
-	got := templateKeyList(map[string]Template{
-		"z": nil,
-		"a": nil,
-		"m": nil,
-	}, true)
-
-	want := []string{"a", "m", "z"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expected sorted keys %v, got %v", want, got)
-	}
-}
-
 func TestAddUTF8FontFromBytesRecordsParseErrorWithoutStdout(t *testing.T) {
 	f := NewCustom(&InitType{
 		OrientationStr: "P",

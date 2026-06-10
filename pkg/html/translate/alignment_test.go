@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/html"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestStyledRowRendersWithoutPanic confirms the full translate→render pipeline

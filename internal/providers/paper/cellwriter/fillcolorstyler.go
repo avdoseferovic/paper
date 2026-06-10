@@ -1,8 +1,6 @@
-// nolint: dupl
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -12,7 +10,7 @@ type FillColorStyler struct {
 	defaultFillColor *props.Color
 }
 
-func NewFillColorStyler(fpdf gofpdfwrapper.PDF) *FillColorStyler {
+func NewFillColorStyler(fpdf any) *FillColorStyler {
 	defaultFillColor := props.White()
 	return &FillColorStyler{
 		stylerTemplate: stylerTemplate{
@@ -29,20 +27,7 @@ func (f *FillColorStyler) Apply(width, height float64, config *entity.Config, pr
 		return
 	}
 
-	if prop.BackgroundColor == nil {
-		f.GoToNext(width, height, config, prop)
-		return
-	}
-
-	f.fpdf.SetFillColor(prop.BackgroundColor.Red, prop.BackgroundColor.Green, prop.BackgroundColor.Blue)
-	if a := prop.BackgroundColor.Alpha; a != nil && *a < 1 {
-		// Wrap fill drawing in SetAlpha; always restore to 1.0 via defer so
-		// alpha cannot leak into the chain's downstream nodes or native rows.
-		f.fpdf.SetAlpha(clampAlpha(*a), "Normal")
-		defer f.fpdf.SetAlpha(1, "Normal")
-	}
-	f.GoToNext(width, height, config, prop)
-	f.fpdf.SetFillColor(f.defaultFillColor.Red, f.defaultFillColor.Green, f.defaultFillColor.Blue)
+	applyColorStyler(&f.stylerTemplate, prop.BackgroundColor, f.defaultFillColor, setFillColor, width, height, config, prop)
 }
 
 // clampAlpha clamps an alpha value to [0, 1].

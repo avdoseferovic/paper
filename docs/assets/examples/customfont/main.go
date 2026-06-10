@@ -1,4 +1,3 @@
-// nolint:misspell // other languages are being classified as english misspells
 package main
 
 import (
@@ -7,6 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/fontrepository"
 
@@ -59,7 +59,7 @@ func GetPaper(customFontFile string) core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	header, contents := getLanguageSample()
 

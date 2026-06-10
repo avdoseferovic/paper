@@ -3,9 +3,9 @@ package translate
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func findFirstNode(t *testing.T, doc *dom.Document, tag string) *dom.Node {

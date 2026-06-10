@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	htmlcomponent "github.com/avdoseferovic/paper/pkg/components/html"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // pngDataURI synthesises a tiny PNG and returns it as a data: URI so the safe

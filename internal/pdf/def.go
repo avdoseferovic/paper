@@ -100,32 +100,11 @@ const (
 	AlignBaseline = "B"
 )
 
-type colorMode int
-
-const (
-	colorModeRGB colorMode = iota
-	colorModeSpot
-	colorModeCMYK
-)
-
 type colorType struct {
 	r, g, b    float64
 	ir, ig, ib int
-	mode       colorMode
-	spotStr    string // name of current spot color
 	gray       bool
 	str        string
-}
-
-// SpotColorType specifies a named spot color value
-type spotColorType struct {
-	id, objID int
-	val       cmykColorType
-}
-
-// CMYKColorType specifies an ink-based CMYK color value
-type cmykColorType struct {
-	c, m, y, k byte // 0% to 100%
 }
 
 // SizeType fields Wd and Ht specify the horizontal and vertical extents of a
@@ -321,12 +300,6 @@ type PDF struct {
 	page             int                        // current page number
 	n                int                        // current object number
 	offsets          []int                      // array of object offsets
-	templates        map[string]Template        // templates used in this document
-	templateObjects  map[string]int             // template object IDs within this document
-	importedObjs     map[string][]byte          // imported template objects (gofpdi)
-	importedObjPos   map[string]map[int]string  // imported template objects hashes and their positions (gofpdi)
-	importedTplObjs  map[string]string          // imported template names and IDs (hashed) (gofpdi)
-	importedTplIDs   map[string]int             // imported template ids hash to object id int (gofpdi)
 	buffer           fmtBuffer                  // buffer holding in-memory PDF
 	pages            []*bytes.Buffer            // slice[page] of page content; 1-based
 	state            int                        // current document state
@@ -369,8 +342,6 @@ type PDF struct {
 	aliasMap         map[string]string          // map of alias->replacement
 	pageLinks        [][]linkType               // pageLinks[page][link], both 1-based
 	links            []intLinkType              // array of internal links
-	attachments      []Attachment               // slice of content to embed globally
-	pageAttachments  [][]annotationAttach       // 1-based array of annotation for file attachments (per page)
 	outlines         []outlineType              // array of outlines
 	outlineRoot      int                        // root of outlines
 	autoPageBreak    bool                       // automatic page breaking
@@ -395,7 +366,6 @@ type PDF struct {
 	modDate          time.Time                  // override for document ModDate value
 	aliasNbPagesStr  string                     // alias for total number of pages
 	pdfVersion       string                     // PDF version number
-	fontDirStr       string                     // location of font definition files
 	capStyle         int                        // line cap style: butt 0, round 1, square 2
 	joinStyle        int                        // line segment join style: miter 0, round 1, bevel 2
 	dashArray        []float64                  // dash array
@@ -409,7 +379,6 @@ type PDF struct {
 	transformNest    int                        // Number of active transformation contexts
 	err              error                      // Set if error occurs during life cycle of instance
 	protect          protectType                // document protection structure
-	layer            layerRecType               // manages optional layers in document
 	catalogSort      bool                       // sort resource catalogs in document
 	nJs              int                        // JavaScript object number
 	javascript       *string                    // JavaScript code to include in the PDF
@@ -418,8 +387,7 @@ type PDF struct {
 		// Composite values of colors
 		draw, fill, text colorType
 	}
-	spotColorMap           map[string]spotColorType // Map of named ink-based colors
-	userUnderlineThickness float64                  // A custom user underline thickness multiplier.
+	userUnderlineThickness float64 // A custom user underline thickness multiplier.
 	colorEmojiEnabled      bool
 }
 

@@ -3,6 +3,7 @@ package props_test
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/barcode"
 	"github.com/avdoseferovic/paper/pkg/consts/breakline"
@@ -11,7 +12,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestColorHelpersReturnIndependentValues(t *testing.T) {

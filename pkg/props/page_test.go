@@ -3,7 +3,7 @@ package props_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/pkg/consts/align"
@@ -73,7 +73,6 @@ func TestPlace_IsValid(t *testing.T) {
 	})
 }
 
-// nolint:dupl
 func TestPage_GetNumberTextProp(t *testing.T) {
 	t.Parallel()
 	t.Run("when place is left bottom, should map correctly", func(t *testing.T) {

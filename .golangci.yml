@@ -12,7 +12,6 @@ linters:
     - varnamelen
     - testableexamples
     - tagliatelle
-    - nolintlint
     - nlreturn
     - musttag
     - ireturn

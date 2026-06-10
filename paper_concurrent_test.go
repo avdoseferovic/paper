@@ -1,14 +1,15 @@
 package paper
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/core"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // barrier blocks each caller until n callers have arrived, then releases them
@@ -62,7 +63,7 @@ func TestProcessPageGroupsConcurrentlyPreservesInputOrder(t *testing.T) {
 	// index to finish before completing, so jobs complete n-1, n-2, ..., 0.
 	// This deterministically proves results map back to their input index
 	// regardless of completion order (no time.Sleep, no scheduling guesswork).
-	results, err := processPageGroupsConcurrently(n, pageGroups, func(group []core.Page) (pageProcessResult, error) {
+	results, err := processPageGroupsConcurrently(context.Background(), n, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
 		idx := len(group) - 1
 		if idx < n-1 {
 			<-completed[idx+1]
@@ -96,7 +97,7 @@ func TestProcessPageGroupsConcurrentlyRespectsWorkerLimit(t *testing.T) {
 	// atomic maxActive check proves it never exceeds the limit.
 	b := newBarrier(workers)
 
-	results, err := processPageGroupsConcurrently(workers, pageGroups, func(group []core.Page) (pageProcessResult, error) {
+	results, err := processPageGroupsConcurrently(context.Background(), workers, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
 		current := atomic.AddInt64(&active, 1)
 		for {
 			observed := atomic.LoadInt64(&maxActive)
@@ -119,10 +120,10 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("process page group")
-	_, err := processPageGroupsConcurrently(3, [][]core.Page{
+	_, err := processPageGroupsConcurrently(context.Background(), 3, [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
-	}, func(group []core.Page) (pageProcessResult, error) {
+	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
 		if len(group) == 2 {
 			return pageProcessResult{}, expectedErr
 		}
@@ -135,10 +136,10 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
 	t.Parallel()
 
-	results, err := processPageGroupsConcurrently(3, [][]core.Page{
+	results, err := processPageGroupsConcurrently(context.Background(), 3, [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
-	}, func(group []core.Page) (pageProcessResult, error) {
+	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
 		if len(group) == 2 {
 			panic("boom")
 		}
@@ -148,4 +149,20 @@ func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, results)
 	assert.Contains(t, err.Error(), "panic processing page group")
+}
+
+func TestProcessPageGroupsConcurrentlyReturnsContextError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	results, err := processPageGroupsConcurrently(ctx, 3, [][]core.Page{
+		make([]core.Page, 1),
+	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
+		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+	})
+
+	assert.Nil(t, results)
+	assert.ErrorIs(t, err, context.Canceled)
 }

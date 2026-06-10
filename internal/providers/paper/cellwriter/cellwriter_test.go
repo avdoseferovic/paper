@@ -5,12 +5,11 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/mocks"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestNewCellCreator(t *testing.T) {
@@ -31,7 +30,7 @@ func TestCellWriter_Apply(t *testing.T) {
 		config := &entity.Config{}
 		width := 100.0
 		height := 200.0
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().CellFormat(width, height, "", "", 0, "C", false, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
@@ -47,7 +46,7 @@ func TestCellWriter_Apply(t *testing.T) {
 		}
 		width := 100.0
 		height := 200.0
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", false, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
@@ -62,7 +61,7 @@ func TestCellWriter_Apply(t *testing.T) {
 		prop := fixture.CellProp()
 		width := 100.0
 		height := 200.0
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().CellFormat(width, height, "", "L", 0, "C", true, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)
@@ -79,7 +78,7 @@ func TestCellWriter_Apply(t *testing.T) {
 		prop := fixture.CellProp()
 		width := 100.0
 		height := 200.0
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().CellFormat(width, height, "", "LTRB", 0, "C", true, 0, "").Once()
 
 		sut := cellwriter.NewCellWriter(fpdf)

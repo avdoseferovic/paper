@@ -23,19 +23,6 @@ func ExampleNew() {
 	_, _ = m.Generate()
 }
 
-// ExampleNewMetricsDecorator demonstrates how to create a paper metrics decorator instance.
-func ExampleNewMetricsDecorator() {
-	// optional
-	b := config.NewBuilder()
-	cfg := b.Build()
-
-	mrt := paper.New(cfg)               // cfg is an optional
-	m := paper.NewMetricsDecorator(mrt) // decorator of paper
-
-	// Do things and generate
-	_, _ = m.Generate()
-}
-
 // ExampleFromHTML demonstrates the shortest path from HTML to PDF.
 func ExampleFromHTML() {
 	doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
@@ -79,16 +66,16 @@ func ExamplePaper_AddRow() {
 	// Do things and generate
 }
 
-// ExamplePaper_FitlnCurrentPage demonstrate how to check if the new line fits on the current page
-func ExamplePaper_FitlnCurrentPage() {
+// ExamplePaper_FitInCurrentPage demonstrates how to check if the new line fits on the current page.
+func ExamplePaper_FitInCurrentPage() {
 	m := paper.New()
 
-	m.FitlnCurrentPage(12)
+	m.FitInCurrentPage(12)
 
 	// Do things and generate
 }
 
-// ExamplePaper_FitlnCurrentPage demonstrate how to check if the new line fits on the current page
+// ExamplePaper_GetCurrentConfig demonstrates how to get the current paper configuration.
 func ExamplePaper_GetCurrentConfig() {
 	m := paper.New()
 

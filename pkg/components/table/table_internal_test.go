@@ -3,8 +3,8 @@ package table
 import (
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/pkg/props"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDistributeSpanSurplus(t *testing.T) {

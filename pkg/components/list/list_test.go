@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/internal/test"
 	"github.com/avdoseferovic/paper/pkg/components/list"
 	"github.com/avdoseferovic/paper/pkg/components/page"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/core"
-	"github.com/avdoseferovic/paper/pkg/test"
-	"github.com/stretchr/testify/assert"
 )
 
 type anyType struct {

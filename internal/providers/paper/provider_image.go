@@ -39,7 +39,7 @@ func (g *provider) AddImageFromBytes(bytes []byte, cell *entity.Cell, prop *prop
 	if err != nil {
 		message := "could not add image to document"
 		g.recordRenderIssue("image.add", message, err)
-		g.fpdf.ClearError()
+		g.errorPDF.ClearError()
 		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
 }
@@ -57,10 +57,10 @@ func (g *provider) AddBackgroundImageFromBytes(bytes []byte, cell *entity.Cell, 
 	if err != nil {
 		message := "could not add image to document"
 		g.recordRenderIssue("background_image.add", message, err)
-		g.fpdf.ClearError()
+		g.errorPDF.ClearError()
 		g.text.Add(message, cell, merror.DefaultErrorText)
 	}
-	g.fpdf.SetHomeXY()
+	g.errorPDF.SetHomeXY()
 }
 
 // GetDimensionsByImage is responsible for obtaining the dimensions of an image.

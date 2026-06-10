@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"context"
+
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
 	"github.com/avdoseferovic/paper/pkg/components/row"
@@ -13,7 +15,7 @@ import (
 // detailsRows treats <details> as always expanded: <summary> renders as a bold
 // row followed by the rest of the body's rows. <summary> is bold and slightly
 // larger; the open attribute is ignored (PDFs have no interactive toggle).
-func (tr *translator) detailsRows(n *dom.Node) []core.Row {
+func (tr *translator) detailsRows(ctx context.Context, n *dom.Node) []core.Row {
 	var summary *dom.Node
 	var body []*dom.Node
 	for _, c := range n.Children() {
@@ -29,7 +31,7 @@ func (tr *translator) detailsRows(n *dom.Node) []core.Row {
 		rows = append(rows, tr.summaryRow(summary))
 	}
 	for _, c := range body {
-		rows = append(rows, tr.blockRows(c)...)
+		rows = append(rows, tr.blockRows(ctx, c)...)
 	}
 	return rows
 }

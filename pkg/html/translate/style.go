@@ -439,7 +439,6 @@ func richRunVerticalAlignFromCSS(value string) string {
 	}
 }
 
-//nolint:gocognit // CSS content parsing has several independent function and keyword forms.
 func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 	value = strings.TrimSpace(value)
 	switch strings.ToLower(value) {
@@ -447,110 +446,138 @@ func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.Ri
 		return nil, false
 	}
 
-	var text strings.Builder
-	var runs []props.RichRun
-	consumed := false
-	flushText := func() {
-		if text.Len() == 0 {
-			return
-		}
-		runs = append(runs, richRunFromContext(text.String(), ctx))
-		text.Reset()
+	parser := &generatedContentParser{node: n, ctx: ctx}
+	if !parser.consume(value) {
+		return nil, false
 	}
+	parser.flushText()
+	return parser.runs, parser.consumed
+}
+
+type generatedContentParser struct {
+	node     *dom.Node
+	ctx      runContext
+	text     strings.Builder
+	runs     []props.RichRun
+	consumed bool
+}
+
+func (p *generatedContentParser) consume(value string) bool {
 	for value != "" {
 		value = strings.TrimLeft(value, " \t\r\n\f")
 		if value == "" {
 			break
 		}
-		lower := strings.ToLower(value)
-		if strings.HasPrefix(lower, "attr(") {
-			args, rest, ok := readCSSFunction(value, "attr")
-			if !ok {
-				return nil, false
-			}
-			name := strings.Trim(strings.TrimSpace(args), `'"`)
-			if name != "" && n != nil {
-				text.WriteString(n.Attr(name))
-			}
-			value = rest
-			consumed = true
-			continue
+		rest, ok := p.consumeNext(value)
+		if !ok {
+			return false
 		}
-		if strings.HasPrefix(lower, "counter(") {
-			args, rest, ok := readCSSFunction(value, "counter")
-			if !ok {
-				return nil, false
-			}
-			content, ok := generatedCounterText(args, ctx.counters)
-			if !ok {
-				return nil, false
-			}
-			text.WriteString(content)
-			value = rest
-			consumed = true
-			continue
-		}
-		if strings.HasPrefix(lower, "counters(") {
-			args, rest, ok := readCSSFunction(value, "counters")
-			if !ok {
-				return nil, false
-			}
-			content, ok := generatedCountersText(args, ctx.counters)
-			if !ok {
-				return nil, false
-			}
-			text.WriteString(content)
-			value = rest
-			consumed = true
-			continue
-		}
-		if strings.HasPrefix(lower, "url(") {
-			rest, ok := appendGeneratedImageRun(value, ctx, flushText, &runs)
-			if !ok {
-				return nil, false
-			}
-			value = rest
-			consumed = true
-			continue
-		}
-		if rest, ok := consumeContentKeyword(value, "open-quote"); ok {
-			text.WriteString(ctx.quotes.open(ctx.style))
-			value = rest
-			consumed = true
-			continue
-		}
-		if rest, ok := consumeContentKeyword(value, "close-quote"); ok {
-			text.WriteString(ctx.quotes.close(ctx.style))
-			value = rest
-			consumed = true
-			continue
-		}
-		if rest, ok := consumeContentKeyword(value, "no-open-quote"); ok {
-			ctx.quotes.noOpen()
-			value = rest
-			consumed = true
-			continue
-		}
-		if rest, ok := consumeContentKeyword(value, "no-close-quote"); ok {
-			ctx.quotes.noClose()
-			value = rest
-			consumed = true
-			continue
-		}
-		if value[0] == '"' || value[0] == '\'' {
-			literal, rest, ok := readCSSContentString(value)
-			if !ok {
-				return nil, false
-			}
-			text.WriteString(literal)
-			value = rest
-			consumed = true
-			continue
-		}
-		return nil, false
+		value = rest
+		p.consumed = true
 	}
-	flushText()
-	return runs, consumed
+	return true
+}
+
+func (p *generatedContentParser) flushText() {
+	if p.text.Len() == 0 {
+		return
+	}
+	p.runs = append(p.runs, richRunFromContext(p.text.String(), p.ctx))
+	p.text.Reset()
+}
+
+func (p *generatedContentParser) consumeNext(value string) (string, bool) {
+	if rest, matched, ok := p.consumeFunction(value); matched {
+		return rest, ok
+	}
+	if rest, matched := p.consumeQuoteKeyword(value); matched {
+		return rest, true
+	}
+	if value[0] == '"' || value[0] == '\'' {
+		literal, rest, ok := readCSSContentString(value)
+		if !ok {
+			return "", false
+		}
+		p.text.WriteString(literal)
+		return rest, true
+	}
+	return "", false
+}
+
+func (p *generatedContentParser) consumeFunction(value string) (string, bool, bool) {
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, "attr(") {
+		return p.consumeAttrFunction(value)
+	}
+	if strings.HasPrefix(lower, "counter(") {
+		return p.consumeCounterFunction(value)
+	}
+	if strings.HasPrefix(lower, "counters(") {
+		return p.consumeCountersFunction(value)
+	}
+	if strings.HasPrefix(lower, "url(") {
+		rest, ok := appendGeneratedImageRun(value, p.ctx, p.flushText, &p.runs)
+		return rest, true, ok
+	}
+	return "", false, true
+}
+
+func (p *generatedContentParser) consumeAttrFunction(value string) (string, bool, bool) {
+	args, rest, ok := readCSSFunction(value, "attr")
+	if !ok {
+		return "", true, false
+	}
+	name := strings.Trim(strings.TrimSpace(args), `'"`)
+	if name != "" && p.node != nil {
+		p.text.WriteString(p.node.Attr(name))
+	}
+	return rest, true, true
+}
+
+func (p *generatedContentParser) consumeCounterFunction(value string) (string, bool, bool) {
+	args, rest, ok := readCSSFunction(value, "counter")
+	if !ok {
+		return "", true, false
+	}
+	content, ok := generatedCounterText(args, p.ctx.counters)
+	if !ok {
+		return "", true, false
+	}
+	p.text.WriteString(content)
+	return rest, true, true
+}
+
+func (p *generatedContentParser) consumeCountersFunction(value string) (string, bool, bool) {
+	args, rest, ok := readCSSFunction(value, "counters")
+	if !ok {
+		return "", true, false
+	}
+	content, ok := generatedCountersText(args, p.ctx.counters)
+	if !ok {
+		return "", true, false
+	}
+	p.text.WriteString(content)
+	return rest, true, true
+}
+
+func (p *generatedContentParser) consumeQuoteKeyword(value string) (string, bool) {
+	if rest, ok := consumeContentKeyword(value, "open-quote"); ok {
+		p.text.WriteString(p.ctx.quotes.open(p.ctx.style))
+		return rest, true
+	}
+	if rest, ok := consumeContentKeyword(value, "close-quote"); ok {
+		p.text.WriteString(p.ctx.quotes.close(p.ctx.style))
+		return rest, true
+	}
+	if rest, ok := consumeContentKeyword(value, "no-open-quote"); ok {
+		p.ctx.quotes.noOpen()
+		return rest, true
+	}
+	if rest, ok := consumeContentKeyword(value, "no-close-quote"); ok {
+		p.ctx.quotes.noClose()
+		return rest, true
+	}
+	return "", false
 }
 
 func appendGeneratedImageRun(

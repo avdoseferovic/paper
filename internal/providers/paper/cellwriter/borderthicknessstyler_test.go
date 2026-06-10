@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/mocks"
+	"github.com/avdoseferovic/paper/internal/mocks"
 	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 
 	"github.com/avdoseferovic/paper/internal/providers/paper/cellwriter"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestNewBorderThicknessStyler(t *testing.T) {
@@ -87,7 +87,7 @@ func TestBorderThicknessStyler_Apply(t *testing.T) {
 		inner := mocks.NewCellWriter(t)
 		inner.EXPECT().Apply(width, height, cfg, prop).Once()
 
-		fpdf := mocks.NewPDF(t)
+		fpdf := newPDF(t)
 		fpdf.EXPECT().SetLineWidth(prop.BorderThickness).Once()
 		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness).Once()
 

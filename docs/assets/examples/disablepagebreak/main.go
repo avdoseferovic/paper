@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/page"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -52,7 +53,7 @@ func GetPaper(image string) core.Paper {
 	b.Margins.Bottom = 0
 
 	mrt := paper.New(b)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddPages(page.New())
 	return m

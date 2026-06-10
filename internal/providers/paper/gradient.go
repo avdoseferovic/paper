@@ -14,7 +14,6 @@ import (
 
 	gofpdflib "github.com/avdoseferovic/paper/internal/pdf"
 
-	"github.com/avdoseferovic/paper/internal/providers/paper/gofpdfwrapper"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -23,13 +22,13 @@ const gradientDPI = 75.0
 
 // GradientRenderer handles gradient rasterisation and caching.
 type GradientRenderer struct {
-	pdf     gofpdfwrapper.PDF
+	pdf     gradientPDF
 	mu      sync.Mutex
 	nameMap map[string]string // cacheKey → registered imgName
 }
 
 // NewGradientRenderer creates a GradientRenderer that uses pdf for drawing.
-func NewGradientRenderer(pdf gofpdfwrapper.PDF) *GradientRenderer {
+func NewGradientRenderer(pdf gradientPDF) *GradientRenderer {
 	return &GradientRenderer{pdf: pdf, nameMap: map[string]string{}}
 }
 

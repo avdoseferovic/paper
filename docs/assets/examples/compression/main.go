@@ -1,4 +1,3 @@
-// nolint:misspell // other languages are being classified as english typos
 package main
 
 import (
@@ -10,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/image"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/signature"
@@ -47,7 +47,7 @@ func GetPaper(imagePath string) core.Paper {
 		Build()
 
 	mrt := paper.New(cfg)
-	m := paper.NewMetricsDecorator(mrt)
+	m := decorator.NewMetrics(mrt)
 
 	m.AddRows(
 		text.NewRow(20, "Main features", props.Text{Size: 15, Top: 6.5}),

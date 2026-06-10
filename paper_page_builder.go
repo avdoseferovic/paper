@@ -111,7 +111,7 @@ func (b *pageBuilder) addRow(r core.Row) {
 	}
 
 	// Row is too tall. Check if it implements Splittable for cross-page splitting.
-	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(sp, maxHeight) {
+	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(r, sp, maxHeight) {
 		return
 	}
 
@@ -127,23 +127,48 @@ func (b *pageBuilder) addRow(r core.Row) {
 
 // addSplittableRow handles cross-page splitting for a row that implements
 // core.Splittable. Returns true when the split was performed (caller should return).
-func (b *pageBuilder) addSplittableRow(sp core.Splittable, maxHeight float64) bool {
+func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeight float64) bool {
 	remaining := maxHeight - b.currentHeight - b.footerHeight
 	first, rest, didSplit := sp.SplitAt(b.provider, remaining)
 	if !didSplit {
 		return false
 	}
-	if first != nil {
-		first.SetConfig(b.config)
-		b.currentHeight += first.GetHeight(b.provider, &b.cell)
-		b.rows = append(b.rows, first)
+	if first == nil {
+		if rest == nil {
+			rest = row
+		}
+		if b.isAtTopOfUsablePage() {
+			b.appendOversizedRow(rest)
+			return true
+		}
+		b.fillPageToAddNew()
+		b.addHeader()
+		b.addRow(rest)
+		return true
 	}
+	first.SetConfig(b.config)
+	b.currentHeight += first.GetHeight(b.provider, &b.cell)
+	b.rows = append(b.rows, first)
 	b.fillPageToAddNew()
 	b.addHeader()
 	if rest != nil {
 		b.addRow(rest)
 	}
 	return true
+}
+
+func (b *pageBuilder) isAtTopOfUsablePage() bool {
+	const heightEpsilon = 0.000001
+	return b.currentHeight <= b.headerHeight+heightEpsilon
+}
+
+func (b *pageBuilder) appendOversizedRow(r core.Row) {
+	if len(r.GetColumns()) == 0 {
+		r.Add(col.New())
+	}
+	r.SetConfig(b.config)
+	b.currentHeight += r.GetHeight(b.provider, &b.cell)
+	b.rows = append(b.rows, r)
 }
 
 func (b *pageBuilder) addHeader() {

@@ -51,72 +51,75 @@ type calcToken struct {
 	value float64 // pre-resolved value in mm for num tokens
 }
 
-//nolint:gocognit // Tokenizing CSS calc() is a compact state machine with several token classes.
 func tokenizeCalc(expr string) ([]calcToken, bool) {
 	var out []calcToken
 	i := 0
 	for i < len(expr) {
-		ch := expr[i]
-		switch {
-		case ch == ' ' || ch == '\t':
-			i++
-		case ch == '(':
-			out = append(out, calcToken{kind: "lparen"})
-			i++
-		case ch == ')':
-			out = append(out, calcToken{kind: "rparen"})
-			i++
-		case ch == '+', ch == '*', ch == '/':
-			out = append(out, calcToken{kind: "op", text: string(ch)})
-			i++
-		case ch == '-':
-			// Unary vs binary: binary if previous token is a value or rparen.
-			if len(out) > 0 && (out[len(out)-1].kind == "num" || out[len(out)-1].kind == "rparen") {
-				out = append(out, calcToken{kind: "op", text: "-"})
-				i++
-			} else {
-				// Unary minus: read a number and negate its value.
-				j := i + 1
-				start := j
-				for j < len(expr) && (unicode.IsDigit(rune(expr[j])) || expr[j] == '.') {
-					j++
-				}
-				for j < len(expr) && unicode.IsLetter(rune(expr[j])) {
-					j++
-				}
-				if j < len(expr) && expr[j] == '%' {
-					j++
-				}
-				if start == j {
-					return nil, false
-				}
-				v, ok := parseCalcNum("-"+expr[start:j], 0, 0)
-				if !ok {
-					return nil, false
-				}
-				out = append(out, calcToken{kind: "num", value: v, text: "-" + expr[start:j]})
-				i = j
-			}
-		case unicode.IsDigit(rune(ch)) || ch == '.':
-			j := i
-			for j < len(expr) && (unicode.IsDigit(rune(expr[j])) || expr[j] == '.') {
-				j++
-			}
-			// Optional unit (letters or %).
-			for j < len(expr) && unicode.IsLetter(rune(expr[j])) {
-				j++
-			}
-			if j < len(expr) && expr[j] == '%' {
-				j++
-			}
-			// num tokens carry the raw text; conversion to mm happens in parser.
-			out = append(out, calcToken{kind: "num", text: expr[i:j]})
-			i = j
-		default:
+		token, next, ok := nextCalcToken(expr, i, out)
+		if !ok {
 			return nil, false
 		}
+		if token.kind != "" {
+			out = append(out, token)
+		}
+		i = next
 	}
 	return out, true
+}
+
+func nextCalcToken(expr string, pos int, previous []calcToken) (calcToken, int, bool) {
+	ch := expr[pos]
+	switch {
+	case ch == ' ' || ch == '\t':
+		return calcToken{}, pos + 1, true
+	case ch == '(':
+		return calcToken{kind: "lparen"}, pos + 1, true
+	case ch == ')':
+		return calcToken{kind: "rparen"}, pos + 1, true
+	case ch == '+', ch == '*', ch == '/':
+		return calcToken{kind: "op", text: string(ch)}, pos + 1, true
+	case ch == '-':
+		return nextMinusCalcToken(expr, pos, previous)
+	case unicode.IsDigit(rune(ch)) || ch == '.':
+		text, next, ok := readCalcNumberText(expr, pos)
+		return calcToken{kind: "num", text: text}, next, ok
+	default:
+		return calcToken{}, pos, false
+	}
+}
+
+func nextMinusCalcToken(expr string, pos int, previous []calcToken) (calcToken, int, bool) {
+	if len(previous) > 0 && (previous[len(previous)-1].kind == "num" || previous[len(previous)-1].kind == "rparen") {
+		return calcToken{kind: "op", text: "-"}, pos + 1, true
+	}
+
+	text, next, ok := readCalcNumberText(expr, pos+1)
+	if !ok {
+		return calcToken{}, pos, false
+	}
+	text = "-" + text
+	v, ok := parseCalcNum(text, 0, 0)
+	if !ok {
+		return calcToken{}, pos, false
+	}
+	return calcToken{kind: "num", value: v, text: text}, next, true
+}
+
+func readCalcNumberText(expr string, pos int) (string, int, bool) {
+	next := pos
+	for next < len(expr) && (unicode.IsDigit(rune(expr[next])) || expr[next] == '.') {
+		next++
+	}
+	if pos == next {
+		return "", pos, false
+	}
+	for next < len(expr) && unicode.IsLetter(rune(expr[next])) {
+		next++
+	}
+	if next < len(expr) && expr[next] == '%' {
+		next++
+	}
+	return expr[pos:next], next, true
 }
 
 // parseCalcNum converts a numeric token (e.g. "10mm", "5pt", "50%") to mm.

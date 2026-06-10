@@ -12,7 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestNew(t *testing.T) {
@@ -94,11 +94,11 @@ func TestCache_LoadImage(t *testing.T) {
 		sut := cache.New()
 
 		// Act
-		err := sut.LoadImage(buildPath("/docs/assets/images/biplane.jpg"), extension.Jpg)
+		err := sut.LoadImage(buildPath("/test/assets/images/biplane.jpg"), extension.Jpg)
 
 		// Assert
 		assert.Nil(t, err)
-		img, err := sut.GetImage(buildPath("/docs/assets/images/biplane.jpg"), extension.Jpg)
+		img, err := sut.GetImage(buildPath("/test/assets/images/biplane.jpg"), extension.Jpg)
 		assert.Nil(t, err)
 		assert.NotNil(t, img)
 	})

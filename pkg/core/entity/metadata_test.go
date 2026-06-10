@@ -6,7 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/avdoseferovic/paper/internal/assert"
 )
 
 func TestMetadata_AppendMap(t *testing.T) {

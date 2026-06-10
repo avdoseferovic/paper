@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aymerick/douceur/parser"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/avdoseferovic/paper/internal/assert"
+	"github.com/avdoseferovic/paper/internal/require"
 
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -50,10 +49,9 @@ func TestParseFontFaceSrc_SkipWoff(t *testing.T) {
 func TestExtractFontFace_ValidRule(t *testing.T) {
 	t.Parallel()
 	cssText := `@font-face { font-family: "MyFont"; src: url("./my.ttf") format("truetype") }`
-	sheet, err := parser.Parse(cssText)
-	require.NoError(t, err)
-	require.NotEmpty(t, sheet.Rules)
-	face, ok := extractFontFace(sheet.Rules[0])
+	rules := parseCSS(cssText)
+	require.NotEmpty(t, rules)
+	face, ok := extractFontFace(rules[0])
 	require.True(t, ok)
 	assert.Equal(t, "myfont", face.family) // lowercased for predictable matching
 	assert.Equal(t, "./my.ttf", face.srcURL)
