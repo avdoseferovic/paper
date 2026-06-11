@@ -107,7 +107,7 @@ a{color:inherit;text-decoration:none;}
 @keyframes sp{to{transform:rotate(360deg);}}
 
 /* ---------- split ---------- */
-.split{display:grid;grid-template-columns:minmax(380px,0.92fr) 1.08fr;gap:22px;flex:1;padding-bottom:30px;align-items:stretch;min-height:0;}
+.split{display:grid;grid-template-columns:minmax(380px,1fr) 1fr;gap:22px;flex:1;padding-bottom:30px;align-items:stretch;min-height:0;}
 .pane{display:flex;flex-direction:column;min-height:0;}
 .pane-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
 .pane-title{font-family:var(--mono);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;}
@@ -149,8 +149,8 @@ a{color:inherit;text-decoration:none;}
    repeating-linear-gradient(90deg, transparent, transparent 23px, oklch(0.90 0.005 80 / 0.5) 23px, oklch(0.90 0.005 80 / 0.5) 24px),
    var(--paper-2);
    overflow:auto;display:flex;justify-content:center;padding:34px;min-height:420px;}
-.scaler{transform-origin:top center;}
-iframe.sheet-doc{width:794px;border:0;display:block;background:var(--sheet);border-radius:2px;box-shadow:var(--shadow-sheet);}
+.scaler{overflow:hidden;}
+iframe.sheet-doc{border:0;display:block;background:var(--sheet);border-radius:2px;box-shadow:var(--shadow-sheet);transform-origin:top left;}
 
 /* status bar */
 .statusbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:11px;font-family:var(--mono);font-size:11px;color:var(--muted);}
@@ -393,7 +393,7 @@ const cm = CodeMirror.fromTextArea(editor, {
   mode: 'htmlmixed',
   theme: 'paper-dark',
   lineNumbers: true,
-  lineWrapping: false,
+  lineWrapping: true,
   indentUnit: 2,
   tabSize: 2,
   smartIndent: true,
@@ -456,12 +456,17 @@ function callWasm() {
 /* size the preview iframe to the page aspect, scaled to fit the pane */
 function fitPreview() {
   const p = PAGE[pageSel.value];
+  // Fit to BOTH the available width and height so a single page shows without a
+  // scrollbar. The scale is applied to the iframe; the scaler box is sized to
+  // the SCALED dimensions so it doesn't reserve the full page width in layout
+  // (which would squeeze the editor column).
+  const availW = shell.clientWidth - 68;   // minus horizontal padding
+  const availH = shell.clientHeight - 68;  // minus vertical padding
+  const scale = Math.min(1, availW / p.w, availH / p.h);
   sheet.style.width = p.w + 'px';
   sheet.style.height = p.h + 'px';
-  const avail = shell.clientWidth - 68; // minus padding
-  const scale = Math.min(1, avail / p.w);
-  scaler.style.transform = `scale(${scale})`;
-  scaler.style.width = p.w + 'px';
+  sheet.style.transform = `scale(${scale})`;
+  scaler.style.width = (p.w * scale) + 'px';
   scaler.style.height = (p.h * scale) + 'px';
   fitTip.textContent = p.label + ' · ' + Math.round(scale * 100) + '%';
 }
