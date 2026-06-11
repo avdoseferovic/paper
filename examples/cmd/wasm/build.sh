@@ -12,7 +12,9 @@ if [[ ! -f "$wasm_exec" ]]; then
 	echo "error: $wasm_exec not found (expected Go >= 1.21 with lib/wasm/wasm_exec.js)" >&2
 	exit 1
 fi
-cp "$wasm_exec" web/wasm_exec.js
+# -f: the toolchain's wasm_exec.js is read-only (0444), so the copied file is
+# too; force-replace it on rebuilds instead of failing with "permission denied".
+cp -f "$wasm_exec" web/wasm_exec.js
 
 echo "Built web/paper.wasm and copied web/wasm_exec.js"
 echo "Serve it with:  (cd $(pwd)/web && python3 -m http.server 8080)"

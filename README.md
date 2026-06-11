@@ -155,6 +155,19 @@ the useful page area after margins, headers, and footers are reserved.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
 
+## Browser / WebAssembly
+
+Paper is pure Go and compiles to WebAssembly, so HTML-to-PDF conversion can run
+entirely in the browser — no server round-trip. A runnable demo and the
+`syscall/js` bindings live in [`examples/cmd/wasm`](examples/cmd/wasm); build the
+demo with `make wasm` and serve the `web/` directory. The bindings expose a
+single global, `paperGeneratePDF(html)`, returning `{ pdf: "<base64>" }` or
+`{ error: "<message>" }`.
+
+See [docs/wasm-support.md](docs/wasm-support.md) for the JS API contract,
+build/serve steps, and browser limitations (no filesystem: use `data:` URIs and
+`AddUTF8FontFromBytes`; `Save` is unavailable — use `GetBase64`/`GetBytes`).
+
 ## Merging PDFs
 
 `merge.Bytes` (package `pkg/merge`) concatenates the pages of multiple PDFs
@@ -227,6 +240,7 @@ generating documents in parallel.
 - [API reference](https://pkg.go.dev/github.com/avdoseferovic/paper)
 - [Project docs](docs/README.md)
 - [HTML support](docs/html-support.md)
+- [Browser / WebAssembly](docs/wasm-support.md)
 - [Examples](docs/assets/examples)
 
 ## Development

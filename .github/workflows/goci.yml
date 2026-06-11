@@ -38,6 +38,17 @@ jobs:
         run: go build ./...
         working-directory: examples
 
+      # Guard wasm compatibility for both modules. These mirror the build steps
+      # above (same workspace resolution via go.work — the examples module
+      # depends on local-only paper packages and only builds under the
+      # workspace) and run on every matrix Go version.
+      - name: Build wasm (js/wasm)
+        run: GOOS=js GOARCH=wasm go build ./...
+
+      - name: Build wasm (js/wasm) examples module
+        run: GOOS=js GOARCH=wasm go build ./...
+        working-directory: examples
+
       - name: Test
         run: go test -v ./...
 

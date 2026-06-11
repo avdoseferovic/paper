@@ -55,6 +55,10 @@ mocks:
 	go run ./internal/cmd/mockfix internal/mocks
 	make fmt
 
+.PHONY: wasm
+wasm:
+	cd examples/cmd/wasm && ./build.sh
+
 .PHONY: examples
 examples:
 	go run docs/assets/examples/addpage/main.go
