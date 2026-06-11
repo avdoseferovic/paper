@@ -114,6 +114,21 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, sut)
 		assert.Equal(t, "*paper.Paper", fmt.Sprintf("%T", sut))
 	})
+	t.Run("constructors return concrete Paper satisfying core.Paper", func(t *testing.T) {
+		t.Parallel()
+
+		fromConstructor := paper.New()
+		assert.IsType(t, &paper.Paper{}, fromConstructor)
+
+		var fromConstructorAsInterface core.Paper = fromConstructor
+		assert.NotNil(t, fromConstructorAsInterface)
+
+		concrete := paper.NewPaper()
+		assert.IsType(t, &paper.Paper{}, concrete)
+
+		var asInterface core.Paper = concrete
+		assert.NotNil(t, asInterface)
+	})
 }
 
 func TestFromHTML(t *testing.T) {

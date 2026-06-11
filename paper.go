@@ -12,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
 var (
@@ -118,6 +119,12 @@ func (m *Paper) RegisterHeader(rows ...core.Row) error {
 // it this case the method will return an error.
 func (m *Paper) RegisterFooter(rows ...core.Row) error {
 	return m.pageBuilder.registerFooter(rows...)
+}
+
+// GetStructure is responsible for return the component tree, this is useful
+// on unit tests cases.
+func (m *Paper) GetStructure() *node.Node[core.Structure] {
+	return m.pageBuilder.getStructure()
 }
 
 func getConfig(configs ...*entity.Config) *entity.Config {
