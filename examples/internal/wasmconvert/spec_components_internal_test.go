@@ -42,6 +42,8 @@ func TestBuildComponent_BarcodeCaption_HasTopOffset(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("expected barcode + caption, got %d components", len(got))
 	}
+	// prop_top is an internal structure-map key; this is the only host-observable
+	// way to assert the caption sits below (not on top of) the barcode.
 	caption := got[1].GetStructure().GetData()
 	top, ok := caption.Details["prop_top"]
 	if !ok {

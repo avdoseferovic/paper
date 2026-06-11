@@ -49,6 +49,9 @@ func buildComponent(c SpecComp) []core.Component {
 	case "checkbox":
 		return []core.Component{checkbox.New(plainText(c.Value), props.Checkbox{Checked: c.Checked})}
 	case "pagenumber":
+		// Static placeholder: a grid cell has no document-level page context, so
+		// {n}/{t} resolve to "1". Real pagination is a document-level feature
+		// (config.WithPageNumber), out of scope for the per-cell spec.
 		page := strings.NewReplacer("{n}", "1", "{t}", "1").Replace(c.Value)
 		return []core.Component{text.New(plainText(page), props.Text{Size: 9, Align: consts.AlignCenter, Color: mutedColor})}
 	case "footer":
@@ -87,10 +90,16 @@ func qrComponent(c SpecComp) core.Component {
 }
 
 func barcodeComponent(c SpecComp) core.Component {
+	// Honor an explicit width/height ratio when provided; otherwise default to a
+	// slim 12:1.6 barcode (matching the showcase).
+	proportion := props.Proportion{Width: 12, Height: 1.6}
+	if c.Width > 0 && c.Height > 0 {
+		proportion = props.Proportion{Width: c.Width, Height: c.Height}
+	}
 	return code.NewBar(c.Value, props.Barcode{
 		Center:     true,
 		Percent:    100,
-		Proportion: props.Proportion{Width: 12, Height: 1.6},
+		Proportion: proportion,
 	})
 }
 

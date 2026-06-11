@@ -57,6 +57,19 @@ func TestHTMLToBase64_CanceledContext_ReturnsError(t *testing.T) {
 	}
 }
 
+// Pathological / adversarial HTML must never panic the caller — HTMLToBase64
+// recovers and returns a doc or an error, keeping the wasm goroutine alive.
+func TestHTMLToBase64_PathologicalHTML_DoesNotPanic(t *testing.T) {
+	for _, in := range []string{
+		"<table><tr><td colspan=\"99999\">x</td></tr>",
+		"<p style=\"width:-1px\">" + strings.Repeat("<b>", 500),
+		"<img src=\"\"><svg><svg><svg>",
+	} {
+		_, _ = wasmconvert.HTMLToBase64(context.Background(), in)
+		// Reaching here without a panic is the assertion.
+	}
+}
+
 func TestHTMLToBase64_FilePathImage_DoesNotPanic(t *testing.T) {
 	// The default image resolver refuses file-path src values (no filesystem
 	// access), so an <img> pointing at a file must be handled gracefully:

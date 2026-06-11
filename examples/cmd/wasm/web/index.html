@@ -483,7 +483,8 @@ function updateStatus(ms, bytes) {
 
 /* render the current source to a real PDF blob shown in the preview */
 function render() {
-  if (!wasmReady || typeof paperGeneratePDF !== 'function') return false;
+  const fn = mode === 'comp' ? 'paperGenerateFromSpec' : 'paperGeneratePDF';
+  if (!wasmReady || typeof window[fn] !== 'function') return false;
   errBox.classList.remove('show');
   const start = performance.now();
   let res;

@@ -17,11 +17,32 @@ import (
 // only whitespace.
 var ErrEmptyHTML = errors.New("wasmconvert: html is empty")
 
+// errHTMLPanic wraps a recovered panic from the HTML render tree.
+var errHTMLPanic = errors.New("wasmconvert: html render panicked")
+
 // HTMLToBase64 renders the given HTML to a PDF and returns it as a base64
 // string, suitable for handing back to JavaScript. It returns ErrEmptyHTML when
-// html is empty or whitespace-only, and propagates any error from generation
-// (including context cancellation).
+// html is empty or whitespace-only, propagates any error from generation
+// (including context cancellation), and recovers from any panic in the render
+// tree so the caller (and the wasm goroutine) always survives.
 func HTMLToBase64(ctx context.Context, html string) (string, error) {
+	var b64 string
+	var err error
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				b64 = ""
+				err = fmt.Errorf("%w: %v", errHTMLPanic, r)
+			}
+		}()
+		b64, err = renderHTML(ctx, html)
+	}()
+
+	return b64, err
+}
+
+func renderHTML(ctx context.Context, html string) (string, error) {
 	if strings.TrimSpace(html) == "" {
 		return "", ErrEmptyHTML
 	}
