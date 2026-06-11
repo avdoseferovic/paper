@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/avdoseferovic/paper/pkg/components/code"
 	"github.com/avdoseferovic/paper/pkg/components/image"
+	"github.com/avdoseferovic/paper/pkg/consts"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/decorator"
@@ -15,7 +17,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -25,7 +26,7 @@ import (
 
 func main() {
 	m := GetPaper("docs/assets/images/frontpage.png")
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -55,15 +56,15 @@ func GetPaper(imagePath string) core.Paper {
 
 	m.AddRows(
 		row.New(20).Add(
-			text.NewCol(4, "Barcode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Barcode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewBarCol(8, "barcode", props.Barcode{Center: true, Percent: 70}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "QrCode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "QrCode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewQrCol(8, "qrcode", props.Rect{Center: true, Percent: 70}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "MatrixCode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "MatrixCode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewMatrixCol(8, "matrixcode", props.Rect{Center: true, Percent: 70}),
 		),
 	)
@@ -75,23 +76,23 @@ func GetPaper(imagePath string) core.Paper {
 	}
 	m.AddRows(
 		row.New(20).Add(
-			text.NewCol(4, "Image From File:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Image From File:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			image.NewFromFileCol(8, "docs/assets/images/biplane.jpg", props.Rect{Center: true, Percent: 90}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "Image From Base64::", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Image From Base64::", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			image.NewFromBytesCol(8, bytes, extension.Png, props.Rect{Center: true, Percent: 90}),
 		),
 	)
 
 	m.AddRows(
 		row.New(20).Add(
-			text.NewCol(4, "Text:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Text:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			text.NewCol(8, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac condimentum sem.",
-				props.Text{Size: 12, Top: 5, Align: align.Center}),
+				props.Text{Size: 12, Top: 5, Align: consts.AlignCenter}),
 		),
 		row.New(40).Add(
-			text.NewCol(4, "Signature:", props.Text{Size: 15, Top: 17, Align: align.Center}),
+			text.NewCol(4, "Signature:", props.Text{Size: 15, Top: 17, Align: consts.AlignCenter}),
 			signature.NewCol(8, "Name", props.Signature{FontSize: 10}),
 		),
 	)

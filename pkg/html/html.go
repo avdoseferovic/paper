@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
@@ -19,13 +18,23 @@ import (
 type Option func(*config)
 
 type config struct {
-	unsupportedHandler func(thing, value string)
-	gridSize           int
-	contentWidthMM     float64
-	imageBaseDir       string
-	stylesheetBaseDir  string
-	limits             Limits
-	limitsSet          bool
+	unsupportedHandler  func(thing, value string)
+	gridSize            int
+	contentWidthMM      float64
+	imageBaseDir        string
+	stylesheetBaseDir   string
+	limits              Limits
+	limitsSet           bool
+	outlineFromHeadings bool
+}
+
+// WithOutlineFromHeadings adds h1-h6 headings to the PDF document outline:
+// h1 becomes a level-0 entry, h2 a level-1 entry, and so on. Hidden headings
+// are skipped.
+func WithOutlineFromHeadings() Option {
+	return func(c *config) {
+		c.outlineFromHeadings = true
+	}
 }
 
 // WithUnsupportedHandler registers a callback invoked for unsupported HTML tags
@@ -73,13 +82,8 @@ func WithStylesheetBaseDir(dir string) Option {
 }
 
 // FromString parses an HTML string and returns the corresponding Paper rows.
-func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
-	return FromStringCtx(context.TODO(), htmlStr, opts...)
-}
-
-// FromStringCtx parses an HTML string and returns the corresponding Paper rows.
 // It observes ctx before and after DOM parsing and during translation.
-func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row, error) {
+func FromString(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
 		return nil, nil
 	}
@@ -99,38 +103,12 @@ func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.
 	if err != nil {
 		return nil, err
 	}
-	var tOpts []translate.Option
-	if cfg.gridSize > 0 {
-		tOpts = append(tOpts, translate.WithGridSize(cfg.gridSize))
-	}
-	if cfg.contentWidthMM > 0 {
-		tOpts = append(tOpts, translate.WithContentWidth(cfg.contentWidthMM))
-	}
-	if cfg.imageBaseDir != "" {
-		tOpts = append(tOpts, translate.WithImageBaseDir(cfg.imageBaseDir))
-	}
-	if cfg.stylesheetBaseDir != "" {
-		tOpts = append(tOpts, translate.WithStylesheetBaseDir(cfg.stylesheetBaseDir))
-	}
-	if cfg.limitsSet {
-		tOpts = append(tOpts, translate.WithLimits(cfg.limits))
-	} else {
-		tOpts = append(tOpts, translate.WithLimits(htmllimits.Default()))
-	}
-	if cfg.unsupportedHandler != nil {
-		tOpts = append(tOpts, translate.WithUnsupportedHandler(cfg.unsupportedHandler))
-	}
-	return translate.TranslateCtx(ctx, doc, tOpts...)
+	return translate.Translate(ctx, doc, cfg.translateOptions()...)
 }
 
-// FromReader parses HTML from an io.Reader and returns the corresponding rows.
-func FromReader(r io.Reader, opts ...Option) ([]core.Row, error) {
-	return FromReaderCtx(context.TODO(), r, opts...)
-}
-
-// FromReaderCtx parses HTML from an io.Reader and returns the corresponding
+// FromReader parses HTML from an io.Reader and returns the corresponding
 // rows. It observes ctx before and after reading and during translation.
-func FromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row, error) {
+func FromReader(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row, error) {
 	err := conversionCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -143,13 +121,10 @@ func FromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row
 	if err != nil {
 		return nil, err
 	}
-	return FromStringCtx(ctx, string(data), opts...)
+	return FromString(ctx, string(data), opts...)
 }
 
 func conversionCanceled(ctx context.Context) error {
-	if ctx == nil {
-		return nil
-	}
 	err := ctx.Err()
 	if err != nil {
 		return fmt.Errorf("html: conversion canceled: %w", err)

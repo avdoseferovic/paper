@@ -122,7 +122,7 @@ func TestFromHTML(t *testing.T) {
 	t.Run("generates a PDF document from HTML", func(t *testing.T) {
 		t.Parallel()
 
-		doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
+		doc, err := paper.FromHTML(context.Background(), `<h1>Hello</h1><p>World</p>`)
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -138,7 +138,7 @@ func TestFromHTML(t *testing.T) {
 			WithMaxGridSize(20).
 			Build()
 
-		doc, err := paper.FromHTML(`<div style="display:flex"><p>A</p><p>B</p><p>C</p></div>`, cfg)
+		doc, err := paper.FromHTML(context.Background(), `<div style="display:flex"><p>A</p><p>B</p><p>C</p></div>`, cfg)
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -153,20 +153,20 @@ func TestFromHTML(t *testing.T) {
 			WithHTMLLimits(coreentity.HTMLLimits{MaxDOMDepth: 4}).
 			Build()
 
-		doc, err := paper.FromHTML(`<div><div><div><div><div>too deep</div></div></div></div></div>`, cfg)
+		doc, err := paper.FromHTML(context.Background(), `<div><div><div><div><div>too deep</div></div></div></div></div>`, cfg)
 
 		assert.ErrorIs(t, err, paperhtml.ErrDOMTooDeep)
 		assert.Nil(t, doc)
 	})
 }
 
-func TestFromHTMLCtx_ReturnsContextError(t *testing.T) {
+func TestFromHTML_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	doc, err := paper.FromHTMLCtx(ctx, `<p>cancelled</p>`)
+	doc, err := paper.FromHTML(ctx, `<p>cancelled</p>`)
 
 	assert.Nil(t, doc)
 	assert.ErrorIs(t, err, context.Canceled)
@@ -178,7 +178,7 @@ func TestFromHTMLReader(t *testing.T) {
 	t.Run("generates a PDF document from a reader", func(t *testing.T) {
 		t.Parallel()
 
-		doc, err := paper.FromHTMLReader(strings.NewReader(`<p>reader input</p>`))
+		doc, err := paper.FromHTMLReader(context.Background(), strings.NewReader(`<p>reader input</p>`))
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -191,20 +191,20 @@ func TestFromHTMLReader(t *testing.T) {
 
 		wantErr := errors.New("read failed")
 
-		doc, err := paper.FromHTMLReader(errorReader{err: wantErr})
+		doc, err := paper.FromHTMLReader(context.Background(), errorReader{err: wantErr})
 
 		assert.Nil(t, doc)
 		assert.ErrorIs(t, err, wantErr)
 	})
 }
 
-func TestFromHTMLReaderCtx_ReturnsContextError(t *testing.T) {
+func TestFromHTMLReader_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	doc, err := paper.FromHTMLReaderCtx(ctx, strings.NewReader(`<p>cancelled</p>`))
+	doc, err := paper.FromHTMLReader(ctx, strings.NewReader(`<p>cancelled</p>`))
 
 	assert.Nil(t, doc)
 	assert.ErrorIs(t, err, context.Canceled)
@@ -420,7 +420,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRow(10, col.New(12))
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
@@ -433,7 +433,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRow(10, col.New(12))
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
@@ -447,7 +447,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
@@ -465,7 +465,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
@@ -484,7 +484,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		if assert.NotNil(t, doc) {
 			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
@@ -501,7 +501,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRows(text.NewRow(10, "aes protected"))
 
 		// Act
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 
 		// Assert
 		assert.Nil(t, err)
@@ -523,7 +523,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
@@ -542,7 +542,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 		assert.Nil(t, err)
 		if assert.NotNil(t, doc) {
 			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
@@ -612,9 +612,9 @@ func TestMaroto_Generate(t *testing.T) {
 		for range 30 {
 			sut.AddRow(10, col.New(12))
 		}
-		_, err1 := sut.Generate()
-		_, err2 := sut.Generate()
-		_, err3 := sut.Generate()
+		_, err1 := sut.Generate(context.Background())
+		_, err2 := sut.Generate(context.Background())
+		_, err3 := sut.Generate(context.Background())
 
 		// Assert
 		assert.Nil(t, err1)
@@ -659,7 +659,7 @@ func TestPaper_GetStructureBeforeGenerateDoesNotAddBlankPage(t *testing.T) {
 	sut.AddRow(10, col.New(12))
 
 	structurePages := structurePageCount(sut.GetStructure())
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 
 	assert.NoError(t, err)
 	if assert.NotNil(t, doc) {
@@ -697,15 +697,14 @@ func TestPaper_GenerateRepeatedCallsLowMemory(t *testing.T) {
 	assertRepeatedGenerateStable(t, config.NewBuilder().WithSequentialLowMemoryMode(2).Build())
 }
 
-func TestPaper_GenerateCtxReturnsContextError(t *testing.T) {
+func TestPaper_GenerateReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	for name, cfg := range map[string]*coreentity.Config{
-		"sequential":  config.NewBuilder().WithSequentialMode().Build(),
-		"concurrent":  config.NewBuilder().WithConcurrentMode(2).Build(),
-		"low-memory":  config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
-		"protection":  config.NewBuilder().WithProtection(protection.None, "user", "owner").Build(),
-		"nil-context": config.NewBuilder().WithSequentialMode().Build(),
+		"sequential": config.NewBuilder().WithSequentialMode().Build(),
+		"concurrent": config.NewBuilder().WithConcurrentMode(2).Build(),
+		"low-memory": config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
+		"protection": config.NewBuilder().WithProtection(protection.None, "user", "owner").Build(),
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -713,18 +712,10 @@ func TestPaper_GenerateCtxReturnsContextError(t *testing.T) {
 			sut := paper.New(cfg)
 			sut.AddRow(10, col.New(12))
 
-			if name == "nil-context" {
-				doc, err := sut.GenerateCtx(nil)
-
-				assert.NoError(t, err)
-				assert.NotNil(t, doc)
-				return
-			}
-
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 
-			doc, err := sut.GenerateCtx(ctx)
+			doc, err := sut.Generate(ctx)
 
 			assert.Nil(t, doc)
 			assert.ErrorIs(t, err, context.Canceled)
@@ -733,7 +724,7 @@ func TestPaper_GenerateCtxReturnsContextError(t *testing.T) {
 	}
 }
 
-func TestPaper_GenerateCtxConcurrentCancellationDoesNotLeak(t *testing.T) {
+func TestPaper_GenerateConcurrentCancellationDoesNotLeak(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	cfg := config.NewBuilder().WithConcurrentMode(2).Build()
@@ -744,7 +735,7 @@ func TestPaper_GenerateCtxConcurrentCancellationDoesNotLeak(t *testing.T) {
 	}
 	sut.AddRow(10, col.New(12).Add(cancelOnRenderComponent{cancel: cancel}))
 
-	doc, err := sut.GenerateCtx(ctx)
+	doc, err := sut.Generate(ctx)
 
 	assert.Nil(t, doc)
 	assert.ErrorIs(t, err, context.Canceled)
@@ -759,13 +750,13 @@ func assertRepeatedGenerateStable(t *testing.T, cfg *coreentity.Config) {
 		sut.AddRow(10, col.New(12))
 	}
 
-	first, err := sut.Generate()
+	first, err := sut.Generate(context.Background())
 	assert.NoError(t, err)
 	if !assert.NotNil(t, first) {
 		return
 	}
 
-	second, err := sut.Generate()
+	second, err := sut.Generate(context.Background())
 	assert.NoError(t, err)
 	if !assert.NotNil(t, second) {
 		return
@@ -806,7 +797,7 @@ func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 		sut := paper.New()
 		sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
 
-		doc, err := sut.Generate()
+		doc, err := sut.Generate(context.Background())
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
@@ -827,7 +818,7 @@ func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 				sut := paper.New(cfg)
 				sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
 
-				doc, err := sut.Generate()
+				doc, err := sut.Generate(context.Background())
 
 				assert.NoError(t, err)
 				if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
@@ -917,10 +908,10 @@ func TestPaper_InvalidCallerSuppliedMaxGridSizeDoesNotBreakHTMLOrFinalization(t 
 	cfg.MaxGridSize = 0
 	sut := paper.New(cfg)
 
-	err := sut.AddHTML(`<div style="display:flex"><p>A</p><p>B</p></div>`)
+	err := sut.AddHTML(context.Background(), `<div style="display:flex"><p>A</p><p>B</p></div>`)
 	assert.NoError(t, err)
 
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.NoError(t, err)
 	if assert.NotNil(t, doc) {
 		assert.Equal(t, 1, pdfPageCount(t, doc.GetBytes()))
@@ -928,14 +919,14 @@ func TestPaper_InvalidCallerSuppliedMaxGridSizeDoesNotBreakHTMLOrFinalization(t 
 	}
 }
 
-func TestPaper_AddHTMLCtxReturnsContextError(t *testing.T) {
+func TestPaper_AddHTMLReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	sut := paper.New()
 
-	err := sut.AddHTMLCtx(ctx, `<p>cancelled</p>`)
+	err := sut.AddHTML(ctx, `<p>cancelled</p>`)
 
 	assert.ErrorIs(t, err, context.Canceled)
 	assert.Equal(t, 1, structurePageCount(sut.GetStructure()))

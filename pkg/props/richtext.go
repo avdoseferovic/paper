@@ -1,8 +1,7 @@
 package props
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
@@ -59,9 +58,9 @@ type RichText struct {
 	Bottom            float64
 	Left              float64
 	Right             float64
-	Align             align.Type
+	Align             consts.Align
 	LineHeight        float64
-	BreakLineStrategy breakline.Strategy
+	BreakLineStrategy consts.BreakLineStrategy
 	FirstLineIndent   float64
 	WhiteSpace        string
 
@@ -70,6 +69,11 @@ type RichText struct {
 	// at render time by richtext.RichText.Render when the provider implements
 	// core.LinkProvider and the component was built with an anchor registry.
 	AnchorResolver func(name string) int
+
+	// Outline, when set, adds this paragraph as an entry in the PDF document
+	// outline (the bookmark sidebar). When Title is empty, the concatenated
+	// run text is used.
+	Outline *Outline
 }
 
 // MakeValid fills in default values for RichText paragraph props.
@@ -80,13 +84,13 @@ func (r *RichText) MakeValid(font *Font) {
 // NormalizeRichText returns a defaulted copy of r.
 func NormalizeRichText(r RichText, _ ...*Font) RichText {
 	if r.Align == "" {
-		r.Align = align.Left
+		r.Align = consts.AlignLeft
 	}
 	if r.LineHeight == 0 {
 		r.LineHeight = 1.0
 	}
 	if r.BreakLineStrategy == "" {
-		r.BreakLineStrategy = breakline.EmptySpaceStrategy
+		r.BreakLineStrategy = consts.BreakLineEmptySpace
 	}
 	if r.WhiteSpace == "" {
 		r.WhiteSpace = "normal"

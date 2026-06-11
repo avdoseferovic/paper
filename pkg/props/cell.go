@@ -1,9 +1,9 @@
 package props
 
 import (
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 )
 
 // Cell is the representation of a cell in the grid system.
@@ -23,7 +23,7 @@ type Cell struct {
 	BorderThickness float64
 	// LineStyle defines which line style will be applied to a cell.
 	// Default: Solid
-	LineStyle linestyle.Type
+	LineStyle consts.LineStyle
 
 	// Per-side padding (mm). Applied by components to shift content inward.
 	PaddingTop    float64
@@ -53,10 +53,10 @@ type Cell struct {
 	BorderLeftThickness   float64
 
 	// Per-side border line style ("solid", "dashed", "dotted"). Empty = solid.
-	BorderTopStyle    linestyle.Type
-	BorderRightStyle  linestyle.Type
-	BorderBottomStyle linestyle.Type
-	BorderLeftStyle   linestyle.Type
+	BorderTopStyle    consts.LineStyle
+	BorderRightStyle  consts.LineStyle
+	BorderBottomStyle consts.LineStyle
+	BorderLeftStyle   consts.LineStyle
 
 	// BackgroundGradient, when non-nil, paints a gradient behind the cell
 	// (overrides BackgroundColor when both are set).
@@ -70,7 +70,7 @@ type Cell struct {
 
 	// Outline fields. Outline is drawn OUTSIDE the cell box (does not affect layout).
 	OutlineWidth  float64
-	OutlineStyle  linestyle.Type
+	OutlineStyle  consts.LineStyle
 	OutlineColor  *Color
 	OutlineOffset float64 // mm; positive = further out, negative = inside border
 

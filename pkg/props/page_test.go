@@ -6,9 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -88,11 +86,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 100.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Left, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignLeft, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -109,11 +107,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 0.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Left, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignLeft, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -130,11 +128,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 100.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Right, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignRight, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -151,11 +149,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 0.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Right, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignRight, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -172,11 +170,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 100.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Right, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignRight, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -193,11 +191,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 100.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Center, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignCenter, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -214,11 +212,11 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 100.0, textProp.Top)
 		assert.Equal(t, 0.0, textProp.Left)
 		assert.Equal(t, 0.0, textProp.Right)
-		assert.Equal(t, fontfamily.Helvetica, textProp.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, textProp.Family)
 		assert.Equal(t, fontstyle.Bold, textProp.Style)
 		assert.Equal(t, 14.0, textProp.Size)
-		assert.Equal(t, align.Left, textProp.Align)
-		assert.Equal(t, breakline.EmptySpaceStrategy, textProp.BreakLineStrategy)
+		assert.Equal(t, consts.AlignLeft, textProp.Align)
+		assert.Equal(t, consts.BreakLineEmptySpace, textProp.BreakLineStrategy)
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
@@ -245,14 +243,14 @@ func TestPageNumber_WithFont(t *testing.T) {
 			Color:  &props.RedColor,
 			Size:   15,
 			Style:  fontstyle.Bold,
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 		}
 
 		font := &props.Font{
 			Color:  &props.BlueColor,
 			Size:   13,
 			Style:  fontstyle.Italic,
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 		}
 
 		// Act
@@ -262,7 +260,7 @@ func TestPageNumber_WithFont(t *testing.T) {
 		assert.Equal(t, &props.RedColor, pageNumber.Color)
 		assert.Equal(t, 15.0, pageNumber.Size)
 		assert.Equal(t, fontstyle.Bold, pageNumber.Style)
-		assert.Equal(t, fontfamily.Helvetica, pageNumber.Family)
+		assert.Equal(t, consts.FontFamilyHelvetica, pageNumber.Family)
 	})
 	t.Run("when font not defined, should apply", func(t *testing.T) {
 		t.Parallel()
@@ -273,7 +271,7 @@ func TestPageNumber_WithFont(t *testing.T) {
 			Color:  &props.BlueColor,
 			Size:   13,
 			Style:  fontstyle.Italic,
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 		}
 
 		// Act
@@ -283,7 +281,7 @@ func TestPageNumber_WithFont(t *testing.T) {
 		assert.Equal(t, &props.BlueColor, pageNumber.Color)
 		assert.Equal(t, 13.0, pageNumber.Size)
 		assert.Equal(t, fontstyle.Italic, pageNumber.Style)
-		assert.Equal(t, fontfamily.Arial, pageNumber.Family)
+		assert.Equal(t, consts.FontFamilyArial, pageNumber.Family)
 	})
 }
 
@@ -298,7 +296,7 @@ func TestPageNumber_AppendMap(t *testing.T) {
 			Color:   &props.RedColor,
 			Size:    15,
 			Style:   fontstyle.Bold,
-			Family:  fontfamily.Helvetica,
+			Family:  consts.FontFamilyHelvetica,
 		}
 
 		m := make(map[string]any)
@@ -309,7 +307,7 @@ func TestPageNumber_AppendMap(t *testing.T) {
 		// Assert
 		assert.Equal(t, "pattern", m["page_number_pattern"])
 		assert.Equal(t, props.Bottom, m["page_number_place"])
-		assert.Equal(t, fontfamily.Helvetica, m["page_number_family"])
+		assert.Equal(t, consts.FontFamilyHelvetica, m["page_number_family"])
 		assert.Equal(t, fontstyle.Bold, m["page_number_style"])
 		assert.Equal(t, 15.0, m["page_number_size"])
 		assert.Equal(t, "RGB(255, 0, 0)", m["page_number_color"])

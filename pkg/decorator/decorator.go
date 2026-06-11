@@ -49,16 +49,9 @@ func (m *Metrics) GetCurrentConfig() *entity.Config {
 }
 
 // Generate decorates the Generate method of paper instance.
-func (m *Metrics) Generate() (*core.Pdf, error) {
+func (m *Metrics) Generate(ctx context.Context) (*core.Pdf, error) {
 	return m.generate(func() (*core.Pdf, error) {
-		return m.inner.Generate()
-	})
-}
-
-// GenerateCtx decorates the GenerateCtx method of paper instance.
-func (m *Metrics) GenerateCtx(ctx context.Context) (*core.Pdf, error) {
-	return m.generate(func() (*core.Pdf, error) {
-		return m.inner.GenerateCtx(ctx)
+		return m.inner.Generate(ctx)
 	})
 }
 
@@ -81,16 +74,9 @@ func (m *Metrics) AddRows(rows ...core.Row) {
 }
 
 // AddHTML decorates the AddHTML method of paper instance.
-func (m *Metrics) AddHTML(htmlStr string) error {
+func (m *Metrics) AddHTML(ctx context.Context, htmlStr string) error {
 	return m.addHTML(func() error {
-		return m.inner.AddHTML(htmlStr)
-	})
-}
-
-// AddHTMLCtx decorates the AddHTMLCtx method of paper instance.
-func (m *Metrics) AddHTMLCtx(ctx context.Context, htmlStr string) error {
-	return m.addHTML(func() error {
-		return m.inner.AddHTMLCtx(ctx, htmlStr)
+		return m.inner.AddHTML(ctx, htmlStr)
 	})
 }
 

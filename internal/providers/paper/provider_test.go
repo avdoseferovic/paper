@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
-
 	"github.com/avdoseferovic/paper/internal/fixture"
 	"github.com/avdoseferovic/paper/internal/merror"
 	"github.com/avdoseferovic/paper/internal/mocks"
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	pdf "github.com/avdoseferovic/paper/internal/pdf"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/protection"
 
@@ -543,7 +542,7 @@ func TestProvider_AddBarCode(t *testing.T) {
 		// Arrange
 		cell := &entity.Cell{}
 		prop := fixture.BarcodeProp()
-		prop.Type = barcode.EAN
+		prop.Type = consts.BarcodeEAN
 
 		img := &entity.Image{Bytes: []byte{1, 2, 3}}
 

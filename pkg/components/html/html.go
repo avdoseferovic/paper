@@ -2,6 +2,8 @@
 package html
 
 import (
+	"context"
+
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -45,9 +47,9 @@ type HTML struct {
 }
 
 // New converts an HTML string into a component that can be placed inside a
-// column like any other Paper component.
-func New(htmlStr string, opts ...Option) (*HTML, error) {
-	rows, err := paperhtml.FromString(htmlStr, opts...)
+// column like any other Paper component. It observes ctx during translation.
+func New(ctx context.Context, htmlStr string, opts ...Option) (*HTML, error) {
+	rows, err := paperhtml.FromString(ctx, htmlStr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +57,8 @@ func New(htmlStr string, opts ...Option) (*HTML, error) {
 }
 
 // NewCol wraps an HTML component in a column of the given grid size.
-func NewCol(size int, htmlStr string, opts ...Option) (core.Col, error) {
-	component, err := New(htmlStr, opts...)
+func NewCol(ctx context.Context, size int, htmlStr string, opts ...Option) (core.Col, error) {
+	component, err := New(ctx, htmlStr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +66,8 @@ func NewCol(size int, htmlStr string, opts ...Option) (core.Col, error) {
 }
 
 // NewRow wraps an HTML component in a fixed-height row.
-func NewRow(height float64, htmlStr string, opts ...Option) (core.Row, error) {
-	component, err := New(htmlStr, opts...)
+func NewRow(ctx context.Context, height float64, htmlStr string, opts ...Option) (core.Row, error) {
+	component, err := New(ctx, htmlStr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +75,8 @@ func NewRow(height float64, htmlStr string, opts ...Option) (core.Row, error) {
 }
 
 // NewAutoRow wraps an HTML component in an auto-height row.
-func NewAutoRow(htmlStr string, opts ...Option) (core.Row, error) {
-	component, err := New(htmlStr, opts...)
+func NewAutoRow(ctx context.Context, htmlStr string, opts ...Option) (core.Row, error) {
+	component, err := New(ctx, htmlStr, opts...)
 	if err != nil {
 		return nil, err
 	}

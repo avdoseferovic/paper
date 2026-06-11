@@ -6,9 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -23,10 +21,10 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, prop.Family)
+		assert.Equal(t, consts.FontFamilyArial, prop.Family)
 	})
 	t.Run("when style is not defined, should define normal", func(t *testing.T) {
 		t.Parallel()
@@ -36,7 +34,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, fontstyle.Normal, prop.Style)
@@ -49,7 +47,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 10.0, prop.Size)
@@ -62,10 +60,10 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
-		assert.Equal(t, align.Left, prop.Align)
+		assert.Equal(t, consts.AlignLeft, prop.Align)
 	})
 	t.Run("when top is less than 0, should become 0", func(t *testing.T) {
 		t.Parallel()
@@ -75,7 +73,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 0.0, prop.Top)
@@ -88,7 +86,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 0.0, prop.Left)
@@ -101,7 +99,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 0.0, prop.Right)
@@ -114,7 +112,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 0.0, prop.VerticalPadding)
@@ -128,7 +126,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal, Color: color})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal, Color: color})
 
 		// Assert
 		assert.Equal(t, color, prop.Color)
@@ -141,7 +139,7 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
 		assert.Equal(t, 0.0, prop.Bottom)
@@ -154,10 +152,10 @@ func TestText_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		prop.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		// Assert
-		assert.Equal(t, breakline.EmptySpaceStrategy, prop.BreakLineStrategy)
+		assert.Equal(t, consts.BreakLineEmptySpace, prop.BreakLineStrategy)
 	})
 }
 
@@ -186,8 +184,8 @@ func TestText_ToMap(t *testing.T) {
 		assert.Equal(t, 12.0, m["prop_top"])
 		assert.Equal(t, 13.0, m["prop_bottom"])
 		assert.Equal(t, 3.0, m["prop_left"])
-		assert.Equal(t, align.Right, m["prop_align"])
-		assert.Equal(t, breakline.DashStrategy, m["prop_breakline_strategy"])
+		assert.Equal(t, consts.AlignRight, m["prop_align"])
+		assert.Equal(t, consts.BreakLineDash, m["prop_breakline_strategy"])
 		assert.Equal(t, 20.0, m["prop_vertical_padding"])
 		assert.Equal(t, "RGB(100, 50, 200)", m["prop_color"])
 		assert.Equal(t, "https://www.google.com", m["prop_hyperlink"])

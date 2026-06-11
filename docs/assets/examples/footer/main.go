@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
@@ -10,7 +12,6 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -19,7 +20,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -46,7 +47,7 @@ func GetPaper() core.Paper {
 	err := m.RegisterFooter(text.NewRow(20, "Footer", props.Text{
 		Size:  10,
 		Style: fontstyle.Bold,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 	}))
 	if err != nil {
 		log.Fatal(err)

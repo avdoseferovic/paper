@@ -29,10 +29,6 @@ jobs:
       - name: Download root dependencies
         run: go mod download
 
-      - name: Download pkg/test dependencies
-        run: go mod download
-        working-directory: pkg/test
-
       - name: Download examples dependencies
         run: go mod download
         working-directory: examples
@@ -43,10 +39,6 @@ jobs:
 
       - name: Generate root coverage report
         run: go test ./... -coverprofile=coverage.txt -covermode=atomic
-
-      - name: Generate pkg/test coverage report
-        run: go test ./... -coverprofile=coverage.txt -covermode=atomic
-        working-directory: pkg/test
 
       - name: Generate examples coverage report
         run: go test ./... -coverprofile=coverage.txt -covermode=atomic
@@ -63,16 +55,6 @@ jobs:
           files: ./coverage.txt
           flags: root
           name: codecov-umbrella
-          disable_search: true
-          fail_ci_if_error: true
-
-      - name: Upload pkg/test coverage report
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./pkg/test/coverage.txt
-          flags: pkg-test
-          name: codecov-pkg-test
           disable_search: true
           fail_ci_if_error: true
 

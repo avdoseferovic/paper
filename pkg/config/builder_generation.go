@@ -1,8 +1,6 @@
 package config
 
-import (
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
-)
+import "github.com/avdoseferovic/paper/pkg/consts"
 
 // WithConcurrentMode defines concurrent generation, chunk workers define how mano chuncks
 // will be executed concurrently.
@@ -11,7 +9,7 @@ func (b *CfgBuilder) WithConcurrentMode(chunkWorkers int) Builder {
 		return b
 	}
 
-	b.generationMode = generation.Concurrent
+	b.generationMode = consts.GenerationConcurrent
 	b.chunkWorkers = chunkWorkers
 	return b
 }
@@ -19,7 +17,7 @@ func (b *CfgBuilder) WithConcurrentMode(chunkWorkers int) Builder {
 // WithSequentialMode defines that paper will run in default mode.
 func (b *CfgBuilder) WithSequentialMode() Builder {
 	b.chunkWorkers = 1
-	b.generationMode = generation.Sequential
+	b.generationMode = consts.GenerationSequential
 	return b
 }
 
@@ -30,7 +28,7 @@ func (b *CfgBuilder) WithSequentialLowMemoryMode(chunkWorkers int) Builder {
 		return b
 	}
 
-	b.generationMode = generation.SequentialLowMemory
+	b.generationMode = consts.GenerationSequentialLowMemory
 	b.chunkWorkers = chunkWorkers
 	return b
 }

@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -24,7 +25,7 @@ import (
 func main() {
 	backgroundImage := "docs/assets/images/certificate.png"
 	m := GetPaper(backgroundImage)
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -49,7 +50,7 @@ func GetPaper(image string) core.Paper {
 		WithTopMargin(0).
 		WithLeftMargin(0).
 		WithRightMargin(0).
-		WithOrientation(orientation.Horizontal).
+		WithOrientation(consts.OrientationHorizontal).
 		WithMaxGridSize(20).
 		WithBackgroundImage(bytes, extension.Png)
 

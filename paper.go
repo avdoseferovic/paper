@@ -1,10 +1,7 @@
 package paper
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"io"
 
 	"github.com/avdoseferovic/paper/internal/cache"
 
@@ -15,7 +12,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/core"
-	"github.com/avdoseferovic/paper/pkg/html"
 )
 
 var (
@@ -23,6 +19,11 @@ var (
 	ErrCannotGenerateInParallelMode        = errors.New("an error has occurred while trying to generate PDFs concurrently")
 	ErrFooterHeightIsGreaterThanUsefulArea = errors.New("footer height is greater than page useful area")
 	ErrHeaderHeightIsGreaterThanUsefulArea = errors.New("header height is greater than page useful area")
+	// ErrHTMLHeaderAfterContent is returned by AddHTML when the HTML contains
+	// a top-level <header>/<footer> but the document already has rows or a
+	// registered header/footer: late registration would not reserve space on
+	// already-built pages.
+	ErrHTMLHeaderAfterContent = errors.New("html top-level header/footer must be added before any other content")
 )
 
 type Paper struct {
@@ -58,49 +59,6 @@ func NewPaper(cfgs ...*entity.Config) *Paper {
 // GetCurrentConfig is responsible for returning the current settings from the file
 func (m *Paper) GetCurrentConfig() *entity.Config {
 	return m.config
-}
-
-// FromHTML converts an HTML string directly into a PDF document.
-// It is the shortest path for callers that only need HTML-to-PDF output.
-// Optional configs are the same configs accepted by New.
-func FromHTML(htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
-	return FromHTMLCtx(context.TODO(), htmlStr, cfgs...)
-}
-
-// FromHTMLCtx converts an HTML string directly into a PDF document.
-// It observes ctx while parsing/translating HTML and while generating the PDF.
-func FromHTMLCtx(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
-	m := New(cfgs...)
-	err := m.AddHTMLCtx(ctx, htmlStr)
-	if err != nil {
-		return nil, err
-	}
-	return m.GenerateCtx(ctx)
-}
-
-// FromHTMLReader reads HTML from r and converts it directly into a PDF document.
-// Optional configs are the same configs accepted by New.
-func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
-	return FromHTMLReaderCtx(context.TODO(), r, cfgs...)
-}
-
-// FromHTMLReaderCtx reads HTML from r and converts it directly into a PDF document.
-// It observes ctx before and after reading, while translating HTML, and while
-// generating the PDF.
-func FromHTMLReaderCtx(ctx context.Context, r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
-	err := generationCanceled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("paper: reading HTML: %w", err)
-	}
-	err = generationCanceled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return FromHTMLCtx(ctx, string(data), cfgs...)
 }
 
 // AddPages is responsible for add pages directly in the document.
@@ -139,40 +97,6 @@ func (m *Paper) AddAutoRow(cols ...core.Col) core.Row {
 	r := row.New().Add(cols...)
 	m.pageBuilder.addRow(r)
 	return r
-}
-
-// AddHTML parses an HTML string into Paper rows and adds them to the current document.
-// Headers, footers, and pagination continue to work as with manually constructed rows.
-// For advanced options (e.g. html.WithImageBaseDir for safe <img> loading), call
-// html.FromString directly and append the returned rows via m.AddRows(rows...).
-// Supported HTML subset is documented in docs/html-support.md.
-func (m *Paper) AddHTML(htmlStr string) error {
-	return m.AddHTMLCtx(context.TODO(), htmlStr)
-}
-
-// AddHTMLCtx parses an HTML string into Paper rows and adds them to the current
-// document. It observes ctx while parsing and translating the HTML.
-func (m *Paper) AddHTMLCtx(ctx context.Context, htmlStr string) error {
-	opts := []html.Option{html.WithGridSize(m.config.MaxGridSize)}
-	if m.config.HTMLLimits != (entity.HTMLLimits{}) {
-		opts = append(opts, html.WithLimits(m.config.HTMLLimits))
-	}
-	if m.config.Dimensions != nil {
-		contentWidth := m.config.Dimensions.Width - m.config.Margins.Left - m.config.Margins.Right
-		if contentWidth > 0 {
-			opts = append(opts, html.WithContentWidth(contentWidth))
-		}
-	}
-	rows, err := html.FromStringCtx(ctx, htmlStr, opts...)
-	if err != nil {
-		return err
-	}
-	err = generationCanceled(ctx)
-	if err != nil {
-		return err
-	}
-	m.AddRows(rows...)
-	return nil
 }
 
 // FitInCurrentPage reports whether a row of the given height fits in the remaining useful area of the current page.

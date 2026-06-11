@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/avdoseferovic/paper/pkg/consts/barcode"
-
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -132,7 +131,7 @@ func TestCode_GenBar(t *testing.T) {
 		}
 
 		prop := &props.Barcode{
-			Type: barcode.EAN,
+			Type: consts.BarcodeEAN,
 		}
 		prop.MakeValid()
 

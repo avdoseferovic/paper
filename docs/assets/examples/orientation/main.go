@@ -1,14 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/decorator"
-
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -16,7 +16,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -34,7 +34,7 @@ func main() {
 
 func GetPaper() core.Paper {
 	cfg := config.NewBuilder().
-		WithOrientation(orientation.Horizontal).
+		WithOrientation(consts.OrientationHorizontal).
 		WithDebug(true).
 		Build()
 

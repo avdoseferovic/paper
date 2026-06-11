@@ -4,50 +4,14 @@ package translate
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/avdoseferovic/paper/internal/htmllimits"
-	"github.com/avdoseferovic/paper/pkg/components/col"
-	"github.com/avdoseferovic/paper/pkg/components/line"
-	"github.com/avdoseferovic/paper/pkg/components/richtext"
-	"github.com/avdoseferovic/paper/pkg/components/row"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
-	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 const defaultContentWidthMM = 170.0
-
-// Option configures translator behaviour.
-type Option func(*translator)
-
-// WithGridSize overrides the default 12-column grid size used for flex quantization.
-func WithGridSize(n int) Option {
-	return func(tr *translator) {
-		if n > 0 {
-			tr.gridSize = n
-		}
-	}
-}
-
-// WithContentWidth sets the content width in mm, used for gap-to-col approximation.
-func WithContentWidth(mm float64) Option {
-	return func(tr *translator) {
-		if mm > 0 {
-			tr.contentWidthMM = mm
-		}
-	}
-}
-
-// WithLimits configures resource limits for untrusted HTML translation.
-func WithLimits(l htmllimits.Limits) Option {
-	return func(tr *translator) {
-		tr.limits = htmllimits.Normalize(l)
-	}
-}
 
 // translator threads parsed stylesheet rules through the recursive walker.
 type translator struct {
@@ -66,46 +30,34 @@ type translator struct {
 	rootStyle          *css.ComputedStyle  // seed for body-level cascade (:root vars)
 	counters           *counterState       // document-order CSS counter state
 	quotes             *quoteState         // document-order CSS quote depth
+
+	// outlineFromHeadings, when true, marks h1-h6 paragraphs with a
+	// props.Outline so they appear in the PDF document outline.
+	outlineFromHeadings bool
 }
 
-// WithStylesheetBaseDir scopes the default stylesheet resolver to a single
-// directory. Local-file reads outside this directory are refused.
-func WithStylesheetBaseDir(dir string) Option {
-	return func(tr *translator) { tr.stylesheetResolver = stylesheetBaseDirResolver(dir) }
-}
-
-// WithImageResolver lets callers plug in a custom <img src=…> loader.
-func WithImageResolver(fn ImageResolver) Option {
-	return func(tr *translator) {
-		tr.imageResolver = fn
-	}
-}
-
-// WithImageBaseDir scopes the default resolver to a single directory.
-// Local file reads outside this directory are refused (path-traversal safe).
-func WithImageBaseDir(dir string) Option {
-	return func(tr *translator) {
-		tr.imageBaseDir = dir
-	}
-}
-
-// WithUnsupportedHandler registers a callback for unsupported tags/props.
-func WithUnsupportedHandler(fn func(thing, value string)) Option {
-	return func(tr *translator) {
-		tr.unsupportedHandler = fn
-	}
-}
-
-// Translate walks the styled DOM and emits Paper rows.
-func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
-	return TranslateCtx(context.TODO(), doc, opts...)
-}
-
-// TranslateCtx walks the styled DOM and emits Paper rows. It observes ctx at
+// Translate walks the styled DOM and emits Paper rows. It observes ctx at
 // cheap phase and recursive traversal boundaries.
-func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
+func Translate(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
+	document, err := translateDocument(ctx, doc, false, opts...)
+	if err != nil || document == nil {
+		return nil, err
+	}
+	return document.Rows, nil
+}
+
+// TranslateDocument walks the styled DOM and returns the full Document
+// result: content rows plus @page options. It observes ctx at cheap phase and
+// recursive traversal boundaries. Unlike Translate, the first top-level
+// <header>/<footer> elements are extracted into HeaderRows/FooterRows instead
+// of rendering inline.
+func TranslateDocument(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
+	return translateDocument(ctx, doc, true, opts...)
+}
+
+func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool, opts ...Option) (*Document, error) {
 	if doc == nil {
-		return nil, nil
+		return &Document{}, nil
 	}
 	tr := &translator{
 		anchorReg: newAnchorRegistry(),
@@ -160,6 +112,11 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 		return nil, err
 	}
 	tr.sheet = sheet
+	if tr.unsupportedHandler != nil {
+		for _, prelude := range sheet.skippedPages {
+			tr.unsupportedHandler("page-rule.skipped", prelude)
+		}
+	}
 	err = translationCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -174,17 +131,16 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 	if err != nil {
 		return nil, err
 	}
-	var rows []core.Row
 	body := findBody(doc)
 	if body == nil {
-		return rows, nil
+		return &Document{Page: tr.pageOptions()}, nil
 	}
 	// Pre-pass: collect all id values so forward references (link before
 	// target) resolve correctly at render time via the shared anchor registry.
 	tr.anchorIDs = collectAnchorIDs(body)
 	// Prepend font-face registration rows (zero-height) so any subsequent
 	// row that uses font-family: "MyFont" finds the font already registered.
-	rows = append(rows, tr.fontRegistrationRows()...)
+	rows := tr.fontRegistrationRows()
 	// Seed the cascade so :root and html-level rules (CSS variables, etc)
 	// propagate into body's descendants. Without this, `:root { --x: red }`
 	// is parsed but never inherited because computeNodeStyle is called with
@@ -193,21 +149,45 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 	tr.counters = newCounterState()
 	tr.quotes = newQuoteState()
 	rootCounters := tr.counters.enter(tr.rootStyle)
-	for _, child := range body.Children() {
-		err = translationCanceled(ctx)
-		if err != nil {
-			return nil, err
-		}
-		rows = append(rows, tr.blockRowsWithParent(ctx, child, tr.rootStyle)...)
-		if tr.err != nil {
-			return nil, tr.err
-		}
+	document, err := tr.walkBody(ctx, body, rows, extractBands)
+	if err != nil {
+		return nil, err
 	}
 	tr.counters.exit(rootCounters)
 	if tr.err != nil {
 		return nil, tr.err
 	}
-	return rows, nil
+	document.Page = tr.pageOptions()
+	return document, nil
+}
+
+// walkBody converts the body's children into rows. When extractBands is set,
+// the first top-level <header>/<footer> land in HeaderRows/FooterRows instead
+// of the content rows.
+func (tr *translator) walkBody(ctx context.Context, body *dom.Node, rows []core.Row, extractBands bool) (*Document, error) {
+	var headerRows, footerRows []core.Row
+	headerTaken, footerTaken := false, false
+	for _, child := range body.Children() {
+		err := translationCanceled(ctx)
+		if err != nil {
+			return nil, err
+		}
+		childRows := tr.blockRowsWithParent(ctx, child, tr.rootStyle)
+		if tr.err != nil {
+			return nil, tr.err
+		}
+		switch {
+		case extractBands && !headerTaken && child.Tag() == "header":
+			headerRows = childRows
+			headerTaken = true
+		case extractBands && !footerTaken && child.Tag() == "footer":
+			footerRows = childRows
+			footerTaken = true
+		default:
+			rows = append(rows, childRows...)
+		}
+	}
+	return &Document{Rows: rows, HeaderRows: headerRows, FooterRows: footerRows}, nil
 }
 
 // seedRootStyle computes the ComputedStyle of the html element so :root vars
@@ -375,123 +355,9 @@ func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Nod
 }
 
 func translationCanceled(ctx context.Context) error {
-	if ctx == nil {
-		return nil
-	}
 	err := ctx.Err()
 	if err != nil {
 		return fmt.Errorf("html: translation canceled: %w", err)
 	}
 	return nil
-}
-
-// paragraphRow converts a block element with inline content into a single auto-height row.
-// When the computed style sets CSS padding, it is passed through as the richtext's
-// Top/Right/Bottom/Left offsets so the text is inset from the styled background's
-// edges instead of butting against them.
-func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) core.Row {
-	runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
-	if len(runs) == 0 {
-		runs = []props.RichRun{{Text: ""}}
-	}
-	// User CSS first, then heading-default fallback. applyBlockStyling only
-	// sets runs[i].Size when it's still 0, so applying inline CSS first lets a
-	// user `h2 { font-size: 12pt }` override the 20pt heading default.
-	applyBlockStyling(n, runs)
-	rtProp := richTextPropsFromStyle(style)
-	rt := richtext.New(runs, rtProp)
-	if tr.anchorReg != nil {
-		rt.WithAnchorRegistry(tr.anchorReg)
-	}
-	c := col.New().Add(rt)
-	r := row.New().Add(c)
-	if cellStyle := tr.blockCellStyle(style); cellStyle != nil {
-		r = r.WithStyle(cellStyle)
-	}
-	return r
-}
-
-func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {
-	if style == nil {
-		return props.RichText{}
-	}
-	rt := props.RichText{
-		Top:             style.PaddingTop,
-		Right:           style.PaddingRight,
-		Bottom:          style.PaddingBottom,
-		Left:            style.PaddingLeft,
-		Align:           richTextAlignFromCSS(style.TextAlign),
-		FirstLineIndent: style.TextIndent,
-		WhiteSpace:      style.WhiteSpace,
-	}
-	if style.LineHeight > 0 && style.LineHeight != 1 {
-		rt.LineHeight = style.LineHeight
-	}
-	return rt
-}
-
-func richTextAlignFromCSS(value string) align.Type {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case flexAlignCenter:
-		return align.Center
-	case "right", "end":
-		return align.Right
-	case "justify":
-		return align.Justify
-	default:
-		return ""
-	}
-}
-
-// styledHrRow honours border-top-width, border-top-style, color on the <hr>
-// element. Defaults match the original hrRow behaviour when no style is set.
-func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle) core.Row {
-	lineProp := props.Line{}
-	if style.BorderTopWidth > 0 {
-		lineProp.Thickness = style.BorderTopWidth
-	}
-	if c := style.BorderTopColor; c != nil {
-		lineProp.Color = &props.Color{Red: c.R, Green: c.G, Blue: c.B}
-	} else if style.Color != nil {
-		lineProp.Color = &props.Color{Red: style.Color.R, Green: style.Color.G, Blue: style.Color.B}
-	}
-	lineProp.Style = cssBorderStyleToLineStyle(style.BorderTopStyle)
-	l := line.New(lineProp)
-	c := col.New().Add(l)
-	h := 1.0
-	if style.BorderTopWidth > 0 {
-		h = style.BorderTopWidth + 0.5
-	}
-	return row.New(h).Add(c)
-}
-
-// wrapTextRow handles raw text nodes at block level.
-func wrapTextRowStyled(text string, style *css.ComputedStyle) []core.Row {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil
-	}
-	run := props.RichRun{Text: text}
-	applyInlineStyleToRun(style, &run)
-	rt := richtext.New([]props.RichRun{run})
-	c := col.New().Add(rt)
-	return []core.Row{row.New().Add(c)}
-}
-
-// applyBlockStyling applies block-level heading defaults to the first run.
-func applyBlockStyling(n *dom.Node, runs []props.RichRun) {
-	tag := n.Tag()
-	headingSizes := map[string]float64{
-		"h1": 24, "h2": 20, "h3": 16, "h4": 14, "h5": 12, "h6": 10,
-	}
-	if size, ok := headingSizes[tag]; ok {
-		for i := range runs {
-			if runs[i].Size == 0 {
-				runs[i].Size = size
-			}
-			if runs[i].Style == "" {
-				runs[i].Style = fontstyle.Bold
-			}
-		}
-	}
 }

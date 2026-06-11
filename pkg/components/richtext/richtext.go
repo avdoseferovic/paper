@@ -6,7 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -93,11 +93,14 @@ func (r *RichText) GetStructure() *node.Node[core.Structure] {
 	if r.prop.Left != 0 {
 		details["left"] = r.prop.Left
 	}
-	if r.prop.Align != "" && r.prop.Align != align.Left {
+	if r.prop.Align != "" && r.prop.Align != consts.AlignLeft {
 		details["align"] = r.prop.Align
 	}
 	if ws := normalizeWhiteSpace(r.prop.WhiteSpace); ws != "normal" {
 		details["white_space"] = ws
+	}
+	if r.prop.Outline != nil {
+		details = r.prop.Outline.ToMap(details)
 	}
 	str := core.Structure{
 		Type:    "richtext",

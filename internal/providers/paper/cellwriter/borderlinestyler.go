@@ -1,7 +1,7 @@
 package cellwriter
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -25,7 +25,7 @@ func (b *BorderLineStyler) Apply(width, height float64, config *entity.Config, p
 		return
 	}
 
-	if prop.LineStyle == linestyle.Solid || prop.LineStyle == "" {
+	if prop.LineStyle == consts.LineStyleSolid || prop.LineStyle == "" {
 		b.GoToNext(width, height, config, prop)
 		return
 	}

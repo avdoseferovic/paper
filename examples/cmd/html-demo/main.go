@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -13,8 +14,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html"
@@ -33,7 +33,7 @@ func main() {
 	m.AddRows(buildHeader()...)
 	cfgWidth := cfg.Dimensions.Width - cfg.Margins.Left - cfg.Margins.Right
 	assetsDir := examplepath.Module("cmd/html-demo/assets")
-	rows, err := html.FromString(body,
+	rows, err := html.FromString(context.Background(), body,
 		html.WithGridSize(cfg.MaxGridSize),
 		html.WithContentWidth(cfgWidth),
 		html.WithImageBaseDir(assetsDir),
@@ -44,7 +44,7 @@ func main() {
 	}
 	m.AddRows(rows...)
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatalf("generate: %v", err)
 	}
@@ -67,15 +67,15 @@ func buildHeader() []core.Row {
 
 	titleRow := row.New(10).Add(
 		col.New(8).Add(text.New("PAPER HTML PDF DEMO", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Style:  fontstyle.Bold,
 			Size:   14,
 			Color:  dark,
 		})),
 		col.New(4).Add(text.New("html-demo@paper.example", props.Text{
-			Family: fontfamily.Helvetica,
+			Family: consts.FontFamilyHelvetica,
 			Size:   9,
-			Align:  align.Right,
+			Align:  consts.AlignRight,
 			Color:  muted,
 		})),
 	)

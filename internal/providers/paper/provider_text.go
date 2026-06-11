@@ -6,6 +6,9 @@ import (
 )
 
 func (g *provider) AddText(text string, cell *entity.Cell, prop *props.Text) {
+	if prop != nil && prop.Outline != nil {
+		g.Bookmark(prop.Outline.ResolveTitle(text), prop.Outline.NormalizedLevel(), cell.Y+prop.Top)
+	}
 	g.text.Add(text, cell, prop)
 }
 

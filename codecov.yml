@@ -7,3 +7,7 @@ ignore:
   - ".idea"
   - "internal/mocks"
   - "internal/fixture"
+  - "internal/assert"
+  - "internal/require"
+  - "internal/mocktest"
+  - "internal/goleak"

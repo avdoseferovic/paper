@@ -6,9 +6,7 @@ import (
 
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -30,7 +28,7 @@ func TestGetLinesHeight(t *testing.T) {
 	t.Run("when a text that occupies two lines is sent with EmptySpaceStrategy, should two is returned", func(t *testing.T) {
 		t.Parallel()
 		textProp := &props.Text{}
-		textProp.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		textProp.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(textProp.Family, textProp.Style, textProp.Size)
@@ -49,8 +47,8 @@ func TestGetLinesHeight(t *testing.T) {
 
 	t.Run("When a text that occupies two lines is sent with EmptySpaceStrategy, should two is returned", func(t *testing.T) {
 		t.Parallel()
-		textProp := &props.Text{BreakLineStrategy: breakline.DashStrategy}
-		textProp.MakeValid(&props.Font{Family: fontfamily.Arial, Size: 10, Style: fontstyle.Normal})
+		textProp := &props.Text{BreakLineStrategy: consts.BreakLineDash}
+		textProp.MakeValid(&props.Font{Family: consts.FontFamilyArial, Size: 10, Style: fontstyle.Normal})
 
 		font := mocks.NewFont(t)
 		font.EXPECT().SetFont(textProp.Family, textProp.Style, textProp.Size)
@@ -77,18 +75,18 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Left,
+			Align:  consts.AlignLeft,
 			Top:    0,
 			Left:   0,
 			Right:  0,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -112,16 +110,16 @@ func TestText_Add(t *testing.T) {
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		customColor := &props.Color{Red: 200, Green: 100, Blue: 50}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Left,
+			Align:  consts.AlignLeft,
 			Color:  customColor,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(customColor)
 		font.EXPECT().SetColor(originalColor)
@@ -144,16 +142,16 @@ func TestText_Add(t *testing.T) {
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		url := "https://example.com"
 		textProp := &props.Text{
-			Family:    fontfamily.Arial,
+			Family:    consts.FontFamilyArial,
 			Style:     fontstyle.Normal,
 			Size:      10,
-			Align:     align.Left,
+			Align:     consts.AlignLeft,
 			Hyperlink: &url,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(&props.BlueColor)
 		font.EXPECT().SetColor(originalColor)
@@ -177,15 +175,15 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Right,
+			Align:  consts.AlignRight,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -208,15 +206,15 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Center,
+			Align:  consts.AlignCenter,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -239,15 +237,15 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Justify,
+			Align:  consts.AlignJustify,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -279,16 +277,16 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 40, Height: 100}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family:            fontfamily.Arial,
+			Family:            consts.FontFamilyArial,
 			Style:             fontstyle.Normal,
 			Size:              10,
-			Align:             align.Left,
-			BreakLineStrategy: breakline.EmptySpaceStrategy,
+			Align:             consts.AlignLeft,
+			BreakLineStrategy: consts.BreakLineEmptySpace,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -318,16 +316,16 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 8, Height: 100}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family:            fontfamily.Arial,
+			Family:            consts.FontFamilyArial,
 			Style:             fontstyle.Normal,
 			Size:              10,
-			Align:             align.Left,
-			BreakLineStrategy: breakline.DashStrategy,
+			Align:             consts.AlignLeft,
+			BreakLineStrategy: consts.BreakLineDash,
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -361,16 +359,16 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Left,
+			Align:  consts.AlignLeft,
 			Top:    100, // exceeds cell.Height=50, gets clamped to 50
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -392,16 +390,16 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Left,
+			Align:  consts.AlignLeft,
 			Left:   150, // exceeds cell.Width=100, gets clamped to 100
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -426,16 +424,16 @@ func TestText_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		textProp := &props.Text{
-			Family: fontfamily.Arial,
+			Family: consts.FontFamilyArial,
 			Style:  fontstyle.Normal,
 			Size:   10,
-			Align:  align.Left,
+			Align:  consts.AlignLeft,
 			Right:  150, // exceeds cell.Width=100, gets clamped to 100
 		}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
 		font.EXPECT().GetColor().Return(originalColor)
 		font.EXPECT().SetColor(originalColor)
 
@@ -459,10 +457,10 @@ func TestMeasureString(t *testing.T) {
 	t.Parallel()
 	t.Run("should set font and return string width", func(t *testing.T) {
 		t.Parallel()
-		textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+		textProp := &props.Text{Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 12}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 12.0)
 
 		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
@@ -479,9 +477,9 @@ func TestMeasureString(t *testing.T) {
 func TestMeasureStringCachesDefaultCodePageTranslator(t *testing.T) {
 	t.Parallel()
 
-	textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+	textProp := &props.Text{Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 12}
 	font := mocks.NewFont(t)
-	font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0).Twice()
+	font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 12.0).Twice()
 
 	pdf := newPDF(t)
 	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Once()
@@ -498,10 +496,10 @@ func TestAddTextAt(t *testing.T) {
 	t.Parallel()
 	t.Run("should set font and render text at absolute position", func(t *testing.T) {
 		t.Parallel()
-		textProp := &props.Text{Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 12}
+		textProp := &props.Text{Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 12}
 
 		font := mocks.NewFont(t)
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 12.0)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 12.0)
 
 		pdf := newPDF(t)
 		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
@@ -523,14 +521,14 @@ func TestAddRichText(t *testing.T) {
 
 		font := mocks.NewFont(t)
 		// Capture original state
-		font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 		font.EXPECT().GetColor().Return(origColor)
 		// Runs: run 0 Helvetica Bold 12, run 1 Courier Normal 10
-		font.EXPECT().SetFont(fontfamily.Helvetica, fontstyle.Bold, 12.0).Maybe()
-		font.EXPECT().SetFont(fontfamily.Courier, fontstyle.Normal, 10.0).Maybe()
-		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0).Maybe() // restore
-		font.EXPECT().GetHeight(fontfamily.Helvetica, fontstyle.Bold, 12.0).Return(5.0).Maybe()
-		font.EXPECT().GetHeight(fontfamily.Courier, fontstyle.Normal, 10.0).Return(4.0).Maybe()
+		font.EXPECT().SetFont(consts.FontFamilyHelvetica, fontstyle.Bold, 12.0).Maybe()
+		font.EXPECT().SetFont(consts.FontFamilyCourier, fontstyle.Normal, 10.0).Maybe()
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0).Maybe() // restore
+		font.EXPECT().GetHeight(consts.FontFamilyHelvetica, fontstyle.Bold, 12.0).Return(5.0).Maybe()
+		font.EXPECT().GetHeight(consts.FontFamilyCourier, fontstyle.Normal, 10.0).Return(4.0).Maybe()
 		font.EXPECT().SetColor(origColor).Maybe()
 		font.EXPECT().GetColor().Return(origColor).Maybe()
 
@@ -541,8 +539,8 @@ func TestAddRichText(t *testing.T) {
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
 
 		runs := []props.RichRun{
-			{Text: "hello ", Family: fontfamily.Helvetica, Style: fontstyle.Bold, Size: 12},
-			{Text: "world", Family: fontfamily.Courier, Style: fontstyle.Normal, Size: 10},
+			{Text: "hello ", Family: consts.FontFamilyHelvetica, Style: fontstyle.Bold, Size: 12},
+			{Text: "world", Family: consts.FontFamilyCourier, Style: fontstyle.Normal, Size: 10},
 		}
 		richProp := &props.RichText{}
 		richProp.MakeValid(nil)
@@ -564,7 +562,7 @@ func TestAddRichText(t *testing.T) {
 				cell := &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}
 
 				font := mocks.NewFont(t)
-				font.EXPECT().GetFont().Return(fontfamily.Arial, fontstyle.Normal, 10.0)
+				font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
 				font.EXPECT().GetColor().Return(origColor)
 				font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
 				font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
@@ -577,7 +575,7 @@ func TestAddRichText(t *testing.T) {
 				pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 				pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
 
-				runs := []props.RichRun{{Text: "hi", Family: fontfamily.Arial, Style: fontstyle.Normal, Size: 10}}
+				runs := []props.RichRun{{Text: "hi", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
 				richProp := &props.RichText{}
 				richProp.MakeValid(nil)
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -15,7 +16,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -25,7 +26,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	err = document.Merge(savedPdf)
+	err = document.Merge(context.Background(), savedPdf)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

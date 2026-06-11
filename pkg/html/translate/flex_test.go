@@ -1,6 +1,7 @@
 package translate_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -87,7 +88,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 	t.Run("two equal flex items produce 2 cols", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div>a</div><div>b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 2)
@@ -96,7 +97,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 	t.Run("whitespace between flex children is ignored", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><div style=\"display:flex\">\n  <div>a</div>\n  <div>b</div>\n</div></body></html>")
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 2)
@@ -105,7 +106,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 	t.Run("flex:1 and flex:2 produce sizes 4 and 8", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div style="flex:1">a</div><div style="flex:2">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -118,7 +119,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 		t.Parallel()
 		// flex:0 0 25% → weight 3 (25% of 12); flex:1 → weight 9 (remaining)
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div style="flex:0 0 25%">a</div><div style="flex:1">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -130,7 +131,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 	t.Run("empty flex container produces 0 rows", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 0)
 	})
@@ -138,7 +139,7 @@ func TestFlexRow_ColCount(t *testing.T) {
 	t.Run("display:inline-flex also produces a flex row", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:inline-flex"><div>a</div><div>b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 2)
@@ -154,7 +155,7 @@ func TestFlexJustifyContent(t *testing.T) {
 		t.Parallel()
 		// Two items at fixed 25% each = 3+3 cols. Slack = 6. flex-end → leading 6 + items 3+3.
 		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:flex-end"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -168,7 +169,7 @@ func TestFlexJustifyContent(t *testing.T) {
 		t.Parallel()
 		// Two items 3+3=6, slack 6, center → 3 + 3 + 3 + 3
 		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:center"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -185,7 +186,7 @@ func TestFlexJustifyContent(t *testing.T) {
 		t.Parallel()
 		// Two items 3+3=6, slack 6 distributed as N-1=1 between-spacer of size 6.
 		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:space-between"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -199,7 +200,7 @@ func TestFlexJustifyContent(t *testing.T) {
 	t.Run("flex-start (default) doesn't add offsets", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -210,7 +211,7 @@ func TestFlexJustifyContent(t *testing.T) {
 		t.Parallel()
 		// Two items 3+3=6, slack 6, N+1=3 spacers via Hamilton on [1,1,1] → [2,2,2].
 		doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:space-around"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -230,7 +231,7 @@ func TestFlexEmInheritsFromContainer(t *testing.T) {
 	t.Parallel()
 	// Container has font-size:14pt; child uses 1.5em — should resolve to 21pt, not 0.
 	doc := parseDoc(t, `<html><body><div style="display:flex;font-size:14pt"><div style="font-size:1.5em">Big</div><div>Small</div></div></body></html>`)
-	rows, err := translate.Translate(doc)
+	rows, err := translate.Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	// Structural check: 2 cols. Em resolution is implicit via no-error + non-zero size below.
@@ -245,7 +246,7 @@ func TestFlexCenterOddSlack(t *testing.T) {
 	// Two items each flex:0 0 25% on gridSize=11 → fixed share=3 each (rounded), sum=6.
 	// Slack = 11-6 = 5. Center → leading=floor(5/2)=2, trailing=ceil(5/2)=3.
 	doc := parseDoc(t, `<html><body><div style="display:flex;justify-content:center"><div style="flex:0 0 25%">a</div><div style="flex:0 0 25%">b</div></div></body></html>`)
-	rows, err := translate.Translate(doc, translate.WithGridSize(11))
+	rows, err := translate.Translate(context.Background(), doc, translate.WithGridSize(11))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	cols := rows[0].GetColumns()
@@ -262,7 +263,7 @@ func TestFlexCenterOddSlack(t *testing.T) {
 func TestFlexNonLeafStrictStructure(t *testing.T) {
 	t.Parallel()
 	doc := parseDoc(t, `<html><body><div style="display:flex"><div><h2>Title</h2><p>Body</p></div><div>Other</div></div></body></html>`)
-	rows, err := translate.Translate(doc)
+	rows, err := translate.Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	cols := rows[0].GetColumns()
@@ -301,7 +302,7 @@ func TestFlexDirection(t *testing.T) {
 	t.Run("column direction stacks children as rows", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column"><div>a</div><div>b</div><div>c</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 3)
 	})
@@ -309,7 +310,7 @@ func TestFlexDirection(t *testing.T) {
 	t.Run("row-reverse orders children right to left", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:row-reverse"><div>a</div><div>b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Equal(t, []string{"b", "a"}, richTextValues(rows[0]))
@@ -318,7 +319,7 @@ func TestFlexDirection(t *testing.T) {
 	t.Run("column-reverse stacks children in reverse order", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column-reverse"><div>a</div><div>b</div><div>c</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 3)
 		assert.Equal(t, []string{"c", "b", "a"}, richTextValues(rows...))
@@ -327,7 +328,7 @@ func TestFlexDirection(t *testing.T) {
 	t.Run("column direction with row-gap produces 5 rows for 3 children", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex;flex-direction:column;row-gap:5mm"><div>a</div><div>b</div><div>c</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 5) // 3 content + 2 gap rows
 	})
@@ -341,7 +342,7 @@ func TestFlexNonLeafItems(t *testing.T) {
 	t.Run("flex item with h2+p preserves both children", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div><h2>Title</h2><p>Body</p></div><div>Other</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -364,7 +365,7 @@ func TestFlexGap(t *testing.T) {
 		// Two flex:1 items, gridSize=12, gap reserves 1 col → items split 5+5+gap_col → wait
 		// Actually: total=12, gap_cols=1, items get 12-1=11 split between two items via Hamilton ([5,6] or [6,5]).
 		doc := parseDoc(t, `<html><body><div style="display:flex;column-gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -381,9 +382,9 @@ func TestFlexGap(t *testing.T) {
 	t.Run("gap shorthand is equivalent to column-gap on flex-row", func(t *testing.T) {
 		t.Parallel()
 		docA := parseDoc(t, `<html><body><div style="display:flex;gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
-		rowsA, _ := translate.Translate(docA)
+		rowsA, _ := translate.Translate(context.Background(), docA)
 		docB := parseDoc(t, `<html><body><div style="display:flex;column-gap:20mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
-		rowsB, _ := translate.Translate(docB)
+		rowsB, _ := translate.Translate(context.Background(), docB)
 		require.Len(t, rowsA, 1)
 		require.Len(t, rowsB, 1)
 		assert.Equal(t, len(rowsA[0].GetColumns()), len(rowsB[0].GetColumns()))
@@ -392,7 +393,7 @@ func TestFlexGap(t *testing.T) {
 	t.Run("small positive gap uses item margin instead of consuming grid columns", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex;gap:6mm"><div style="flex:1">a</div><div style="flex:1">b</div><div style="flex:1">c</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -411,7 +412,7 @@ func TestFlexGap(t *testing.T) {
 		t.Parallel()
 		// Huge gap value — should be clamped so items still get reasonable share.
 		doc := parseDoc(t, `<html><body><div style="display:flex;gap:1000mm"><div style="flex:1">a</div><div style="flex:1">b</div></div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -441,7 +442,7 @@ func TestFlexWrap(t *testing.T) {
 		  <div style="flex-basis:33%">e</div>
 		  <div style="flex-basis:33%">f</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		// flex-wrap:wrap produces 2 rows
 		assert.Equal(t, 2, len(rows), "expected 2 wrapped rows")
@@ -460,7 +461,7 @@ func TestFlexWrap(t *testing.T) {
 		  <div style="flex-basis:33%">c</div>
 		  <div style="flex-basis:33%">d</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		assert.Equal(t, 1, len(rows))
 	})
@@ -478,7 +479,7 @@ func TestFlexOrder(t *testing.T) {
 		  <div style="order:3" id="d">D</div>
 		  <div style="order:0" id="a">A</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		// Verify all 4 items are still present after order sort.
@@ -495,7 +496,7 @@ func TestFlexReverse(t *testing.T) {
 		<div style="display:flex;flex-direction:row-reverse">
 		  <div>a</div><div>b</div><div>c</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Equal(t, []string{"c", "b", "a"}, richTextValues(rows[0]))
@@ -528,7 +529,7 @@ func TestFlexAlignSelf(t *testing.T) {
 		<div style="display:flex">
 		  <div style="align-self:flex-end">child</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 1)
@@ -541,7 +542,7 @@ func TestFlexAlignSelf(t *testing.T) {
 		<div style="display:flex;align-items:center">
 		  <div style="align-self:auto">child</div>
 		</div></body></html>`)
-		rows, err := translate.Translate(doc)
+		rows, err := translate.Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 1)

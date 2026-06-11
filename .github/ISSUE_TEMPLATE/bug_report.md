@@ -31,8 +31,8 @@ insert short code snippets here
 
 **Additional details (please complete the following information):**
  - OS: [e.g. MacOS, Ubuntu, CentOS]
- - Python Version [e.g. `3.5`, `3.6`]
- - `HEAD` Commit hash [e.g. `4629c62`]
+ - Go version [e.g. `1.26.4`]
+ - Paper version [e.g. `v0.1.0` or `HEAD` commit hash `4629c62`]
 
 **Additional context**
 <!-- Add any other context about the problem here. -->

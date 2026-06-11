@@ -1,8 +1,8 @@
 package cellwriter
 
 import (
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -65,7 +65,7 @@ func (p *perSideBorderStyler) drawSide(
 	fpdf perSideBorderPDF,
 	thickness float64,
 	color *props.Color,
-	style linestyle.Type,
+	style consts.LineStyle,
 	prop *props.Cell,
 	x1, y1, x2, y2 float64,
 ) {
@@ -82,16 +82,16 @@ func (p *perSideBorderStyler) drawSide(
 	}
 
 	switch style {
-	case linestyle.Solid:
-	case linestyle.Dashed:
+	case consts.LineStyleSolid:
+	case consts.LineStyleDashed:
 		fpdf.SetDashPattern([]float64{1, 1}, 0)
-	case linestyle.Dotted:
+	case consts.LineStyleDotted:
 		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 
 	fpdf.Line(x1, y1, x2, y2)
 
-	if style != linestyle.Solid && style != "" {
+	if style != consts.LineStyleSolid && style != "" {
 		fpdf.SetDashPattern([]float64{1, 0}, 0)
 	}
 }

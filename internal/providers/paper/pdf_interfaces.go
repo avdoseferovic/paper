@@ -11,6 +11,7 @@ type providerPDF interface {
 	AddLink() int
 	AddPage()
 	AddUTF8FontFromBytes(familyStr, styleStr string, bytes []byte)
+	Bookmark(txtStr string, level int, y float64)
 	Circle(x, y, r float64, styleStr string)
 	GetFillColor() (int, int, int)
 	GetMargins() (left, top, right, bottom float64)
@@ -21,6 +22,12 @@ type providerPDF interface {
 	SetFillColor(r, g, b int)
 	SetLink(link int, y float64, page int)
 	SetXY(x, y float64)
+}
+
+type providerTransformPDF interface {
+	TransformBegin()
+	TransformEnd()
+	TransformRotate(angle, x, y float64)
 }
 
 type providerDocumentPDF interface {

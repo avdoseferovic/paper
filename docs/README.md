@@ -96,7 +96,7 @@ Paper has a distinct separation into two runtime phases: **Declaration Phase** a
 
 1. **Declaration Phase:** During this phase, you will create the paper instance, add various elements such as pages, rows, cols, images, and so on.
    - When calling the add methods, paper will not make any changes to the document. Instead, it will solely construct the **components tree**.
-2. **Generation Phase:** This phase is triggered when the `Generate() (Document, error)` method is called.
+2. **Generation Phase:** This phase is triggered when the `Generate(ctx) (Document, error)` method is called.
    - In this phase, paper will traverse the **components tree** structure, compute the grid dimensions, and add components to the document.
 
 ## Improve Usability

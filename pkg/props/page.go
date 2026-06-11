@@ -4,8 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
@@ -62,20 +61,20 @@ func (p *PageNumber) GetNumberTextProp(height float64) *Text {
 		Style:  p.Style,
 		Size:   p.Size,
 		Color:  CloneColor(p.Color),
-		Align:  align.Center,
+		Align:  consts.AlignCenter,
 	}
 
 	if isLeftPageNumberPlace(p.Place) {
-		text.Align = align.Left
+		text.Align = consts.AlignLeft
 	} else if isRightPageNumberPlace(p.Place) {
-		text.Align = align.Right
+		text.Align = consts.AlignRight
 	}
 
 	if isBottomPageNumberPlace(p.Place) {
 		text.Top = height
 	}
 
-	text.BreakLineStrategy = breakline.EmptySpaceStrategy
+	text.BreakLineStrategy = consts.BreakLineEmptySpace
 
 	return text
 }

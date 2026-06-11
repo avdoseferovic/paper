@@ -5,136 +5,114 @@ import (
 	"testing"
 )
 
-func TestGetStringWidthScalesWithFontSize(t *testing.T) {
+func TestWriteHandlesNewlinesAndUnbrokenOverflow(t *testing.T) {
 	f := readyPDF(t)
-	w12 := f.GetStringWidth("Hello")
-	if w12 <= 0 {
-		t.Fatalf("expected positive width, got %v", w12)
-	}
-	f.SetFontSize(24)
-	w24 := f.GetStringWidth("Hello")
-	if !floatNear(w24, w12*2, 1e-6) {
-		t.Fatalf("width should double with font size: %v vs %v", w24, w12)
-	}
-}
+	startY := f.GetY()
 
-func TestGetStringSymbolWidthEmptyString(t *testing.T) {
-	f := readyPDF(t)
-	if got := f.GetStringSymbolWidth(""); got != 0 {
-		t.Fatalf("empty string width = %d", got)
+	f.Write(5, "first line\nsecond line")
+	if f.GetY() <= startY {
+		t.Fatal("expected explicit newline to advance the y position")
 	}
-}
 
-func TestCellAndCellf(t *testing.T) {
-	f := readyPDF(t)
-	f.Cell(40, 10, "Plain cell")
-	f.Ln(10)
-	f.Cellf(40, 10, "Value: %d", 42)
-	f.Ln(10)
-	f.CellFormat(60, 10, "Bordered", "1", 1, "C", true, 0, "")
+	// Unbroken text first overflows mid-line (x > left margin), then wraps
+	// repeatedly from the left margin.
+	f.Write(5, "lead-in ")
+	f.Write(5, strings.Repeat("a", 300))
 	if f.Err() {
-		t.Fatalf("cell errored: %v", f.Error())
+		t.Fatalf("Write errored: %v", f.Error())
 	}
 	mustOutput(t, f)
 }
 
-func TestTextAndWrite(t *testing.T) {
+func TestCellFormatVerticalAlignment(t *testing.T) {
 	f := readyPDF(t)
-	f.Text(20, 20, "Absolute text")
-	f.SetXY(20, 40)
-	f.Write(6, "Flowing write text that is reasonably long to wrap maybe")
-	f.Writef(6, " formatted %d", 7)
+	for _, align := range []string{"LT", "LB", "LA"} {
+		f.CellFormat(40, 12, "aligned "+align, "", 1, align, false, 0, "")
+	}
 	if f.Err() {
-		t.Fatalf("text/write errored: %v", f.Error())
+		t.Fatalf("CellFormat errored: %v", f.Error())
 	}
 	mustOutput(t, f)
 }
 
-func TestMultiCellWrapsAndAligns(t *testing.T) {
+func TestFontDescentFallsBackWithoutDescentMetric(t *testing.T) {
 	f := readyPDF(t)
-	long := strings.Repeat("word ", 40)
-	f.MultiCell(80, 6, long, "1", "J", false)
-	f.MultiCell(80, 6, "Short centered", "0", "C", true)
+	if d := f.fontDescent(); d >= 0 {
+		t.Fatalf("expected negative descent from font metrics, got %v", d)
+	}
+
+	f.currentFont.Desc.Descent = 0
+	want := -0.19 * f.fontSize
+	if d := f.fontDescent(); d != want {
+		t.Fatalf("expected fallback descent %v, got %v", want, d)
+	}
+}
+
+func TestCellFormatTriggersAutomaticPageBreak(t *testing.T) {
+	f := readyPDF(t)
+	f.SetAutoPageBreak(true, 20)
+	f.SetY(285)
+	f.ws = 1.5 // pending word spacing must be reset across the page break
+	f.CellFormat(40, 20, "breaks onto a new page", "", 1, "L", false, 0, "")
 	if f.Err() {
-		t.Fatalf("multicell errored: %v", f.Error())
+		t.Fatalf("CellFormat errored: %v", f.Error())
+	}
+	if f.PageCount() != 2 {
+		t.Fatalf("expected automatic page break to add a page, got %d pages", f.PageCount())
 	}
 	mustOutput(t, f)
 }
 
-func TestSplitLines(t *testing.T) {
+func TestSplitTextUnbrokenAndNewlineLines(t *testing.T) {
 	f := readyPDF(t)
-	lines := f.SplitLines([]byte(strings.Repeat("alpha beta gamma ", 10)), 60)
+
+	lines := f.SplitText(strings.Repeat("a", 120), 30)
 	if len(lines) < 2 {
-		t.Fatalf("expected multiple split lines, got %d", len(lines))
+		t.Fatalf("expected unbroken text to be split across lines, got %d", len(lines))
 	}
-}
+	for _, line := range lines {
+		if line == "" {
+			t.Fatal("expected non-empty split lines")
+		}
+	}
 
-func TestSplitText(t *testing.T) {
-	f := readyPDF(t)
-	lines := f.SplitText(strings.Repeat("alpha beta gamma ", 10), 60)
+	lines = f.SplitText("ab\ncd ef gh ij kl", 18)
 	if len(lines) < 2 {
-		t.Fatalf("expected multiple split lines, got %d", len(lines))
+		t.Fatalf("expected newline and width splits, got %v", lines)
+	}
+	if lines[0] != "ab" {
+		t.Fatalf("expected first line to end at the newline, got %q", lines[0])
 	}
 }
 
-func TestWriteAlignedVariants(t *testing.T) {
+func TestBookmarkSiblingsAndOutlineOutput(t *testing.T) {
 	f := readyPDF(t)
-	for _, a := range []string{"L", "C", "R"} {
-		f.SetXY(10, 10)
-		f.WriteAligned(0, 6, "aligned "+a, a)
-	}
-	if f.Err() {
-		t.Fatalf("WriteAligned errored: %v", f.Error())
-	}
-	mustOutput(t, f)
-}
+	f.SetCompression(false)
+	f.Bookmark("Chapter 1", 0, -1)
+	f.Bookmark("Section 1.1", 1, -1)
+	f.Bookmark("Section 1.2", 1, -1)
+	f.Bookmark("Chapter 2", 0, 10)
 
-func TestInternalLinks(t *testing.T) {
-	f := readyPDF(t)
-	link := f.AddLink()
-	if link <= 0 {
-		t.Fatalf("AddLink returned %d", link)
-	}
-	f.SetLink(link, 0, -1)
-	f.Link(10, 10, 40, 10, link)
-	f.WriteLinkID(6, "go to link", link)
-	if f.Err() {
-		t.Fatalf("internal link errored: %v", f.Error())
-	}
-	mustOutput(t, f)
-}
-
-func TestExternalLinks(t *testing.T) {
-	f := readyPDF(t)
-	f.LinkString(10, 30, 40, 10, "https://example.com")
-	f.SetXY(10, 50)
-	f.WriteLinkString(6, "click here", "https://example.com")
-	if f.Err() {
-		t.Fatalf("external link errored: %v", f.Error())
-	}
-	mustOutput(t, f)
-}
-
-func TestBookmark(t *testing.T) {
-	f := readyPDF(t)
-	f.Bookmark("Chapter 1", 0, 0)
-	f.Bookmark("Section 1.1", 1, 0)
-	if f.Err() {
-		t.Fatalf("bookmark errored: %v", f.Error())
-	}
-	out := mustOutput(t, f)
-	if !strings.Contains(string(out), "Outlines") {
-		t.Error("expected Outlines dictionary in output with bookmarks")
+	out := string(mustOutput(t, f))
+	for _, marker := range []string{"/Outlines", "(Chapter 1)", "/Prev ", "/Next ", "/First ", "/Last "} {
+		if !strings.Contains(out, marker) {
+			t.Fatalf("expected outline output to contain %q", marker)
+		}
 	}
 }
 
-func TestWordSpacingAndRenderingMode(t *testing.T) {
-	f := readyPDF(t)
-	f.SetWordSpacing(2)
-	f.SetTextRenderingMode(1)
-	f.Cell(40, 10, "spaced text")
+func TestMultiCellJustifiedRTLUsesRightAlignment(t *testing.T) {
+	f := readyUTF8PDF(t)
+	f.RTL()
+	f.MultiCell(60, 5, "many short words that wrap across multiple lines in this cell", "", "J", false)
 	if f.Err() {
-		t.Fatalf("word spacing / render mode errored: %v", f.Error())
+		t.Fatalf("MultiCell errored: %v", f.Error())
+	}
+
+	f.LTR()
+	f.MultiCell(60, 5, "many short words that wrap across multiple lines in this cell\nwith newline", "", "J", false)
+	if f.Err() {
+		t.Fatalf("MultiCell errored: %v", f.Error())
 	}
 	mustOutput(t, f)
 }

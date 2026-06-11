@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -10,11 +12,7 @@ import (
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-
 	"github.com/avdoseferovic/paper/pkg/components/text"
-
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -22,7 +20,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -57,32 +55,32 @@ func GetPaper() core.Paper {
 
 	m.AddRow(40,
 		text.NewCol(2, "Left-aligned text"),
-		text.NewCol(4, "Centered text", props.Text{Align: align.Center}),
-		text.NewCol(6, "Right-aligned text", props.Text{Align: align.Right, Style: fontstyle.Strikethrough}),
+		text.NewCol(4, "Centered text", props.Text{Align: consts.AlignCenter}),
+		text.NewCol(6, "Right-aligned text", props.Text{Align: consts.AlignRight, Style: fontstyle.Strikethrough}),
 	)
 
 	m.AddRows(text.NewRow(10, "Aligned unindented text"))
 
 	m.AddRow(40,
-		text.NewCol(2, "Left-aligned text", props.Text{Top: 3, Left: 3, Align: align.Left}),
-		text.NewCol(4, "Centered text", props.Text{Top: 3, Align: align.Center}),
-		text.NewCol(6, "Right-aligned text", props.Text{Top: 3, Right: 3, Align: align.Right}),
+		text.NewCol(2, "Left-aligned text", props.Text{Top: 3, Left: 3, Align: consts.AlignLeft}),
+		text.NewCol(4, "Centered text", props.Text{Top: 3, Align: consts.AlignCenter}),
+		text.NewCol(6, "Right-aligned text", props.Text{Top: 3, Right: 3, Align: consts.AlignRight}),
 	)
 
 	m.AddRows(text.NewRow(10, "Aligned text with indentation"))
 
 	m.AddRow(40,
-		text.NewCol(2, longText, props.Text{Align: align.Left}),
-		text.NewCol(4, longText, props.Text{Align: align.Center}),
-		text.NewCol(6, longText, props.Text{Align: align.Right}),
+		text.NewCol(2, longText, props.Text{Align: consts.AlignLeft}),
+		text.NewCol(4, longText, props.Text{Align: consts.AlignCenter}),
+		text.NewCol(6, longText, props.Text{Align: consts.AlignRight}),
 	)
 
 	m.AddRows(text.NewRow(10, "Multiline text"))
 
 	m.AddRow(40,
-		text.NewCol(2, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: align.Left, BreakLineStrategy: breakline.DashStrategy}),
-		text.NewCol(4, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: align.Center}),
-		text.NewCol(6, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: align.Right}),
+		text.NewCol(2, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: consts.AlignLeft, BreakLineStrategy: consts.BreakLineDash}),
+		text.NewCol(4, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: consts.AlignCenter}),
+		text.NewCol(6, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: consts.AlignRight}),
 	)
 
 	m.AddRows(text.NewRow(10, "Multiline text with indentation"))
@@ -92,16 +90,16 @@ func GetPaper() core.Paper {
 	m.AddRows(text.NewRow(10, "text with hyperlink", props.Text{Hyperlink: &google}))
 
 	m.AddRow(45,
-		text.NewCol(2, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: align.Justify, BreakLineStrategy: breakline.DashStrategy}),
-		text.NewCol(4, longText+" "+longText, props.Text{Top: 10, Left: 3, Right: 3, Align: align.Justify}),
-		text.NewCol(6, longText+" "+longText, props.Text{Hyperlink: &google, Top: 10, Left: 10, Right: 10, Align: align.Justify}),
+		text.NewCol(2, longText, props.Text{Top: 3, Left: 3, Right: 3, Align: consts.AlignJustify, BreakLineStrategy: consts.BreakLineDash}),
+		text.NewCol(4, longText+" "+longText, props.Text{Top: 10, Left: 3, Right: 3, Align: consts.AlignJustify}),
+		text.NewCol(6, longText+" "+longText, props.Text{Hyperlink: &google, Top: 10, Left: 10, Right: 10, Align: consts.AlignJustify}),
 	)
-	m.AddRows(text.NewRow(10, "Justify-aligned text", props.Text{Align: align.Justify}))
+	m.AddRows(text.NewRow(10, "Justify-aligned text", props.Text{Align: consts.AlignJustify}))
 
 	m.AddAutoRow(
-		text.NewCol(2, longText, props.Text{Top: 0, Left: 3, Right: 3, Align: align.Justify, BreakLineStrategy: breakline.DashStrategy}),
-		text.NewCol(4, longText+" "+longText, props.Text{Top: 0, Left: 3, Right: 3, Align: align.Justify}),
-		text.NewCol(6, longText+" "+longText+" "+longText, props.Text{Hyperlink: &google, Top: 0, Left: 10, Right: 10, Align: align.Justify}),
+		text.NewCol(2, longText, props.Text{Top: 0, Left: 3, Right: 3, Align: consts.AlignJustify, BreakLineStrategy: consts.BreakLineDash}),
+		text.NewCol(4, longText+" "+longText, props.Text{Top: 0, Left: 3, Right: 3, Align: consts.AlignJustify}),
+		text.NewCol(6, longText+" "+longText+" "+longText, props.Text{Hyperlink: &google, Top: 0, Left: 10, Right: 10, Align: consts.AlignJustify}),
 	)
 
 	m.AddAutoRow(
@@ -109,8 +107,8 @@ func GetPaper() core.Paper {
 			props.Text{
 				Left:              3,
 				Right:             3,
-				Align:             align.Justify,
-				BreakLineStrategy: breakline.EmptySpaceStrategy,
+				Align:             consts.AlignJustify,
+				BreakLineStrategy: consts.BreakLineEmptySpace,
 			},
 		),
 	)
@@ -121,8 +119,8 @@ func GetPaper() core.Paper {
 				VerticalPadding:   10,
 				Left:              3,
 				Right:             3,
-				Align:             align.Justify,
-				BreakLineStrategy: breakline.EmptySpaceStrategy,
+				Align:             consts.AlignJustify,
+				BreakLineStrategy: consts.BreakLineEmptySpace,
 			},
 		),
 	)

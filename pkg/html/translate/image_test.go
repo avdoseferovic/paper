@@ -2,6 +2,7 @@ package translate
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"image"
 	"image/color"
@@ -199,7 +200,7 @@ func TestImageRow_DefaultResolverRefusesLocalPath_FallsBackToAlt(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="local.png" alt="fallback text"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc) // no resolver configured → default safe resolver
+	rows, err := Translate(context.Background(), doc) // no resolver configured → default safe resolver
 	require.NoError(t, err)
 	// Fall back to a text row containing the alt label.
 	require.Len(t, rows, 1)
@@ -210,7 +211,7 @@ func TestImageRow_DisplayNoneSkipsImageWithoutAltFallback(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.hidden{display:none}</style></head><body><img class="hidden" src="local.png" alt="fallback text"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Empty(t, rows)
 }
@@ -223,7 +224,7 @@ func TestImageRow_WithImageBaseDir_LoadsLocalPNG(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="logo.png" width="20mm" height="20mm" alt="logo"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageBaseDir(dir))
+	rows, err := Translate(context.Background(), doc, WithImageBaseDir(dir))
 	require.NoError(t, err)
 	require.Len(t, rows, 1, "img should produce one row")
 }
@@ -240,7 +241,7 @@ func TestImageRow_CustomResolverIsInvoked(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="any.png" width="10mm" height="10mm"></body></html>`)
 	require.NoError(t, err)
 
-	_, err = Translate(doc, WithImageResolver(resolver))
+	_, err = Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	assert.True(t, called, "custom resolver should be invoked")
 }
@@ -256,7 +257,7 @@ func TestImageRow_SrcsetSelectsHighestDensityCandidate(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="small.png" srcset="small.png 1x, large.png 2x" width="10mm" height="10mm"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "large.png", calledSrc)
@@ -273,7 +274,7 @@ func TestImageRow_SrcsetUsesSizesForWidthDescriptors(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="fallback.png" srcset="small.png 400w, medium.png 800w, large.png 1200w" sizes="80mm" width="10mm" height="10mm"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "small.png", calledSrc)
@@ -290,7 +291,7 @@ func TestPictureRow_UsesFirstSourceSrcsetCandidate(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><picture><source srcset="hero-small.png 1x, hero-large.png 2x"><img src="fallback.png" width="8mm" height="6mm" alt="hero"></picture></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "hero-large.png", calledSrc)
@@ -310,7 +311,7 @@ func TestPictureRow_SourceSizesDriveWidthDescriptorSelection(t *testing.T) {
 </picture></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "small.png", calledSrc)
@@ -335,7 +336,7 @@ func TestPictureRow_SelectsPrintMediaAndSupportedTypeSource(t *testing.T) {
 </picture></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "print.svg", calledSrc)
@@ -356,7 +357,7 @@ func TestPictureRow_EvaluatesSourceWidthMediaAgainstContentWidth(t *testing.T) {
 </picture></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "wide.png", calledSrc)
@@ -377,7 +378,7 @@ func TestPictureRow_SourceWidthMediaUsesConfiguredContentWidth(t *testing.T) {
 </picture></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver), WithContentWidth(80))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver), WithContentWidth(80))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "narrow.png", calledSrc)
@@ -394,7 +395,7 @@ func TestImageRow_CSSDimensionsOverrideAttributes(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.logo { width: 12mm; height: 7mm }</style></head><body><img class="logo" src="logo.png" width="1mm" height="1mm"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.InDelta(t, 7.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
@@ -411,7 +412,7 @@ func TestImageRow_MaxWidthClampsAutoHeight(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.logo { width: 120mm; max-width: 25% }</style></head><body><img class="logo" src="logo.png"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver), WithContentWidth(80))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver), WithContentWidth(80))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.InDelta(t, 20.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
@@ -428,7 +429,7 @@ func TestImageRow_ObjectFitAndPositionMappedFromCSS(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.photo { width: 40mm; height: 20mm; object-fit: cover; object-position: right bottom }</style></head><body><img class="photo" src="photo.png"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -449,7 +450,7 @@ func TestSVGElement_BlockRendersAsImageRow(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.mark { width: 12mm; height: 6mm }</style></head><body><svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 16"><rect width="32" height="16" fill="red"/></svg></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.InDelta(t, 6.0, rows[0].GetHeight(nil, &entity.Cell{}), 0.001)
@@ -475,7 +476,7 @@ func TestImageRow_UnsupportedSVGFallsBackToAlt(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><img src="x.svg" alt="alt"></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	// alt fallback → one text row.
 	require.Len(t, rows, 1)
@@ -760,7 +761,7 @@ func TestBackgroundImage_URLProducesContainerBackgroundImage(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.bg { background-image:url("bg.png"); background-size:cover; background-position:center bottom; background-repeat:no-repeat; padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -787,7 +788,7 @@ func TestBackgroundImage_ShorthandURLProducesContainerBackgroundImage(t *testing
 	doc, err := dom.Parse(`<html><head><style>.bg { background:#112233 url("bg.png") center bottom / cover no-repeat; padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -813,7 +814,7 @@ func TestBackgroundImage_DataURIInlineStyleProducesContainerBackgroundImage(t *t
 	doc, err := dom.Parse(`<html><body><div style="background-image:url('` + uri + `'); padding:1mm"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -836,7 +837,7 @@ func TestBackgroundImage_SVGRasterisesToPNG(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.bg { background-image:url(bg.svg); padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc, WithImageResolver(resolver))
+	rows, err := Translate(context.Background(), doc, WithImageResolver(resolver))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -855,7 +856,7 @@ func TestBackgroundImage_ConicGradientProducesContainerGradient(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>.bg { background:conic-gradient(from 90deg at center, red 0deg, blue 360deg); padding:1mm }</style></head><body><div class="bg"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 

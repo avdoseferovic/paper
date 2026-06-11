@@ -87,17 +87,17 @@ func (_c *Paper_AddAutoRow_Call) RunAndReturn(run func(...core.Col) core.Row) *P
 	return _c
 }
 
-// AddHTML provides a mock function with given fields: htmlStr
-func (_m *Paper) AddHTML(htmlStr string) error {
-	ret := _m.Called(htmlStr)
+// AddHTML provides a mock function with given fields: ctx, htmlStr
+func (_m *Paper) AddHTML(ctx context.Context, htmlStr string) error {
+	ret := _m.Called(ctx, htmlStr)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddHTML")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(htmlStr)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, htmlStr)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -111,14 +111,15 @@ type Paper_AddHTML_Call struct {
 }
 
 // AddHTML is a helper method to define mock.On call
+//   - ctx context.Context
 //   - htmlStr string
-func (_e *Paper_Expecter) AddHTML(htmlStr interface{}) *Paper_AddHTML_Call {
-	return &Paper_AddHTML_Call{Call: _e.mock.On("AddHTML", htmlStr)}
+func (_e *Paper_Expecter) AddHTML(ctx interface{}, htmlStr interface{}) *Paper_AddHTML_Call {
+	return &Paper_AddHTML_Call{Call: _e.mock.On("AddHTML", ctx, htmlStr)}
 }
 
-func (_c *Paper_AddHTML_Call) Run(run func(htmlStr string)) *Paper_AddHTML_Call {
+func (_c *Paper_AddHTML_Call) Run(run func(ctx context.Context, htmlStr string)) *Paper_AddHTML_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -128,54 +129,7 @@ func (_c *Paper_AddHTML_Call) Return(_a0 error) *Paper_AddHTML_Call {
 	return _c
 }
 
-func (_c *Paper_AddHTML_Call) RunAndReturn(run func(string) error) *Paper_AddHTML_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// AddHTMLCtx provides a mock function with given fields: ctx, htmlStr
-func (_m *Paper) AddHTMLCtx(ctx context.Context, htmlStr string) error {
-	ret := _m.Called(ctx, htmlStr)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AddHTMLCtx")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, htmlStr)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Paper_AddHTMLCtx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddHTMLCtx'
-type Paper_AddHTMLCtx_Call struct {
-	*mock.Call
-}
-
-// AddHTMLCtx is a helper method to define mock.On call
-//   - ctx context.Context
-//   - htmlStr string
-func (_e *Paper_Expecter) AddHTMLCtx(ctx interface{}, htmlStr interface{}) *Paper_AddHTMLCtx_Call {
-	return &Paper_AddHTMLCtx_Call{Call: _e.mock.On("AddHTMLCtx", ctx, htmlStr)}
-}
-
-func (_c *Paper_AddHTMLCtx_Call) Run(run func(ctx context.Context, htmlStr string)) *Paper_AddHTMLCtx_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *Paper_AddHTMLCtx_Call) Return(_a0 error) *Paper_AddHTMLCtx_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Paper_AddHTMLCtx_Call) RunAndReturn(run func(context.Context, string) error) *Paper_AddHTMLCtx_Call {
+func (_c *Paper_AddHTML_Call) RunAndReturn(run func(context.Context, string) error) *Paper_AddHTML_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -381,69 +335,12 @@ func (_c *Paper_FitInCurrentPage_Call) RunAndReturn(run func(float64) bool) *Pap
 	return _c
 }
 
-// Generate provides a mock function with no fields
-func (_m *Paper) Generate() (*core.Pdf, error) {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for Generate")
-	}
-
-	var r0 *core.Pdf
-	var r1 error
-	if rf, ok := ret.Get(0).(func() (*core.Pdf, error)); ok {
-		return rf()
-	}
-	if rf, ok := ret.Get(0).(func() *core.Pdf); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*core.Pdf)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Paper_Generate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Generate'
-type Paper_Generate_Call struct {
-	*mock.Call
-}
-
-// Generate is a helper method to define mock.On call
-func (_e *Paper_Expecter) Generate() *Paper_Generate_Call {
-	return &Paper_Generate_Call{Call: _e.mock.On("Generate")}
-}
-
-func (_c *Paper_Generate_Call) Run(run func()) *Paper_Generate_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *Paper_Generate_Call) Return(_a0 *core.Pdf, _a1 error) *Paper_Generate_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *Paper_Generate_Call) RunAndReturn(run func() (*core.Pdf, error)) *Paper_Generate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GenerateCtx provides a mock function with given fields: ctx
-func (_m *Paper) GenerateCtx(ctx context.Context) (*core.Pdf, error) {
+// Generate provides a mock function with given fields: ctx
+func (_m *Paper) Generate(ctx context.Context) (*core.Pdf, error) {
 	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GenerateCtx")
+		panic("no return value specified for Generate")
 	}
 
 	var r0 *core.Pdf
@@ -468,30 +365,30 @@ func (_m *Paper) GenerateCtx(ctx context.Context) (*core.Pdf, error) {
 	return r0, r1
 }
 
-// Paper_GenerateCtx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GenerateCtx'
-type Paper_GenerateCtx_Call struct {
+// Paper_Generate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Generate'
+type Paper_Generate_Call struct {
 	*mock.Call
 }
 
-// GenerateCtx is a helper method to define mock.On call
+// Generate is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Paper_Expecter) GenerateCtx(ctx interface{}) *Paper_GenerateCtx_Call {
-	return &Paper_GenerateCtx_Call{Call: _e.mock.On("GenerateCtx", ctx)}
+func (_e *Paper_Expecter) Generate(ctx interface{}) *Paper_Generate_Call {
+	return &Paper_Generate_Call{Call: _e.mock.On("Generate", ctx)}
 }
 
-func (_c *Paper_GenerateCtx_Call) Run(run func(ctx context.Context)) *Paper_GenerateCtx_Call {
+func (_c *Paper_Generate_Call) Run(run func(ctx context.Context)) *Paper_Generate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context))
 	})
 	return _c
 }
 
-func (_c *Paper_GenerateCtx_Call) Return(_a0 *core.Pdf, _a1 error) *Paper_GenerateCtx_Call {
+func (_c *Paper_Generate_Call) Return(_a0 *core.Pdf, _a1 error) *Paper_Generate_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Paper_GenerateCtx_Call) RunAndReturn(run func(context.Context) (*core.Pdf, error)) *Paper_GenerateCtx_Call {
+func (_c *Paper_Generate_Call) RunAndReturn(run func(context.Context) (*core.Pdf, error)) *Paper_Generate_Call {
 	_c.Call.Return(run)
 	return _c
 }

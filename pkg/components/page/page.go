@@ -40,6 +40,12 @@ func (p *Page) Render(provider core.Provider, cell entity.Cell) {
 		provider.AddBackgroundImageFromBytes(p.config.BackgroundImage.Bytes, &innerCell, prop, p.config.BackgroundImage.Extension)
 	}
 
+	if p.config.Watermark != nil {
+		if wp, ok := provider.(core.WatermarkProvider); ok {
+			wp.AddWatermark(&innerCell, p.config.Watermark)
+		}
+	}
+
 	for _, row := range p.rows {
 		row.Render(provider, innerCell)
 		innerCell.Y += row.GetHeight(provider, &innerCell)

@@ -6,8 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -22,10 +21,10 @@ func TestFont_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
-		assert.Equal(t, fontfamily.Arial, prop.Family)
+		assert.Equal(t, consts.FontFamilyArial, prop.Family)
 	})
 	t.Run("when style is not defined, should define normal", func(t *testing.T) {
 		t.Parallel()
@@ -35,7 +34,7 @@ func TestFont_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, fontstyle.Normal, prop.Style)
@@ -48,7 +47,7 @@ func TestFont_MakeValid(t *testing.T) {
 		}
 
 		// Act
-		prop.MakeValid(fontfamily.Arial)
+		prop.MakeValid(consts.FontFamilyArial)
 
 		// Assert
 		assert.Equal(t, 8.0, prop.Size)
@@ -61,14 +60,14 @@ func TestFont_ToTextProp(t *testing.T) {
 	prop := fixture.FontProp()
 
 	// Act
-	textProp := prop.ToTextProp(align.Center, 10, 5)
+	textProp := prop.ToTextProp(consts.AlignCenter, 10, 5)
 
 	// Assert
 	assert.Equal(t, prop.Family, textProp.Family)
 	assert.Equal(t, prop.Style, textProp.Style)
 	assert.Equal(t, prop.Size, textProp.Size)
 	assert.Equal(t, prop.Color, textProp.Color)
-	assert.Equal(t, align.Center, textProp.Align)
+	assert.Equal(t, consts.AlignCenter, textProp.Align)
 	assert.Equal(t, 10.0, textProp.Top)
 	assert.Equal(t, 5.0, textProp.VerticalPadding)
 }
@@ -83,7 +82,7 @@ func TestFont_AppendMap(t *testing.T) {
 	m = prop.AppendMap(m)
 
 	// Assert
-	assert.Equal(t, fontfamily.Helvetica, m["prop_font_family"])
+	assert.Equal(t, consts.FontFamilyHelvetica, m["prop_font_family"])
 	assert.Equal(t, fontstyle.Bold, m["prop_font_style"])
 	assert.Equal(t, 14.0, m["prop_font_size"])
 	assert.Equal(t, "RGB(100, 50, 200)", m["prop_font_color"])

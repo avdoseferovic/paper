@@ -1,157 +1,32 @@
+// Package test exposes Paper's golden-structure test helper for library
+// consumers. It is a thin re-export of the canonical implementation in
+// internal/test, kept dependency-free so importing it never adds third-party
+// modules to a consumer's build.
 package test
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
 	"testing"
 
-	"github.com/avdoseferovic/paper/pkg/tree/node"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/internal/test"
 )
 
+// Errors returned while resolving the golden-file directory.
 var (
-	ErrCannotReadDir = errors.New("cannot read directory")
-	ErrGoModNotFound = errors.New("could not find go.mod")
+	ErrCannotReadDir = test.ErrCannotReadDir
+	ErrGoModNotFound = test.ErrGoModNotFound
 )
 
-var (
-	goModFile       = "go.mod"
-	defaultTestPath = "test/paper/"
-	configSingleton *Config
-	configOnce      sync.Once
+type (
+	// Node is the JSON shape used to compare document structures.
+	Node = test.Node
+	// PaperTest is the unit test instance.
+	PaperTest = test.PaperTest
+	// Config is the representation of a test config.
+	Config = test.Config
 )
 
-type Node struct {
-	Value   any            `json:"value,omitempty"`
-	Type    string         `json:"type"`
-	Details map[string]any `json:"details,omitempty"`
-	Nodes   []*Node        `json:"nodes,omitempty"`
-}
-
-// PaperTest is the unit test instance.
-type PaperTest struct {
-	t    *testing.T
-	node *node.Node[core.Structure]
-}
-
-// New creates the PaperTest instance to unit tests.
+// New creates the PaperTest instance for unit tests.
 func New(t *testing.T) *PaperTest {
 	t.Helper()
-	var initErr error
-	configOnce.Do(func() {
-		path, err := getPaperConfigFilePath()
-		if err != nil {
-			initErr = err
-			return
-		}
-
-		cfg := &Config{AbsolutePath: path, TestPath: defaultTestPath}
-		configSingleton = cfg
-	})
-	if initErr != nil {
-		assert.Fail(t, "could not configure paper tests: "+initErr.Error())
-	}
-
-	return &PaperTest{
-		t: t,
-	}
-}
-
-// Assert validates if the structure is the same as defined by Equals method.
-func (m *PaperTest) Assert(structure *node.Node[core.Structure]) *PaperTest {
-	m.node = structure
-	return m
-}
-
-// Equals defines which file will be loaded to do the comparison.
-func (m *PaperTest) Equals(file string) *PaperTest {
-	m.t.Helper()
-	actual := m.buildNode(m.node)
-	actualBytes, err := json.Marshal(actual)
-	if err != nil {
-		assert.Fail(m.t, err.Error())
-		return m
-	}
-	actualString := string(actualBytes)
-
-	indentedExpectBytes, err := os.ReadFile(configSingleton.getAbsoluteFilePath(file))
-	if err != nil {
-		assert.Fail(m.t, err.Error())
-		return m
-	}
-
-	savedNode := &Node{}
-	err = json.Unmarshal(indentedExpectBytes, savedNode)
-	if err != nil {
-		assert.Fail(m.t, err.Error())
-		return m
-	}
-	expectedBytes, err := json.Marshal(savedNode)
-	if err != nil {
-		assert.Fail(m.t, err.Error())
-		return m
-	}
-
-	assert.Equal(m.t, string(expectedBytes), actualString)
-	return m
-}
-
-func (m *PaperTest) buildNode(node *node.Node[core.Structure]) *Node {
-	data := node.GetData()
-	actual := &Node{
-		Type:    data.Type,
-		Value:   data.Value,
-		Details: data.Details,
-	}
-
-	nexts := node.GetNexts()
-	for _, next := range nexts {
-		actual.Nodes = append(actual.Nodes, m.buildNode(next))
-	}
-
-	return actual
-}
-
-func getPaperConfigFilePath() (string, error) {
-	path, _ := os.Getwd()
-	return getPaperConfigFilePathRecursive(path)
-}
-
-func getPaperConfigFilePathRecursive(path string) (string, error) {
-	cleanPath := filepath.Clean(path)
-	hasGoMod, err := hasFileInPath(goModFile, cleanPath)
-	if err != nil {
-		return "", err
-	}
-
-	if hasGoMod {
-		return cleanPath + string(os.PathSeparator), nil
-	}
-
-	parentPath := filepath.Dir(cleanPath)
-	if parentPath == cleanPath {
-		return "", ErrGoModNotFound
-	}
-	return getPaperConfigFilePathRecursive(parentPath)
-}
-
-func hasFileInPath(file string, path string) (bool, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return false, fmt.Errorf("%w: %s", ErrCannotReadDir, err.Error())
-	}
-
-	for _, entry := range entries {
-		if entry.Name() == file {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return test.New(t)
 }

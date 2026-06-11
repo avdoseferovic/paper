@@ -1,16 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/line"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
 	"github.com/avdoseferovic/paper/pkg/props"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -18,7 +18,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -57,23 +57,23 @@ func GetPaper() core.Paper {
 	m.AddRow(40,
 		line.NewCol(2, props.Line{Thickness: 0.5}),
 		line.NewCol(4, props.Line{Color: &props.RedColor}),
-		line.NewCol(6, props.Line{Orientation: orientation.Vertical}),
+		line.NewCol(6, props.Line{Orientation: consts.OrientationVertical}),
 	)
 
 	m.AddRow(40,
 		line.NewCol(6, props.Line{OffsetPercent: 50}),
-		line.NewCol(4, props.Line{OffsetPercent: 50, Orientation: orientation.Vertical}),
+		line.NewCol(4, props.Line{OffsetPercent: 50, Orientation: consts.OrientationVertical}),
 		line.NewCol(2, props.Line{SizePercent: 50}),
 	)
 
 	m.AddRow(40,
-		line.NewCol(2, props.Line{Style: linestyle.Dashed}),
+		line.NewCol(2, props.Line{Style: consts.LineStyleDashed}),
 		line.NewCol(4,
 			props.Line{
 				Color:         &props.RedColor,
-				Style:         linestyle.Dashed,
+				Style:         consts.LineStyleDashed,
 				Thickness:     0.8,
-				Orientation:   orientation.Vertical,
+				Orientation:   consts.OrientationVertical,
 				OffsetPercent: 70,
 				SizePercent:   70,
 			},
@@ -81,9 +81,9 @@ func GetPaper() core.Paper {
 		line.NewCol(6,
 			props.Line{
 				Color:         &props.RedColor,
-				Style:         linestyle.Dashed,
+				Style:         consts.LineStyleDashed,
 				Thickness:     0.8,
-				Orientation:   orientation.Horizontal,
+				Orientation:   consts.OrientationHorizontal,
 				OffsetPercent: 40,
 				SizePercent:   40,
 			},
@@ -91,12 +91,12 @@ func GetPaper() core.Paper {
 	)
 
 	m.AddAutoRow(
-		line.NewCol(2, props.Line{Style: linestyle.Dashed}),
+		line.NewCol(2, props.Line{Style: consts.LineStyleDashed}),
 		line.NewCol(4,
 			props.Line{
 				Color:     &props.RedColor,
-				Style:     linestyle.Dashed,
-				Thickness: 0.8, Orientation: orientation.Vertical,
+				Style:     consts.LineStyleDashed,
+				Thickness: 0.8, Orientation: consts.OrientationVertical,
 				OffsetPercent: 70,
 				SizePercent:   70,
 			},
@@ -104,9 +104,9 @@ func GetPaper() core.Paper {
 		line.NewCol(6,
 			props.Line{
 				Color:         &props.RedColor,
-				Style:         linestyle.Dashed,
+				Style:         consts.LineStyleDashed,
 				Thickness:     0.8,
-				Orientation:   orientation.Horizontal,
+				Orientation:   consts.OrientationHorizontal,
 				OffsetPercent: 40,
 				SizePercent:   40,
 			},

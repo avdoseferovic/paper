@@ -1,6 +1,7 @@
 package decorator_test
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/avdoseferovic/paper"
@@ -19,7 +20,7 @@ func ExampleNewMetrics() {
 	m := decorator.NewMetrics(mrt) // decorator of paper
 
 	// Do things and generate
-	_, _ = m.Generate()
+	_, _ = m.Generate(context.Background())
 	fmt.Println("generated")
 
 	// Output: generated

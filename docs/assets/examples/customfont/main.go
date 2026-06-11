@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 
 	"github.com/avdoseferovic/paper"
@@ -10,11 +12,7 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/fontrepository"
 
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
-
 	"github.com/avdoseferovic/paper/pkg/components/text"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -23,7 +21,7 @@ import (
 
 func main() {
 	m := GetPaper("docs/assets/fonts/arial-unicode-ms.ttf")
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -64,15 +62,15 @@ func GetPaper(customFontFile string) core.Paper {
 	header, contents := getLanguageSample()
 
 	m.AddRow(8,
-		text.NewCol(4, header[0], props.Text{Style: fontstyle.Bold, Family: fontfamily.Arial, Align: align.Center}),
-		text.NewCol(8, header[1], props.Text{Style: fontstyle.Bold, Family: fontfamily.Arial, Align: align.Center}),
+		text.NewCol(4, header[0], props.Text{Style: fontstyle.Bold, Family: consts.FontFamilyArial, Align: consts.AlignCenter}),
+		text.NewCol(8, header[1], props.Text{Style: fontstyle.Bold, Family: consts.FontFamilyArial, Align: consts.AlignCenter}),
 	)
 
 	grey := props.Color{Red: 200, Green: 200, Blue: 200}
 	for i, content := range contents {
 		r := m.AddRow(5,
-			text.NewCol(4, content[0], props.Text{Align: align.Center}),
-			text.NewCol(8, content[1], props.Text{Align: align.Center}),
+			text.NewCol(4, content[0], props.Text{Align: consts.AlignCenter}),
+			text.NewCol(8, content[1], props.Text{Align: consts.AlignCenter}),
 		)
 
 		if i%2 == 0 {
@@ -89,13 +87,13 @@ func GetPaper(customFontFile string) core.Paper {
 	m.AddRows(text.NewRow(10, "long text without spaces", props.Text{
 		Top:    5,
 		Style:  fontstyle.Bold,
-		Family: fontfamily.Arial,
+		Family: consts.FontFamilyArial,
 	}))
 
 	m.AddRow(80,
-		text.NewCol(4, longText, props.Text{Align: align.Center, BreakLineStrategy: breakline.DashStrategy}),
-		text.NewCol(4, longText, props.Text{Align: align.Left, BreakLineStrategy: breakline.DashStrategy}),
-		text.NewCol(4, longText, props.Text{Align: align.Right, BreakLineStrategy: breakline.DashStrategy}),
+		text.NewCol(4, longText, props.Text{Align: consts.AlignCenter, BreakLineStrategy: consts.BreakLineDash}),
+		text.NewCol(4, longText, props.Text{Align: consts.AlignLeft, BreakLineStrategy: consts.BreakLineDash}),
+		text.NewCol(4, longText, props.Text{Align: consts.AlignRight, BreakLineStrategy: consts.BreakLineDash}),
 	)
 
 	return m

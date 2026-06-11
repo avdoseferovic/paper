@@ -1,6 +1,7 @@
 package translate_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -32,7 +33,7 @@ func TestTranslate_PageBreakAfter_ProducesBreakRow(t *testing.T) {
 	<div style="page-break-after:always">Section 1</div>
 	<p>Section 2</p>
 	</body></html>`)
-	rows, err := translate.Translate(doc)
+	rows, err := translate.Translate(context.Background(), doc)
 	require.NoError(t, err)
 	// There should be at least one PageBreaker row in the output
 	var foundBreak bool
@@ -51,7 +52,7 @@ func TestTranslate_PageBreakBefore_ProducesBreakRow(t *testing.T) {
 	<p>Section 1</p>
 	<div style="page-break-before:always">Section 2</div>
 	</body></html>`)
-	rows, err := translate.Translate(doc)
+	rows, err := translate.Translate(context.Background(), doc)
 	require.NoError(t, err)
 	var foundBreak bool
 	for _, r := range rows {

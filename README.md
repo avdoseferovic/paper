@@ -22,12 +22,9 @@ control over document generation.
 go get github.com/avdoseferovic/paper
 ```
 
-The optional structure assertion helper is published as a separate module so
-normal Paper consumers do not pull assertion-library dependencies:
-
-```bash
-go get github.com/avdoseferovic/paper/pkg/test
-```
+The structure assertion helper ships with the root module and adds no
+third-party dependencies — import `github.com/avdoseferovic/paper/pkg/test`
+directly.
 
 ## HTML to PDF
 
@@ -37,13 +34,14 @@ For HTML-only documents, use `paper.FromHTML`.
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
 )
 
 func main() {
-	doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
+	doc, err := paper.FromHTML(context.Background(), `<h1>Hello</h1><p>World</p>`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,6 +52,9 @@ func main() {
 }
 ```
 
+All generation entry points take a `context.Context` as their first argument,
+so long-running conversions can be canceled or given deadlines.
+
 Use `paper.FromHTMLReader` when the source HTML is already available as an
 `io.Reader`. For advanced HTML options such as asset base directories, call
 `pkg/html` directly and add the returned rows to a `paper.New(...)` document.
@@ -62,7 +63,7 @@ For mixed layouts, HTML fragments can also be used as regular components via
 `github.com/avdoseferovic/paper/pkg/components/html`:
 
 ```go
-htmlBlock, err := htmlcomponent.New(`<h2>Terms</h2><p>Rendered from HTML.</p>`)
+htmlBlock, err := htmlcomponent.New(context.Background(), `<h2>Terms</h2><p>Rendered from HTML.</p>`)
 if err != nil {
 	log.Fatal(err)
 }
@@ -83,6 +84,7 @@ headers or footers, generated pages, metrics, or a testable component tree.
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
@@ -101,7 +103,7 @@ func main() {
 		Build()
 
 	doc := paper.New(cfg)
-	htmlBlock, err := htmlcomponent.New(`<p>HTML fragment inside the grid</p>`)
+	htmlBlock, err := htmlcomponent.New(context.Background(), `<p>HTML fragment inside the grid</p>`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,7 +119,7 @@ func main() {
 		text.NewRow(8, "Generated with Paper"),
 	)
 
-	pdf, err := doc.Generate()
+	pdf, err := doc.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -136,16 +138,34 @@ the useful page area after margins, headers, and footers are reserved.
 ## Key Features
 
 - HTML-to-PDF conversion through `paper.FromHTML`, `paper.FromHTMLReader`, and
-  `pkg/html`.
+  `pkg/html` — including `@page` size/margins and repeating top-level
+  `<header>`/`<footer>` bands.
 - Programmatic PDF layout with rows, columns, text, images, codes, tables,
   signatures, page numbers, headers, and footers.
-- Document output as bytes, base64, saved files, or merged PDFs.
+- PDF outline bookmarks via `props.Outline` (and auto-generated from HTML
+  headings with `WithOutlineFromHeadings`), preserved in every generation
+  mode.
+- Per-page text watermarks via `config.WithWatermark`.
+- Document output as bytes, base64, saved files, or merged PDFs (see
+  [Merging PDFs](#merging-pdfs) for limitations).
 - PDF permission protection for casual copy/print deterrence, not confidentiality-grade encryption. RC4 is the compatibility default; AES-128 is available with `WithProtectionAlgorithm`.
 - Component-tree inspection through `GetStructure`, designed for deterministic
   unit tests.
 - Optional generation metrics through `decorator.NewMetrics`.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
+
+## Merging PDFs
+
+`merge.Bytes` (package `pkg/merge`) concatenates the pages of multiple PDFs
+into one document. It is designed for PDFs produced by Paper itself and has
+two hard limitations for external input:
+
+- **Encrypted PDFs are not supported.** Password-protected input returns an
+  error; decrypt before merging.
+- **Cross-reference streams are not supported.** Many modern tools emit PDFs
+  with xref streams (PDF 1.5+ compressed object streams); those inputs are
+  rejected. Re-save such files with a classic xref table first.
 
 ## Performance
 
@@ -220,6 +240,10 @@ generating documents in parallel.
 | `make dod`      | Run the local definition-of-done checks           |
 | `make examples` | Run documentation examples                        |
 | `make docs`     | Start the local docs server                       |
+
+Contributor onboarding — toolchain setup, the multi-module workspace layout,
+golden-file tests, and mock generation — is covered in
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Credits
 

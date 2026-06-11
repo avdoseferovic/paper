@@ -6,6 +6,7 @@
   * [Auto Row](features/autorow.md?id=auto-row)
   * [Background](features/background.md?id=add-background)
   * [Barcode](features/barcode.md?id=barcode)
+  * [Bookmark](features/bookmark.md?id=bookmark-pdf-outline)
   * [Cell Style](features/cellstyle.md?id=cell-style)
   * [Checkbox](features/checkbox.md?id=checkbox)
   * [Compression](features/compression.md?id=compression)
@@ -32,3 +33,4 @@
   * [Signature](features/signature.md?id=signature)
   * [Text](features/text.md?id=text)
   * [Unit Testing](features/unittests.md?id=unit-testing)
+  * [Watermark](features/watermark.md?id=watermark)

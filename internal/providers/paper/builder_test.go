@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
-
 	"github.com/avdoseferovic/paper/internal/fixture"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -44,7 +43,7 @@ func TestBuilder_Build(t *testing.T) {
 			DefaultFont: &font,
 			CustomFonts: []entity.CustomFont{
 				fixture.TestFont{
-					Family: fontfamily.Arial,
+					Family: consts.FontFamilyArial,
 				},
 			},
 			DisableAutoPageBreak: true,
@@ -75,7 +74,7 @@ func TestBuilder_Build(t *testing.T) {
 			DefaultFont: &font,
 			CustomFonts: []entity.CustomFont{
 				fixture.TestFont{
-					Family: fontfamily.Arial,
+					Family: consts.FontFamilyArial,
 				},
 			},
 			DisableAutoPageBreak: false,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/examples/internal/examplepath"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/list"
@@ -22,7 +24,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/signature"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -92,14 +93,14 @@ func run() *metrics.Time {
 	}
 
 	m.AddRows(
-		text.NewRow(15, "Dummy Data", props.Text{Size: 12, Top: 5, Align: align.Center}),
+		text.NewRow(15, "Dummy Data", props.Text{Size: 12, Top: 5, Align: consts.AlignCenter}),
 	)
 
 	for range 1158 {
 		m.AddRows(text.NewRow(20, dummyText+dummyText+dummyText+dummyText+dummyText))
 	}
 
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -110,15 +111,15 @@ func run() *metrics.Time {
 func buildCodesRow() []core.Row {
 	return []core.Row{
 		row.New(20).Add(
-			text.NewCol(4, "Barcode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Barcode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewBarCol(8, "barcode", props.Barcode{Center: true, Percent: 70}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "QrCode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "QrCode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewQrCol(8, "qrcode", props.Rect{Center: true, Percent: 70}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "MatrixCode:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "MatrixCode:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			code.NewMatrixCol(8, "matrixcode", props.Rect{Center: true, Percent: 70}),
 		),
 	}
@@ -133,11 +134,11 @@ func buildImagesRow() []core.Row {
 
 	return []core.Row{
 		row.New(20).Add(
-			text.NewCol(4, "Image From File:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Image From File:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			image.NewFromFileCol(8, examplepath.Repo("docs/assets/images/biplane.jpg"), props.Rect{Center: true, Percent: 90}),
 		),
 		row.New(20).Add(
-			text.NewCol(4, "Image From Bytes:", props.Text{Size: 15, Top: 6, Align: align.Center}),
+			text.NewCol(4, "Image From Bytes:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
 			image.NewFromBytesCol(8, bytes, extension.Png, props.Rect{Center: true, Percent: 90}),
 		),
 	}
@@ -148,11 +149,11 @@ func buildTextsRow() []core.Row {
 
 	return []core.Row{
 		row.New(20).Add(
-			text.NewCol(4, "Text:", props.Text{Size: 15, Top: 6, Align: align.Center}),
-			text.NewCol(8, colText, props.Text{Size: 12, Top: 5, Align: align.Center}),
+			text.NewCol(4, "Text:", props.Text{Size: 15, Top: 6, Align: consts.AlignCenter}),
+			text.NewCol(8, colText, props.Text{Size: 12, Top: 5, Align: consts.AlignCenter}),
 		),
 		row.New(40).Add(
-			text.NewCol(4, "Signature:", props.Text{Size: 15, Top: 17, Align: align.Center}),
+			text.NewCol(4, "Signature:", props.Text{Size: 15, Top: 17, Align: consts.AlignCenter}),
 			signature.NewCol(8, "Name", props.Signature{FontSize: 10}),
 		),
 	}
@@ -164,12 +165,12 @@ func buildHeader() []core.Row {
 			text.New("Paper Config", props.Text{
 				Top:   5,
 				Size:  15,
-				Align: align.Center,
+				Align: consts.AlignCenter,
 			}),
 			text.New("Grid system, fast generation, embedded metrics and testable.", props.Text{
 				Top:   13,
 				Size:  13,
-				Align: align.Center,
+				Align: consts.AlignCenter,
 			}),
 		),
 	)

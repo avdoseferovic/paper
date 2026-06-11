@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"encoding/base64"
 	"strings"
 	"testing"
@@ -8,7 +9,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 
-	"github.com/avdoseferovic/paper/pkg/consts/align"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -312,7 +313,7 @@ h2::before { content:"Section " counter(section) ": " }
 </style></head><body><h2>Intro</h2><h2>Usage</h2></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Section 1: Intro", "Section 2: Usage"}, richTextValues(rows))
@@ -327,7 +328,7 @@ p::before { counter-increment: note; content: counter(note, decimal-leading-zero
 </style></head><body><p>First</p><p>Second</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"01. First", "02. Second"}, richTextValues(rows))
@@ -348,7 +349,7 @@ p.item::before { content: counter(section) "." counter(item) " " }
 </body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
@@ -421,7 +422,7 @@ func TestTypography_RichTextLayoutPropsMappedFromCSS(t *testing.T) {
 two</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -434,7 +435,7 @@ two</p></body></html>`)
 	require.NotNil(t, details)
 	assert.Equal(t, "pre-line", details["white_space"])
 	assert.Equal(t, 5.0, details["first_line_indent"])
-	assert.Equal(t, align.Right, details["align"])
+	assert.Equal(t, consts.AlignRight, details["align"])
 	assert.Zero(t, details["left"], "text-indent should not shift every line through left padding")
 }
 
@@ -445,7 +446,7 @@ func TestTypography_PreDefaultsPreserveWhitespaceAndUseMonospace(t *testing.T) {
   two</pre></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -477,7 +478,7 @@ func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><p style="text-align:justify">one two three</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -488,5 +489,5 @@ func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
 		}
 	})
 	require.NotNil(t, details)
-	assert.Equal(t, align.Type(align.Justify), details["align"])
+	assert.Equal(t, consts.Align(consts.AlignJustify), details["align"])
 }

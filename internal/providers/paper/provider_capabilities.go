@@ -20,6 +20,18 @@ func (g *provider) RegisterFont(family string, style fontstyle.Type, bytes []byt
 	g.fpdf.AddUTF8FontFromBytes(family, string(style), bytes)
 }
 
+// Bookmark records a PDF outline entry on the current page. y is measured
+// from the top of the page content area (entity.Cell convention); the page
+// top margin is added so the destination matches where components draw.
+func (g *provider) Bookmark(title string, level int, y float64) {
+	if level < 0 {
+		level = 0
+	}
+	left, top, _, _ := g.fpdf.GetMargins()
+	_ = left // only the top margin matters for the outline destination
+	g.fpdf.Bookmark(title, level, y+top)
+}
+
 // AddLink reserves a new internal link target ID.
 func (g *provider) AddLink() int { return g.fpdf.AddLink() }
 
@@ -69,6 +81,49 @@ func (g *provider) WithAlpha(a float64, fn func()) {
 	g.fpdf.SetAlpha(a, "Normal")
 	defer g.fpdf.SetAlpha(1, "Normal")
 	fn()
+}
+
+// AddWatermark draws prop.Text centered in cell, rotated around the cell
+// center, translucent via the alpha channel. The font size scales down when
+// the rendered text would exceed 90% of the cell diagonal.
+func (g *provider) AddWatermark(cell *entity.Cell, prop *props.Watermark) {
+	if g.richText == nil || g.transformPDF == nil || cell == nil || prop == nil || prop.Text == "" {
+		return
+	}
+	p := props.NormalizeWatermark(*prop)
+	textProp := &props.Text{Family: p.Family, Style: p.Style, Size: p.Size, Color: p.Color}
+	textProp.MakeValid(g.cfg.DefaultFont)
+	textProp.Size = p.Size
+
+	width := g.richText.MeasureString(p.Text, textProp)
+	maxWidth := math.Sqrt(cell.Width*cell.Width+cell.Height*cell.Height) * 0.9
+	if width > maxWidth && width > 0 {
+		textProp.Size = textProp.Size * maxWidth / width
+		width = g.richText.MeasureString(p.Text, textProp)
+	}
+
+	left, top, _, _ := g.fpdf.GetMargins()
+	centerX := cell.X + cell.Width/2
+	centerY := cell.Y + cell.Height/2
+
+	originalColor := g.font.GetColor()
+	if textProp.Color != nil {
+		g.font.SetColor(textProp.Color)
+	}
+	defer g.font.SetColor(originalColor)
+
+	// AddTextAt positions the glyph BASELINE at the given y; lower the
+	// baseline by ~35% of the font height so the glyph body is visually
+	// centered on the cell center (the rotation pivot).
+	fontHeightMM := textProp.Size * 25.4 / 72.0
+	baselineY := centerY + fontHeightMM*0.35
+
+	g.WithAlpha(p.Alpha, func() {
+		g.transformPDF.TransformBegin()
+		g.transformPDF.TransformRotate(p.Angle, centerX+left, centerY+top)
+		g.richText.AddTextAt(centerX-width/2, baselineY, p.Text, textProp)
+		g.transformPDF.TransformEnd()
+	})
 }
 
 // DrawFilledCircle draws a filled circle inscribed inside the cell with the

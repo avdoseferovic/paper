@@ -7,8 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	gofpdf "github.com/avdoseferovic/paper/internal/providers/paper"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -30,8 +29,8 @@ func TestLine_Add(t *testing.T) {
 		// Arrange
 		cell := &entity.Cell{X: 10, Y: 20, Width: 50, Height: 100}
 		prop := &props.Line{
-			Orientation:   orientation.Vertical,
-			Style:         linestyle.Solid,
+			Orientation:   consts.OrientationVertical,
+			Style:         consts.LineStyleSolid,
 			Thickness:     0.5,
 			Color:         nil,
 			SizePercent:   100,
@@ -45,7 +44,7 @@ func TestLine_Add(t *testing.T) {
 		// space = (100 - 100) / 2 = 0
 		// x = left+cell.X+position = 5+10+25 = 40, y1 = top+cell.Y+space = 10+20+0 = 30, y2 = top+cell.Y+Height-space = 10+20+100-0 = 130
 		fpdf.EXPECT().Line(40.0, 30.0, 40.0, 130.0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 
 		sut := gofpdf.NewLine(fpdf)
 
@@ -58,8 +57,8 @@ func TestLine_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 200}
 		color := &props.Color{Red: 255, Green: 0, Blue: 0}
 		prop := &props.Line{
-			Orientation:   orientation.Vertical,
-			Style:         linestyle.Solid,
+			Orientation:   consts.OrientationVertical,
+			Style:         consts.LineStyleSolid,
 			Thickness:     1.0,
 			Color:         color,
 			SizePercent:   50,
@@ -75,7 +74,7 @@ func TestLine_Add(t *testing.T) {
 		// x = 0+0+0 = 0, y1 = 0+0+50 = 50, y2 = 0+0+200-50 = 150
 		fpdf.EXPECT().Line(0.0, 50.0, 0.0, 150.0)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 
 		sut := gofpdf.NewLine(fpdf)
 
@@ -87,8 +86,8 @@ func TestLine_Add(t *testing.T) {
 		// Arrange
 		cell := &entity.Cell{X: 5, Y: 5, Width: 80, Height: 100}
 		prop := &props.Line{
-			Orientation:   orientation.Vertical,
-			Style:         linestyle.Dashed,
+			Orientation:   consts.OrientationVertical,
+			Style:         consts.LineStyleDashed,
 			Thickness:     0.2,
 			Color:         nil,
 			SizePercent:   100,
@@ -103,7 +102,7 @@ func TestLine_Add(t *testing.T) {
 		// space = (100-100)/2 = 0
 		// x = 10+5+40 = 55, y1 = 10+5+0 = 15, y2 = 10+5+100-0 = 115
 		fpdf.EXPECT().Line(55.0, 15.0, 55.0, 115.0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
 
 		sut := gofpdf.NewLine(fpdf)
@@ -117,8 +116,8 @@ func TestLine_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 100}
 		color := &props.Color{Red: 0, Green: 128, Blue: 255}
 		prop := &props.Line{
-			Orientation:   orientation.Vertical,
-			Style:         linestyle.Dashed,
+			Orientation:   consts.OrientationVertical,
+			Style:         consts.LineStyleDashed,
 			Thickness:     0.4,
 			Color:         color,
 			SizePercent:   50,
@@ -135,7 +134,7 @@ func TestLine_Add(t *testing.T) {
 		// x = 0+0+50 = 50, y1 = 0+0+25 = 25, y2 = 0+0+100-25 = 75
 		fpdf.EXPECT().Line(50.0, 25.0, 50.0, 75.0)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
 
 		sut := gofpdf.NewLine(fpdf)
@@ -148,8 +147,8 @@ func TestLine_Add(t *testing.T) {
 		// Arrange
 		cell := &entity.Cell{X: 10, Y: 20, Width: 100, Height: 50}
 		prop := &props.Line{
-			Orientation:   orientation.Horizontal,
-			Style:         linestyle.Solid,
+			Orientation:   consts.OrientationHorizontal,
+			Style:         consts.LineStyleSolid,
 			Thickness:     0.5,
 			Color:         nil,
 			SizePercent:   100,
@@ -164,7 +163,7 @@ func TestLine_Add(t *testing.T) {
 		// x1 = left+cell.X+space = 5+10+0 = 15, y = top+cell.Y+position = 10+20+25 = 55
 		// x2 = left+cell.X+Width-space = 5+10+100-0 = 115
 		fpdf.EXPECT().Line(15.0, 55.0, 115.0, 55.0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 
 		sut := gofpdf.NewLine(fpdf)
 
@@ -177,8 +176,8 @@ func TestLine_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 200, Height: 100}
 		color := &props.Color{Red: 0, Green: 255, Blue: 0}
 		prop := &props.Line{
-			Orientation:   orientation.Horizontal,
-			Style:         linestyle.Solid,
+			Orientation:   consts.OrientationHorizontal,
+			Style:         consts.LineStyleSolid,
 			Thickness:     1.0,
 			Color:         color,
 			SizePercent:   50,
@@ -194,7 +193,7 @@ func TestLine_Add(t *testing.T) {
 		// x1 = 0+0+50 = 50, y = 0+0+0 = 0, x2 = 0+0+200-50 = 150
 		fpdf.EXPECT().Line(50.0, 0.0, 150.0, 0.0)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 
 		sut := gofpdf.NewLine(fpdf)
 
@@ -206,8 +205,8 @@ func TestLine_Add(t *testing.T) {
 		// Arrange
 		cell := &entity.Cell{X: 5, Y: 5, Width: 100, Height: 80}
 		prop := &props.Line{
-			Orientation:   orientation.Horizontal,
-			Style:         linestyle.Dashed,
+			Orientation:   consts.OrientationHorizontal,
+			Style:         consts.LineStyleDashed,
 			Thickness:     0.2,
 			Color:         nil,
 			SizePercent:   100,
@@ -222,7 +221,7 @@ func TestLine_Add(t *testing.T) {
 		// space = (100-100)/2 = 0
 		// x1 = 10+5+0 = 15, y = 10+5+40 = 55, x2 = 10+5+100-0 = 115
 		fpdf.EXPECT().Line(15.0, 55.0, 115.0, 55.0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
 
 		sut := gofpdf.NewLine(fpdf)
@@ -236,8 +235,8 @@ func TestLine_Add(t *testing.T) {
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 100}
 		color := &props.Color{Red: 100, Green: 100, Blue: 100}
 		prop := &props.Line{
-			Orientation:   orientation.Horizontal,
-			Style:         linestyle.Dashed,
+			Orientation:   consts.OrientationHorizontal,
+			Style:         consts.LineStyleDashed,
 			Thickness:     0.3,
 			Color:         color,
 			SizePercent:   50,
@@ -254,7 +253,7 @@ func TestLine_Add(t *testing.T) {
 		// x1 = 0+0+25 = 25, y = 0+0+50 = 50, x2 = 0+0+100-25 = 75
 		fpdf.EXPECT().Line(25.0, 50.0, 75.0, 50.0)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
 
 		sut := gofpdf.NewLine(fpdf)
@@ -266,8 +265,8 @@ func TestLine_Add(t *testing.T) {
 		t.Parallel()
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 10}
 		prop := &props.Line{
-			Orientation:   orientation.Horizontal,
-			Style:         linestyle.Dotted,
+			Orientation:   consts.OrientationHorizontal,
+			Style:         consts.LineStyleDotted,
 			Thickness:     0.5,
 			SizePercent:   100,
 			OffsetPercent: 50,
@@ -278,7 +277,7 @@ func TestLine_Add(t *testing.T) {
 		fpdf.EXPECT().SetLineWidth(0.5)
 		fpdf.EXPECT().SetDashPattern([]float64{0.4, 0.4}, 0.0)
 		fpdf.EXPECT().Line(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"))
-		fpdf.EXPECT().SetLineWidth(linestyle.DefaultLineThickness)
+		fpdf.EXPECT().SetLineWidth(consts.DefaultLineThickness)
 		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0)
 
 		sut := gofpdf.NewLine(fpdf)

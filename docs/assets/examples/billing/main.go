@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/decorator"
 
 	"github.com/avdoseferovic/paper/pkg/components/code"
@@ -11,7 +13,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/components/image"
 	"github.com/avdoseferovic/paper/pkg/components/row"
 	"github.com/avdoseferovic/paper/pkg/components/text"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/config"
@@ -21,7 +22,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -62,7 +63,7 @@ func GetPaper() core.Paper {
 	m.AddRows(text.NewRow(10, "Invoice ABC123456789", props.Text{
 		Top:   3,
 		Style: fontstyle.Bold,
-		Align: align.Center,
+		Align: consts.AlignCenter,
 	}))
 
 	m.AddRow(7,
@@ -70,7 +71,7 @@ func GetPaper() core.Paper {
 			Top:   1.5,
 			Size:  9,
 			Style: fontstyle.Bold,
-			Align: align.Center,
+			Align: consts.AlignCenter,
 			Color: &props.WhiteColor,
 		}),
 	).WithStyle(&props.Cell{BackgroundColor: darkGrayColor})
@@ -91,7 +92,7 @@ func GetPaper() core.Paper {
 				Family: "",
 				Style:  fontstyle.Bold,
 				Size:   9,
-				Align:  align.Center,
+				Align:  consts.AlignCenter,
 			}),
 		),
 		col.New(6),
@@ -103,9 +104,9 @@ func getTransactions() []core.Row {
 	rows := []core.Row{
 		row.New(5).Add(
 			col.New(3),
-			text.NewCol(4, "Product", props.Text{Size: 9, Align: align.Center, Style: fontstyle.Bold}),
-			text.NewCol(2, "Quantity", props.Text{Size: 9, Align: align.Center, Style: fontstyle.Bold}),
-			text.NewCol(3, "Price", props.Text{Size: 9, Align: align.Center, Style: fontstyle.Bold}),
+			text.NewCol(4, "Product", props.Text{Size: 9, Align: consts.AlignCenter, Style: fontstyle.Bold}),
+			text.NewCol(2, "Quantity", props.Text{Size: 9, Align: consts.AlignCenter, Style: fontstyle.Bold}),
+			text.NewCol(3, "Price", props.Text{Size: 9, Align: consts.AlignCenter, Style: fontstyle.Bold}),
 		),
 	}
 
@@ -115,9 +116,9 @@ func getTransactions() []core.Row {
 	for i, content := range contents {
 		r := row.New(4).Add(
 			col.New(3),
-			text.NewCol(4, content[1], props.Text{Size: 8, Align: align.Center}),
-			text.NewCol(2, content[2], props.Text{Size: 8, Align: align.Center}),
-			text.NewCol(3, content[3], props.Text{Size: 8, Align: align.Center}),
+			text.NewCol(4, content[1], props.Text{Size: 8, Align: consts.AlignCenter}),
+			text.NewCol(2, content[2], props.Text{Size: 8, Align: consts.AlignCenter}),
+			text.NewCol(3, content[3], props.Text{Size: 8, Align: consts.AlignCenter}),
 		)
 		if i%2 == 0 {
 			gray := getGrayColor()
@@ -135,13 +136,13 @@ func getTransactions() []core.Row {
 			Top:   5,
 			Style: fontstyle.Bold,
 			Size:  8,
-			Align: align.Right,
+			Align: consts.AlignRight,
 		}),
 		text.NewCol(3, "R$ 2.567,00", props.Text{
 			Top:   5,
 			Style: fontstyle.Bold,
 			Size:  8,
-			Align: align.Center,
+			Align: consts.AlignCenter,
 		}),
 	))
 
@@ -158,21 +159,21 @@ func getPageHeader() core.Row {
 		col.New(3).Add(
 			text.New("AnyCompany Name Inc. 851 Any Street Name, Suite 120, Any City, CA 45123.", props.Text{
 				Size:  8,
-				Align: align.Right,
+				Align: consts.AlignRight,
 				Color: getRedColor(),
 			}),
 			text.New("Tel: 55 024 12345-1234", props.Text{
 				Top:   12,
 				Style: fontstyle.BoldItalic,
 				Size:  8,
-				Align: align.Right,
+				Align: consts.AlignRight,
 				Color: getBlueColor(),
 			}),
 			text.New("www.mycompany.com", props.Text{
 				Top:   15,
 				Style: fontstyle.BoldItalic,
 				Size:  8,
-				Align: align.Right,
+				Align: consts.AlignRight,
 				Color: getBlueColor(),
 			}),
 		),
@@ -186,14 +187,14 @@ func getPageFooter() core.Row {
 				Top:   13,
 				Style: fontstyle.BoldItalic,
 				Size:  8,
-				Align: align.Left,
+				Align: consts.AlignLeft,
 				Color: getBlueColor(),
 			}),
 			text.New("www.mycompany.com", props.Text{
 				Top:   16,
 				Style: fontstyle.BoldItalic,
 				Size:  8,
-				Align: align.Left,
+				Align: consts.AlignLeft,
 				Color: getBlueColor(),
 			}),
 		),

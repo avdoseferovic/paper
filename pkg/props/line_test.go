@@ -6,8 +6,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 
 	"github.com/avdoseferovic/paper/internal/fixture"
-	"github.com/avdoseferovic/paper/pkg/consts/linestyle"
-	"github.com/avdoseferovic/paper/pkg/consts/orientation"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -24,7 +23,7 @@ func TestLine_MakeValid(t *testing.T) {
 		prop.MakeValid()
 
 		// Assert
-		assert.Equal(t, linestyle.Solid, prop.Style)
+		assert.Equal(t, consts.LineStyleSolid, prop.Style)
 	})
 	t.Run("when thickness is 0.0, should apply default", func(t *testing.T) {
 		t.Parallel()
@@ -50,7 +49,7 @@ func TestLine_MakeValid(t *testing.T) {
 		prop.MakeValid()
 
 		// Assert
-		assert.Equal(t, orientation.Horizontal, prop.Orientation)
+		assert.Equal(t, consts.OrientationHorizontal, prop.Orientation)
 	})
 	t.Run("when offset percent is less than 5, should apply 5", func(t *testing.T) {
 		t.Parallel()
@@ -129,9 +128,9 @@ func TestLine_ToMap(t *testing.T) {
 
 		// Assert
 		assert.Equal(t, "RGB(100, 50, 200)", m["prop_color"])
-		assert.Equal(t, linestyle.Dashed, m["prop_style"])
+		assert.Equal(t, consts.LineStyleDashed, m["prop_style"])
 		assert.Equal(t, 1.1, m["prop_thickness"])
-		assert.Equal(t, orientation.Vertical, m["prop_orientation"])
+		assert.Equal(t, consts.OrientationVertical, m["prop_orientation"])
 		assert.Equal(t, 50.0, m["prop_offset_percent"])
 		assert.Equal(t, 20.0, m["prop_size_percent"])
 	})

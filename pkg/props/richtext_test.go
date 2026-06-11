@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/breakline"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -40,19 +39,19 @@ func TestRichText_MakeValid(t *testing.T) {
 		t.Parallel()
 		rt := &props.RichText{}
 		rt.MakeValid(nil)
-		assert.Equal(t, align.Left, rt.Align)
+		assert.Equal(t, consts.AlignLeft, rt.Align)
 		assert.Equal(t, 1.0, rt.LineHeight)
-		assert.Equal(t, breakline.EmptySpaceStrategy, rt.BreakLineStrategy)
+		assert.Equal(t, consts.BreakLineEmptySpace, rt.BreakLineStrategy)
 	})
 
 	t.Run("should not override existing values", func(t *testing.T) {
 		t.Parallel()
 		rt := &props.RichText{
-			Align:      align.Center,
+			Align:      consts.AlignCenter,
 			LineHeight: 1.5,
 		}
 		rt.MakeValid(nil)
-		assert.Equal(t, align.Center, rt.Align)
+		assert.Equal(t, consts.AlignCenter, rt.Align)
 		assert.Equal(t, 1.5, rt.LineHeight)
 	})
 }

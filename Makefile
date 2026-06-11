@@ -15,7 +15,6 @@ build:
 .PHONY: test
 test:
 	go test $(GO_PATHS)
-	cd pkg/test && go test ./...
 	cd examples && go test ./...
 	cd docs && go test ./assets/examples/...
 
@@ -28,7 +27,6 @@ fmt:
 .PHONY: lint
 lint:
 	golangci-lint run --config=.golangci.yml ./...
-	cd pkg/test && golangci-lint run --config=../../.golangci.yml --disable=gomoddirectives .
 	cd examples && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./...
 	cd docs && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./assets/examples/...
 	make mock-lint
@@ -54,7 +52,7 @@ godoc:
 mocks:
 	find internal/mocks -type f -name '*.go' -delete
 	go run github.com/vektra/mockery/v2@v2.53.6
-	perl -0pi -e 's#github\.com/stretchr/testify/mock#github.com/avdoseferovic/paper/internal/mocktest#g' internal/mocks/*.go
+	go run ./internal/cmd/mockfix internal/mocks
 	make fmt
 
 .PHONY: examples
@@ -64,6 +62,7 @@ examples:
 	go run docs/assets/examples/background/main.go
 	go run docs/assets/examples/barcodegrid/main.go
 	go run docs/assets/examples/billing/main.go
+	go run docs/assets/examples/bookmark/main.go
 	cd examples && go run ./cmd/paper-showcase ../docs/assets/pdf/showcase.pdf
 	go run docs/assets/examples/cellstyle/main.go
 	go run docs/assets/examples/checkbox/main.go
@@ -91,4 +90,5 @@ examples:
 	go run docs/assets/examples/signaturegrid/main.go
 	go run docs/assets/examples/simplest/main.go
 	go run docs/assets/examples/textgrid/main.go
+	go run docs/assets/examples/watermark/main.go
 	go test docs/assets/examples/unittests/main_test.go

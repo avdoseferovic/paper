@@ -19,21 +19,21 @@ func TestFromString(t *testing.T) {
 
 	t.Run("returns rows for simple html", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString("<p>hello</p>")
+		rows, err := html.FromString(context.Background(), "<p>hello</p>")
 		require.NoError(t, err)
 		assert.NotEmpty(t, rows)
 	})
 
 	t.Run("handles malformed html without error", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString("<p>unclosed")
+		rows, err := html.FromString(context.Background(), "<p>unclosed")
 		require.NoError(t, err) // golang.org/x/net/html is permissive
 		assert.NotEmpty(t, rows)
 	})
 
 	t.Run("empty string returns empty rows", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString("")
+		rows, err := html.FromString(context.Background(), "")
 		require.NoError(t, err)
 		_ = rows // may be nil or empty
 	})
@@ -42,30 +42,30 @@ func TestFromString(t *testing.T) {
 func TestFromReader(t *testing.T) {
 	t.Parallel()
 	r := strings.NewReader("<p>hi</p>")
-	rows, err := html.FromReader(r)
+	rows, err := html.FromReader(context.Background(), r)
 	require.NoError(t, err)
 	assert.NotEmpty(t, rows)
 }
 
-func TestFromStringCtx_ReturnsContextError(t *testing.T) {
+func TestFromString_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	rows, err := html.FromStringCtx(ctx, "<p>hi</p>")
+	rows, err := html.FromString(ctx, "<p>hi</p>")
 
 	assert.Nil(t, rows)
 	require.ErrorIs(t, err, context.Canceled)
 }
 
-func TestFromReaderCtx_ReturnsContextError(t *testing.T) {
+func TestFromReader_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	rows, err := html.FromReaderCtx(ctx, strings.NewReader("<p>hi</p>"))
+	rows, err := html.FromReader(ctx, strings.NewReader("<p>hi</p>"))
 
 	assert.Nil(t, rows)
 	require.ErrorIs(t, err, context.Canceled)
@@ -85,7 +85,7 @@ func TestFromString_RejectsOversizeImagePixels(t *testing.T) {
 	t.Parallel()
 
 	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngHeaderWithDimensions(40_000, 40_000))
-	_, err := html.FromString(`<html><body><img src="` + uri + `"></body></html>`)
+	_, err := html.FromString(context.Background(), `<html><body><img src="`+uri+`"></body></html>`)
 
 	require.ErrorIs(t, err, html.ErrImageTooLarge)
 }
@@ -94,7 +94,7 @@ func TestFromString_RejectsOversizeImageBytes(t *testing.T) {
 	t.Parallel()
 
 	uri := "data:image/png;base64," + strings.Repeat("A", 24)
-	_, err := html.FromString(
+	_, err := html.FromString(context.Background(),
 		`<html><body><img src="`+uri+`"></body></html>`,
 		html.WithLimits(html.Limits{MaxImageBytes: 10}),
 	)
@@ -116,7 +116,7 @@ func TestFromString_RejectsDeepDOM(t *testing.T) {
 	}
 	b.WriteString("</body></html>")
 
-	_, err := html.FromString(b.String())
+	_, err := html.FromString(context.Background(), b.String())
 
 	require.ErrorIs(t, err, html.ErrDOMTooDeep)
 }
@@ -131,7 +131,7 @@ func TestFromString_RejectsLargeDOM(t *testing.T) {
 	}
 	b.WriteString("</body></html>")
 
-	_, err := html.FromString(b.String(), html.WithLimits(html.Limits{MaxDOMNodes: 10}))
+	_, err := html.FromString(context.Background(), b.String(), html.WithLimits(html.Limits{MaxDOMNodes: 10}))
 
 	require.ErrorIs(t, err, html.ErrDOMTooLarge)
 }
@@ -148,7 +148,7 @@ func TestFromString_RejectsTooManyStyleRules(t *testing.T) {
 	}
 	b.WriteString("</style></head><body><p>ok</p></body></html>")
 
-	_, err := html.FromString(b.String(), html.WithLimits(html.Limits{MaxStyleRules: 5}))
+	_, err := html.FromString(context.Background(), b.String(), html.WithLimits(html.Limits{MaxStyleRules: 5}))
 
 	require.ErrorIs(t, err, html.ErrStyleRulesTooLarge)
 }
@@ -156,7 +156,7 @@ func TestFromString_RejectsTooManyStyleRules(t *testing.T) {
 func TestFromString_RejectsOversizeSVG(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(
+	_, err := html.FromString(context.Background(),
 		`<html><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><rect width="10" height="10"/></svg></body></html>`,
 		html.WithLimits(html.Limits{MaxSVGPixels: 100}),
 	)

@@ -1,19 +1,18 @@
 package entity
 
 import (
-	"github.com/avdoseferovic/paper/pkg/consts/generation"
-	"github.com/avdoseferovic/paper/pkg/consts/provider"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // Config is the configuration of a paper instance.
 type Config struct {
-	ProviderType         provider.Type
+	ProviderType         consts.ProviderType
 	Dimensions           *Dimensions
 	Margins              *Margins
 	DefaultFont          *props.Font
 	CustomFonts          []CustomFont
-	GenerationMode       generation.Mode
+	GenerationMode       consts.GenerationMode
 	ChunkWorkers         int
 	Debug                bool
 	MaxGridSize          int
@@ -24,6 +23,8 @@ type Config struct {
 	BackgroundImage      *Image
 	DisableAutoPageBreak bool
 	HTMLLimits           HTMLLimits
+	OutlineFromHeadings  bool
+	Watermark            *props.Watermark
 }
 
 // ToMap converts Config to a map[string]any .
@@ -79,6 +80,14 @@ func (c *Config) ToMap() map[string]any {
 
 	if c.DisableAutoPageBreak {
 		m["config_disable_auto_page_break"] = c.DisableAutoPageBreak
+	}
+
+	if c.OutlineFromHeadings {
+		m["config_outline_from_headings"] = c.OutlineFromHeadings
+	}
+
+	if c.Watermark != nil {
+		m = c.Watermark.ToMap(m)
 	}
 
 	if c.HTMLLimits != (HTMLLimits{}) {

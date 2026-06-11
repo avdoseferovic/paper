@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -18,7 +19,7 @@ import (
 
 func main() {
 	m := GetPaper()
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -38,7 +39,7 @@ func GetPaper() core.Paper {
 	pageNumber := props.PageNumber{
 		Pattern: "Page {current} of {total}",
 		Place:   props.Bottom,
-		Family:  fontfamily.Courier,
+		Family:  consts.FontFamilyCourier,
 		Style:   fontstyle.Bold,
 		Size:    9,
 		Color: &props.Color{

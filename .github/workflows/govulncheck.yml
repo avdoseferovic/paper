@@ -22,10 +22,6 @@ jobs:
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
-      - name: Run govulncheck for pkg/test module
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-        working-directory: pkg/test
-
       - name: Run govulncheck for examples module
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
         working-directory: examples

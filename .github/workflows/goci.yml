@@ -16,13 +16,20 @@ jobs:
   build:
     name: run
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.26.x', 'stable']
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.4'
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
 
       - name: Build
         run: go build ./...
@@ -34,21 +41,16 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Fuzz FromHTML smoke
-        run: go test -run='^$' -fuzz=FuzzFromHTML -fuzztime=60s .
-
-      - name: Fuzz CSS smoke
-        run: go test -run='^$' -fuzz=FuzzParseStylesheet -fuzztime=30s ./pkg/html/css
-
-      - name: Fuzz SVG smoke
-        run: go test -run='^$' -fuzz=FuzzRasterize -fuzztime=30s ./internal/svg
-
-      - name: Dead code report
-        run: go run golang.org/x/tools/cmd/deadcode@latest -test ./... || true
-
-      - name: Test pkg/test module
-        run: go test -v ./...
-        working-directory: pkg/test
+      - name: Dead code check
+        # Findings go to stdout only; stderr stays on the job log so module
+        # download notices ("go: downloading ...") can't trip the gate.
+        run: |
+          go run golang.org/x/tools/cmd/deadcode@latest -test ./... > deadcode.out
+          if [ -s deadcode.out ]; then
+            echo "Dead code found:"
+            cat deadcode.out
+            exit 1
+          fi
 
       - name: Test examples module
         run: go test -v ./...

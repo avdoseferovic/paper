@@ -33,6 +33,12 @@ type pdfDocument struct {
 	objects     map[int]pdfObject
 	pageTreeIDs map[int]struct{}
 	pageIDs     []int
+
+	// outlineRootID is the source-local /Outlines root object, or 0 when the
+	// document has no (parseable) outline. outlineTopIDs holds the top-level
+	// outline item IDs in chain order (root /First followed via /Next).
+	outlineRootID int
+	outlineTopIDs []int
 }
 
 type pdfObject struct {
@@ -96,6 +102,7 @@ func parsePDF(data []byte) (*pdfDocument, error) {
 	if len(document.pageIDs) == 0 {
 		return nil, fmt.Errorf("%w: PDF has no pages", errUnsupportedPDF)
 	}
+	document.collectOutline(root.content)
 
 	return document, nil
 }

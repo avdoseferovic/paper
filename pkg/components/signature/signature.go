@@ -2,12 +2,11 @@
 package signature
 
 import (
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
-	"github.com/avdoseferovic/paper/pkg/consts/align"
-	"github.com/avdoseferovic/paper/pkg/consts/fontfamily"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -25,7 +24,7 @@ func New(value string, ps ...props.Signature) core.Component {
 	if len(ps) > 0 {
 		prop = ps[0]
 	}
-	prop.MakeValid(fontfamily.Arial)
+	prop.MakeValid(consts.FontFamilyArial)
 
 	return &Signature{
 		value: value,
@@ -57,7 +56,7 @@ func NewAutoRow(value string, ps ...props.Signature) core.Row {
 func (s *Signature) Render(provider core.Provider, cell *entity.Cell) {
 	fontSize := provider.GetFontHeight(s.prop.ToFontProp()) * s.prop.SafePadding
 
-	textProp := s.prop.ToTextProp(align.Center, cell.Height-fontSize, 0)
+	textProp := s.prop.ToTextProp(consts.AlignCenter, cell.Height-fontSize, 0)
 
 	offsetPercent := (cell.Height - fontSize) / cell.Height * 100.0
 

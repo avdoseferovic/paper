@@ -7,7 +7,7 @@ Paper can convert a documented subset of HTML/CSS directly into PDF documents. N
 ```go
 import paper "github.com/avdoseferovic/paper"
 
-doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
+doc, err := paper.FromHTML(ctx, `<h1>Hello</h1><p>World</p>`)
 if err != nil {
     log.Fatal(err)
 }
@@ -18,10 +18,10 @@ Use `paper.New()` when you need to mix HTML with headers, footers, manual rows, 
 
 ```go
 m := paper.New()
-if err := m.AddHTML(`<h1>Hello</h1><p>World</p>`); err != nil {
+if err := m.AddHTML(ctx, `<h1>Hello</h1><p>World</p>`); err != nil {
     log.Fatal(err)
 }
-doc, _ := m.Generate()
+doc, _ := m.Generate(ctx)
 ```
 
 Use `pkg/components/html` when an HTML fragment should behave like a regular component inside a row or column:
@@ -44,7 +44,7 @@ m.AddAutoRow(
     col.New(6).Add(text.New("Direct Paper component")),
     col.New(6).Add(htmlBlock),
 )
-doc, _ := m.Generate()
+doc, _ := m.Generate(ctx)
 ```
 
 Or build rows directly for advanced resolver options:
@@ -52,7 +52,7 @@ Or build rows directly for advanced resolver options:
 ```go
 import "github.com/avdoseferovic/paper/pkg/html"
 
-rows, err := html.FromString(htmlString)
+rows, err := html.FromString(ctx, htmlString)
 // rows is []core.Row — add to any Paper document
 ```
 
@@ -154,7 +154,7 @@ Unsupported tags fall through to their children's content. Unsupported CSS prope
 ## Options
 
 ```go
-html.FromString(input,
+html.FromString(ctx, input,
     html.WithUnsupportedHandler(func(prop, val string) {
         log.Printf("unsupported: %s=%s", prop, val)
     }),
@@ -187,6 +187,76 @@ p { font-family: "MyFont" }
 
 - Only TTF (`format("truetype")`) and OTF (`format("opentype")`) URLs are loaded. `local()` entries and WOFF/WOFF2 are skipped because the internal backend cannot decode them, and they are logged via `unsupportedHandler`.
 - Failures (resolver refused, malformed font bytes) log via `unsupportedHandler` and fall back to default fonts — never a panic.
+
+### Repeating page header and footer
+
+When converting via `paper.FromHTML` / `paper.AddHTML`, the **first** top-level
+`<header>` and `<footer>` (direct children of `<body>`) become the document's
+repeating page header/footer (Paper's `RegisterHeader`/`RegisterFooter`):
+
+```html
+<header><p>Acme Corp — Quarterly Report</p></header>
+<p>page content…</p>
+<footer><p>Confidential</p></footer>
+```
+
+Rules:
+
+- Only DIRECT children of `<body>` are promoted; `<header>` inside
+  `<article>`/`<section>` keeps its normal inline rendering.
+- Only the first of each is promoted; additional top-level header/footer
+  elements render inline.
+- `AddHTML` returns `paper.ErrHTMLHeaderAfterContent` when the document
+  already has rows or a registered header/footer — bands must come first.
+- A header/footer taller than the page returns the corresponding
+  `ErrHeaderHeightIsGreaterThanUsefulArea` / footer error.
+- The rows-only `html.FromString` API keeps the legacy inline behavior; use
+  `html.DocumentFromString` to access `HeaderRows`/`FooterRows` directly.
+- To keep a top-level header inline (pre-v0.2 behavior), wrap it in a `<div>`
+  or use `<section>`.
+
+### @page (size and margins)
+
+A plain `@page` rule sets the document's page size and margins when the HTML
+is converted via `paper.FromHTML` / `paper.FromHTMLReader` **without** an
+explicit config argument:
+
+```html
+<style>
+@page {
+    size: A5 landscape;   /* named size, optional landscape/portrait */
+    /* or explicit dimensions: size: 200mm 100mm; */
+    margin: 10mm 15mm;    /* 1-4 value shorthand, or margin-left etc. */
+}
+</style>
+```
+
+Precedence is all-or-nothing: passing a config to `FromHTML` disables `@page`
+entirely (no field-level merging). `AddHTML` on an existing document ignores
+`@page` (the page is already configured). Named sizes: `A1`–`A6`, `letter`,
+`legal`, `tabloid`. Pseudo and named pages (`@page :first`, `@page chapter`)
+are not supported and reported via the unsupported handler. The rows-only
+`html.FromString` API ignores `@page`; use `html.DocumentFromString` to read
+the parsed `PageOptions` yourself.
+
+### Document outline from headings
+
+`h1`–`h6` headings can be added to the PDF document outline (the bookmark
+sidebar) automatically. The feature is opt-in:
+
+```go
+// Component/document API:
+cfg := config.NewBuilder().WithOutlineFromHeadings(true).Build()
+doc, _ := paper.FromHTML(ctx, "<h1>Intro</h1><h2>Detail</h2>", cfg)
+
+// Rows-only API:
+rows, _ := html.FromString(ctx, input, html.WithOutlineFromHeadings())
+```
+
+`h1` becomes a level-0 entry, `h2` level-1, … `h6` level-5. The entry title is
+the heading's text content. Hidden headings (`hidden`, `display:none`) produce
+no entry. Outline entries survive all generation modes, including concurrent
+and low-memory generation.
 
 ### Internal anchors
 
@@ -263,13 +333,13 @@ When constructing the paper document with a custom grid:
 ```go
 cfg := config.NewBuilder().WithMaxGridSize(20).Build()
 m := paper.New(cfg)
-m.AddHTML(htmlStr) // flex quantization automatically uses gridSize=20
+m.AddHTML(ctx, htmlStr) // flex quantization automatically uses gridSize=20
 ```
 
 For non-A4 page sizes, pass content width when using `html.FromString` directly:
 
 ```go
-rows, _ := html.FromString(input, html.WithGridSize(20), html.WithContentWidth(250.0))
+rows, _ := html.FromString(ctx, input, html.WithGridSize(20), html.WithContentWidth(250.0))
 ```
 
 ## How it works
@@ -306,7 +376,7 @@ The default resolver only accepts `data:` URIs (`data:image/png;base64,…`, `da
 To load local files, scope the resolver explicitly:
 
 ```go
-rows, _ := html.FromString(input,
+rows, _ := html.FromString(ctx, input,
     html.WithImageBaseDir("./assets"), // <img src="…"> resolves inside ./assets only
 )
 m.AddRows(rows...)
@@ -319,7 +389,7 @@ The `WithImageBaseDir` and `WithStylesheetBaseDir` resolvers use `os.OpenRoot` t
 HTML translation applies resource caps by default so malformed or hostile input fails before expensive decode, raster, cascade, or layout work. Configure them with `html.WithLimits`; zero fields keep their safe defaults. Use `html.WithUnsafeNoLimits()` only for trusted input.
 
 ```go
-rows, err := html.FromString(input, html.WithLimits(html.Limits{
+rows, err := html.FromString(ctx, input, html.WithLimits(html.Limits{
     MaxImagePixels: 20_000_000,
     MaxImageBytes:  16 << 20,
     MaxDOMDepth:    128,
@@ -346,7 +416,7 @@ Default limits:
 cfg := config.NewBuilder().
     WithHTMLLimits(html.Limits{MaxDOMDepth: 128}).
     Build()
-doc, err := paper.FromHTML(input, cfg)
+doc, err := paper.FromHTML(ctx, input, cfg)
 ```
 
 ### Supported `<img>` units

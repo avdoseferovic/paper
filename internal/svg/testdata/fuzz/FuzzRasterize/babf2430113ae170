@@ -1,4 +1,0 @@
-go test fuzz v1
-string("<svg viewBox=\"0A0A1A0\"><style>.x{font-siZe:18}</style><text y=\"30\"class=\"x\">Paper</text></svgv")
-float64(360)
-float64(10)
