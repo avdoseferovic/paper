@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestGenerate_WhenTextHasOutlineProp_ShouldEmitPDFOutline(t *testing.T) {
 		Outline: &props.Outline{Level: 1, Title: "First Section"},
 	})))
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -44,7 +45,7 @@ func TestFromHTML_WhenOutlineFromHeadingsEnabled_ShouldEmitOutlineFromHeadings(t
 		WithOutlineFromHeadings(true).
 		Build()
 
-	doc, err := paper.FromHTML(
+	doc, err := paper.FromHTML(context.Background(),
 		"<h1>Alpha</h1><p>prose</p><h2>Beta</h2><h1 hidden>Skipped</h1><h2><strong>Bold</strong> Title</h2>", cfg)
 
 	require.NoError(t, err)
@@ -61,13 +62,13 @@ func TestFromHTML_WhenOutlineFromHeadingsDisabled_ShouldNotEmitOutline(t *testin
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
 
-	doc, err := paper.FromHTML("<h1>Alpha</h1><h2>Beta</h2>", cfg)
+	doc, err := paper.FromHTML(context.Background(), "<h1>Alpha</h1><h2>Beta</h2>", cfg)
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without the option")
 }
 
-func TestGenerateCtx_WhenConcurrentModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
+func TestGenerate_WhenConcurrentModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().
@@ -77,7 +78,7 @@ func TestGenerateCtx_WhenConcurrentModeWithOutlines_ShouldPreserveOutline(t *tes
 	assertOutlineSurvivesGeneration(t, cfg)
 }
 
-func TestGenerateCtx_WhenLowMemoryModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
+func TestGenerate_WhenLowMemoryModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().
@@ -98,7 +99,7 @@ func assertOutlineSurvivesGeneration(t *testing.T, cfg *entity.Config) {
 		m.AddRow(250, col.New(12).Add(text.New("filler", props.Text{})))
 	}
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -129,7 +130,7 @@ func TestGenerate_WhenNoOutlineProps_ShouldNotEmitPDFOutline(t *testing.T) {
 	m := paper.New(cfg)
 	m.AddAutoRow(col.New(12).Add(text.New("Plain text", props.Text{})))
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without props")

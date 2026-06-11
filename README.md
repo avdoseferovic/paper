@@ -34,13 +34,14 @@ For HTML-only documents, use `paper.FromHTML`.
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
 )
 
 func main() {
-	doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
+	doc, err := paper.FromHTML(context.Background(), `<h1>Hello</h1><p>World</p>`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,6 +52,9 @@ func main() {
 }
 ```
 
+All generation entry points take a `context.Context` as their first argument,
+so long-running conversions can be canceled or given deadlines.
+
 Use `paper.FromHTMLReader` when the source HTML is already available as an
 `io.Reader`. For advanced HTML options such as asset base directories, call
 `pkg/html` directly and add the returned rows to a `paper.New(...)` document.
@@ -59,7 +63,7 @@ For mixed layouts, HTML fragments can also be used as regular components via
 `github.com/avdoseferovic/paper/pkg/components/html`:
 
 ```go
-htmlBlock, err := htmlcomponent.New(`<h2>Terms</h2><p>Rendered from HTML.</p>`)
+htmlBlock, err := htmlcomponent.New(context.Background(), `<h2>Terms</h2><p>Rendered from HTML.</p>`)
 if err != nil {
 	log.Fatal(err)
 }
@@ -80,6 +84,7 @@ headers or footers, generated pages, metrics, or a testable component tree.
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
@@ -98,7 +103,7 @@ func main() {
 		Build()
 
 	doc := paper.New(cfg)
-	htmlBlock, err := htmlcomponent.New(`<p>HTML fragment inside the grid</p>`)
+	htmlBlock, err := htmlcomponent.New(context.Background(), `<p>HTML fragment inside the grid</p>`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,7 +119,7 @@ func main() {
 		text.NewRow(8, "Generated with Paper"),
 	)
 
-	pdf, err := doc.Generate()
+	pdf, err := doc.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

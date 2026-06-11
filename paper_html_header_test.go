@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestFromHTML_WhenTopLevelHeaderFooter_ShouldRepeatOnEveryPage(t *testing.T)
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML(multiPageHeaderHTML(), cfg)
+	doc, err := paper.FromHTML(context.Background(), multiPageHeaderHTML(), cfg)
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -45,7 +46,7 @@ func TestFromHTML_WhenHeaderNestedInArticle_ShouldStayInline(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML("<article><header><p>INLINE-HEADER</p></header><p>body</p></article>", cfg)
+	doc, err := paper.FromHTML(context.Background(), "<article><header><p>INLINE-HEADER</p></header><p>body</p></article>", cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, bytes.Count(doc.GetBytes(), []byte("INLINE-HEADER")), "nested header renders inline exactly once")
@@ -61,7 +62,7 @@ func TestFromHTML_WhenHeaderTallerThanPage_ShouldReturnError(t *testing.T) {
 	}
 	sb.WriteString("</header><p>body</p>")
 
-	_, err := paper.FromHTML(sb.String())
+	_, err := paper.FromHTML(context.Background(), sb.String())
 
 	require.ErrorIs(t, err, paper.ErrHeaderHeightIsGreaterThanUsefulArea)
 }
@@ -72,7 +73,7 @@ func TestAddHTML_WhenDocumentAlreadyHasRows_ShouldRejectTopLevelHeader(t *testin
 	m := paper.New()
 	m.AddAutoRow(col.New(12).Add(text.New("existing content", props.Text{})))
 
-	err := m.AddHTML("<header><p>late header</p></header><p>body</p>")
+	err := m.AddHTML(context.Background(), "<header><p>late header</p></header><p>body</p>")
 
 	require.ErrorIs(t, err, paper.ErrHTMLHeaderAfterContent)
 }
@@ -83,7 +84,7 @@ func TestAddHTML_WhenHeaderAlreadyRegistered_ShouldRejectTopLevelHeader(t *testi
 	m := paper.New()
 	require.NoError(t, m.RegisterHeader(row.New(10).Add(col.New(12).Add(text.New("registered", props.Text{})))))
 
-	err := m.AddHTML("<header><p>late header</p></header><p>body</p>")
+	err := m.AddHTML(context.Background(), "<header><p>late header</p></header><p>body</p>")
 
 	require.ErrorIs(t, err, paper.ErrHTMLHeaderAfterContent)
 }
@@ -91,7 +92,7 @@ func TestAddHTML_WhenHeaderAlreadyRegistered_ShouldRejectTopLevelHeader(t *testi
 func TestHTMLFromString_WhenTopLevelHeader_ShouldKeepLegacyInlineBehavior(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString("<header><p>legacy inline</p></header><p>body</p>")
+	rows, err := html.FromString(context.Background(), "<header><p>legacy inline</p></header><p>body</p>")
 
 	require.NoError(t, err)
 	assert.Len(t, rows, 2, "rows-only API keeps header inline as a normal row")

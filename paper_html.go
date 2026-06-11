@@ -15,48 +15,43 @@ import (
 
 // FromHTML converts an HTML string directly into a PDF document.
 // It is the shortest path for callers that only need HTML-to-PDF output.
-// Optional configs are the same configs accepted by New.
-func FromHTML(htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
-	return FromHTMLCtx(context.TODO(), htmlStr, cfgs...)
-}
-
-// FromHTMLCtx converts an HTML string directly into a PDF document.
 // It observes ctx while parsing/translating HTML and while generating the PDF.
+// Optional configs are the same configs accepted by New.
 //
 // When no config argument is given, a plain `@page { size; margin }` rule in
 // the HTML configures the page; an explicit config argument disables @page
 // handling entirely (documented precedence rule, no field-level merging).
-func FromHTMLCtx(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
+func FromHTML(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
 	if len(cfgs) > 0 {
 		m := New(cfgs...)
-		err := m.AddHTMLCtx(ctx, htmlStr)
+		err := m.AddHTML(ctx, htmlStr)
 		if err != nil {
 			return nil, err
 		}
-		return m.GenerateCtx(ctx)
+		return m.Generate(ctx)
 	}
 
 	// No explicit config: pre-parse with default-config options so @page can
 	// shape the document. When @page is present, the HTML is re-translated
 	// against the resulting page geometry (content width affects layout).
 	m := New()
-	doc, err := html.DocumentFromStringCtx(ctx, htmlStr, m.htmlOptions()...)
+	doc, err := html.DocumentFromString(ctx, htmlStr, m.htmlOptions()...)
 	if err != nil {
 		return nil, err
 	}
 	if doc.Page != nil {
 		m = New(configFromPageOptions(doc.Page))
-		err = m.AddHTMLCtx(ctx, htmlStr)
+		err = m.AddHTML(ctx, htmlStr)
 		if err != nil {
 			return nil, err
 		}
-		return m.GenerateCtx(ctx)
+		return m.Generate(ctx)
 	}
 	err = m.addHTMLDocument(doc)
 	if err != nil {
 		return nil, err
 	}
-	return m.GenerateCtx(ctx)
+	return m.Generate(ctx)
 }
 
 // configFromPageOptions builds an entity.Config from a parsed @page rule.
@@ -93,15 +88,10 @@ func configFromPageOptions(page *html.PageOptions) *entity.Config {
 }
 
 // FromHTMLReader reads HTML from r and converts it directly into a PDF document.
-// Optional configs are the same configs accepted by New.
-func FromHTMLReader(r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
-	return FromHTMLReaderCtx(context.TODO(), r, cfgs...)
-}
-
-// FromHTMLReaderCtx reads HTML from r and converts it directly into a PDF document.
 // It observes ctx before and after reading, while translating HTML, and while
 // generating the PDF.
-func FromHTMLReaderCtx(ctx context.Context, r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
+// Optional configs are the same configs accepted by New.
+func FromHTMLReader(ctx context.Context, r io.Reader, cfgs ...*entity.Config) (*core.Pdf, error) {
 	err := generationCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -114,22 +104,17 @@ func FromHTMLReaderCtx(ctx context.Context, r io.Reader, cfgs ...*entity.Config)
 	if err != nil {
 		return nil, err
 	}
-	return FromHTMLCtx(ctx, string(data), cfgs...)
+	return FromHTML(ctx, string(data), cfgs...)
 }
 
 // AddHTML parses an HTML string into Paper rows and adds them to the current document.
+// It observes ctx while parsing and translating the HTML.
 // Headers, footers, and pagination continue to work as with manually constructed rows.
 // For advanced options (e.g. html.WithImageBaseDir for safe <img> loading), call
 // html.FromString directly and append the returned rows via m.AddRows(rows...).
 // Supported HTML subset is documented in docs/html-support.md.
-func (m *Paper) AddHTML(htmlStr string) error {
-	return m.AddHTMLCtx(context.TODO(), htmlStr)
-}
-
-// AddHTMLCtx parses an HTML string into Paper rows and adds them to the current
-// document. It observes ctx while parsing and translating the HTML.
-func (m *Paper) AddHTMLCtx(ctx context.Context, htmlStr string) error {
-	doc, err := html.DocumentFromStringCtx(ctx, htmlStr, m.htmlOptions()...)
+func (m *Paper) AddHTML(ctx context.Context, htmlStr string) error {
+	doc, err := html.DocumentFromString(ctx, htmlStr, m.htmlOptions()...)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
@@ -33,7 +34,7 @@ func main() {
 		Outline: &props.Outline{Level: 1, Title: "Your first document"},
 	})))
 
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}

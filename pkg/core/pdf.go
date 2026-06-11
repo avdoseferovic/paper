@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -73,13 +74,14 @@ func (p *Pdf) Save(file string) error {
 	return nil
 }
 
-// Merge merges the PDF with another PDF.
-func (p *Pdf) Merge(bytes []byte) error {
+// Merge merges the PDF with another PDF. It observes ctx between merged
+// documents.
+func (p *Pdf) Merge(ctx context.Context, bytes []byte) error {
 	var mergedBytes []byte
 	var err error
 
 	timeSpent := time.GetTimeSpent(func() {
-		mergedBytes, err = merge.Bytes(p.bytes, bytes)
+		mergedBytes, err = merge.Bytes(ctx, p.bytes, bytes)
 	})
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrCannotMergeBytes, err)

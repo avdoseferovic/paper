@@ -82,13 +82,8 @@ func WithStylesheetBaseDir(dir string) Option {
 }
 
 // FromString parses an HTML string and returns the corresponding Paper rows.
-func FromString(htmlStr string, opts ...Option) ([]core.Row, error) {
-	return FromStringCtx(context.TODO(), htmlStr, opts...)
-}
-
-// FromStringCtx parses an HTML string and returns the corresponding Paper rows.
 // It observes ctx before and after DOM parsing and during translation.
-func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row, error) {
+func FromString(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row, error) {
 	if htmlStr == "" {
 		return nil, nil
 	}
@@ -108,17 +103,12 @@ func FromStringCtx(ctx context.Context, htmlStr string, opts ...Option) ([]core.
 	if err != nil {
 		return nil, err
 	}
-	return translate.TranslateCtx(ctx, doc, cfg.translateOptions()...)
+	return translate.Translate(ctx, doc, cfg.translateOptions()...)
 }
 
-// FromReader parses HTML from an io.Reader and returns the corresponding rows.
-func FromReader(r io.Reader, opts ...Option) ([]core.Row, error) {
-	return FromReaderCtx(context.TODO(), r, opts...)
-}
-
-// FromReaderCtx parses HTML from an io.Reader and returns the corresponding
+// FromReader parses HTML from an io.Reader and returns the corresponding
 // rows. It observes ctx before and after reading and during translation.
-func FromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row, error) {
+func FromReader(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row, error) {
 	err := conversionCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -131,13 +121,10 @@ func FromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) ([]core.Row
 	if err != nil {
 		return nil, err
 	}
-	return FromStringCtx(ctx, string(data), opts...)
+	return FromString(ctx, string(data), opts...)
 }
 
 func conversionCanceled(ctx context.Context) error {
-	if ctx == nil {
-		return nil
-	}
 	err := ctx.Err()
 	if err != nil {
 		return fmt.Errorf("html: conversion canceled: %w", err)

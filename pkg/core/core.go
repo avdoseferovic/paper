@@ -19,15 +19,13 @@ type Paper interface {
 	AddRows(rows ...Row)
 	AddRow(rowHeight float64, cols ...Col) Row
 	AddAutoRow(cols ...Col) Row
-	AddHTML(htmlStr string) error
-	AddHTMLCtx(ctx context.Context, htmlStr string) error
+	AddHTML(ctx context.Context, htmlStr string) error
 	// FitInCurrentPage reports whether a row of the given height fits in the remaining useful area of the current page.
 	FitInCurrentPage(heightNewLine float64) bool
 	GetCurrentConfig() *entity.Config
 	AddPages(pages ...Page)
 	GetStructure() *node.Node[Structure]
-	Generate() (*Pdf, error)
-	GenerateCtx(ctx context.Context) (*Pdf, error)
+	Generate(ctx context.Context) (*Pdf, error)
 }
 
 // Document is the interface that wraps the basic methods of a document.
@@ -38,7 +36,7 @@ type Document interface {
 	Write(w io.Writer) (int64, error)
 	Save(file string) error
 	GetReport() *metrics.Report
-	Merge(bytes []byte) error
+	Merge(ctx context.Context, bytes []byte) error
 }
 
 // Node is the interface that wraps the basic methods of a node.

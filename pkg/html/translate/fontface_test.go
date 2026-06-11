@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,7 +83,7 @@ func TestFontFace_EmitsFontRegistrationRow(t *testing.T) {
 <body><p>x</p></body></html>`
 	doc, err := dom.Parse(htmlStr)
 	require.NoError(t, err)
-	rows, err := Translate(doc, WithStylesheetBaseDir(dir))
+	rows, err := Translate(context.Background(), doc, WithStylesheetBaseDir(dir))
 	require.NoError(t, err)
 	require.NotEmpty(t, rows)
 
@@ -109,6 +110,6 @@ func TestFontFace_NoCrashWhenSourceMissing(t *testing.T) {
 <body><p>ok</p></body></html>`
 	doc, err := dom.Parse(htmlStr)
 	require.NoError(t, err)
-	_, err = Translate(doc, WithStylesheetBaseDir(t.TempDir()))
+	_, err = Translate(context.Background(), doc, WithStylesheetBaseDir(t.TempDir()))
 	require.NoError(t, err)
 }

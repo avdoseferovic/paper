@@ -21,13 +21,8 @@ type (
 // DocumentFromString parses an HTML string and returns the full Document
 // result. Unlike FromString, it surfaces `@page` size/margin options so
 // callers (notably paper.FromHTML) can configure the page before rendering.
-func DocumentFromString(htmlStr string, opts ...Option) (*Document, error) {
-	return DocumentFromStringCtx(context.TODO(), htmlStr, opts...)
-}
-
-// DocumentFromStringCtx parses an HTML string and returns the full Document
-// result. It observes ctx before and after DOM parsing and during translation.
-func DocumentFromStringCtx(ctx context.Context, htmlStr string, opts ...Option) (*Document, error) {
+// It observes ctx before and after DOM parsing and during translation.
+func DocumentFromString(ctx context.Context, htmlStr string, opts ...Option) (*Document, error) {
 	if htmlStr == "" {
 		return &Document{}, nil
 	}
@@ -47,19 +42,13 @@ func DocumentFromStringCtx(ctx context.Context, htmlStr string, opts ...Option) 
 	if err != nil {
 		return nil, err
 	}
-	return translate.TranslateDocumentCtx(ctx, doc, cfg.translateOptions()...)
+	return translate.TranslateDocument(ctx, doc, cfg.translateOptions()...)
 }
 
 // DocumentFromReader parses HTML from an io.Reader and returns the full
-// Document result.
-func DocumentFromReader(r io.Reader, opts ...Option) (*Document, error) {
-	return DocumentFromReaderCtx(context.TODO(), r, opts...)
-}
-
-// DocumentFromReaderCtx parses HTML from an io.Reader and returns the full
 // Document result. It observes ctx before and after reading and during
 // translation.
-func DocumentFromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) (*Document, error) {
+func DocumentFromReader(ctx context.Context, r io.Reader, opts ...Option) (*Document, error) {
 	err := conversionCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -72,7 +61,7 @@ func DocumentFromReaderCtx(ctx context.Context, r io.Reader, opts ...Option) (*D
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromStringCtx(ctx, string(data), opts...)
+	return DocumentFromString(ctx, string(data), opts...)
 }
 
 // translateOptions converts the package-level config into translate options.

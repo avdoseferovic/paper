@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -42,7 +43,7 @@ func TestAnchor_CollectAnchorIDs_Forward(t *testing.T) {
 	html := `<a href="#later">jump</a><h2 id="later">Target</h2>`
 	doc, err := dom.Parse(html)
 	require.NoError(t, err)
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	var foundTarget bool
 	for _, r := range rows {
@@ -63,7 +64,7 @@ func TestAnchor_TranslatorStructure_BothEnds(t *testing.T) {
 	// The anchor_target (from id="s1" on the heading) must still appear.
 	doc, err := dom.Parse(`<p><a href="#s1">jump</a></p><h2 id="s1">Title</h2>`)
 	require.NoError(t, err)
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(rows), 2)
 
@@ -87,7 +88,7 @@ func TestAnchor_ForwardReference_StructurePresent(t *testing.T) {
 	// The anchor_target must still appear so the destination can be set.
 	doc, err := dom.Parse(`<p><a href="#later">jump</a></p><h2 id="later">Target</h2>`)
 	require.NoError(t, err)
-	rows, err := Translate(doc)
+	rows, err := Translate(context.Background(), doc)
 	require.NoError(t, err)
 
 	var foundTarget bool

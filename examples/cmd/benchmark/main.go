@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -99,7 +100,7 @@ func run() *metrics.Time {
 		m.AddRows(text.NewRow(20, dummyText+dummyText+dummyText+dummyText+dummyText))
 	}
 
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}

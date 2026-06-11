@@ -1,6 +1,7 @@
 package paper_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -57,7 +58,7 @@ func BenchmarkPDFGeneration(b *testing.B) {
 			m := paper.New(cfg)
 			m.AddRows(benchmarkTextRows(180)...)
 
-			doc, err := m.Generate()
+			doc, err := m.Generate(context.Background())
 			if err != nil {
 				b.Fatalf("generate text-heavy document: %v", err)
 			}
@@ -71,7 +72,7 @@ func BenchmarkPDFGeneration(b *testing.B) {
 			m := paper.New(cfg)
 			m.AddRows(benchmarkMixedRows(imageBytes, 40)...)
 
-			doc, err := m.Generate()
+			doc, err := m.Generate(context.Background())
 			if err != nil {
 				b.Fatalf("generate mixed document: %v", err)
 			}
@@ -92,7 +93,7 @@ func BenchmarkPDFScaling(b *testing.B) {
 				m := paper.New(cfg)
 				m.AddRows(benchmarkTextRows(rowCount)...)
 
-				doc, err := m.Generate()
+				doc, err := m.Generate(context.Background())
 				if err != nil {
 					b.Fatalf("generate %d-row document: %v", rowCount, err)
 				}
@@ -109,7 +110,7 @@ func generateHTMLDemoDocument(b *testing.B, htmlBody string, cfg *entity.Config)
 	m.AddRows(benchmarkHeader()...)
 	m.AddRows(benchmarkHTMLRows(b, htmlBody, cfg)...)
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	if err != nil {
 		b.Fatalf("generate HTML demo document: %v", err)
 	}
@@ -129,7 +130,7 @@ func benchmarkHTMLRows(b *testing.B, htmlBody string, cfg *entity.Config) []core
 	b.Helper()
 
 	contentWidth := cfg.Dimensions.Width - cfg.Margins.Left - cfg.Margins.Right
-	rows, err := html.FromString(htmlBody,
+	rows, err := html.FromString(context.Background(), htmlBody,
 		html.WithGridSize(cfg.MaxGridSize),
 		html.WithContentWidth(contentWidth),
 		html.WithImageBaseDir("cmd/html-demo/assets"),

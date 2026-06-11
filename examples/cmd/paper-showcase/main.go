@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -93,7 +94,7 @@ func buildShowcaseDocument() (core.Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("generate showcase: %w", err)
 	}
@@ -209,7 +210,7 @@ func overviewRows() []core.Row {
 import "github.com/avdoseferovic/paper"
 
 func main() {
-  pdf, _ := paper.FromHTML(invoiceHTML)
+  pdf, _ := paper.FromHTML(context.Background(), invoiceHTML)
   _ = pdf.Save("invoice.pdf")
 }`, teal),
 			codeSnippetCol(6, "layout.go - components", `doc := paper.New(cfg)
@@ -217,12 +218,12 @@ doc.AddRows(row.New(12).Add(
   col.New(8).Add(title),
   col.New(4).Add(qrCode),
 ))
-pdf, _ := doc.Generate()`, blue),
+pdf, _ := doc.Generate(context.Background())`, blue),
 		),
 		spacer(6),
 		sectionTitle("Two Authoring Paths", "Start from HTML in one call, or compose deterministic documents with rows, columns, and typed components."),
 		row.New(52).Add(
-			authoringPathCard(6, "HTML -> PDF", "Bring existing templates and fragments. Paper translates supported HTML and CSS into a print-ready PDF document.", `pdf, err := paper.FromHTML(tmpl)
+			authoringPathCard(6, "HTML -> PDF", "Bring existing templates and fragments. Paper translates supported HTML and CSS into a print-ready PDF document.", `pdf, err := paper.FromHTML(context.Background(), tmpl)
 if err != nil { return err }
 _ = pdf.Save("invoice.pdf")`, teal, []string{"templates", "fragments", "CSS-aware"}),
 			authoringPathCard(6, "Component grid", "Build explicit document layouts with a 12-column grid. Every primitive is inspectable and reusable in tests.", `m.AddRows(row.New(12).Add(
@@ -1018,7 +1019,7 @@ func htmlRows(gridSize int) []core.Row {
 }
 
 func htmlShowcaseBlock(gridSize int) core.Row {
-	component, err := htmlcomponent.New(`
+	component, err := htmlcomponent.New(context.Background(), `
 <style>
 .panel { border: 1px solid #e2dbd1; border-radius: 4px; padding: 6px; background: #fcfaf7; }
 .kpis { display: flex; gap: 6px; margin: 5px 0; }
@@ -1375,7 +1376,7 @@ func apiReferenceRows() []core.Row {
 			col.New(4).Add(text.New("Compose with rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal})),
 			col.New(4).Add(text.New("Add tables", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber})),
 		),
-		codeBlock(`doc, err := paper.FromHTML("<h1>Hello</h1><p>World</p>")
+		codeBlock(`doc, err := paper.FromHTML(context.Background(), "<h1>Hello</h1><p>World</p>")
 _ = doc.Save("out.pdf")`),
 		spacer(4),
 		codeBlock(`m.AddRows(
@@ -1400,7 +1401,7 @@ m.AddRows(row.New().Add(col.New(12).Add(tbl)))`),
     WithLeftMargin(15).
     Build()`),
 		spacer(4),
-		codeBlock(`block, err := htmlcomponent.New("<p>Inside a column</p>")
+		codeBlock(`block, err := htmlcomponent.New(ctx, "<p>Inside a column</p>")
 m.AddAutoRow(col.New(6).Add(block))`),
 		spacer(4),
 		codeBlock(`m.AddRows(reportHeader(), snapshotTable(), checklist())

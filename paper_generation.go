@@ -20,19 +20,14 @@ type pageProcessResult struct {
 	issues []metrics.RenderIssue
 }
 
-// Generate is responsible to compute the component tree created by
-// the usage of all other Paper methods, and generate the PDF document.
-func (m *Paper) Generate() (*core.Pdf, error) {
-	return m.generateDocumentCtx(context.TODO())
-}
-
-// GenerateCtx is responsible to compute the component tree created by the
+// Generate is responsible to compute the component tree created by the
 // usage of all other Paper methods, and generate the PDF document.
-func (m *Paper) GenerateCtx(ctx context.Context) (*core.Pdf, error) {
-	return m.generateDocumentCtx(ctx)
+// It observes ctx between pages and generation phases.
+func (m *Paper) Generate(ctx context.Context) (*core.Pdf, error) {
+	return m.generateDocument(ctx)
 }
 
-func (m *Paper) generateDocumentCtx(ctx context.Context) (*core.Pdf, error) {
+func (m *Paper) generateDocument(ctx context.Context) (*core.Pdf, error) {
 	err := generationCanceled(ctx)
 	if err != nil {
 		return nil, err
@@ -46,21 +41,21 @@ func (m *Paper) generateDocumentCtx(ctx context.Context) (*core.Pdf, error) {
 	}
 
 	if m.config.Protection != nil {
-		return m.generateCtx(ctx)
+		return m.generateSequentially(ctx)
 	}
 
 	if m.config.GenerationMode == consts.GenerationConcurrent {
-		return m.generateConcurrentlyCtx(ctx)
+		return m.generateConcurrently(ctx)
 	}
 
 	if m.config.GenerationMode == consts.GenerationSequentialLowMemory {
-		return m.generateLowMemoryCtx(ctx)
+		return m.generateLowMemory(ctx)
 	}
 
-	return m.generateCtx(ctx)
+	return m.generateSequentially(ctx)
 }
 
-func (m *Paper) generateCtx(ctx context.Context) (*core.Pdf, error) {
+func (m *Paper) generateSequentially(ctx context.Context) (*core.Pdf, error) {
 	provider := getProvider(m.cache, m.config)
 	innerCtx := m.pageBuilder.cell.Copy()
 
@@ -86,7 +81,7 @@ func (m *Paper) generateCtx(ctx context.Context) (*core.Pdf, error) {
 	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(provider))), nil
 }
 
-func (m *Paper) generateConcurrentlyCtx(ctx context.Context) (*core.Pdf, error) {
+func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
 	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
 	if chunks == 0 {
 		chunks = 1
@@ -101,7 +96,7 @@ func (m *Paper) generateConcurrentlyCtx(ctx context.Context) (*core.Pdf, error) 
 		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
 	}
 
-	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, m.processPageCtx)
+	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, m.processPages)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
@@ -115,7 +110,7 @@ func (m *Paper) generateConcurrentlyCtx(ctx context.Context) (*core.Pdf, error) 
 	}
 
 	pdfs, issues := splitPageProcessResults(results)
-	mergedBytes, err := merge.Bytes(pdfs...)
+	mergedBytes, err := merge.Bytes(ctx, pdfs...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +118,7 @@ func (m *Paper) generateConcurrentlyCtx(ctx context.Context) (*core.Pdf, error) 
 	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
 }
 
-func (m *Paper) generateLowMemoryCtx(ctx context.Context) (*core.Pdf, error) {
+func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
 	if chunks == 0 {
 		chunks = 1
@@ -145,7 +140,7 @@ func (m *Paper) generateLowMemoryCtx(ctx context.Context) (*core.Pdf, error) {
 		if err != nil {
 			return nil, err
 		}
-		result, err := m.processPageCtx(ctx, pageGroup)
+		result, err := m.processPages(ctx, pageGroup)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil, err
@@ -161,7 +156,7 @@ func (m *Paper) generateLowMemoryCtx(ctx context.Context) (*core.Pdf, error) {
 	if err != nil {
 		return nil, err
 	}
-	mergedBytes, err := merge.Bytes(pdfResults...)
+	mergedBytes, err := merge.Bytes(ctx, pdfResults...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +164,7 @@ func (m *Paper) generateLowMemoryCtx(ctx context.Context) (*core.Pdf, error) {
 	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
 }
 
-func (m *Paper) processPageCtx(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
+func (m *Paper) processPages(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 
 	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
@@ -217,7 +212,7 @@ func processPageGroupsConcurrently(
 
 	results := make([]pageProcessResult, len(pageGroups))
 	jobs := make(chan int)
-	done := contextDone(ctx)
+	done := ctx.Done()
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
 	var firstErr error
@@ -293,21 +288,11 @@ func runPageGroupJob(
 }
 
 func generationCanceled(ctx context.Context) error {
-	if ctx == nil {
-		return nil
-	}
 	err := ctx.Err()
 	if err != nil {
 		return fmt.Errorf("paper: generation canceled: %w", err)
 	}
 	return nil
-}
-
-func contextDone(ctx context.Context) <-chan struct{} {
-	if ctx == nil {
-		return nil
-	}
-	return ctx.Done()
 }
 
 func ensureProviderPage(provider core.Provider, pageNumber int) {

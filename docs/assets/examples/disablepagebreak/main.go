@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -18,7 +19,7 @@ import (
 func main() {
 	backgroundImage := "docs/assets/images/certificate.png"
 	m := GetPaper(backgroundImage)
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}

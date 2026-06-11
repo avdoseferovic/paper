@@ -42,7 +42,7 @@ func TestMetrics_AddPages(t *testing.T) {
 	docToReturn := core.NewPDF([]byte{1, 2, 3}, nil)
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().AddPages(pg).Times(2)
-	inner.EXPECT().Generate().Return(docToReturn, nil)
+	inner.EXPECT().Generate(context.Background()).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 
@@ -51,7 +51,7 @@ func TestMetrics_AddPages(t *testing.T) {
 	sut.AddPages(pg)
 
 	// Assert
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, doc)
 
@@ -71,7 +71,7 @@ func TestMetrics_AddRow(t *testing.T) {
 	docToReturn := core.NewPDF([]byte{1, 2, 3}, nil)
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().AddRow(10.0, col).Return(nil).Times(2)
-	inner.EXPECT().Generate().Return(docToReturn, nil)
+	inner.EXPECT().Generate(context.Background()).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 
@@ -80,7 +80,7 @@ func TestMetrics_AddRow(t *testing.T) {
 	sut.AddRow(10, col)
 
 	// Assert
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, doc)
 
@@ -101,11 +101,11 @@ func TestMetrics_GeneratePreservesRenderIssues(t *testing.T) {
 		},
 	})
 	inner := mocks.NewPaper(t)
-	inner.EXPECT().Generate().Return(docToReturn, nil)
+	inner.EXPECT().Generate(context.Background()).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 
 	assert.NoError(t, err)
 	if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
@@ -114,32 +114,32 @@ func TestMetrics_GeneratePreservesRenderIssues(t *testing.T) {
 	}
 }
 
-func TestMetrics_GenerateCtxDelegatesContext(t *testing.T) {
+func TestMetrics_GenerateDelegatesContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.WithValue(context.Background(), contextKey{}, "request")
 	docToReturn := core.NewPDF([]byte{1, 2, 3}, nil)
 	inner := mocks.NewPaper(t)
-	inner.EXPECT().GenerateCtx(ctx).Return(docToReturn, nil)
+	inner.EXPECT().Generate(ctx).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 
-	doc, err := sut.GenerateCtx(ctx)
+	doc, err := sut.Generate(ctx)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, doc)
 }
 
-func TestMetrics_AddHTMLCtxDelegatesContext(t *testing.T) {
+func TestMetrics_AddHTMLDelegatesContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.WithValue(context.Background(), contextKey{}, "request")
 	inner := mocks.NewPaper(t)
-	inner.EXPECT().AddHTMLCtx(ctx, "<p>hello</p>").Return(nil)
+	inner.EXPECT().AddHTML(ctx, "<p>hello</p>").Return(nil)
 
 	sut := decorator.NewMetrics(inner)
 
-	err := sut.AddHTMLCtx(ctx, "<p>hello</p>")
+	err := sut.AddHTML(ctx, "<p>hello</p>")
 
 	assert.NoError(t, err)
 }
@@ -152,7 +152,7 @@ func TestMetrics_AddRows(t *testing.T) {
 	docToReturn := core.NewPDF([]byte{1, 2, 3}, nil)
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().AddRows(row).Times(2)
-	inner.EXPECT().Generate().Return(docToReturn, nil)
+	inner.EXPECT().Generate(context.Background()).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 
@@ -161,7 +161,7 @@ func TestMetrics_AddRows(t *testing.T) {
 	sut.AddRows(row)
 
 	// Assert
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, doc)
 
@@ -182,7 +182,7 @@ func TestMetrics_GetStructure(t *testing.T) {
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().AddRows(row).Once()
 	inner.EXPECT().GetStructure().Return(&node.Node[core.Structure]{}).Once()
-	inner.EXPECT().Generate().Return(docToReturn, nil)
+	inner.EXPECT().Generate(context.Background()).Return(docToReturn, nil)
 
 	sut := decorator.NewMetrics(inner)
 	sut.AddRows(row)
@@ -191,7 +191,7 @@ func TestMetrics_GetStructure(t *testing.T) {
 	_ = sut.GetStructure()
 
 	// Assert
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, doc)
 
@@ -243,7 +243,7 @@ func TestMetrics_RegisterHeader(t *testing.T) {
 
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().RegisterHeader(row).Return(nil)
-	inner.EXPECT().Generate().Return(&core.Pdf{}, nil)
+	inner.EXPECT().Generate(context.Background()).Return(&core.Pdf{}, nil)
 
 	sut := decorator.NewMetrics(inner)
 
@@ -253,7 +253,7 @@ func TestMetrics_RegisterHeader(t *testing.T) {
 	// Assert
 	assert.Nil(t, err)
 
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 
 	report := doc.GetReport()
@@ -270,7 +270,7 @@ func TestMetrics_RegisterFooter(t *testing.T) {
 
 	inner := mocks.NewPaper(t)
 	inner.EXPECT().RegisterFooter(row).Return(nil)
-	inner.EXPECT().Generate().Return(&core.Pdf{}, nil)
+	inner.EXPECT().Generate(context.Background()).Return(&core.Pdf{}, nil)
 
 	sut := decorator.NewMetrics(inner)
 
@@ -280,7 +280,7 @@ func TestMetrics_RegisterFooter(t *testing.T) {
 	// Assert
 	assert.Nil(t, err)
 
-	doc, err := sut.Generate()
+	doc, err := sut.Generate(context.Background())
 	assert.Nil(t, err)
 
 	report := doc.GetReport()

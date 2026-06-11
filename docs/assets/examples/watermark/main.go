@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper"
@@ -22,7 +23,7 @@ func main() {
 		m.AddRow(250, col.New(12).Add(text.New("Body content flows over the watermark.", props.Text{Top: 5})))
 	}
 
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}

@@ -36,15 +36,10 @@ type translator struct {
 	outlineFromHeadings bool
 }
 
-// Translate walks the styled DOM and emits Paper rows.
-func Translate(doc *dom.Document, opts ...Option) ([]core.Row, error) {
-	return TranslateCtx(context.TODO(), doc, opts...)
-}
-
-// TranslateCtx walks the styled DOM and emits Paper rows. It observes ctx at
+// Translate walks the styled DOM and emits Paper rows. It observes ctx at
 // cheap phase and recursive traversal boundaries.
-func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
-	document, err := translateDocumentCtx(ctx, doc, false, opts...)
+func Translate(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
+	document, err := translateDocument(ctx, doc, false, opts...)
 	if err != nil || document == nil {
 		return nil, err
 	}
@@ -52,20 +47,15 @@ func TranslateCtx(ctx context.Context, doc *dom.Document, opts ...Option) ([]cor
 }
 
 // TranslateDocument walks the styled DOM and returns the full Document
-// result: content rows plus @page options.
-func TranslateDocument(doc *dom.Document, opts ...Option) (*Document, error) {
-	return TranslateDocumentCtx(context.TODO(), doc, opts...)
+// result: content rows plus @page options. It observes ctx at cheap phase and
+// recursive traversal boundaries. Unlike Translate, the first top-level
+// <header>/<footer> elements are extracted into HeaderRows/FooterRows instead
+// of rendering inline.
+func TranslateDocument(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
+	return translateDocument(ctx, doc, true, opts...)
 }
 
-// TranslateDocumentCtx walks the styled DOM and returns the full Document
-// result. It observes ctx at cheap phase and recursive traversal boundaries.
-// Unlike TranslateCtx, the first top-level <header>/<footer> elements are
-// extracted into HeaderRows/FooterRows instead of rendering inline.
-func TranslateDocumentCtx(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
-	return translateDocumentCtx(ctx, doc, true, opts...)
-}
-
-func translateDocumentCtx(ctx context.Context, doc *dom.Document, extractBands bool, opts ...Option) (*Document, error) {
+func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool, opts ...Option) (*Document, error) {
 	if doc == nil {
 		return &Document{}, nil
 	}
@@ -365,9 +355,6 @@ func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Nod
 }
 
 func translationCanceled(ctx context.Context) error {
-	if ctx == nil {
-		return nil
-	}
 	err := ctx.Err()
 	if err != nil {
 		return fmt.Errorf("html: translation canceled: %w", err)

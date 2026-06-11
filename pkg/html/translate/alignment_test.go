@@ -1,6 +1,7 @@
 package translate_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -28,7 +29,7 @@ func TestStyledRowRendersWithoutPanic(t *testing.T) {
 		Build()
 
 	m := paper.New(cfg)
-	err := m.AddHTML(`<html><head><style>
+	err := m.AddHTML(context.Background(), `<html><head><style>
 		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm; font-size: 12pt }
 		.numbered { list-style-type: decimal-circle }
 	</style></head><body>
@@ -38,7 +39,7 @@ func TestStyledRowRendersWithoutPanic(t *testing.T) {
 	</body></html>`)
 	require.NoError(t, err)
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	require.NoError(t, err)
 
 	pdfBytes := doc.GetBytes()
@@ -59,7 +60,7 @@ func TestStyledRowWithImageBaseDir(t *testing.T) {
 
 	m := paper.New(cfg)
 	// No image resolver — img falls back to alt text path (no panic expected).
-	rows, err := html.FromString(`<html><head><style>
+	rows, err := html.FromString(context.Background(), `<html><head><style>
 		h2 { background-color: #1a3e72; color: #ffffff; padding: 3mm 5mm; border-radius: 2mm }
 	</style></head><body>
 		<img src="nonexistent.svg" width="14mm" height="14mm" alt="logo">
@@ -69,7 +70,7 @@ func TestStyledRowWithImageBaseDir(t *testing.T) {
 	require.NoError(t, err)
 	m.AddRows(rows...)
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	require.NoError(t, err)
 	assert.Greater(t, len(doc.GetBytes()), 0)
 }

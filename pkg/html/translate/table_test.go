@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -188,7 +189,7 @@ func TestTranslate_TableRowStyle_Integration(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(doc)
+		rows, err := Translate(context.Background(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -205,7 +206,7 @@ func TestTranslate_TableColgroupWidths(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(doc)
+		rows, err := Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 
@@ -230,7 +231,7 @@ func TestTranslate_TableColgroupWidths(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(doc)
+		rows, err := Translate(context.Background(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 

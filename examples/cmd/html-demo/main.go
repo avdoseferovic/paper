@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -32,7 +33,7 @@ func main() {
 	m.AddRows(buildHeader()...)
 	cfgWidth := cfg.Dimensions.Width - cfg.Margins.Left - cfg.Margins.Right
 	assetsDir := examplepath.Module("cmd/html-demo/assets")
-	rows, err := html.FromString(body,
+	rows, err := html.FromString(context.Background(), body,
 		html.WithGridSize(cfg.MaxGridSize),
 		html.WithContentWidth(cfgWidth),
 		html.WithImageBaseDir(assetsDir),
@@ -43,7 +44,7 @@ func main() {
 	}
 	m.AddRows(rows...)
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatalf("generate: %v", err)
 	}

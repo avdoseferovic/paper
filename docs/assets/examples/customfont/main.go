@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -20,7 +21,7 @@ import (
 
 func main() {
 	m := GetPaper("docs/assets/fonts/arial-unicode-ms.ttf")
-	document, err := m.Generate()
+	document, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err.Error())
 	}

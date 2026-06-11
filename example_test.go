@@ -1,6 +1,7 @@
 package paper_test
 
 import (
+	"context"
 	"log"
 
 	"github.com/avdoseferovic/paper/pkg/components/text"
@@ -20,12 +21,12 @@ func ExampleNew() {
 	m := paper.New(cfg) // cfg is an optional
 
 	// Do things and generate
-	_, _ = m.Generate()
+	_, _ = m.Generate(context.Background())
 }
 
 // ExampleFromHTML demonstrates the shortest path from HTML to PDF.
 func ExampleFromHTML() {
-	doc, err := paper.FromHTML(`<h1>Hello</h1><p>World</p>`)
+	doc, err := paper.FromHTML(context.Background(), `<h1>Hello</h1><p>World</p>`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,7 +121,7 @@ func ExamplePaper_Generate() {
 
 	// Add rows, pages and etc.
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

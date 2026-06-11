@@ -1,4 +1,4 @@
-generate -> avg: 573.17μs, executions: [573.17μs]
-footer -> avg: 12.75μs, executions: [12.75μs]
-add_rows -> avg: 126.64ns, executions: [459.00ns, 125.00ns, 166.00ns, 125.00ns, 125.00ns, 166.00ns, 42.00ns, 125.00ns, 167.00ns, 125.00ns, 83.00ns, 167.00ns, 83.00ns, 125.00ns, 83.00ns, 125.00ns, 167.00ns, 125.00ns, 83.00ns, 125.00ns, 84.00ns, 125.00ns, 84.00ns, 125.00ns, 750.00ns, 125.00ns, 125.00ns, 42.00ns, 125.00ns, 83.00ns, 83.00ns, 83.00ns, 125.00ns, 83.00ns, 83.00ns, 84.00ns, 83.00ns, 83.00ns, 41.00ns, 83.00ns, 167.00ns, 83.00ns, 83.00ns, 42.00ns, 84.00ns, 42.00ns, 41.00ns, 83.00ns, 292.00ns, 125.00ns]
+generate -> avg: 591.12μs, executions: [591.12μs]
+footer -> avg: 13.79μs, executions: [13.79μs]
+add_rows -> avg: 129.16ns, executions: [834.00ns, 166.00ns, 83.00ns, 83.00ns, 125.00ns, 84.00ns, 84.00ns, 84.00ns, 125.00ns, 83.00ns, 84.00ns, 84.00ns, 83.00ns, 41.00ns, 83.00ns, 83.00ns, 167.00ns, 84.00ns, 83.00ns, 84.00ns, 83.00ns, 83.00ns, 42.00ns, 42.00ns, 875.00ns, 125.00ns, 125.00ns, 83.00ns, 125.00ns, 83.00ns, 83.00ns, 83.00ns, 125.00ns, 84.00ns, 83.00ns, 41.00ns, 83.00ns, 84.00ns, 83.00ns, 41.00ns, 125.00ns, 83.00ns, 41.00ns, 42.00ns, 84.00ns, 42.00ns, 83.00ns, 333.00ns, 417.00ns, 125.00ns]
 file_size -> 24.27Kb

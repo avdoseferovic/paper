@@ -1,6 +1,7 @@
 package paper_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ const pageRuleHTML = `<style>@page { size: A5; margin: 10mm }</style><p>content<
 func TestFromHTML_WhenPageRuleAndNoConfig_ShouldApplySizeAndMargins(t *testing.T) {
 	t.Parallel()
 
-	doc, err := paper.FromHTML(pageRuleHTML)
+	doc, err := paper.FromHTML(context.Background(), pageRuleHTML)
 	require.NoError(t, err)
 	_ = doc
 
@@ -50,7 +51,7 @@ func TestFromHTML_WhenExplicitConfigGiven_ShouldIgnorePageRule(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithPageSize(pagesize.A4).WithCompression(false).Build()
-	doc, err := paper.FromHTML(pageRuleHTML, cfg)
+	doc, err := paper.FromHTML(context.Background(), pageRuleHTML, cfg)
 
 	require.NoError(t, err)
 	pdf := string(doc.GetBytes())
@@ -60,7 +61,7 @@ func TestFromHTML_WhenExplicitConfigGiven_ShouldIgnorePageRule(t *testing.T) {
 func TestFromHTMLReader_WhenPageRule_ShouldApplyLikeFromHTML(t *testing.T) {
 	t.Parallel()
 
-	doc, err := paper.FromHTMLReader(strings.NewReader(pageRuleHTML))
+	doc, err := paper.FromHTMLReader(context.Background(), strings.NewReader(pageRuleHTML))
 
 	require.NoError(t, err)
 	w, h := pagesize.GetDimensions(pagesize.A5)
@@ -69,7 +70,7 @@ func TestFromHTMLReader_WhenPageRule_ShouldApplyLikeFromHTML(t *testing.T) {
 
 func mustPDFString(t *testing.T, html string) string {
 	t.Helper()
-	doc, err := paper.FromHTML(html)
+	doc, err := paper.FromHTML(context.Background(), html)
 	require.NoError(t, err)
 	return string(doc.GetBytes())
 }

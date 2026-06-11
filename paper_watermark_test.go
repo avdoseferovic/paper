@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -27,7 +28,7 @@ func TestGenerate_WhenWatermarkConfigured_ShouldStampEveryPage(t *testing.T) {
 		m.AddRow(250, col.New(12).Add(text.New("page filler", props.Text{})))
 	}
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -42,7 +43,7 @@ func TestGenerate_WhenNoWatermark_ShouldNotStamp(t *testing.T) {
 	m := paper.New(cfg)
 	m.AddRow(20, col.New(12).Add(text.New("plain", props.Text{})))
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("DRAFT")))
@@ -59,7 +60,7 @@ func TestGenerate_WhenWatermarkOnSmallCustomPage_ShouldScaleDownAndRender(t *tes
 	m := paper.New(cfg)
 	m.AddRow(20, col.New(12).Add(text.New("content", props.Text{})))
 
-	doc, err := m.Generate()
+	doc, err := m.Generate(context.Background())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
