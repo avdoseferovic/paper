@@ -59,6 +59,20 @@ mocks:
 wasm:
 	cd examples/cmd/wasm && ./build.sh
 
+# Assemble the full Pages site locally (docs homepage at the root + the built
+# playground under /playground/) and serve it, mirroring the deploy workflow.
+.PHONY: site
+site: wasm
+	rm -rf site
+	cp -r docs site
+	rm -f site/go.mod site/go.sum
+	rm -rf site/plans
+	find site -name '*.go' -delete
+	mkdir -p site/playground
+	cp examples/cmd/wasm/web/index.html examples/cmd/wasm/web/paper.wasm examples/cmd/wasm/web/wasm_exec.js site/playground/
+	@echo "Serving site at http://localhost:8080/  (playground: http://localhost:8080/playground/)"
+	cd site && python3 -m http.server 8080
+
 .PHONY: examples
 examples:
 	go run docs/assets/examples/addpage/main.go
