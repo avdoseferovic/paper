@@ -157,16 +157,19 @@ the useful page area after margins, headers, and footers are reserved.
 
 ## Browser / WebAssembly
 
-Paper is pure Go and compiles to WebAssembly, so HTML-to-PDF conversion can run
-entirely in the browser — no server round-trip. A runnable demo and the
-`syscall/js` bindings live in [`examples/cmd/wasm`](examples/cmd/wasm); build the
-demo with `make wasm` and serve the `web/` directory. The bindings expose a
-single global, `paperGeneratePDF(html)`, returning `{ pdf: "<base64>" }` or
+Paper is pure Go and compiles to WebAssembly, so PDF generation can run entirely
+in the browser — no server round-trip. The **Paper Playground**
+([`examples/cmd/wasm`](examples/cmd/wasm)) is a live editor with an HTML mode and
+a component-grid (JSON) mode; the preview shows the real generated PDF as you
+type. Build it with `make wasm` and serve the `web/` directory. The `syscall/js`
+bindings expose two globals — `paperGeneratePDF(html)` and
+`paperGenerateFromSpec(json, pageSize)` — each returning `{ pdf: "<base64>" }` or
 `{ error: "<message>" }`.
 
-See [docs/wasm-support.md](docs/wasm-support.md) for the JS API contract,
-build/serve steps, and browser limitations (no filesystem: use `data:` URIs and
-`AddUTF8FontFromBytes`; `Save` is unavailable — use `GetBase64`/`GetBytes`).
+See [docs/wasm-support.md](docs/wasm-support.md) for the JS API contract, the
+component-grid JSON schema, build/serve steps, and browser limitations (no
+filesystem: use `data:` URIs and `AddUTF8FontFromBytes`; `Save` is unavailable —
+use `GetBase64`/`GetBytes`).
 
 ## Merging PDFs
 

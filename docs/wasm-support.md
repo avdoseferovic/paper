@@ -6,25 +6,67 @@ upload. With the default configuration, generation touches no filesystem: the
 standard fonts and CMaps are embedded in the binary, and PDF output is returned
 as bytes/base64 rather than written to disk.
 
-A runnable demo and the `syscall/js` bindings live in
+The **Paper Playground** — a live, in-browser editor with an HTML mode and a
+component-grid mode — and the `syscall/js` bindings live in
 [`examples/cmd/wasm`](https://github.com/avdoseferovic/paper/tree/main/examples/cmd/wasm).
 
 ## How it works
 
 The wasm entry point (`examples/cmd/wasm/main.go`, built behind a
-`//go:build js && wasm` tag) registers a single global function and then blocks
-to keep it alive:
+`//go:build js && wasm` tag) registers two global functions and then blocks to
+keep them alive:
 
 ```js
-paperGeneratePDF(html) // → { pdf: "<base64>" } | { error: "<message>" }
+// HTML → PDF (thin wrapper around paper.FromHTML)
+paperGeneratePDF(html)               // → { pdf: "<base64>" } | { error: "<message>" }
+
+// Component grid → PDF (builds a real Paper component tree from a JSON spec)
+paperGenerateFromSpec(json, pageSize) // → { pdf: "<base64>" } | { error: "<message>" }
 ```
 
-- On success it returns `{ pdf }`, a base64-encoded PDF.
-- On invalid input or a generation failure it returns `{ error }` with a message.
+- On success each returns `{ pdf }`, a base64-encoded PDF.
+- On invalid input, a generation failure, or a recovered render panic, it returns
+  `{ error }` with a message — the wasm goroutine always survives.
 
-The conversion itself is a thin wrapper around `paper.FromHTML` followed by
-`Pdf.GetBase64`; the testable logic lives in
-`examples/internal/wasmconvert`.
+The conversion logic lives in `examples/internal/wasmconvert`:
+`HTMLToBase64` wraps `paper.FromHTML`; `SpecToBase64` parses the JSON layout and
+builds a real Paper document (`paper.New` + rows/cols + components).
+
+## Component-grid JSON spec
+
+`paperGenerateFromSpec` accepts a layout document and `pageSize` (`"A4"` or
+`"Letter"`, default `A4`):
+
+```jsonc
+{
+  "rows": [
+    { "cols": [
+      { "span": 8, "type": "text", "style": "h1", "value": "Invoice" },
+      { "span": 4, "type": "text", "style": "label", "align": "right", "value": "NO. INV-0481" }
+    ]},
+    { "cols": [ { "span": 12, "type": "line" } ] },
+    { "cols": [ { "span": 12, "type": "table",
+      "head": ["Description", "Qty", "Amount"], "colAlign": ["", "c", "r"],
+      "rows": [ ["Team plan", "1", "$480.00"] ] } ]},
+    { "cols": [
+      { "span": 4, "type": "qrcode", "value": "pay.example.dev/inv-0481" },
+      { "span": 4, "type": "barcode", "value": "INV0481", "label": "INV 0481" },
+      { "span": 4, "type": "signature", "value": "A. S.", "label": "AUTHORIZED" }
+    ]}
+  ]
+}
+```
+
+- **Rows** map to Paper rows; **cols** carry a `span` (1–12). Each col is one
+  component.
+- **Component `type`s:** `text` (with `style`: `h1`/`h2`/`num`/`label`/`body`),
+  `line` (`soft` for a lighter rule), `table` (`head` + `rows` + per-column
+  `colAlign` of `""`/`c`/`r`), `qrcode`, `barcode` (optional `label` caption),
+  `signature` (optional `label`), `checkbox` (`checked`), `pagenumber`, `footer`.
+- `align` (`left`/`center`/`right`) applies to text. Unknown/`image` types render
+  as a muted placeholder. Inline HTML in values is reduced to plain text
+  (`<br>` → newline; other tags stripped) — Paper text is plain-text only, so
+  emphasis like `<strong>` is not preserved in component values.
 
 ## Build and serve
 
@@ -46,7 +88,10 @@ cd examples/cmd/wasm/web
 python3 -m http.server 8080
 ```
 
-Open <http://localhost:8080/>, edit the HTML, and click **Generate PDF**. The
+Open <http://localhost:8080/>. Toggle between **HTML** and **Component grid**
+modes, pick an example preset, and watch the preview — which shows the **real
+generated PDF** (in the browser's native PDF viewer), re-rendered live as you
+type (debounced). Click **Generate PDF** (or ⌘/Ctrl+Enter) to download it. The
 demo uses non-streaming `WebAssembly.instantiate`, so it works on any static
 file server regardless of the `application/wasm` MIME type.
 

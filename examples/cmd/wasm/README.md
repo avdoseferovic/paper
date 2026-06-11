@@ -1,12 +1,21 @@
-# Paper in the browser (WebAssembly)
+# Paper Playground (WebAssembly)
 
-This demo runs Paper's HTML→PDF conversion entirely client-side in the browser
-via WebAssembly. The Go code (`main.go`, built with `//go:build js && wasm`)
-registers a single global function:
+A live, in-browser playground that generates **real PDFs** with Paper compiled to
+WebAssembly — entirely client-side, no server. A CodeMirror editor on the left
+(HTML mode or Component-grid JSON mode, with example presets and an A4/Letter
+selector) drives a preview on the right that re-renders the actual generated PDF
+as you type.
+
+The Go code (`main.go`, built with `//go:build js && wasm`) registers two globals:
 
 ```js
-paperGeneratePDF(html) // → { pdf: "<base64>" } | { error: "<message>" }
+paperGeneratePDF(html)                // HTML → PDF
+paperGenerateFromSpec(json, pageSize) // component-grid JSON → PDF
+// each → { pdf: "<base64>" } | { error: "<message>" }
 ```
+
+See [`docs/wasm-support.md`](../../../docs/wasm-support.md) for the JSON spec
+schema.
 
 ## Build
 
@@ -27,7 +36,8 @@ cd web
 python3 -m http.server 8080
 ```
 
-Then open <http://localhost:8080/>, edit the HTML, and click **Generate PDF**.
+Then open <http://localhost:8080/>, edit the source (HTML or component JSON), and
+watch the live PDF preview; click **Generate PDF** (or ⌘/Ctrl+Enter) to download.
 
 ## Browser limitations
 
