@@ -161,7 +161,10 @@ Paper is pure Go and compiles to WebAssembly, so PDF generation can run entirely
 in the browser — no server round-trip. The **Paper Playground**
 ([`examples/cmd/wasm`](examples/cmd/wasm)) is a live editor with an HTML mode and
 a component-grid (JSON) mode; the preview shows the real generated PDF as you
-type. Build it with `make wasm` and serve the `web/` directory. The `syscall/js`
+type. **Try it live:** <https://avdoseferovic.github.io/paper/playground/> (also
+linked from the [project site](https://avdoseferovic.github.io/paper/), deployed
+via GitHub Pages). To run it locally, build with `make wasm` and serve the
+`web/` directory. The `syscall/js`
 bindings expose two globals — `paperGeneratePDF(html)` and
 `paperGenerateFromSpec(json, pageSize)` — each returning `{ pdf: "<base64>" }` or
 `{ error: "<message>" }`.

@@ -1,2 +1,3 @@
 - [Home](index.html)
+- [Playground](playground/)
 - [GitHub](https://github.com/avdoseferovic/paper)
