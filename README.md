@@ -155,6 +155,25 @@ the useful page area after margins, headers, and footers are reserved.
 - Internal PDF backend ownership, so application code depends on Paper's public
   packages rather than a third-party renderer API.
 
+## Browser / WebAssembly
+
+Paper is pure Go and compiles to WebAssembly, so PDF generation can run entirely
+in the browser — no server round-trip. The **Paper Playground**
+([`examples/cmd/wasm`](examples/cmd/wasm)) is a live editor with an HTML mode and
+a component-grid (JSON) mode; the preview shows the real generated PDF as you
+type. **Try it live:** <https://avdoseferovic.github.io/paper/playground/> (also
+linked from the [project site](https://avdoseferovic.github.io/paper/), deployed
+via GitHub Pages). To run it locally, build with `make wasm` and serve the
+`web/` directory. The `syscall/js`
+bindings expose two globals — `paperGeneratePDF(html)` and
+`paperGenerateFromSpec(json, pageSize)` — each returning `{ pdf: "<base64>" }` or
+`{ error: "<message>" }`.
+
+See [docs/wasm-support.md](docs/wasm-support.md) for the JS API contract, the
+component-grid JSON schema, build/serve steps, and browser limitations (no
+filesystem: use `data:` URIs and `AddUTF8FontFromBytes`; `Save` is unavailable —
+use `GetBase64`/`GetBytes`).
+
 ## Merging PDFs
 
 `merge.Bytes` (package `pkg/merge`) concatenates the pages of multiple PDFs
@@ -227,6 +246,7 @@ generating documents in parallel.
 - [API reference](https://pkg.go.dev/github.com/avdoseferovic/paper)
 - [Project docs](docs/README.md)
 - [HTML support](docs/html-support.md)
+- [Browser / WebAssembly](docs/wasm-support.md)
 - [Examples](docs/assets/examples)
 
 ## Development

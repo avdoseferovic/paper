@@ -29,3 +29,13 @@ node_modules/*
 report-test-demo.txt
 
 docs/plans/
+
+# Generated wasm demo artifacts (built by examples/cmd/wasm/build.sh)
+examples/cmd/wasm/web/paper.wasm
+examples/cmd/wasm/web/wasm_exec.js
+
+# playwright-cli E2E scratch output
+.playwright-cli/
+
+# Locally assembled Pages site (make site)
+/site/

@@ -1,0 +1,71 @@
+name: pages
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+# Allow the workflow to publish to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy at a time; cancel superseded runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
+
+      # Build the playground wasm + copy wasm_exec.js into examples/cmd/wasm/web.
+      # Runs under the go.work workspace (the examples module needs it).
+      - name: Build playground wasm
+        run: ./build.sh
+        working-directory: examples/cmd/wasm
+
+      # Assemble the static site: the docsify docs (with the index.html landing
+      # page) at the root, and the playground under /playground/.
+      - name: Assemble site
+        run: |
+          rm -rf _site
+          cp -r docs _site
+          rm -f _site/go.mod _site/go.sum
+          rm -rf _site/plans
+          find _site -name '*.go' -delete
+          mkdir -p _site/playground
+          cp examples/cmd/wasm/web/index.html      _site/playground/
+          cp examples/cmd/wasm/web/paper.wasm       _site/playground/
+          cp examples/cmd/wasm/web/wasm_exec.js     _site/playground/
+          touch _site/.nojekyll
+          echo "Assembled site:" && ls -1 _site && echo "playground:" && ls -1 _site/playground
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper — Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- CodeMirror 5 — real code editor (HTML + JSON) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<style>
+:root{
+  --paper:        oklch(0.987 0.004 95);
+  --paper-2:      oklch(0.972 0.005 95);
+  --sheet:        #ffffff;
+  --ink:          oklch(0.23 0.012 65);
+  --ink-soft:     oklch(0.40 0.012 65);
+  --muted:        oklch(0.56 0.010 70);
+  --faint:        oklch(0.74 0.008 75);
+  --line:         oklch(0.90 0.005 80);
+  --line-soft:    oklch(0.945 0.004 85);
+  --accent:       oklch(0.585 0.188 30);
+  --accent-soft:  oklch(0.585 0.188 30 / 0.10);
+  --accent-ink:   oklch(0.46 0.17 30);
+  --blue:         oklch(0.52 0.10 250);
+  --green:        oklch(0.52 0.09 150);
+  --shadow-sheet: 0 1px 1px rgba(40,30,20,0.04), 0 8px 24px rgba(40,30,20,0.07), 0 22px 60px rgba(40,30,20,0.06);
+  --shadow-card:  0 1px 2px rgba(40,30,20,0.04), 0 4px 16px rgba(40,30,20,0.05);
+  --r:            10px;
+  --maxw:         1320px;
+  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+  --serif: "Spectral", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:1.5;
+  display:flex;flex-direction:column;
+  min-height:100vh;
+}
+::selection{background:var(--accent-soft);color:var(--accent-ink);}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;width:100%;}
+
+/* ---------- nav ---------- */
+.nav{border-bottom:1px solid var(--line);background:oklch(0.987 0.004 95 / 0.85);backdrop-filter:blur(10px);position:sticky;top:0;z-index:40;}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:62px;}
+.brand{display:flex;align-items:center;gap:11px;}
+.glyph{width:20px;height:25px;position:relative;flex:none;}
+.glyph .pg{position:absolute;inset:0;background:var(--sheet);border:1.5px solid var(--ink);border-radius:2px;}
+.glyph .pg.b{transform:translate(3px,3px);background:var(--paper-2);z-index:-1;border-color:var(--faint);}
+.glyph .fold{position:absolute;top:0;right:0;width:7px;height:7px;background:var(--paper);border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:2px;}
+.glyph .bar{position:absolute;left:4px;height:1.5px;background:var(--accent);}
+.glyph .bar.b1{top:10px;width:10px;}.glyph .bar.b2{top:14px;width:7px;}.glyph .bar.b3{top:18px;width:8px;}
+.brand .name{font-family:var(--serif);font-weight:700;font-size:19px;letter-spacing:-0.01em;}
+.brand .ver{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 7px;letter-spacing:0.04em;}
+.nav-right{display:flex;align-items:center;gap:14px;}
+.nav-cta{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;border:1px solid var(--line);padding:8px 13px;border-radius:8px;transition:border-color .15s,box-shadow .15s,transform .15s;}
+.nav-cta:hover{border-color:var(--faint);box-shadow:var(--shadow-card);transform:translateY(-1px);}
+
+/* ---------- page header ---------- */
+.phead{padding:30px 0 22px;}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent-ink);display:inline-flex;align-items:center;gap:9px;}
+.kicker::before{content:"";width:18px;height:1px;background:var(--accent);display:inline-block;}
+.phead h1{font-family:var(--serif);font-size:34px;font-weight:700;letter-spacing:-0.02em;margin-top:13px;line-height:1.05;}
+.phead p{color:var(--muted);font-size:15px;margin-top:9px;max-width:640px;}
+.phead .priv{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid oklch(0.52 0.09 150 / 0.35);background:oklch(0.52 0.09 150 / 0.07);border-radius:20px;padding:5px 11px;margin-top:16px;letter-spacing:0.03em;}
+.phead .priv .pip{width:6px;height:6px;border-radius:50%;background:var(--green);}
+
+/* ---------- toolbar ---------- */
+.tools{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:4px 0 18px;}
+.seg{display:inline-flex;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;}
+.seg button{font-family:var(--sans);font-weight:600;font-size:13px;color:var(--muted);background:transparent;border:0;padding:7px 14px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:color .15s,background .15s,box-shadow .15s;}
+.seg button .ic{width:14px;height:14px;}
+.seg button.on{color:var(--ink);background:var(--sheet);box-shadow:var(--shadow-card);}
+.tool-label{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);}
+.presets{display:flex;gap:7px;flex-wrap:wrap;}
+.preset{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink-soft);background:var(--sheet);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer;transition:border-color .15s,color .15s,transform .12s,box-shadow .15s;}
+.preset:hover{border-color:var(--faint);transform:translateY(-1px);box-shadow:var(--shadow-card);}
+.preset.on{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft);}
+.tool-spacer{flex:1;}
+.sizesel{display:inline-flex;align-items:center;gap:8px;}
+.sizesel select{font-family:var(--mono);font-size:12px;color:var(--ink-soft);background:var(--sheet);border:1px solid var(--line);border-radius:7px;padding:7px 9px;cursor:pointer;}
+.btn-gen{font-family:var(--sans);font-weight:600;font-size:13.5px;color:var(--paper);background:var(--ink);border:1px solid var(--ink);border-radius:8px;padding:9px 17px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .15s,border-color .15s,transform .12s,box-shadow .15s;}
+.btn-gen:hover{background:var(--accent-ink);border-color:var(--accent-ink);transform:translateY(-1px);box-shadow:0 8px 20px oklch(0.46 0.17 30 / 0.25);}
+.btn-gen:disabled{opacity:0.55;pointer-events:none;}
+.btn-gen.busy{opacity:0.7;pointer-events:none;}
+.btn-gen .spin{width:14px;height:14px;border:2px solid oklch(1 0 0 / 0.35);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;display:none;}
+.btn-gen.busy .spin{display:inline-block;}
+.btn-gen.busy .gic{display:none;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ---------- split ---------- */
+.split{display:grid;grid-template-columns:minmax(380px,1fr) 1fr;gap:22px;flex:1;padding-bottom:30px;align-items:stretch;min-height:0;}
+.pane{display:flex;flex-direction:column;min-height:0;}
+.pane-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.pane-title{font-family:var(--mono);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;}
+.pane-title .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);}
+.pane-title .dot.live{background:var(--green);box-shadow:0 0 0 3px oklch(0.52 0.09 150 / 0.18);}
+.pane-tip{font-family:var(--mono);font-size:10.5px;color:var(--faint);}
+.pane-tip kbd{font-family:var(--mono);background:var(--paper-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:10px;color:var(--ink-soft);}
+
+/* editor */
+.editor-shell{position:relative;flex:1;display:flex;flex-direction:column;background:oklch(0.21 0.012 65);border:1px solid oklch(0.32 0.012 65);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-card);min-height:600px;}
+.editor-shell .CodeMirror{flex:1;height:auto;font-family:var(--mono);font-size:13.5px;line-height:1.7;background:transparent;color:oklch(0.92 0.01 90);}
+.cm-s-paper-dark .CodeMirror-gutters{background:oklch(0.185 0.012 65);border-right:1px solid oklch(0.30 0.012 65);}
+.cm-s-paper-dark .CodeMirror-linenumber{color:oklch(0.50 0.012 65);padding:0 10px 0 8px;}
+.cm-s-paper-dark .CodeMirror-cursor{border-left:1.6px solid oklch(0.92 0.01 90);}
+.cm-s-paper-dark .CodeMirror-selected{background:oklch(0.585 0.188 30 / 0.30) !important;}
+.cm-s-paper-dark .CodeMirror-focused .CodeMirror-selected{background:oklch(0.585 0.188 30 / 0.34) !important;}
+.cm-s-paper-dark .CodeMirror-activeline-background{background:oklch(0.235 0.012 65);}
+.cm-s-paper-dark .CodeMirror-matchingbracket{color:oklch(0.86 0.13 150) !important;border-bottom:1px solid oklch(0.86 0.13 150);font-weight:600;}
+.cm-s-paper-dark .CodeMirror-lines{padding:14px 0;}
+.cm-s-paper-dark .CodeMirror pre.CodeMirror-line{padding:0 8px;}
+.cm-s-paper-dark span.cm-tag{color:oklch(0.72 0.14 32);}
+.cm-s-paper-dark span.cm-bracket{color:oklch(0.66 0.02 80);}
+.cm-s-paper-dark span.cm-attribute{color:oklch(0.80 0.10 85);}
+.cm-s-paper-dark span.cm-string{color:oklch(0.76 0.11 150);}
+.cm-s-paper-dark span.cm-keyword,
+.cm-s-paper-dark span.cm-atom{color:oklch(0.74 0.10 250);}
+.cm-s-paper-dark span.cm-number{color:oklch(0.76 0.11 320);}
+.cm-s-paper-dark span.cm-property{color:oklch(0.82 0.07 85);}
+.cm-s-paper-dark span.cm-variable,
+.cm-s-paper-dark span.cm-variable-2{color:oklch(0.90 0.01 90);}
+.cm-s-paper-dark span.cm-comment{color:oklch(0.52 0.012 65);font-style:italic;}
+.cm-s-paper-dark span.cm-meta{color:oklch(0.66 0.06 60);}
+.err{margin-top:9px;font-family:var(--mono);font-size:11.5px;color:var(--accent-ink);background:var(--accent-soft);border:1px solid oklch(0.585 0.188 30 / 0.3);border-radius:7px;padding:8px 11px;display:none;}
+.err.show{display:block;}
+
+/* preview */
+.preview-shell{flex:1;position:relative;border:1px solid var(--line);border-radius:var(--r);background:
+   repeating-linear-gradient(0deg, transparent, transparent 23px, oklch(0.90 0.005 80 / 0.5) 23px, oklch(0.90 0.005 80 / 0.5) 24px),
+   repeating-linear-gradient(90deg, transparent, transparent 23px, oklch(0.90 0.005 80 / 0.5) 23px, oklch(0.90 0.005 80 / 0.5) 24px),
+   var(--paper-2);
+   overflow:auto;display:flex;justify-content:center;padding:34px;min-height:420px;}
+.scaler{overflow:hidden;}
+iframe.sheet-doc{border:0;display:block;background:var(--sheet);border-radius:2px;box-shadow:var(--shadow-sheet);transform-origin:top left;}
+
+/* status bar */
+.statusbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:11px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.statusbar .st{display:inline-flex;align-items:center;gap:7px;}
+.statusbar .st b{color:var(--ink);font-weight:600;}
+.statusbar .st .sq{width:7px;height:7px;border-radius:2px;background:var(--accent);}
+.statusbar .sep{width:1px;height:13px;background:var(--line);}
+.statusbar .code{color:var(--accent-ink);}
+
+@media(max-width:980px){
+  .split{grid-template-columns:1fr;}
+  .preview-shell{min-height:520px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="../" title="Back to Paper">
+      <span class="glyph">
+        <span class="pg b"></span><span class="pg"></span><span class="fold"></span>
+        <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
+      </span>
+      <span class="name">Paper</span>
+      <span class="ver">wasm</span>
+    </a>
+    <div class="nav-right">
+      <a class="nav-cta" href="https://github.com/avdoseferovic/paper" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5C4.4 1.5 1.5 4.4 1.5 8c0 2.9 1.9 5.3 4.4 6.2.3.1.4-.1.4-.3v-1.1c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .6 1 .6.6 1 1.5.7 1.9.6 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.3-1.3.6-1.7 0-.2-.3-.8.1-1.7 0 0 .5-.2 1.7.6a6 6 0 0 1 3 0c1.2-.8 1.7-.6 1.7-.6.4.9.1 1.5.1 1.7.4.4.6 1 .6 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.2v1.8c0 .2.1.4.4.3A6.5 6.5 0 0 0 14.5 8c0-3.6-2.9-6.5-6.5-6.5Z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HEADER ============ -->
+<div class="wrap phead">
+  <span class="kicker">Playground</span>
+  <h1>Build a document, watch the PDF appear.</h1>
+  <p>Author in HTML or with Paper’s component grid. The page renders to a real PDF live as you type — generated entirely in your browser by Paper compiled to WebAssembly.</p>
+  <span class="priv"><span class="pip"></span>Runs locally · your document never leaves this tab</span>
+</div>
+
+<!-- ============ TOOLBAR ============ -->
+<div class="wrap tools">
+  <div class="seg" id="modeSeg">
+    <button data-mode="html" class="on">
+      <svg class="ic" viewBox="0 0 16 16" fill="none"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      HTML
+    </button>
+    <button data-mode="comp">
+      <svg class="ic" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="1.5" y="9" width="13" height="5.5" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+      Component grid
+    </button>
+  </div>
+  <span class="tool-label">Examples</span>
+  <div class="presets" id="presets"></div>
+  <span class="tool-spacer"></span>
+  <span class="sizesel">
+    <span class="tool-label">Page</span>
+    <select id="pageSize">
+      <option value="A4">A4</option>
+      <option value="Letter">Letter</option>
+    </select>
+  </span>
+  <button class="btn-gen" id="genBtn" data-testid="generate" disabled>
+    <span class="spin"></span>
+    <svg class="gic" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5v8m0 0L5 6.5M8 9.5l3-3M3 11v2.5h10V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Generate PDF
+  </button>
+</div>
+
+<!-- ============ SPLIT ============ -->
+<div class="wrap split">
+  <!-- editor -->
+  <div class="pane">
+    <div class="pane-head">
+      <span class="pane-title"><span class="dot"></span><span id="srcLabel">source · main.html</span></span>
+      <span class="pane-tip">Generate <kbd>⌘</kbd> <kbd>↵</kbd></span>
+    </div>
+    <div class="editor-shell">
+      <textarea class="editor" id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+    </div>
+    <div class="err" id="err"></div>
+    <div class="statusbar" id="statusbar" data-testid="status">Loading WebAssembly…</div>
+  </div>
+
+  <!-- preview -->
+  <div class="pane">
+    <div class="pane-head">
+      <span class="pane-title"><span class="dot live"></span>output · <span id="outName">main.pdf</span></span>
+      <span class="pane-tip" id="fitTip">A4 · 595×842pt</span>
+    </div>
+    <div class="preview-shell" id="previewShell">
+      <div class="scaler" id="scaler">
+        <iframe class="sheet-doc" id="sheet" title="PDF preview"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="wasm_exec.js"></script>
+<script>
+/* ────────────────────────────────────────────────────────────
+   Paper Playground — real client-side renderer (Paper via wasm)
+   ──────────────────────────────────────────────────────────── */
+const PAGE = {
+  A4:     { w: 794, h: 1123, label: "A4 · 595×842pt" },
+  Letter: { w: 816, h: 1056, label: "Letter · 612×792pt" }
+};
+
+const PRESETS = {
+  html: [
+    { name:"Welcome", out:"welcome.pdf", code:
+`<h1>Hello from Paper</h1>
+<p>This page was rendered to PDF <strong>entirely in your browser</strong> — no server, no upload.</p>
+<p>Write ordinary HTML on the left. Paper turns it into a paginated document on the right.</p>
+<h3>What you get</h3>
+<ul>
+  <li>Real fonts, tables, and lists</li>
+  <li>Deterministic, testable output</li>
+  <li>One call: <code>paper.FromHTML(html)</code></li>
+</ul>
+<hr>
+<p><small>Tip: edit anything here and watch the preview update live.</small></p>` },
+    { name:"Report", out:"q2-report.pdf", code:
+`<h1>Quarterly Report</h1>
+<p><small>Northwind Trading Co. · Q2 2026 · Prepared by Finance</small></p>
+<hr>
+<h2>Summary</h2>
+<p>Revenue grew <strong>18%</strong> quarter-over-quarter, led by the Document API line. Operating margin held steady at 31%.</p>
+<h2>Revenue by product</h2>
+<table>
+  <thead><tr><th>Product</th><th>Q1</th><th>Q2</th><th>Delta</th></tr></thead>
+  <tbody>
+    <tr><td>Document API</td><td>$182k</td><td>$228k</td><td>+25%</td></tr>
+    <tr><td>Rendering credits</td><td>$96k</td><td>$104k</td><td>+8%</td></tr>
+    <tr><td>Support plans</td><td>$41k</td><td>$47k</td><td>+15%</td></tr>
+  </tbody>
+</table>
+<h3>Notes</h3>
+<p>Figures are unaudited. See appendix for methodology.</p>` },
+    { name:"Letter", out:"letter.pdf", code:
+`<h1>Paper Labs, Inc.</h1>
+<p><small>120 Foundry Street, Suite 4 · Brooklyn, NY 11222</small></p>
+<hr>
+<p>June 11, 2026</p>
+<p>Dear Northwind team,</p>
+<p>Thank you for your continued partnership. This letter confirms the renewal of your <strong>Team plan</strong> through the next annual term, including priority support and custom font embedding.</p>
+<p>Warm regards,<br>Avdo Seferović<br><small>Paper Labs, Inc.</small></p>` }
+  ],
+  comp: [
+    { name:"Invoice", out:"invoice.pdf", code:
+`{
+  "rows": [
+    { "cols": [
+      { "span": 8, "type": "text", "style": "h1", "value": "Invoice" },
+      { "span": 4, "type": "text", "style": "label", "align": "right", "value": "NO. INV-2026-0481" }
+    ]},
+    { "cols": [ { "span": 12, "type": "line" } ] },
+    { "cols": [
+      { "span": 6, "type": "text", "style": "label", "value": "Billed to" },
+      { "span": 6, "type": "text", "style": "label", "align": "right", "value": "Amount due" }
+    ]},
+    { "cols": [
+      { "span": 6, "type": "text", "style": "body", "value": "Northwind Trading Co.<br>Seattle, WA" },
+      { "span": 6, "type": "text", "style": "num", "align": "right", "value": "$961.91" }
+    ]},
+    { "cols": [ { "span": 12, "type": "table",
+      "head": ["Description", "Qty", "Amount"], "colAlign": ["", "c", "r"],
+      "rows": [
+        ["Document API — Team plan", "1", "$480.00"],
+        ["Rendering credits", "12k", "$240.00"],
+        ["Priority support", "1", "$120.00"]
+      ] } ]},
+    { "cols": [
+      { "span": 3, "type": "qrcode", "value": "pay.paperlabs.dev/inv-0481", "size": 70 },
+      { "span": 5, "type": "text", "style": "body", "value": "Scan to pay online.<br>Net 30 · Wire or ACH." },
+      { "span": 4, "type": "signature", "value": "Avdo S.", "label": "AUTHORIZED · PAPER LABS" }
+    ]}
+  ]
+}` },
+    { name:"Label", out:"label.pdf", code:
+`{
+  "rows": [
+    { "cols": [
+      { "span": 7, "type": "text", "style": "h2", "value": "SHIP TO" },
+      { "span": 5, "type": "text", "style": "label", "align": "right", "value": "PKG 1 / 1" }
+    ]},
+    { "cols": [ { "span": 12, "type": "line" } ] },
+    { "cols": [
+      { "span": 12, "type": "text", "style": "body",
+        "value": "Northwind Trading Co.<br>4400 Harbor Blvd<br>Seattle, WA 98101" }
+    ]},
+    { "cols": [
+      { "span": 6, "type": "qrcode", "value": "TRK-9920-4471-AX", "size": 75 },
+      { "span": 6, "type": "barcode", "value": "TRK99204471AX", "label": "TRK 9920 4471 AX" }
+    ]},
+    { "cols": [
+      { "span": 12, "type": "checkbox", "checked": true, "value": "Signature on delivery required" }
+    ]}
+  ]
+}` },
+    { name:"Certificate", out:"certificate.pdf", code:
+`{
+  "rows": [
+    { "cols": [ { "span": 12, "type": "text", "style": "label", "align": "center", "value": "CERTIFICATE OF COMPLETION" } ]},
+    { "cols": [ { "span": 12, "type": "text", "style": "h1", "align": "center", "value": "Document Automation 101" } ]},
+    { "cols": [ { "span": 12, "type": "text", "style": "body", "align": "center", "value": "awarded to" } ]},
+    { "cols": [ { "span": 12, "type": "text", "style": "h2", "align": "center", "value": "Jordan Vega" } ]},
+    { "cols": [
+      { "span": 4, "type": "signature", "value": "A. Sefer", "label": "INSTRUCTOR" },
+      { "span": 4, "type": "qrcode", "value": "verify.paperlabs.dev/cert/8841", "size": 65, "align": "center" },
+      { "span": 4, "type": "signature", "value": "M. Reyes", "label": "DIRECTOR" }
+    ]},
+    { "cols": [ { "span": 12, "type": "pagenumber", "value": "Certificate ID 8841 · Issued June 2026" } ]}
+  ]
+}` }
+  ]
+};
+
+/* ---- DOM refs ---- */
+const editor    = document.getElementById('editor');
+const sheet     = document.getElementById('sheet');
+const scaler    = document.getElementById('scaler');
+const shell     = document.getElementById('previewShell');
+const errBox    = document.getElementById('err');
+const statusbar = document.getElementById('statusbar');
+const presetsEl = document.getElementById('presets');
+const genBtn    = document.getElementById('genBtn');
+const pageSel   = document.getElementById('pageSize');
+const srcLabel  = document.getElementById('srcLabel');
+const outName   = document.getElementById('outName');
+const fitTip    = document.getElementById('fitTip');
+
+/* ---- CodeMirror editor ---- */
+const cm = CodeMirror.fromTextArea(editor, {
+  mode: 'htmlmixed',
+  theme: 'paper-dark',
+  lineNumbers: true,
+  lineWrapping: true,
+  indentUnit: 2,
+  tabSize: 2,
+  smartIndent: true,
+  autoCloseTags: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  styleActiveLine: true,
+  extraKeys: {
+    'Cmd-Enter': () => generate(),
+    'Ctrl-Enter': () => generate(),
+    'Tab': (c) => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('  ')
+  }
+});
+
+let mode = 'html';        // 'html' | 'comp'
+let activePreset = 0;
+let wasmReady = false;
+let lastURL = null;       // current preview object URL
+
+/* ---- helpers ---- */
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function showError(msg) {
+  errBox.textContent = '⚠ ' + msg;
+  errBox.classList.add('show');
+}
+
+// Best-effort page count from the raw PDF bytes (Paper emits classic page objects).
+function countPages(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  const m = s.match(/\/Type\s*\/Page[^s]/g);
+  return m ? m.length : 1;
+}
+
+function componentCount() {
+  if (mode === 'comp') {
+    try {
+      const spec = JSON.parse(cm.getValue());
+      return (spec.rows || []).reduce((n, r) => n + ((r.cols || []).length), 0);
+    } catch (e) { return 0; }
+  }
+  return (cm.getValue().match(/<(h1|h2|h3|p|ul|ol|table|hr|img|blockquote)\b/gi) || []).length;
+}
+
+/* call the right wasm binding for the current mode */
+function callWasm() {
+  if (mode === 'comp') {
+    return paperGenerateFromSpec(cm.getValue(), pageSel.value);
+  }
+  const pageRule = `<style>@page{size:${pageSel.value === 'Letter' ? 'letter' : 'A4'};}</style>`;
+  return paperGeneratePDF(pageRule + cm.getValue());
+}
+
+/* size the preview iframe to the page aspect, scaled to fit the pane */
+function fitPreview() {
+  const p = PAGE[pageSel.value];
+  // Fit to BOTH the available width and height so a single page shows without a
+  // scrollbar. The scale is applied to the iframe; the scaler box is sized to
+  // the SCALED dimensions so it doesn't reserve the full page width in layout
+  // (which would squeeze the editor column).
+  const availW = shell.clientWidth - 68;   // minus horizontal padding
+  const availH = shell.clientHeight - 68;  // minus vertical padding
+  const scale = Math.min(1, availW / p.w, availH / p.h);
+  sheet.style.width = p.w + 'px';
+  sheet.style.height = p.h + 'px';
+  sheet.style.transform = `scale(${scale})`;
+  scaler.style.width = (p.w * scale) + 'px';
+  scaler.style.height = (p.h * scale) + 'px';
+  fitTip.textContent = p.label + ' · ' + Math.round(scale * 100) + '%';
+}
+
+function updateStatus(ms, bytes) {
+  const kb = (bytes.length / 1024).toFixed(1);
+  const pages = countPages(bytes);
+  const call = mode === 'comp' ? 'paper.New().Add(rows…)' : 'paper.FromHTML(html)';
+  statusbar.innerHTML =
+    `<span class="st"><span class="sq"></span>Rendered <b>${ms}</b>ms · <b>${kb}</b> KB</span>` +
+    `<span class="sep"></span>` +
+    `<span class="st"><b>${componentCount()}</b> components</span>` +
+    `<span class="sep"></span>` +
+    `<span class="st"><b>${pages}</b> page${pages > 1 ? 's' : ''}</span>` +
+    `<span class="sep"></span>` +
+    `<span class="st code">${call}</span>`;
+}
+
+
+/* render the current source to a real PDF blob shown in the preview */
+function render() {
+  const fn = mode === 'comp' ? 'paperGenerateFromSpec' : 'paperGeneratePDF';
+  if (!wasmReady || typeof window[fn] !== 'function') return false;
+  errBox.classList.remove('show');
+  const start = performance.now();
+  let res;
+  try {
+    res = callWasm();
+  } catch (e) {
+    showError(String(e));
+    return false;
+  }
+  if (!res || typeof res !== 'object') { showError('unexpected response from WebAssembly'); return false; }
+  if (res.error) { showError(res.error); return false; } // keep last good preview
+
+  const bytes = base64ToBytes(res.pdf);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  if (lastURL) URL.revokeObjectURL(lastURL);
+  lastURL = URL.createObjectURL(blob);
+  sheet.src = lastURL + '#toolbar=0&navpanes=0&view=FitH';
+  fitPreview();
+  updateStatus(Math.max(1, Math.round(performance.now() - start)), bytes);
+  return true;
+}
+
+/* debounced live render */
+let deb;
+cm.on('change', () => { clearTimeout(deb); deb = setTimeout(render, 250); });
+
+/* ---- presets ---- */
+function buildPresets() {
+  presetsEl.innerHTML = '';
+  PRESETS[mode].forEach((pr, i) => {
+    const b = document.createElement('button');
+    b.className = 'preset' + (i === activePreset ? ' on' : '');
+    b.textContent = pr.name;
+    b.onclick = () => { activePreset = i; loadPreset(); };
+    presetsEl.appendChild(b);
+  });
+}
+
+function loadPreset() {
+  const pr = PRESETS[mode][activePreset];
+  cm.setOption('mode', mode === 'comp' ? { name: 'javascript', json: true } : 'htmlmixed');
+  cm.setValue(pr.code);
+  cm.refresh();
+  outName.textContent = pr.out;
+  srcLabel.textContent = 'source · ' + (mode === 'comp' ? 'layout.json' : 'main.html');
+  [...presetsEl.children].forEach((c, i) => c.classList.toggle('on', i === activePreset));
+  render();
+}
+
+/* ---- mode switch ---- */
+document.getElementById('modeSeg').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const m = btn.dataset.mode; if (m === mode) return;
+  mode = m;
+  [...e.currentTarget.children].forEach(c => c.classList.toggle('on', c === btn));
+  activePreset = 0;
+  buildPresets();
+  loadPreset();
+});
+
+/* ---- page size ---- */
+pageSel.addEventListener('change', render);
+
+/* ---- generate + download ---- */
+function generate() {
+  if (genBtn.disabled) return;
+  genBtn.classList.add('busy');
+  setTimeout(() => {
+    try {
+      if (render() && lastURL) {
+        const a = document.createElement('a');
+        a.href = lastURL;
+        a.download = outName.textContent || 'document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } finally {
+      genBtn.classList.remove('busy');
+    }
+  }, 30);
+}
+genBtn.addEventListener('click', generate);
+
+/* refit on resize */
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(fitPreview, 120); });
+
+/* ---- boot wasm ---- */
+buildPresets();
+const go = new Go();
+// Use non-streaming instantiate so the demo works on any static file server.
+fetch('paper.wasm')
+  .then((r) => r.arrayBuffer())
+  .then((buf) => WebAssembly.instantiate(buf, go.importObject))
+  .then(({ instance }) => {
+    // IMPORTANT: do NOT await go.run() — Go registers paperGeneratePDF /
+    // paperGenerateFromSpec synchronously before its select{} blocks; awaiting
+    // would yield before registration and leave the globals undefined.
+    go.run(instance);
+    wasmReady = true;
+    genBtn.disabled = false;
+    loadPreset();
+  })
+  .catch((err) => { statusbar.textContent = 'Failed to load WebAssembly: ' + err; });
+</script>
+</body>
+</html>

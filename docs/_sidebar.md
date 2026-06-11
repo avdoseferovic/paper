@@ -1,4 +1,5 @@
 * [Paper](README.md?id=paper)
   * [HTML to PDF](html-support.md?id=html-to-pdf-support)
+  * [Browser / WebAssembly](wasm-support.md?id=webassembly-browser-support)
   * [Features](features/basics.md?id=basics)
   * [Examples](examples/billing.md?id=billing)
