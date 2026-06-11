@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Paper — HTML to PDF in the browser</title>
+	<style>
+		body { font-family: system-ui, sans-serif; margin: 0; padding: 1.5rem; max-width: 1100px; }
+		h1 { margin-top: 0; }
+		.row { display: flex; gap: 1rem; flex-wrap: wrap; }
+		.col { flex: 1 1 420px; display: flex; flex-direction: column; }
+		textarea { width: 100%; height: 320px; font-family: ui-monospace, monospace; font-size: 0.9rem; box-sizing: border-box; }
+		iframe { width: 100%; height: 520px; border: 1px solid #ccc; }
+		button { margin: 0.75rem 0; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+		button:disabled { cursor: progress; opacity: 0.6; }
+		#status { margin-left: 0.75rem; font-size: 0.9rem; }
+		a#download[hidden] { display: none; }
+	</style>
+</head>
+<body>
+	<h1>Paper — HTML → PDF, entirely in your browser</h1>
+	<p>Generated client-side via WebAssembly. No server round-trip.</p>
+
+	<div class="row">
+		<div class="col">
+			<label for="html"><strong>HTML</strong></label>
+			<textarea id="html" spellcheck="false">&lt;h1&gt;Hello&lt;/h1&gt;
+&lt;p&gt;Rendered by &lt;strong&gt;Paper&lt;/strong&gt; in the browser.&lt;/p&gt;
+&lt;ul&gt;&lt;li&gt;No server&lt;/li&gt;&lt;li&gt;No upload&lt;/li&gt;&lt;/ul&gt;</textarea>
+			<div>
+				<button id="generate" disabled>Generate PDF</button>
+				<a id="download" href="#" download="paper.pdf" hidden>Download</a>
+				<span id="status" data-testid="status">Loading WebAssembly…</span>
+			</div>
+		</div>
+		<div class="col">
+			<strong>Preview</strong>
+			<iframe id="preview" title="PDF preview"></iframe>
+		</div>
+	</div>
+
+	<script src="wasm_exec.js"></script>
+	<script>
+		const statusEl = document.getElementById("status");
+		const generateBtn = document.getElementById("generate");
+		const htmlEl = document.getElementById("html");
+		const previewEl = document.getElementById("preview");
+		const downloadEl = document.getElementById("download");
+		let lastURL = null;
+
+		function base64ToBytes(b64) {
+			const binary = atob(b64);
+			const bytes = new Uint8Array(binary.length);
+			for (let i = 0; i < binary.length; i++) {
+				bytes[i] = binary.charCodeAt(i);
+			}
+			return bytes;
+		}
+
+		generateBtn.addEventListener("click", () => {
+			// paperGeneratePDF is registered by Go's main() (see below). Guard in
+			// case a click somehow arrives before the module finished booting.
+			if (typeof paperGeneratePDF !== "function") {
+				statusEl.textContent = "WASM not ready — please wait";
+				return;
+			}
+
+			const res = paperGeneratePDF(htmlEl.value);
+			if (res.error) {
+				statusEl.textContent = "Error: " + res.error;
+				return;
+			}
+
+			const bytes = base64ToBytes(res.pdf);
+			const blob = new Blob([bytes], { type: "application/pdf" });
+			if (lastURL) {
+				URL.revokeObjectURL(lastURL);
+			}
+			lastURL = URL.createObjectURL(blob);
+			previewEl.src = lastURL;
+			downloadEl.href = lastURL;
+			downloadEl.hidden = false;
+			statusEl.textContent = "Generated PDF (" + bytes.length + " bytes)";
+		});
+
+		// Use non-streaming instantiate so the demo works on any static file
+		// server, regardless of whether it sends the application/wasm MIME type.
+		const go = new Go();
+		fetch("paper.wasm")
+			.then((r) => r.arrayBuffer())
+			.then((buf) => WebAssembly.instantiate(buf, go.importObject))
+			.then(({ instance }) => {
+				// IMPORTANT: do NOT await go.run() — Go registers paperGeneratePDF
+				// synchronously before its select{} blocks; awaiting would yield
+				// before registration and leave the global undefined.
+				go.run(instance);
+				generateBtn.disabled = false;
+				statusEl.textContent = "Ready";
+			})
+			.catch((err) => {
+				statusEl.textContent = "Failed to load WebAssembly: " + err;
+			});
+	</script>
+</body>
+</html>
