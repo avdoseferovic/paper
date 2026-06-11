@@ -52,8 +52,8 @@ func TestHTMLToBase64_CanceledContext_ReturnsError(t *testing.T) {
 	cancel()
 
 	_, err := wasmconvert.HTMLToBase64(ctx, "<p>x</p>")
-	if err == nil {
-		t.Fatal("expected error for canceled context, got nil")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled in error chain, got %v", err)
 	}
 }
 

@@ -57,7 +57,7 @@
 			return bytes;
 		}
 
-		generateBtn.addEventListener("click", () => {
+		function generate() {
 			// paperGeneratePDF is registered by Go's main() (see below). Guard in
 			// case a click somehow arrives before the module finished booting.
 			if (typeof paperGeneratePDF !== "function") {
@@ -66,6 +66,11 @@
 			}
 
 			const res = paperGeneratePDF(htmlEl.value);
+			// Defensive: the Go adapter always returns an object, but guard anyway.
+			if (!res || typeof res !== "object") {
+				statusEl.textContent = "Error: unexpected response from WebAssembly";
+				return;
+			}
 			if (res.error) {
 				statusEl.textContent = "Error: " + res.error;
 				return;
@@ -81,6 +86,23 @@
 			downloadEl.href = lastURL;
 			downloadEl.hidden = false;
 			statusEl.textContent = "Generated PDF (" + bytes.length + " bytes)";
+		}
+
+		generateBtn.addEventListener("click", () => {
+			// Show progress and prevent re-entrant clicks: generation is synchronous
+			// and blocks the main thread, so yield once so the disabled state paints
+			// before the blocking call. atob() / unexpected values surface via catch.
+			generateBtn.disabled = true;
+			statusEl.textContent = "Generating…";
+			setTimeout(() => {
+				try {
+					generate();
+				} catch (err) {
+					statusEl.textContent = "Error: " + err;
+				} finally {
+					generateBtn.disabled = false;
+				}
+			}, 0);
 		});
 
 		// Use non-streaming instantiate so the demo works on any static file
