@@ -169,7 +169,7 @@ two hard limitations for external input:
 
 ## Performance
 
-Generation is benchmarked in [`paper_benchmark_test.go`](paper_benchmark_test.go).
+Generation is benchmarked in [`benchmark_test.go`](benchmark_test.go).
 Two benchmarks live there:
 
 - `BenchmarkPDFGeneration` — representative documents (text-heavy, mixed

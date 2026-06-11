@@ -106,6 +106,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Changed document-generation helpers to return concrete `*core.Pdf` values where appropriate.
 - Collapsed the internal gofpdf wrapper interface and pruned unused legacy PDF internals.
 - Updated the supported Go toolchain to 1.26.4 and refreshed vulnerable dependency versions used by the HTML/image paths.
+- Renamed root package files to drop the redundant `paper_` prefix
+  (`generation.go`, `html.go`, `page_builder.go`, and their tests) and
+  consolidated small root files: `GetStructure` moved into `paper.go`,
+  header/`@page` tests merged into `html_test.go`, outline/watermark tests
+  merged into `generation_test.go`, and white-box tests named after what they
+  test (`page_groups_test.go`, `page_options_test.go`). No API change.
 
 ### Removed
 
