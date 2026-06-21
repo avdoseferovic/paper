@@ -47,6 +47,10 @@ func (e *pdfExpecter) DrawPath(args ...any) *mock.Call {
 	return e.mock.On("DrawPath", args...)
 }
 
+func (e *pdfExpecter) Ellipse(args ...any) *mock.Call {
+	return e.mock.On("Ellipse", args...)
+}
+
 func (e *pdfExpecter) GetDrawColor(args ...any) *mock.Call {
 	return e.mock.On("GetDrawColor", args...)
 }
@@ -77,6 +81,10 @@ func (e *pdfExpecter) MoveTo(args ...any) *mock.Call {
 
 func (e *pdfExpecter) Rect(args ...any) *mock.Call {
 	return e.mock.On("Rect", args...)
+}
+
+func (e *pdfExpecter) RoundedRect(args ...any) *mock.Call {
+	return e.mock.On("RoundedRect", args...)
 }
 
 func (e *pdfExpecter) SetAlpha(args ...any) *mock.Call {
@@ -115,6 +123,10 @@ func (m *pdfMock) DrawPath(styleStr string) {
 	m.Called(styleStr)
 }
 
+func (m *pdfMock) Ellipse(x, y, rx, ry, degRotate float64, styleStr string) {
+	m.Called(x, y, rx, ry, degRotate, styleStr)
+}
+
 func (m *pdfMock) GetDrawColor() (int, int, int) {
 	ret := m.Called()
 	return ret.Get(0).(int), ret.Get(1).(int), ret.Get(2).(int)
@@ -149,6 +161,10 @@ func (m *pdfMock) MoveTo(x, y float64) {
 
 func (m *pdfMock) Rect(x, y, w, h float64, styleStr string) {
 	m.Called(x, y, w, h, styleStr)
+}
+
+func (m *pdfMock) RoundedRect(x, y, w, h, radius float64, corners string, styleStr string) {
+	m.Called(x, y, w, h, radius, corners, styleStr)
 }
 
 func (m *pdfMock) SetAlpha(alpha float64, blendModeStr string) {

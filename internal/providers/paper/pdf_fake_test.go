@@ -106,6 +106,10 @@ func (e *pdfExpecter) ClipRect(args ...any) *pdfCall {
 	return &pdfCall{Call: e.mock.On("ClipRect", args...)}
 }
 
+func (e *pdfExpecter) Ellipse(args ...any) *pdfCall {
+	return &pdfCall{Call: e.mock.On("Ellipse", args...)}
+}
+
 func (e *pdfExpecter) GetFillColor(args ...any) *pdfCall {
 	return &pdfCall{Call: e.mock.On("GetFillColor", args...)}
 }
@@ -148,6 +152,10 @@ func (e *pdfExpecter) PageNo(args ...any) *pdfCall {
 
 func (e *pdfExpecter) Rect(args ...any) *pdfCall {
 	return &pdfCall{Call: e.mock.On("Rect", args...)}
+}
+
+func (e *pdfExpecter) RoundedRect(args ...any) *pdfCall {
+	return &pdfCall{Call: e.mock.On("RoundedRect", args...)}
 }
 
 func (e *pdfExpecter) RegisterImageOptionsReader(args ...any) *pdfCall {
@@ -291,6 +299,10 @@ func (m *pdfMock) ClipRect(x, y, w, h float64, outline bool) {
 	m.Called(x, y, w, h, outline)
 }
 
+func (m *pdfMock) Ellipse(x, y, rx, ry, degRotate float64, styleStr string) {
+	m.Called(x, y, rx, ry, degRotate, styleStr)
+}
+
 func (m *pdfMock) GetFillColor() (int, int, int) {
 	ret := m.Called()
 	return ret.Get(0).(int), ret.Get(1).(int), ret.Get(2).(int)
@@ -343,6 +355,10 @@ func (m *pdfMock) PageNo() int {
 
 func (m *pdfMock) Rect(x, y, w, h float64, styleStr string) {
 	m.Called(x, y, w, h, styleStr)
+}
+
+func (m *pdfMock) RoundedRect(x, y, w, h, radius float64, corners, styleStr string) {
+	m.Called(x, y, w, h, radius, corners, styleStr)
 }
 
 func (m *pdfMock) RegisterImageOptionsReader(imgName string, options pdf.ImageOptions, r io.Reader) *pdf.ImageInfoType {

@@ -20,7 +20,11 @@ type Builder interface {
 	dimensionsBuilder
 	generationBuilder
 	fontBuilder
-	documentBuilder
+	documentSecurityBuilder
+	documentLayoutBuilder
+	documentBackgroundBuilder
+	documentFirstPageForegroundBuilder
+	documentFirstPageFinalForegroundBuilder
 	metadataBuilder
 	Build() *entity.Config
 }
@@ -47,18 +51,77 @@ type fontBuilder interface {
 	WithPageNumber(pageNumber ...props.PageNumber) Builder
 }
 
-type documentBuilder interface {
+type documentSecurityBuilder interface {
 	WithProtection(protectionType protection.Type, userPassword, ownerPassword string) Builder
 	WithProtectionAlgorithm(algorithm protection.Encryption) Builder
+}
+
+type documentLayoutBuilder interface {
 	WithCompression(compression bool) Builder
 	WithOrientation(orientation consts.Orientation) Builder
 	WithCustomFonts(customFonts []entity.CustomFont) Builder
-	WithBackgroundImage(bytes []byte, extensionType extension.Type) Builder
 	WithDisableAutoPageBreak(disabled bool) Builder
 	WithHTMLLimits(limits entity.HTMLLimits) Builder
 	WithUnsafeNoHTMLLimits() Builder
 	WithOutlineFromHeadings(enabled bool) Builder
 	WithWatermark(text string, ps ...props.Watermark) Builder
+}
+
+type documentBackgroundBuilder interface {
+	WithBackgroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithBackgroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithBackgroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
+	WithFirstPageBackgroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithFirstPageBackgroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithFirstPageBackgroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
+}
+
+type documentFirstPageForegroundBuilder interface {
+	WithFirstPageForegroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithFirstPageForegroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithFirstPageForegroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
+	WithAdditionalFirstPageForegroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithAdditionalFirstPageForegroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithAdditionalFirstPageForegroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
+}
+
+type documentFirstPageFinalForegroundBuilder interface {
+	WithFirstPageFinalForegroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithFirstPageFinalForegroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithFirstPageFinalForegroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
+	WithAdditionalFirstPageFinalForegroundImage(bytes []byte, extensionType extension.Type) Builder
+	WithAdditionalFirstPageFinalForegroundImageAt(bytes []byte, extensionType extension.Type, x, y, width, height float64) Builder
+	WithAdditionalFirstPageFinalForegroundImageAtFit(
+		bytes []byte,
+		extensionType extension.Type,
+		x, y, width, height float64,
+		objectFit string,
+	) Builder
 }
 
 type metadataBuilder interface {
@@ -71,27 +134,31 @@ type metadataBuilder interface {
 }
 
 type CfgBuilder struct {
-	providerType         consts.ProviderType
-	dimensions           *entity.Dimensions
-	margins              *entity.Margins
-	chunkWorkers         int
-	debug                bool
-	maxGridSize          int
-	defaultFont          *props.Font
-	customFonts          []entity.CustomFont
-	pageNumber           *props.PageNumber
-	protection           *entity.Protection
-	protectionAlgorithm  protection.Encryption
-	compression          bool
-	pageSize             *pagesize.Type
-	orientation          consts.Orientation
-	metadata             *entity.Metadata
-	backgroundImage      *entity.Image
-	disableAutoPageBreak bool
-	outlineFromHeadings  bool
-	watermark            *props.Watermark
-	generationMode       consts.GenerationMode
-	htmlLimits           entity.HTMLLimits
+	providerType                   consts.ProviderType
+	dimensions                     *entity.Dimensions
+	margins                        *entity.Margins
+	chunkWorkers                   int
+	debug                          bool
+	maxGridSize                    int
+	defaultFont                    *props.Font
+	customFonts                    []entity.CustomFont
+	pageNumber                     *props.PageNumber
+	protection                     *entity.Protection
+	protectionAlgorithm            protection.Encryption
+	compression                    bool
+	pageSize                       *pagesize.Type
+	orientation                    consts.Orientation
+	metadata                       *entity.Metadata
+	backgroundImage                *entity.Image
+	firstPageBackgroundImage       *entity.Image
+	firstPageForegroundImage       *entity.Image
+	firstPageForegroundImages      []*entity.Image
+	firstPageFinalForegroundImages []*entity.Image
+	disableAutoPageBreak           bool
+	outlineFromHeadings            bool
+	watermark                      *props.Watermark
+	generationMode                 consts.GenerationMode
+	htmlLimits                     entity.HTMLLimits
 }
 
 // NewBuilder is responsible to create an instance of Builder.

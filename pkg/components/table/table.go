@@ -19,10 +19,12 @@ var (
 
 // Cell is one entry in the table grid.
 type Cell struct {
-	Content core.Component
-	Colspan int
-	Rowspan int
-	Style   *props.Cell
+	Content       core.Component
+	Colspan       int
+	Rowspan       int
+	Style         *props.Cell
+	Height        float64 // explicit outer cell height in mm; used as a row-height floor
+	VerticalAlign string
 }
 
 // Option configures a Table.
@@ -38,6 +40,10 @@ type Table struct {
 	config         *entity.Config
 	rowHeights     []float64 // computed by two-pass algorithm
 	rowHeightWidth float64   // cell width rowHeights were computed for
+	preferredWidth float64
+	align          string
+	borderSpacingX float64
+	borderSpacingY float64
 }
 
 // New validates spans, normalises the grid, and builds the Table component.
@@ -121,6 +127,18 @@ func (t *Table) GetStructure() *node.Node[core.Structure] {
 	if len(t.columnWidths) > 0 {
 		str.Details["column_widths"] = append([]float64(nil), t.columnWidths...)
 	}
+	if t.preferredWidth > 0 {
+		str.Details["preferred_width"] = t.preferredWidth
+	}
+	if t.align != "" {
+		str.Details["align"] = t.align
+	}
+	if t.borderSpacingX > 0 {
+		str.Details["border_spacing_x"] = t.borderSpacingX
+	}
+	if t.borderSpacingY > 0 {
+		str.Details["border_spacing_y"] = t.borderSpacingY
+	}
 	return node.New(str)
 }
 
@@ -130,6 +148,9 @@ func (t *Table) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	total := 0.0
 	for _, h := range t.rowHeights {
 		total += h
+	}
+	if t.rowCount > 1 {
+		total += t.borderSpacingY * float64(t.rowCount-1)
 	}
 	return total
 }

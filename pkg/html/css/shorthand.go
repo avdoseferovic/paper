@@ -16,7 +16,25 @@ func ExpandShorthands(decls map[string]string) map[string]string {
 	return out
 }
 
+// isIdentityExpansion reports whether m is just {prop: <something>} — i.e. prop
+// was not a real shorthand and expandOne returned it unchanged. Used by
+// ApplyCtx to decide whether a var()-resolved value needs longhand dispatch.
+func isIdentityExpansion(prop string, m map[string]string) bool {
+	if len(m) != 1 {
+		return false
+	}
+	_, ok := m[prop]
+	return ok
+}
+
 func expandOne(prop, val string) map[string]string {
+	// A shorthand whose value still contains an unresolved var() reference cannot
+	// be split reliably (e.g. expandBackground can't recognise "var(--x)" as a
+	// colour). Leave it intact; ApplyCtx re-expands it after var() resolution,
+	// once the value is concrete. See ComputedStyle.ApplyCtx.
+	if strings.Contains(val, "var(") {
+		return map[string]string{prop: val}
+	}
 	switch prop {
 	case "flex":
 		return expandFlex(val)

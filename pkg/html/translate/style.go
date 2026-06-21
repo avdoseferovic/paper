@@ -53,6 +53,8 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 	s := css.NewComputedStyle()
 	if parent != nil {
 		s.FontSize = parent.FontSize
+		s.TextAlign = parent.TextAlign
+		s.LetterSpacing = parent.LetterSpacing
 		s.Visibility = parent.Visibility
 		// Inherit CSS custom properties via shallow copy so children don't
 		// pollute parent's map.
@@ -114,7 +116,13 @@ func inheritInlineStyle(parent *css.ComputedStyle) *css.ComputedStyle {
 	s.Opacity = parent.Opacity
 	s.LetterSpacing = parent.LetterSpacing
 	s.TextTransform = parent.TextTransform
+	// white-space is an inherited CSS property: a child run (e.g. <strong>) or a
+	// generated-content marker (::before) inside a `white-space: nowrap` pill
+	// must stay nowrap too, or the pill wraps mid-content and its background is
+	// painted as several fragments with a stranded marker on the prior line.
+	s.WhiteSpace = parent.WhiteSpace
 	s.VerticalAlign = parent.VerticalAlign
+	s.VerticalOffset = parent.VerticalOffset
 	s.Quotes = parent.Quotes
 	if len(parent.Vars) > 0 {
 		s.Vars = make(map[string]string, len(parent.Vars))
@@ -127,6 +135,7 @@ func blockInlineStyle(style *css.ComputedStyle) *css.ComputedStyle {
 	s := inheritInlineStyle(style)
 	s.BackgroundColor = nil
 	s.VerticalAlign = ""
+	s.VerticalOffset = 0
 	return s
 }
 
@@ -215,8 +224,10 @@ func baseBlockCellStyle(style *css.ComputedStyle) *props.Cell {
 	if isVisibilityHidden(style) {
 		return nil
 	}
-	hasBorder := style.BorderTopWidth > 0 || style.BorderRightWidth > 0 ||
-		style.BorderBottomWidth > 0 || style.BorderLeftWidth > 0
+	hasBorder := visibleBorderSide(style.BorderTopWidth, style.BorderTopStyle) ||
+		visibleBorderSide(style.BorderRightWidth, style.BorderRightStyle) ||
+		visibleBorderSide(style.BorderBottomWidth, style.BorderBottomStyle) ||
+		visibleBorderSide(style.BorderLeftWidth, style.BorderLeftStyle)
 	hasRadius := style.BorderRadius > 0 || style.BorderRadiusTopLeft > 0 ||
 		style.BorderRadiusTopRight > 0 || style.BorderRadiusBottomLeft > 0 ||
 		style.BorderRadiusBottomRight > 0
@@ -227,14 +238,22 @@ func baseBlockCellStyle(style *css.ComputedStyle) *props.Cell {
 	op := effectiveOpacity(style)
 	cell := &props.Cell{}
 	cell.BackgroundColor = toPropsColor(style.BackgroundColor, op)
-	cell.BorderTopColor = toPropsColor(style.BorderTopColor, op)
-	cell.BorderRightColor = toPropsColor(style.BorderRightColor, op)
-	cell.BorderBottomColor = toPropsColor(style.BorderBottomColor, op)
-	cell.BorderLeftColor = toPropsColor(style.BorderLeftColor, op)
-	cell.BorderTopThickness = style.BorderTopWidth
-	cell.BorderRightThickness = style.BorderRightWidth
-	cell.BorderBottomThickness = style.BorderBottomWidth
-	cell.BorderLeftThickness = style.BorderLeftWidth
+	if visibleBorderSide(style.BorderTopWidth, style.BorderTopStyle) {
+		cell.BorderTopColor = toPropsColor(style.BorderTopColor, op)
+		cell.BorderTopThickness = style.BorderTopWidth
+	}
+	if visibleBorderSide(style.BorderRightWidth, style.BorderRightStyle) {
+		cell.BorderRightColor = toPropsColor(style.BorderRightColor, op)
+		cell.BorderRightThickness = style.BorderRightWidth
+	}
+	if visibleBorderSide(style.BorderBottomWidth, style.BorderBottomStyle) {
+		cell.BorderBottomColor = toPropsColor(style.BorderBottomColor, op)
+		cell.BorderBottomThickness = style.BorderBottomWidth
+	}
+	if visibleBorderSide(style.BorderLeftWidth, style.BorderLeftStyle) {
+		cell.BorderLeftColor = toPropsColor(style.BorderLeftColor, op)
+		cell.BorderLeftThickness = style.BorderLeftWidth
+	}
 	cell.BorderTopStyle = cssBorderStyleToLineStyle(style.BorderTopStyle)
 	cell.BorderRightStyle = cssBorderStyleToLineStyle(style.BorderRightStyle)
 	cell.BorderBottomStyle = cssBorderStyleToLineStyle(style.BorderBottomStyle)
@@ -273,7 +292,7 @@ func cssShadowsToProps(shadows []css.Shadow) []props.Shadow {
 			Inset:      s.Inset,
 		}
 		if s.Color != nil {
-			out[i].Color = &props.Color{Red: s.Color.R, Green: s.Color.G, Blue: s.Color.B}
+			out[i].Color = toPropsColor(s.Color, 1)
 		}
 	}
 	return out
@@ -323,41 +342,315 @@ func cssStopsToProps(stops []css.GradientStop) []props.GradientStop {
 	return out
 }
 
+// effectiveUniformRadius returns the run-background corner radius for an inline
+// element. CSS `border-radius: 9999px` is expanded into four per-corner
+// longhands at parse time, leaving the uniform BorderRadius at 0, so fall back
+// to the largest per-corner value (pills set all four equal). The render layer
+// caps the radius to half the line height, so an over-large value is harmless.
+func effectiveUniformRadius(style *css.ComputedStyle) float64 {
+	if style.BorderRadius > 0 {
+		return style.BorderRadius
+	}
+	r := style.BorderRadiusTopLeft
+	for _, c := range []float64{style.BorderRadiusTopRight, style.BorderRadiusBottomRight, style.BorderRadiusBottomLeft} {
+		if c > r {
+			r = c
+		}
+	}
+	return r
+}
+
+func inlineBorderWidth(style *css.ComputedStyle) float64 {
+	if style == nil {
+		return 0
+	}
+	width := 0.0
+	if isInlineBorderSide(style.BorderTopWidth, style.BorderTopStyle) {
+		width = max(width, style.BorderTopWidth)
+	}
+	if isInlineBorderSide(style.BorderRightWidth, style.BorderRightStyle) {
+		width = max(width, style.BorderRightWidth)
+	}
+	if isInlineBorderSide(style.BorderBottomWidth, style.BorderBottomStyle) {
+		width = max(width, style.BorderBottomWidth)
+	}
+	if isInlineBorderSide(style.BorderLeftWidth, style.BorderLeftStyle) {
+		width = max(width, style.BorderLeftWidth)
+	}
+	return width
+}
+
+func visibleBorderSide(width float64, style string) bool {
+	return isInlineBorderSide(width, style)
+}
+
+func visibleBorderWidth(width float64, style string) float64 {
+	if !visibleBorderSide(width, style) {
+		return 0
+	}
+	return width
+}
+
+func boxSizingBorderBox(style *css.ComputedStyle) bool {
+	return style != nil && strings.EqualFold(strings.TrimSpace(style.BoxSizing), "border-box")
+}
+
+func cssContentBoxWidth(style *css.ComputedStyle) float64 {
+	if style == nil || style.Width <= 0 {
+		return 0
+	}
+	if !boxSizingBorderBox(style) {
+		return style.Width
+	}
+	return max(0,
+		style.Width-
+			style.PaddingLeft-
+			style.PaddingRight-
+			visibleBorderWidth(style.BorderLeftWidth, style.BorderLeftStyle)-
+			visibleBorderWidth(style.BorderRightWidth, style.BorderRightStyle),
+	)
+}
+
+func cssContentBoxHeight(style *css.ComputedStyle) float64 {
+	if style == nil || style.Height <= 0 {
+		return 0
+	}
+	if !boxSizingBorderBox(style) {
+		return style.Height
+	}
+	return max(0,
+		style.Height-
+			style.PaddingTop-
+			style.PaddingBottom-
+			visibleBorderWidth(style.BorderTopWidth, style.BorderTopStyle)-
+			visibleBorderWidth(style.BorderBottomWidth, style.BorderBottomStyle),
+	)
+}
+
+func isInlineBorderSide(width float64, style string) bool {
+	if width <= 0 {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(style)) {
+	case cssValueNone, cssValueHidden:
+		return false
+	default:
+		return true
+	}
+}
+
+func inlineBorderColor(style *css.ComputedStyle) *css.RGBColor {
+	if style == nil {
+		return nil
+	}
+	for _, color := range []*css.RGBColor{
+		style.BorderTopColor,
+		style.BorderRightColor,
+		style.BorderBottomColor,
+		style.BorderLeftColor,
+	} {
+		if color != nil {
+			return color
+		}
+	}
+	return nil
+}
+
+type inlineBoxStyle struct {
+	ID          int
+	Background  *props.Color
+	BorderColor *props.Color
+	BorderWidth float64
+	Radius      float64
+	PadLeft     float64
+	PadRight    float64
+	PadY        float64
+	MarginLeft  float64
+	MarginRight float64
+	BoxShadows  []props.Shadow
+}
+
+func inlineBoxFromStyle(style, parent *css.ComputedStyle) (inlineBoxStyle, bool) {
+	if style == nil {
+		return inlineBoxStyle{}, false
+	}
+	op := effectiveOpacity(style)
+	background := style.BackgroundColor
+	if sameCSSColor(background, inheritedBackground(parent)) {
+		background = nil
+	}
+	box := inlineBoxStyle{
+		Background:  toPropsColor(background, op),
+		BorderWidth: inlineBorderWidth(style),
+		Radius:      effectiveUniformRadius(style),
+		PadLeft:     style.PaddingLeft,
+		PadRight:    style.PaddingRight,
+		PadY:        max(style.PaddingTop, style.PaddingBottom),
+		MarginLeft:  style.MarginLeft,
+		MarginRight: style.MarginRight,
+		BoxShadows:  cssShadowsToProps(style.BoxShadow),
+	}
+	if c := inlineBorderColor(style); c != nil {
+		box.BorderColor = toPropsColor(c, op)
+	}
+	if box.Background == nil && (box.BorderColor == nil || box.BorderWidth <= 0) && len(box.BoxShadows) == 0 {
+		return inlineBoxStyle{}, false
+	}
+	return box, true
+}
+
+func inheritedBackground(parent *css.ComputedStyle) *css.RGBColor {
+	if parent == nil {
+		return nil
+	}
+	return parent.BackgroundColor
+}
+
+func sameCSSColor(a, b *css.RGBColor) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A
+}
+
 func applyInlineStyleToRun(style *css.ComputedStyle, run *props.RichRun) {
 	if style == nil || run == nil {
 		return
 	}
+	applyInlineVisibilityStyle(style, run)
+	applyInlineFontStyle(style, run)
+	applyInlineColorStyle(style, run)
+	applyInlineBackgroundStyle(style, run)
+	applyInlineBorderStyle(style, run)
+	applyInlineEmptyBoxStyle(style, run)
+	applyInlineSpacingStyle(style, run)
+	applyInlineTextStyle(style, run)
+}
+
+func applyInlineVisibilityStyle(style *css.ComputedStyle, run *props.RichRun) {
 	if isVisibilityHidden(style) {
 		run.Hidden = true
 		run.Hyperlink = nil
 		run.LocalAnchor = ""
 	}
+}
+
+func applyInlineFontStyle(style *css.ComputedStyle, run *props.RichRun) {
 	if family := firstFontFamily(style.FontFamily); family != "" && run.Family == "" {
 		run.Family = family
 	}
-	if style.FontWeight == "bold" || isItalicCSSFontStyle(style.FontStyle) {
+	if shouldApplyCSSFontStyle(style) {
 		run.Style = mergeCSSFontStyle(run.Style, style.FontWeight, style.FontStyle)
 	}
 	if style.FontSize > 0 && run.Size == 0 {
 		// FontSize is in mm; props.RichRun expects pt — convert.
 		run.Size = style.FontSize / 0.352778
 	}
+	if style.LineHeight > 0 && style.LineHeight != 1 && run.LineHeight == 0 {
+		run.LineHeight = style.LineHeight
+	}
+	if ws := strings.ToLower(strings.TrimSpace(style.WhiteSpace)); ws != "" && ws != cssValueNormal && run.WhiteSpace == "" {
+		run.WhiteSpace = ws
+	}
+}
+
+func shouldApplyCSSFontStyle(style *css.ComputedStyle) bool {
+	return isBoldCSSFontWeight(style.FontWeight) ||
+		isSemiboldCSSFontWeight(style.FontWeight) ||
+		isItalicCSSFontStyle(style.FontStyle)
+}
+
+func applyInlineColorStyle(style *css.ComputedStyle, run *props.RichRun) {
 	if style.Color != nil && run.Color == nil {
 		run.Color = toPropsColor(style.Color, effectiveOpacity(style))
 	}
+}
+
+func applyInlineBackgroundStyle(style *css.ComputedStyle, run *props.RichRun) {
 	if style.BackgroundColor != nil && run.Background == nil {
 		run.Background = toPropsColor(style.BackgroundColor, effectiveOpacity(style))
+		applyInlineBackgroundBoxStyle(style, run)
+	}
+}
+
+func applyInlineBackgroundBoxStyle(style *css.ComputedStyle, run *props.RichRun) {
+	// A backgrounded inline element with a corner radius and/or horizontal
+	// padding renders as a rounded "pill"/badge (e.g. category chips). Plain
+	// backgrounds (<mark>, <code>) leave these at 0 and render as before.
+	if run.BgRadius == 0 {
+		run.BgRadius = effectiveUniformRadius(style)
+	}
+	if run.BgPadX == 0 && style.PaddingLeft == style.PaddingRight {
+		run.BgPadX = style.PaddingLeft
+	}
+	if run.BgPadLeft == 0 {
+		run.BgPadLeft = style.PaddingLeft
+	}
+	if run.BgPadRight == 0 {
+		run.BgPadRight = style.PaddingRight
+	}
+	if run.BgPadY == 0 {
+		run.BgPadY = max(style.PaddingTop, style.PaddingBottom)
+	}
+}
+
+func applyInlineBorderStyle(style *css.ComputedStyle, run *props.RichRun) {
+	if run.BorderWidth == 0 {
+		run.BorderWidth = inlineBorderWidth(style)
+	}
+	if run.BorderColor == nil {
+		applyInlineBorderColor(style, run)
+	}
+	if len(style.BoxShadow) > 0 && len(run.BoxShadows) == 0 {
+		run.BoxShadows = cssShadowsToProps(style.BoxShadow)
+	}
+}
+
+func applyInlineBorderColor(style *css.ComputedStyle, run *props.RichRun) {
+	if c := inlineBorderColor(style); c != nil {
+		run.BorderColor = toPropsColor(c, effectiveOpacity(style))
+	}
+}
+
+func applyInlineEmptyBoxStyle(style *css.ComputedStyle, run *props.RichRun) {
+	if run.Text != "" || run.Image != nil {
+		return
+	}
+	if style.Width > 0 && run.InlineBoxWidth == 0 {
+		run.InlineBoxWidth = cssContentBoxWidth(style)
+	}
+	if style.Height > 0 && run.InlineBoxHeight == 0 {
+		run.InlineBoxHeight = cssContentBoxHeight(style)
+	}
+}
+
+func applyInlineSpacingStyle(style *css.ComputedStyle, run *props.RichRun) {
+	if style.MarginRight > 0 && run.InlineMarginRight == 0 {
+		run.InlineMarginRight = style.MarginRight
+	}
+	if style.MarginLeft > 0 && run.InlineMarginLeft == 0 {
+		run.InlineMarginLeft = style.MarginLeft
 	}
 	if style.LetterSpacing > 0 && run.LetterSpacing == 0 {
 		run.LetterSpacing = style.LetterSpacing
 	}
+}
+
+func applyInlineTextStyle(style *css.ComputedStyle, run *props.RichRun) {
 	applyTextDecoration(style.TextDecoration, run)
 	if align := richRunVerticalAlignFromCSS(style.VerticalAlign); align != "" {
 		run.VerticalAlign = align
 	}
+	if style.VerticalOffset != 0 {
+		run.VerticalOffset = style.VerticalOffset
+	}
 	if style.TextTransform != "" && style.TextTransform != cssValueNone {
 		run.Text = css.ApplyTextTransform(run.Text, style.TextTransform)
 	}
+	applyInlineTextShadowStyle(style, run)
+}
+
+func applyInlineTextShadowStyle(style *css.ComputedStyle, run *props.RichRun) {
 	if len(style.TextShadows) > 0 && len(run.TextShadows) == 0 && run.TextShadow == nil {
 		run.TextShadows = cssShadowsToProps(style.TextShadows)
 		if len(run.TextShadows) > 0 {
@@ -373,7 +666,7 @@ func isVisibilityHidden(style *css.ComputedStyle) bool {
 		return false
 	}
 	switch strings.ToLower(strings.TrimSpace(style.Visibility)) {
-	case "hidden", "collapse":
+	case cssValueHidden, "collapse":
 		return true
 	default:
 		return false
@@ -398,14 +691,32 @@ func isItalicCSSFontStyle(value string) bool {
 	}
 }
 
+func isBoldCSSFontWeight(value string) bool {
+	return strings.ToLower(strings.TrimSpace(value)) == "bold"
+}
+
+func isSemiboldCSSFontWeight(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "600", "semibold":
+		return true
+	default:
+		return false
+	}
+}
+
 func mergeCSSFontStyle(existing fontstyle.Type, weight, style string) fontstyle.Type {
-	bold := strings.Contains(string(existing), string(fontstyle.Bold)) || weight == "bold"
+	bold := strings.Contains(string(existing), string(fontstyle.Bold)) || isBoldCSSFontWeight(weight)
+	semibold := strings.Contains(string(existing), string(fontstyle.Semibold)) || isSemiboldCSSFontWeight(weight)
 	italic := strings.Contains(string(existing), string(fontstyle.Italic)) || isItalicCSSFontStyle(style)
 	switch {
 	case bold && italic:
 		return fontstyle.BoldItalic
 	case bold:
 		return fontstyle.Bold
+	case semibold && italic:
+		return fontstyle.SemiboldItalic
+	case semibold:
+		return fontstyle.Semibold
 	case italic:
 		return fontstyle.Italic
 	default:
@@ -442,7 +753,7 @@ func richRunVerticalAlignFromCSS(value string) string {
 func generatedContentRuns(value string, n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 	value = strings.TrimSpace(value)
 	switch strings.ToLower(value) {
-	case "", "normal", cssValueNone:
+	case "", cssValueNormal, cssValueNone:
 		return nil, false
 	}
 
@@ -604,6 +915,8 @@ func appendGeneratedImageRun(
 	flushText()
 	run := richRunFromContext("", ctx)
 	run.Image = img
+	run.InlineBoxWidth = 0
+	run.InlineBoxHeight = 0
 	*runs = append(*runs, run)
 	return rest, true
 }
@@ -805,7 +1118,7 @@ func cssShadowToProps(s *css.Shadow) *props.Shadow {
 		Inset:      s.Inset,
 	}
 	if s.Color != nil {
-		ps.Color = &props.Color{Red: s.Color.R, Green: s.Color.G, Blue: s.Color.B}
+		ps.Color = toPropsColor(s.Color, 1)
 	}
 	return ps
 }

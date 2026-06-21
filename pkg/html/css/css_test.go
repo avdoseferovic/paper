@@ -81,6 +81,13 @@ func TestComputedStyle_ApplyProperty(t *testing.T) {
 		assert.Equal(t, "hidden", s.Visibility)
 	})
 
+	t.Run("box sizing", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("box-sizing", " Border-Box ", nil)
+		assert.Equal(t, "border-box", s.BoxSizing)
+	})
+
 	t.Run("unsupported property is silently ignored", func(t *testing.T) {
 		t.Parallel()
 		s := css.NewComputedStyle()
@@ -442,6 +449,22 @@ func TestComputedStyle_FlexFields(t *testing.T) {
 		s := css.NewComputedStyle()
 		s.Apply("column-gap", "8mm", nil)
 		assert.InDelta(t, 8.0, s.ColumnGap, 0.001)
+	})
+
+	t.Run("border-spacing single value sets both axes", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("border-spacing", "2mm", nil)
+		assert.InDelta(t, 2.0, s.BorderSpacingX, 0.001)
+		assert.InDelta(t, 2.0, s.BorderSpacingY, 0.001)
+	})
+
+	t.Run("border-spacing two values sets horizontal and vertical axes", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.Apply("border-spacing", "2mm 1mm", nil)
+		assert.InDelta(t, 2.0, s.BorderSpacingX, 0.001)
+		assert.InDelta(t, 1.0, s.BorderSpacingY, 0.001)
 	})
 }
 

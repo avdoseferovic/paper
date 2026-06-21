@@ -41,6 +41,29 @@ func TestBlockTag_StyledHr(t *testing.T) {
 	assert.Equal(t, 1, got)
 }
 
+func TestBlockTag_StyledHrHeightAndWidth(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<hr style="height:4mm;border-top:1pt solid #888">`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, 4.0, rows[0].GetHeight(nil, nil))
+
+	var found bool
+	for _, c := range rows[0].GetStructure().GetNexts() {
+		for _, comp := range c.GetNexts() {
+			d := comp.GetData()
+			if d.Type == "line" {
+				found = true
+				assert.Equal(t, 100.0, d.Details["prop_size_percent"])
+			}
+		}
+	}
+	assert.True(t, found, "expected hr to translate to a line component")
+}
+
 func TestBlockTag_TableCaption(t *testing.T) {
 	t.Parallel()
 	// caption + table = 2 rows.

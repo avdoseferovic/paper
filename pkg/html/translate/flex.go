@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
@@ -34,8 +35,10 @@ func (tr *translator) flexRows(ctx context.Context, n *dom.Node, containerStyle 
 
 	gridSize := normalizedFlexGridSize(tr.gridSize)
 	sortedChildren, sortedStyles := tr.sortedFlexItems(children, containerStyle)
-	logicalRows, logicalRowStyles := flexLogicalRows(sortedChildren, sortedStyles, containerStyle, gridSize)
-	if containerStyle.FlexWrap == "wrap-reverse" {
+	contentWidth := tr.flexContentWidth()
+	sizingStyles := tr.flexSizingStyles(sortedChildren, sortedStyles, containerStyle)
+	logicalRows, logicalRowStyles := flexLogicalRows(sortedChildren, sizingStyles, containerStyle, gridSize, contentWidth)
+	if containerStyle.FlexWrap == flexWrapReverse {
 		reverseFlexLogicalRows(logicalRows, logicalRowStyles)
 	}
 	return tr.buildFlexRows(ctx, logicalRows, logicalRowStyles, containerStyle, gridSize)
@@ -98,20 +101,22 @@ func flexLogicalRows(
 	sortedStyles []*css.ComputedStyle,
 	containerStyle *css.ComputedStyle,
 	gridSize int,
+	contentWidthMM float64,
 ) ([][]*dom.Node, [][]*css.ComputedStyle) {
-	wrap := containerStyle.FlexWrap == "wrap" || containerStyle.FlexWrap == "wrap-reverse"
+	wrap := containerStyle.FlexWrap == flexWrap || containerStyle.FlexWrap == flexWrapReverse
 	var logicalRows [][]*dom.Node
 	var logicalRowStyles [][]*css.ComputedStyle
 	if !wrap {
 		return [][]*dom.Node{sortedChildren}, [][]*css.ComputedStyle{sortedStyles}
 	}
-	return wrapFlexLogicalRows(sortedChildren, sortedStyles, gridSize, logicalRows, logicalRowStyles)
+	return wrapFlexLogicalRows(sortedChildren, sortedStyles, gridSize, contentWidthMM, logicalRows, logicalRowStyles)
 }
 
 func wrapFlexLogicalRows(
 	sortedChildren []*dom.Node,
 	sortedStyles []*css.ComputedStyle,
 	gridSize int,
+	contentWidthMM float64,
 	logicalRows [][]*dom.Node,
 	logicalRowStyles [][]*css.ComputedStyle,
 ) ([][]*dom.Node, [][]*css.ComputedStyle) {
@@ -120,10 +125,7 @@ func wrapFlexLogicalRows(
 	usedPct := 0.0
 	for i, child := range sortedChildren {
 		style := sortedStyles[i]
-		pct := style.FlexBasisPct
-		if pct <= 0 {
-			pct = 100.0 / float64(gridSize)
-		}
+		pct := flexWrapPct(style, gridSize, contentWidthMM)
 		if len(rowChildren) > 0 && usedPct+pct > 100.001 {
 			logicalRows = append(logicalRows, rowChildren)
 			logicalRowStyles = append(logicalRowStyles, rowStyles)
@@ -140,6 +142,19 @@ func wrapFlexLogicalRows(
 		logicalRowStyles = append(logicalRowStyles, rowStyles)
 	}
 	return logicalRows, logicalRowStyles
+}
+
+func flexWrapPct(style *css.ComputedStyle, gridSize int, contentWidthMM float64) float64 {
+	if style == nil {
+		return 100.0 / float64(gridSize)
+	}
+	if style.FlexBasisPct > 0 {
+		return style.FlexBasisPct
+	}
+	if style.FlexBasis > 0 && contentWidthMM > 0 {
+		return style.FlexBasis / contentWidthMM * 100
+	}
+	return 100.0 / float64(gridSize)
 }
 
 func reverseFlexLogicalRows(logicalRows [][]*dom.Node, logicalRowStyles [][]*css.ComputedStyle) {
@@ -183,7 +198,11 @@ func (tr *translator) buildFlexRow(
 		available = gridSize
 	}
 
-	sizes := bumpZerosWithoutOverflow(computeFlexSizes(rowItemStyles, available), available)
+	contentWidth := tr.contentWidthMM
+	if contentWidth <= 0 {
+		contentWidth = defaultFlexContentWidthMM
+	}
+	sizes := bumpZerosWithoutOverflow(computeFlexSizesForWidth(rowItemStyles, available, contentWidth), available)
 	visualGap := flexVisualGap(containerStyle, gapCols)
 	itemCols, used, ok := tr.flexItemCols(ctx, rowChildren, rowItemStyles, containerStyle, sizes, visualGap)
 	if !ok {
@@ -191,6 +210,148 @@ func (tr *translator) buildFlexRow(
 	}
 	slack := max(gridSize-used-totalGap, 0)
 	return rowFromCols(assembleFlexCols(itemCols, gapCols, slack, containerStyle.JustifyContent)), true
+}
+
+func (tr *translator) flexContentWidth() float64 {
+	if tr.contentWidthMM > 0 {
+		return tr.contentWidthMM
+	}
+	return defaultFlexContentWidthMM
+}
+
+func (tr *translator) flexSizingStyles(
+	children []*dom.Node,
+	styles []*css.ComputedStyle,
+	containerStyle *css.ComputedStyle,
+) []*css.ComputedStyle {
+	out := make([]*css.ComputedStyle, len(styles))
+	autoSizeWrappedItems := containerStyle != nil &&
+		(containerStyle.FlexWrap == flexWrap || containerStyle.FlexWrap == flexWrapReverse)
+	for i, style := range styles {
+		if style == nil {
+			continue
+		}
+		clone := *style
+		if autoSizeWrappedItems && !hasFixedFlexBasis(&clone) && clone.FlexGrow <= 0 {
+			if basis, ok := tr.estimateFlexOuterBasis(children[i], style); ok {
+				clone.FlexBasis = basis
+				clone.FlexBasisPct = 0
+				clone.FlexBasisAuto = false
+			}
+		}
+		out[i] = &clone
+	}
+	return out
+}
+
+func hasFixedFlexBasis(style *css.ComputedStyle) bool {
+	return style != nil && (style.FlexBasisPct > 0 || style.FlexBasis > 0)
+}
+
+func (tr *translator) estimateFlexOuterBasis(n *dom.Node, style *css.ComputedStyle) (float64, bool) {
+	if style == nil {
+		return 0, false
+	}
+	if style.Width > 0 {
+		return clampFlexBasis(style.Width+horizontalFlexExtras(style), style), true
+	}
+	content := tr.estimateFlexContentWidth(n, style)
+	total := content + horizontalFlexExtras(style)
+	if total <= 0 {
+		return 0, false
+	}
+	return clampFlexBasis(total, style), true
+}
+
+func horizontalFlexExtras(style *css.ComputedStyle) float64 {
+	if style == nil {
+		return 0
+	}
+	extras := style.MarginLeft + style.MarginRight
+	if !boxSizingBorderBox(style) {
+		extras += style.PaddingLeft + style.PaddingRight +
+			visibleBorderWidth(style.BorderLeftWidth, style.BorderLeftStyle) +
+			visibleBorderWidth(style.BorderRightWidth, style.BorderRightStyle)
+	}
+	return extras
+}
+
+func clampFlexBasis(width float64, style *css.ComputedStyle) float64 {
+	if style == nil {
+		return width
+	}
+	if style.MinWidth > 0 && width < style.MinWidth {
+		width = style.MinWidth
+	}
+	if style.MaxWidth > 0 && width > style.MaxWidth {
+		width = style.MaxWidth
+	}
+	return width
+}
+
+func (tr *translator) estimateFlexContentWidth(n *dom.Node, parentStyle *css.ComputedStyle) float64 {
+	if n == nil {
+		return 0
+	}
+	if n.Tag() == "" {
+		return estimateTextWidthMM(n.TextContent(), parentStyle)
+	}
+	style := parentStyle
+	if style == nil {
+		style = computeNodeStyle(tr.sheet, n, nil)
+	}
+	if style != nil && style.Display == displayNone {
+		return 0
+	}
+	children := flexItems(n)
+	if len(children) == 0 {
+		return estimateTextWidthMM(n.TextContent(), style)
+	}
+	total := 0.0
+	counted := 0
+	for _, child := range children {
+		childStyle := computeNodeStyle(tr.sheet, child, style)
+		if childStyle != nil && childStyle.Display == displayNone {
+			continue
+		}
+		if childStyle != nil && childStyle.Width > 0 {
+			total += clampFlexBasis(childStyle.Width+horizontalFlexExtras(childStyle), childStyle)
+		} else {
+			total += tr.estimateFlexContentWidth(child, childStyle) + horizontalFlexExtras(childStyle)
+		}
+		counted++
+	}
+	if counted > 1 && style != nil && style.ColumnGap > 0 {
+		total += style.ColumnGap * float64(counted-1)
+	}
+	return total
+}
+
+func estimateTextWidthMM(text string, style *css.ComputedStyle) float64 {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return 0
+	}
+	fontSize := 12.0 * 0.352778
+	if style != nil && style.FontSize > 0 {
+		fontSize = style.FontSize
+	}
+	width := 0.0
+	for _, r := range text {
+		switch {
+		case unicode.IsSpace(r):
+			width += fontSize * 0.28
+		case strings.ContainsRune(".,;:!/\\|()[]{}'\"`´-–—", r):
+			width += fontSize * 0.34
+		case unicode.IsUpper(r):
+			width += fontSize * 0.58
+		case unicode.IsDigit(r):
+			width += fontSize * 0.50
+		default:
+			width += fontSize * 0.52
+		}
+	}
+	return width
 }
 
 func flexVisualGap(containerStyle *css.ComputedStyle, gapCols int) float64 {
@@ -351,21 +512,32 @@ func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *c
 	}
 
 	if isLeafFlexItem(n) {
-		runs := tr.inlineRunsStyled(n, blockInlineStyle(style))
+		inlineStyle := blockInlineStyle(style)
+		inlineStyle.Display = style.Display
+		inlineStyle.ColumnGap = style.ColumnGap
+		runs := tr.inlineRunsStyled(n, inlineStyle)
 		if len(runs) == 0 {
+			if shouldUseContainer(style) {
+				return tr.emptyFlexItemBox(style)
+			}
 			return nil
 		}
 		applyBlockStyling(n, runs)
 		rt := richtext.New(runs, richTextPropsFromStyle(style))
 		if shouldUseContainer(style) {
+			paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
 			r := row.New().Add(col.New().Add(rt))
 			return &blockContainer{
 				rows:          []core.Row{r},
 				style:         tr.blockCellStyle(style),
-				paddingTop:    style.PaddingTop,
-				paddingRight:  style.PaddingRight,
-				paddingBottom: style.PaddingBottom,
-				paddingLeft:   style.PaddingLeft,
+				paddingTop:    paddingTop,
+				paddingRight:  paddingRight,
+				paddingBottom: paddingBottom,
+				paddingLeft:   paddingLeft,
+				height:        style.Height,
+				minHeight:     style.MinHeight,
+				maxHeight:     style.MaxHeight,
+				breakInside:   style.BreakInside == breakInsideAvoid,
 			}
 		}
 		return rt
@@ -381,7 +553,7 @@ func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *c
 		if isWhitespaceNode(c) {
 			continue
 		}
-		subRows = append(subRows, tr.blockRows(ctx, c)...)
+		subRows = append(subRows, tr.blockRowsWithParent(ctx, c, style)...)
 	}
 	if len(subRows) == 0 {
 		text := strings.TrimSpace(n.TextContent())
@@ -393,16 +565,36 @@ func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *c
 	// When this flex item has its own background/border/padding, wrap the
 	// children in a styled blockContainer so the styling spans them all.
 	if shouldUseContainer(style) {
+		paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
 		return &blockContainer{
 			rows:          subRows,
 			style:         tr.blockCellStyle(style),
-			paddingTop:    style.PaddingTop,
-			paddingRight:  style.PaddingRight,
-			paddingBottom: style.PaddingBottom,
-			paddingLeft:   style.PaddingLeft,
+			paddingTop:    paddingTop,
+			paddingRight:  paddingRight,
+			paddingBottom: paddingBottom,
+			paddingLeft:   paddingLeft,
+			height:        style.Height,
+			minHeight:     style.MinHeight,
+			maxHeight:     style.MaxHeight,
+			breakInside:   style.BreakInside == breakInsideAvoid,
 		}
 	}
 	return newFlexCellContent(subRows)
+}
+
+func (tr *translator) emptyFlexItemBox(style *css.ComputedStyle) core.Component {
+	paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
+	return &blockContainer{
+		style:         tr.blockCellStyle(style),
+		paddingTop:    paddingTop,
+		paddingRight:  paddingRight,
+		paddingBottom: paddingBottom,
+		paddingLeft:   paddingLeft,
+		height:        style.Height,
+		minHeight:     style.MinHeight,
+		maxHeight:     style.MaxHeight,
+		breakInside:   style.BreakInside == breakInsideAvoid,
+	}
 }
 
 // isLeafFlexItem returns true when a node has no block-level children.

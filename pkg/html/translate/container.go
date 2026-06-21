@@ -12,6 +12,10 @@ import (
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
+// breakInsideAvoid is the CSS break-inside / page-break-inside value that keeps
+// a block from being divided across a page boundary.
+const breakInsideAvoid = "avoid"
+
 // blockContainer wraps multiple child Rows under a single background+border+padding box.
 // Mirrors flexCellContent's structure but adds styled fill/border painting on Render.
 type blockContainer struct {
@@ -21,9 +25,16 @@ type blockContainer struct {
 	paddingRight  float64
 	paddingBottom float64
 	paddingLeft   float64
-	config        *entity.Config
-	cachedHeight  float64
-	cachedWidth   float64
+	height        float64
+	minHeight     float64
+	maxHeight     float64
+	// breakInside mirrors CSS break-inside: avoid. When true the container is
+	// never split across a page boundary — SplitAt pushes the whole box to the
+	// next page instead of placing the rows that happen to fit.
+	breakInside  bool
+	config       *entity.Config
+	cachedHeight float64
+	cachedWidth  float64
 }
 
 type marginBox struct {
@@ -32,6 +43,109 @@ type marginBox struct {
 	marginRight  float64
 	marginBottom float64
 	marginLeft   float64
+}
+
+type horizontalMarginRow struct {
+	child       core.Row
+	marginLeft  float64
+	marginRight float64
+}
+
+func (r *horizontalMarginRow) SetConfig(config *entity.Config) {
+	if r.child != nil {
+		r.child.SetConfig(config)
+	}
+}
+
+func (r *horizontalMarginRow) GetStructure() *node.Node[core.Structure] {
+	str := core.Structure{
+		Type: "horizontal_margin_row",
+		Details: map[string]any{
+			"margin_left":  r.marginLeft,
+			"margin_right": r.marginRight,
+		},
+	}
+	n := node.New(str)
+	if r.child != nil {
+		n.AddNext(r.child.GetStructure())
+	}
+	return n
+}
+
+func (r *horizontalMarginRow) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
+	if r.child == nil {
+		return 0
+	}
+	inner := r.innerCell(cell)
+	return r.child.GetHeight(provider, &inner)
+}
+
+func (r *horizontalMarginRow) Render(provider core.Provider, cell entity.Cell) {
+	if r.child == nil {
+		return
+	}
+	r.child.Render(provider, r.innerCell(&cell))
+}
+
+func (r *horizontalMarginRow) Add(cols ...core.Col) core.Row {
+	if r.child != nil {
+		r.child = r.child.Add(cols...)
+	}
+	return r
+}
+
+func (r *horizontalMarginRow) WithStyle(style *props.Cell) core.Row {
+	if r.child != nil {
+		r.child = r.child.WithStyle(style)
+	}
+	return r
+}
+
+func (r *horizontalMarginRow) GetColumns() []core.Col {
+	if r.child == nil {
+		return nil
+	}
+	return r.child.GetColumns()
+}
+
+func (r *horizontalMarginRow) SplitAt(provider core.Provider, remainingHeight float64, width float64) (core.Row, core.Row, bool) {
+	splittable, ok := r.child.(core.Splittable)
+	if !ok {
+		return nil, nil, false
+	}
+	innerWidth := width
+	if innerWidth > 0 {
+		innerWidth -= r.marginLeft + r.marginRight
+		if innerWidth < 0 {
+			innerWidth = 0
+		}
+	}
+	first, rest, didSplit := splittable.SplitAt(provider, remainingHeight, innerWidth)
+	if !didSplit {
+		return nil, nil, false
+	}
+	return r.wrapSplit(first), r.wrapSplit(rest), true
+}
+
+func (r *horizontalMarginRow) wrapSplit(row core.Row) core.Row {
+	if row == nil {
+		return nil
+	}
+	return &horizontalMarginRow{
+		child:       row,
+		marginLeft:  r.marginLeft,
+		marginRight: r.marginRight,
+	}
+}
+
+func (r *horizontalMarginRow) innerCell(cell *entity.Cell) entity.Cell {
+	inner := cell.Copy()
+	inner.X += r.marginLeft
+	inner.Width -= r.marginLeft + r.marginRight
+	if inner.Width < 0 {
+		inner.Width = 0
+	}
+	return inner
 }
 
 func (m *marginBox) SetConfig(config *entity.Config) {
@@ -127,6 +241,16 @@ func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) fl
 	for _, r := range b.rows {
 		total += r.GetHeight(provider, &inner)
 	}
+	if b.height > 0 {
+		total = b.height
+	} else {
+		if b.minHeight > 0 && total < b.minHeight {
+			total = b.minHeight
+		}
+		if b.maxHeight > 0 && total > b.maxHeight {
+			total = b.maxHeight
+		}
+	}
 	b.cachedHeight = total
 	b.cachedWidth = cell.Width
 	return total
@@ -137,7 +261,7 @@ func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) fl
 // chain nodes that rely on GetXY draw at the right position.
 func (b *blockContainer) Render(provider core.Provider, cell *entity.Cell) {
 	height := b.GetHeight(provider, cell)
-	if cell.Height < height {
+	if cell.Height > 0 {
 		height = cell.Height
 	}
 	pp, _ := provider.(core.PositionProvider)
@@ -177,30 +301,61 @@ func shouldUseContainer(style *css.ComputedStyle) bool {
 	if style.BackgroundColor != nil {
 		return true
 	}
+	if style.BackgroundGradient != nil {
+		return true
+	}
 	if style.BackgroundImageURL != "" {
 		return true
 	}
-	if style.BorderTopWidth > 0 || style.BorderRightWidth > 0 ||
-		style.BorderBottomWidth > 0 || style.BorderLeftWidth > 0 {
+	if len(style.BoxShadow) > 0 || style.OutlineWidth > 0 {
+		return true
+	}
+	if visibleBorderSide(style.BorderTopWidth, style.BorderTopStyle) ||
+		visibleBorderSide(style.BorderRightWidth, style.BorderRightStyle) ||
+		visibleBorderSide(style.BorderBottomWidth, style.BorderBottomStyle) ||
+		visibleBorderSide(style.BorderLeftWidth, style.BorderLeftStyle) {
 		return true
 	}
 	if style.PaddingTop > 0 || style.PaddingRight > 0 ||
 		style.PaddingBottom > 0 || style.PaddingLeft > 0 {
 		return true
 	}
+	if style.Height > 0 || style.MinHeight > 0 || style.MaxHeight > 0 {
+		return true
+	}
+	// break-inside: avoid needs a container to act on — it groups the children
+	// into one splittable unit that SplitAt can push to the next page whole.
+	if style.BreakInside == breakInsideAvoid {
+		return true
+	}
 	return false
+}
+
+func blockContainerPadding(style *css.ComputedStyle) (float64, float64, float64, float64) {
+	if style == nil {
+		return 0, 0, 0, 0
+	}
+	return style.PaddingTop,
+		style.PaddingRight + visibleBorderWidth(style.BorderRightWidth, style.BorderRightStyle),
+		style.PaddingBottom,
+		style.PaddingLeft + visibleBorderWidth(style.BorderLeftWidth, style.BorderLeftStyle)
 }
 
 // buildContainerRow wraps the given child rows into a single splittableContainerRow.
 func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
 	cellStyle := tr.blockCellStyle(style)
+	paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
 	container := &blockContainer{
 		rows:          childRows,
 		style:         cellStyle,
-		paddingTop:    style.PaddingTop,
-		paddingRight:  style.PaddingRight,
-		paddingBottom: style.PaddingBottom,
-		paddingLeft:   style.PaddingLeft,
+		paddingTop:    paddingTop,
+		paddingRight:  paddingRight,
+		paddingBottom: paddingBottom,
+		paddingLeft:   paddingLeft,
+		height:        style.Height,
+		minHeight:     style.MinHeight,
+		maxHeight:     style.MaxHeight,
+		breakInside:   style.BreakInside == breakInsideAvoid,
 	}
 	return newSplittableContainerRow(container)
 }
@@ -238,15 +393,18 @@ func (s *splittableContainerRow) GetColumns() []core.Col           { return s.in
 // the point where cumulative row heights would exceed remainingHeight.
 // Returns (nil, self, true) when no child rows fit (push whole container to
 // next page). Returns (self, nil, false) when the container fits entirely.
-func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64) (core.Row, core.Row, bool) {
+func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64, width float64) (core.Row, core.Row, bool) {
 	if s.container == nil {
 		return nil, nil, false
 	}
 
-	// Split with the same content width used by the build-phase GetHeight call.
-	// Falling back to a huge width underestimates wrapped text and can collapse
-	// an entire multi-page HTML document onto one rendered page.
-	width := s.container.cachedWidth
+	// Measure children at the REAL render width handed in by the page builder so
+	// the split sizes wrapped content exactly as it will render. Fall back to the
+	// cached build-phase width, then a huge width, only if no render width is
+	// supplied — the fallbacks underestimate wrapped text and can overflow.
+	if width <= 0 {
+		width = s.container.cachedWidth
+	}
 	if width <= 0 {
 		width = 10000
 	}
@@ -255,6 +413,14 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	totalHeight := s.container.GetHeight(provider, dummyCell)
 	if totalHeight <= remainingHeight {
 		return nil, nil, false // fits — no split needed
+	}
+
+	// break-inside: avoid — never divide the box. Push it whole to the next
+	// page (atomic mode). If it is taller than a full page the page builder
+	// places it oversized once it reaches the top of a fresh page, so this
+	// cannot loop.
+	if s.container.breakInside {
+		return nil, s, true
 	}
 
 	// Greedy split: accumulate rows until they no longer fit.
@@ -290,6 +456,8 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 		paddingRight:  s.container.paddingRight,
 		paddingBottom: 0, // flat bottom at split point
 		paddingLeft:   s.container.paddingLeft,
+		minHeight:     s.container.minHeight,
+		maxHeight:     s.container.maxHeight,
 		config:        s.container.config,
 	}
 
@@ -302,6 +470,8 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 			paddingRight:  s.container.paddingRight,
 			paddingBottom: s.container.paddingBottom,
 			paddingLeft:   s.container.paddingLeft,
+			minHeight:     s.container.minHeight,
+			maxHeight:     s.container.maxHeight,
 			config:        s.container.config,
 		}
 		restRow = newSplittableContainerRow(restContainer)

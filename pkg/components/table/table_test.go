@@ -8,9 +8,21 @@ import (
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
 	"github.com/avdoseferovic/paper/pkg/components/table"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
+	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
+
+type positioningProvider struct {
+	*mocks.Provider
+	cursorX float64
+	cursorY float64
+}
+
+func (p *positioningProvider) SetCursor(x, y float64) {
+	p.cursorX = x
+	p.cursorY = y
+}
 
 func defaultConfig() *entity.Config {
 	return &entity.Config{
@@ -126,6 +138,84 @@ func TestTable_ColumnWidths(t *testing.T) {
 	assert.InDeltaSlice(t, []float64{0.25, 0.75}, node.GetData().Details["column_widths"], 0.0001)
 }
 
+func TestTable_BorderSpacing(t *testing.T) {
+	t.Parallel()
+
+	t.Run("renders horizontal spacing between columns", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		left := mocks.NewComponent(t)
+		right := mocks.NewComponent(t)
+		left.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		right.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		left.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 24.5
+		})).Return(10.0)
+		right.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 73.5
+		})).Return(10.0)
+		left.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 0 && cell.Width == 24.5 && cell.Height == 10
+		})).Return()
+		right.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 26.5 && cell.Width == 73.5 && cell.Height == 10
+		})).Return()
+		provider.EXPECT().CreateRow(10.0).Return()
+
+		cells := [][]table.Cell{{{Content: left}, {Content: right}}}
+		tbl, err := table.New(cells, table.WithColumnWidths([]float64{1, 3}), table.WithBorderSpacing(2, 0))
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
+	})
+
+	t.Run("adds vertical spacing between rows", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		tbl, err := table.New([][]table.Cell{{{Content: nil}}, {{Content: nil}}}, table.WithBorderSpacing(0, 3))
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 13.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+	})
+
+	t.Run("advances spacing through skipped colspan slots", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		header := mocks.NewComponent(t)
+		right := mocks.NewComponent(t)
+		header.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		right.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		header.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 66
+		})).Return(10.0)
+		right.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 32
+		})).Return(10.0)
+		header.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 0 && cell.Width == 66 && cell.Height == 10
+		})).Return()
+		right.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 68 && cell.Width == 32 && cell.Height == 10
+		})).Return()
+		provider.EXPECT().CreateRow(10.0).Return()
+
+		cells := [][]table.Cell{{{Content: header, Colspan: 2}, {Content: right}}}
+		tbl, err := table.New(cells, table.WithBorderSpacing(2, 0))
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
+	})
+}
+
 func TestTable_GetHeight(t *testing.T) {
 	t.Parallel()
 	t.Run("returns positive height for non-empty table", func(t *testing.T) {
@@ -171,6 +261,36 @@ func TestTable_GetHeight(t *testing.T) {
 		assert.Equal(t, 16.0, h)
 	})
 
+	t.Run("uses explicit empty cell height instead of font fallback", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		tbl, err := table.New([][]table.Cell{{
+			{Height: 1.4, Style: &props.Cell{BackgroundColor: &props.Color{Red: 39, Green: 118, Blue: 145}}},
+		}})
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 1.4, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+	})
+
+	t.Run("content height can exceed explicit cell height", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		component := mocks.NewComponent(t)
+		component.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		component.EXPECT().GetHeight(provider, mock.AnythingOfType("*entity.Cell")).Return(10.0)
+
+		tbl, err := table.New([][]table.Cell{{{Content: component, Height: 1.4}}})
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+	})
+
 	t.Run("uses configured column widths for content measurement", func(t *testing.T) {
 		t.Parallel()
 		provider := mocks.NewProvider(t)
@@ -189,6 +309,30 @@ func TestTable_GetHeight(t *testing.T) {
 
 		cells := [][]table.Cell{{{Content: left}, {Content: right}}}
 		tbl, err := table.New(cells, table.WithColumnWidths([]float64{1, 3}))
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		assert.Equal(t, 10.0, tbl.GetHeight(provider, &entity.Cell{Width: 100, Height: 200}))
+	})
+
+	t.Run("uses preferred table width for content measurement", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		left := mocks.NewComponent(t)
+		right := mocks.NewComponent(t)
+		left.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		right.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		left.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 17
+		})).Return(8.0)
+		right.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 17
+		})).Return(10.0)
+
+		cells := [][]table.Cell{{{Content: left}, {Content: right}}}
+		tbl, err := table.New(cells, table.WithWidth(34))
 		assert.NoError(t, err)
 		tbl.SetConfig(defaultConfig())
 
@@ -323,6 +467,36 @@ func TestTable_Render(t *testing.T) {
 		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
 	})
 
+	t.Run("renders explicit height cell centered inside taller row", func(t *testing.T) {
+		t.Parallel()
+		baseProvider := mocks.NewProvider(t)
+		provider := &positioningProvider{Provider: baseProvider}
+		baseProvider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		tall := mocks.NewComponent(t)
+		tall.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		anyProvider := mock.MatchedBy(func(core.Provider) bool { return true })
+		tall.EXPECT().GetHeight(anyProvider, mock.AnythingOfType("*entity.Cell")).Return(10.0)
+		tall.EXPECT().Render(anyProvider, mock.AnythingOfType("*entity.Cell")).Return()
+
+		bg := &props.Cell{BackgroundColor: &props.Color{Red: 39, Green: 118, Blue: 145}}
+		cells := [][]table.Cell{{
+			{Height: 4, VerticalAlign: "middle", Style: bg},
+			{Content: tall},
+		}}
+		tbl, err := table.New(cells)
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		baseProvider.EXPECT().CreateCol(50.0, 4.0, mock.AnythingOfType("*entity.Config"), mock.AnythingOfType("*props.Cell")).Return()
+		baseProvider.EXPECT().CreateRow(10.0).Return()
+
+		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
+
+		assert.Equal(t, 0.0, provider.cursorX)
+		assert.Equal(t, 3.0, provider.cursorY)
+	})
+
 	t.Run("renders unequal configured column widths", func(t *testing.T) {
 		t.Parallel()
 		provider := mocks.NewProvider(t)
@@ -348,6 +522,37 @@ func TestTable_Render(t *testing.T) {
 
 		cells := [][]table.Cell{{{Content: left}, {Content: right}}}
 		tbl, err := table.New(cells, table.WithColumnWidths([]float64{1, 3}))
+		assert.NoError(t, err)
+		tbl.SetConfig(defaultConfig())
+
+		tbl.Render(provider, &entity.Cell{Width: 100, Height: 200})
+	})
+
+	t.Run("renders preferred width table aligned right", func(t *testing.T) {
+		t.Parallel()
+		provider := mocks.NewProvider(t)
+		provider.EXPECT().GetFontHeight(mock.AnythingOfType("*props.Font")).Return(5.0).Maybe()
+
+		left := mocks.NewComponent(t)
+		right := mocks.NewComponent(t)
+		left.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		right.EXPECT().SetConfig(mock.AnythingOfType("*entity.Config")).Return()
+		left.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 17
+		})).Return(10.0)
+		right.EXPECT().GetHeight(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.Width == 17
+		})).Return(10.0)
+		left.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 66 && cell.Width == 17 && cell.Height == 10
+		})).Return()
+		right.EXPECT().Render(provider, mock.MatchedBy(func(cell *entity.Cell) bool {
+			return cell.X == 83 && cell.Width == 17 && cell.Height == 10
+		})).Return()
+		provider.EXPECT().CreateRow(10.0).Return()
+
+		cells := [][]table.Cell{{{Content: left}, {Content: right}}}
+		tbl, err := table.New(cells, table.WithWidth(34), table.WithAlign("right"))
 		assert.NoError(t, err)
 		tbl.SetConfig(defaultConfig())
 

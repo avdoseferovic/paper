@@ -6,6 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
@@ -144,6 +145,29 @@ func TestFlexRow_ColCount(t *testing.T) {
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 2)
 	})
+
+	t.Run("empty styled flex items render as boxes", func(t *testing.T) {
+		t.Parallel()
+		doc := parseDoc(t, `<html><body><div style="display:flex">
+			<div style="flex:0 0 25%;height:2mm;background:#e65100;border-radius:1mm"></div>
+			<div style="flex:0 0 75%;height:2mm;background:#e9eef3"></div>
+		</div></body></html>`)
+		rows, err := translate.Translate(context.Background(), doc)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		cols := rows[0].GetColumns()
+		require.Len(t, cols, 2)
+		assert.Equal(t, 3, cols[0].GetSize())
+		assert.Equal(t, 9, cols[1].GetSize())
+
+		foundBox := false
+		walk(rows[0].GetStructure(), func(s core.Structure) {
+			if s.Type == "container" {
+				foundBox = true
+			}
+		})
+		assert.True(t, foundBox, "expected empty styled flex child to produce a drawable container")
+	})
 }
 
 // ── Justify-content ───────────────────────────────────────────────────────────
@@ -258,6 +282,30 @@ func TestFlexCenterOddSlack(t *testing.T) {
 	assert.Equal(t, 11, sum)
 	// Floor/ceil split: leading ≤ trailing
 	assert.LessOrEqual(t, cols[0].GetSize(), cols[3].GetSize())
+}
+
+func TestFlexFixedBasisOverflowScalingPreservesGrid(t *testing.T) {
+	t.Parallel()
+
+	doc := parseDoc(t, `<html><body><div style="display:flex">
+		<div style="flex-basis:30%">a</div>
+		<div style="flex-basis:5%">b</div>
+		<div style="flex-basis:4.5%">c</div>
+		<div style="flex-basis:1%">d</div>
+		<div style="flex-basis:39.5%">e</div>
+		<div style="flex-basis:5%">f</div>
+		<div style="flex-basis:10%">g</div>
+		<div style="flex-basis:5%">h</div>
+	</div></body></html>`)
+	rows, err := translate.Translate(context.Background(), doc, translate.WithGridSize(72))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	sum := 0
+	for _, c := range rows[0].GetColumns() {
+		sum += c.GetSize()
+	}
+	assert.Equal(t, 72, sum)
 }
 
 func TestFlexNonLeafStrictStructure(t *testing.T) {
@@ -467,6 +515,33 @@ func TestFlexWrap(t *testing.T) {
 	})
 }
 
+func TestFlexWrap_AutoSizedItemsUseEstimatedContentWidth(t *testing.T) {
+	t.Parallel()
+
+	doc := parseDoc(t, `<html><head><style>
+		.row{display:flex;flex-wrap:wrap;gap:2mm}
+		.pill{padding:1mm 2mm;border:0.3mm solid #ccd6dd;border-radius:4mm;white-space:nowrap;font-size:8pt}
+	</style></head><body>
+		<div class="row">
+			<div class="pill">A</div>
+			<div class="pill">Longer label</div>
+			<div class="pill">B</div>
+		</div>
+	</body></html>`)
+
+	rows, err := translate.Translate(context.Background(), doc, translate.WithGridSize(72), translate.WithContentWidth(180))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	cols := rows[0].GetColumns()
+	require.Len(t, cols, 5) // three content cols plus two gap spacers.
+	first := cols[0].GetSize()
+	middle := cols[2].GetSize()
+	last := cols[4].GetSize()
+	assert.Greater(t, middle, first, "auto-sized flex pills should not all grow equally")
+	assert.Equal(t, first, last, "similar short labels should receive similar estimated widths")
+}
+
 func TestFlexOrder(t *testing.T) {
 	t.Parallel()
 
@@ -550,6 +625,26 @@ func TestFlexAlignSelf(t *testing.T) {
 	})
 }
 
+func TestFlexNestedBlockInheritsItemStyle(t *testing.T) {
+	t.Parallel()
+
+	doc := parseDoc(t, `<html><body>
+		<div style="display:flex">
+		  <div style="text-align:right"><p>nested</p></div>
+		</div></body></html>`)
+	rows, err := translate.Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var align any
+	walk(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "richtext" && s.Value == "nested" {
+			align = s.Details["align"]
+		}
+	})
+	assert.Equal(t, consts.AlignRight, align)
+}
+
 func hasCrossAxisAlign(r core.Row, align string) bool {
 	found := false
 	walk(r.GetStructure(), func(s core.Structure) {
@@ -615,6 +710,44 @@ func TestComputeFlexSizes_Golden(t *testing.T) {
 		grow.FlexGrow = 1
 		got := translate.ComputeFlexSizes([]*css.ComputedStyle{pct, grow}, 12)
 		assert.Equal(t, []int{6, 6}, got)
+	})
+
+	t.Run("mixed length basis+grow uses content width", func(t *testing.T) {
+		t.Parallel()
+		grow := css.NewComputedStyle()
+		grow.FlexGrow = 1
+		fixed := css.NewComputedStyle()
+		fixed.FlexBasis = 72
+		got := translate.ComputeFlexSizesForWidth([]*css.ComputedStyle{grow, fixed}, 12, 170)
+		assert.Equal(t, []int{7, 5}, got)
+	})
+
+	t.Run("many pct items: no cumulative drift (largest remainder)", func(t *testing.T) {
+		t.Parallel()
+		// A banded score meter: 12 slivers summing to 100%. Independent
+		// per-item rounding used to overflow the grid (sum 75 of 72) and shift
+		// every boundary right by up to 5% after rescaling. The boundary in
+		// front of the 1%-wide marker (item index 6) must stay within one cell
+		// of its exact position.
+		pcts := []float64{3.7037, 11.1111, 3.7037, 14.8148, 3.7037, 10.6111, 1.0, 3.2037, 3.7037, 14.8148, 3.7037, 25.9259}
+		styles := makePctStyles(pcts...)
+		const gridSize = 72
+		got := translate.ComputeFlexSizes(styles, gridSize)
+
+		sum := 0
+		for _, v := range got {
+			sum += v
+		}
+		assert.Equal(t, gridSize, sum, "pct items summing to 100%% must fill the grid exactly")
+
+		exactPrefix := 0.0
+		prefix := 0
+		for i := range 6 {
+			exactPrefix += pcts[i] / 100 * gridSize
+			prefix += got[i]
+		}
+		assert.InDelta(t, exactPrefix, float64(prefix), 1.0, "marker boundary drifted: got %d cells, exact %.2f", prefix, exactPrefix)
+		assert.GreaterOrEqual(t, got[6], 1, "1%% marker must stay visible")
 	})
 
 	t.Run("5 equal items gridSize=12 (remainder distribution)", func(t *testing.T) {

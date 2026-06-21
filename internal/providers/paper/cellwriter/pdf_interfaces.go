@@ -38,10 +38,12 @@ type borderRadiusPDF interface {
 	ClosePath()
 	CurveBezierCubicTo(cx0, cy0, cx1, cy1, x, y float64)
 	DrawPath(styleStr string)
+	Ellipse(x, y, rx, ry, degRotate float64, styleStr string)
 	GetDrawColor() (int, int, int)
 	GetFillColor() (int, int, int)
 	GetLineWidth() float64
 	GetXY() (float64, float64)
+	Line(x1, y1, x2, y2 float64)
 	LineTo(x, y float64)
 	MoveTo(x, y float64)
 	SetAlpha(alpha float64, blendModeStr string)
@@ -50,18 +52,27 @@ type borderRadiusPDF interface {
 	SetLineWidth(width float64)
 }
 
+type lineJoinPDF interface {
+	GetLineJoinStyle() string
+	SetLineJoinStyle(styleStr string)
+}
+
 type gradientStylerPDF interface {
 	GetMargins() (left, top, right, bottom float64)
 	GetXY() (float64, float64)
 }
 
 type outlinePDF interface {
+	Ellipse(x, y, rx, ry, degRotate float64, styleStr string)
 	GetDrawColor() (int, int, int)
+	GetFillColor() (int, int, int)
 	GetLineWidth() float64
 	GetXY() (float64, float64)
 	Rect(x, y, w, h float64, styleStr string)
+	RoundedRect(x, y, w, h, radius float64, corners string, styleStr string)
 	SetDashPattern(dashArray []float64, dashPhase float64)
 	SetDrawColor(r, g, b int)
+	SetFillColor(r, g, b int)
 	SetLineWidth(width float64)
 }
 

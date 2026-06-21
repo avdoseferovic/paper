@@ -48,6 +48,25 @@ func TestBlockContainer_DivWithBackground_ProducesSingleStyledRow(t *testing.T) 
 	assert.True(t, found, "expected to find a container structure node")
 }
 
+func TestBlockContainer_DivWithGradientOnly_ProducesStyledRow(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><body><div style="background-image:linear-gradient(to right, red, blue)"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+
+	require.Len(t, rows, 1, "div with gradient should collapse to one wrapper row")
+
+	var found bool
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "container" {
+			found = true
+		}
+	})
+	assert.True(t, found, "expected to find a gradient container structure node")
+}
+
 func TestBlockContainer_PlainDivStillFlattens(t *testing.T) {
 	t.Parallel()
 	doc, err := dom.Parse(`<html><body><div><p>a</p><p>b</p></div></body></html>`)
@@ -186,6 +205,16 @@ func TestShouldUseContainer(t *testing.T) {
 		assert.True(t, shouldUseContainer(s))
 	})
 
+	t.Run("background-gradient triggers", func(t *testing.T) {
+		t.Parallel()
+		doc, _ := dom.Parse(`<html><body><div style="background-image:linear-gradient(to right, red, blue)"></div></body></html>`)
+		div := findNode(doc, "div")
+		require.NotNil(t, div)
+		tr := &translator{}
+		s := computeNodeStyle(tr.sheet, div, nil)
+		assert.True(t, shouldUseContainer(s))
+	})
+
 	t.Run("padding-only triggers", func(t *testing.T) {
 		t.Parallel()
 		doc, _ := dom.Parse(`<html><body><div style="padding:5mm"></div></body></html>`)
@@ -308,7 +337,7 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	scr.SetConfig(cfg)
 
 	t.Run("SplitAt remaining=25 splits after 2 rows (20mm) + partial", func(t *testing.T) {
-		first, rest, didSplit := scr.SplitAt(p, 25)
+		first, rest, didSplit := scr.SplitAt(p, 25, 0)
 		require.True(t, didSplit, "30mm container should split when remaining=25mm")
 		require.NotNil(t, first)
 		require.NotNil(t, rest)
@@ -318,13 +347,13 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	})
 
 	t.Run("SplitAt remaining=100 does not split (fits)", func(t *testing.T) {
-		_, _, didSplit := scr.SplitAt(p, 100)
+		_, _, didSplit := scr.SplitAt(p, 100, 0)
 		assert.False(t, didSplit, "container that fits should not split")
 	})
 
 	t.Run("SplitAt remaining=1 returns atomic push (nil first) when no row fits", func(t *testing.T) {
 		// When no rows fit (remaining < smallest row), first == nil means push whole container.
-		first, _, didSplit := scr.SplitAt(p, 0)
+		first, _, didSplit := scr.SplitAt(p, 0, 0)
 		assert.True(t, didSplit, "split should be signaled")
 		assert.Nil(t, first, "when nothing fits, first must be nil (push to next page)")
 	})
@@ -338,12 +367,47 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 		narrowCell := &entity.Cell{Width: 100, Height: 100}
 		assert.Equal(t, 30.0, scr.GetHeight(p, narrowCell))
 
-		first, rest, didSplit := scr.SplitAt(p, 10)
+		first, rest, didSplit := scr.SplitAt(p, 10, 0)
 
 		assert.True(t, didSplit, "row is 30mm tall at the measured width and must split")
 		assert.Nil(t, first, "nothing fits in 10mm at the measured width")
 		assert.NotNil(t, rest)
 	})
+}
+
+// TestSplittableContainerRow_BreakInsideAvoid verifies that a break-inside:avoid
+// container is never divided: when it does not fit in the remaining space it is
+// pushed whole to the next page (atomic mode, first==nil) even though some of
+// its rows would otherwise fit — preventing an orphaned heading/label.
+func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
+	t.Parallel()
+	p := &cursorProvider{}
+	cfg := &entity.Config{MaxGridSize: 12}
+
+	newContainer := func(breakInside bool) *splittableContainerRow {
+		c := &blockContainer{
+			rows:        []core.Row{buildFixedHeightRow(10), buildFixedHeightRow(10), buildFixedHeightRow(10)},
+			breakInside: breakInside,
+		}
+		scr := newSplittableContainerRow(c)
+		scr.SetConfig(cfg)
+		return scr
+	}
+
+	// Sanity: without break-inside the 30mm container greedily splits at 25mm.
+	first, _, didSplit := newContainer(false).SplitAt(p, 25, 0)
+	require.True(t, didSplit)
+	require.NotNil(t, first, "default container splits, placing the rows that fit")
+
+	// With break-inside: avoid it must push the whole box (first == nil).
+	first, rest, didSplit := newContainer(true).SplitAt(p, 25, 0)
+	require.True(t, didSplit, "container that does not fit must signal a split")
+	assert.Nil(t, first, "break-inside:avoid must push the whole box, not place partial rows")
+	assert.NotNil(t, rest, "the whole container is carried to the next page")
+
+	// When it fits, no split regardless of break-inside.
+	_, _, didSplit = newContainer(true).SplitAt(p, 100, 0)
+	assert.False(t, didSplit, "container that fits should not split")
 }
 
 // buildFixedHeightRow creates a Row with a fixed pixel height for test purposes.

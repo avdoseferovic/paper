@@ -1,12 +1,15 @@
 package translate
 
 import (
+	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/html/css"
+	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
@@ -14,6 +17,58 @@ func TestMarginBox_GetHeight_NilChildReturnsMargins(t *testing.T) {
 	t.Parallel()
 	m := &marginBox{marginTop: 3, marginBottom: 4}
 	assert.Equal(t, 7.0, m.GetHeight(nil, &entity.Cell{Width: 100, Height: 100}))
+}
+
+func TestBlockContainerPadding_IncludesHorizontalVisibleBorders(t *testing.T) {
+	t.Parallel()
+
+	style := &css.ComputedStyle{
+		PaddingTop:        1,
+		PaddingRight:      2,
+		PaddingBottom:     3,
+		PaddingLeft:       4,
+		BorderTopWidth:    5,
+		BorderRightWidth:  6,
+		BorderBottomWidth: 7,
+		BorderLeftWidth:   8,
+		BorderTopStyle:    "solid",
+		BorderRightStyle:  "solid",
+		BorderBottomStyle: "solid",
+		BorderLeftStyle:   "solid",
+	}
+
+	top, right, bottom, left := blockContainerPadding(style)
+
+	assert.Equal(t, 1.0, top)
+	assert.Equal(t, 8.0, right)
+	assert.Equal(t, 3.0, bottom)
+	assert.Equal(t, 12.0, left)
+}
+
+func TestBlockContainerPadding_IgnoresNonVisibleHorizontalBorderStyles(t *testing.T) {
+	t.Parallel()
+
+	style := &css.ComputedStyle{
+		PaddingTop:        1,
+		PaddingRight:      2,
+		PaddingBottom:     3,
+		PaddingLeft:       4,
+		BorderTopWidth:    5,
+		BorderRightWidth:  6,
+		BorderBottomWidth: 7,
+		BorderLeftWidth:   8,
+		BorderTopStyle:    "none",
+		BorderRightStyle:  "hidden",
+		BorderBottomStyle: "none",
+		BorderLeftStyle:   "hidden",
+	}
+
+	top, right, bottom, left := blockContainerPadding(style)
+
+	assert.Equal(t, 1.0, top)
+	assert.Equal(t, 2.0, right)
+	assert.Equal(t, 3.0, bottom)
+	assert.Equal(t, 4.0, left)
 }
 
 func TestMarginBox_GetHeight_AddsMarginsToChildHeight(t *testing.T) {
@@ -78,6 +133,81 @@ func TestMarginBox_GetStructure_IncludesMargins(t *testing.T) {
 	assert.Len(t, str.GetNexts(), 1)
 }
 
+func TestHorizontalMarginRow_RenderOffsetsChildWidth(t *testing.T) {
+	t.Parallel()
+	child := &recordingRow{height: 5}
+	row := &horizontalMarginRow{
+		child:       child,
+		marginLeft:  4,
+		marginRight: 6,
+	}
+
+	row.Render(nil, entity.Cell{X: 10, Y: 20, Width: 100, Height: 50})
+
+	require.True(t, child.rendered)
+	assert.Equal(t, 14.0, child.renderedCell.X)
+	assert.Equal(t, 20.0, child.renderedCell.Y)
+	assert.Equal(t, 90.0, child.renderedCell.Width)
+}
+
+func TestHorizontalMarginRow_GetHeightMeasuresInnerWidth(t *testing.T) {
+	t.Parallel()
+	var widths []float64
+	row := &horizontalMarginRow{
+		child:       widthRecordingRow{widths: &widths},
+		marginLeft:  4,
+		marginRight: 6,
+	}
+
+	_ = row.GetHeight(nil, &entity.Cell{Width: 100, Height: 50})
+
+	require.Len(t, widths, 1)
+	assert.Equal(t, 90.0, widths[0])
+}
+
+func TestHorizontalMarginRow_SplitAtDelegatesInnerWidth(t *testing.T) {
+	t.Parallel()
+	var widths []float64
+	rows := []core.Row{
+		widthRecordingRow{widths: &widths},
+		widthRecordingRow{widths: &widths},
+	}
+	child := newSplittableContainerRow(&blockContainer{rows: rows})
+	row := &horizontalMarginRow{
+		child:       child,
+		marginLeft:  4,
+		marginRight: 6,
+	}
+
+	_, _, didSplit := row.SplitAt(nil, 150, 100)
+
+	require.True(t, didSplit)
+	require.NotEmpty(t, widths)
+	for _, w := range widths {
+		assert.Equal(t, 90.0, w)
+	}
+}
+
+func TestTranslate_BlockHorizontalMarginsWrapGenericRows(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><body><div style="margin-left:4mm;margin-right:6mm"><p>A</p></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var found bool
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "horizontal_margin_row" {
+			found = true
+			assert.InDelta(t, 4.0, s.Details["margin_left"], 0.001)
+			assert.InDelta(t, 6.0, s.Details["margin_right"], 0.001)
+		}
+	})
+	assert.True(t, found, "expected block margin-left/right to wrap generic content rows")
+}
+
 // countingRow counts GetHeight invocations to observe blockContainer caching.
 type countingRow struct {
 	recordingRow
@@ -117,6 +247,24 @@ func TestBlockContainer_GetHeight_ClampsNegativeInnerWidth(t *testing.T) {
 	assert.Equal(t, 5.0, got)
 }
 
+func TestBlockContainer_GetHeight_UsesExplicitHeightConstraints(t *testing.T) {
+	t.Parallel()
+
+	cell := &entity.Cell{Width: 100, Height: 100}
+	assert.Equal(t, 20.0, (&blockContainer{
+		rows:   []core.Row{&recordingRow{height: 5}},
+		height: 20,
+	}).GetHeight(&cursorProvider{}, cell))
+	assert.Equal(t, 12.0, (&blockContainer{
+		rows:      []core.Row{&recordingRow{height: 5}},
+		minHeight: 12,
+	}).GetHeight(&cursorProvider{}, cell))
+	assert.Equal(t, 6.0, (&blockContainer{
+		rows:      []core.Row{&recordingRow{height: 10}},
+		maxHeight: 6,
+	}).GetHeight(&cursorProvider{}, cell))
+}
+
 func TestSplittableContainerRow_DelegatesRowMethods(t *testing.T) {
 	t.Parallel()
 	container := &blockContainer{rows: []core.Row{buildFixedHeightRow(5)}}
@@ -142,6 +290,15 @@ type noPositionProvider struct{ cursorProvider }
 
 func (*noPositionProvider) SetCursor() {}
 
+type createColRecordingProvider struct {
+	cursorProvider
+	created []entity.Cell
+}
+
+func (p *createColRecordingProvider) CreateCol(width, height float64, _ *entity.Config, _ *props.Cell) {
+	p.created = append(p.created, entity.Cell{Width: width, Height: height})
+}
+
 func TestBlockContainer_Render_PaintsStyleAndClampsHeight(t *testing.T) {
 	t.Parallel()
 	child := &recordingRow{height: 30}
@@ -159,6 +316,23 @@ func TestBlockContainer_Render_PaintsStyleAndClampsHeight(t *testing.T) {
 	assert.True(t, child.rendered)
 	assert.Equal(t, 6.0, child.renderedCell.X, "padding-left offsets children")
 	assert.Equal(t, 7.0, child.renderedCell.Y, "padding-top offsets children")
+}
+
+func TestBlockContainer_Render_PaintsLargerAssignedHeight(t *testing.T) {
+	t.Parallel()
+	child := &recordingRow{height: 5}
+	b := &blockContainer{
+		rows:  []core.Row{child},
+		style: &props.Cell{},
+	}
+	b.SetConfig(&entity.Config{MaxGridSize: 12})
+	provider := &createColRecordingProvider{}
+
+	b.Render(provider, &entity.Cell{Width: 100, Height: 20})
+
+	require.Len(t, provider.created, 1)
+	assert.Equal(t, 20.0, provider.created[0].Height)
+	assert.True(t, child.rendered)
 }
 
 func TestBlockContainer_Render_WithoutPositionProvider(t *testing.T) {
@@ -187,7 +361,7 @@ func TestBlockContainer_Render_ClampsNegativeInnerWidth(t *testing.T) {
 func TestSplittableContainerRow_SplitAt_NilContainer(t *testing.T) {
 	t.Parallel()
 	scr := &splittableContainerRow{}
-	first, rest, didSplit := scr.SplitAt(&cursorProvider{}, 10)
+	first, rest, didSplit := scr.SplitAt(&cursorProvider{}, 10, 0)
 	assert.Nil(t, first)
 	assert.Nil(t, rest)
 	assert.False(t, didSplit)

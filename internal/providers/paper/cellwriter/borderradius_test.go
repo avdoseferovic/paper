@@ -87,7 +87,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		assert.Nil(t, captured.BackgroundColor, "downstream prop should have BackgroundColor cleared")
 	})
 
-	t.Run("when fill + stroke, should DrawPath DF and average mixed per-side thicknesses", func(t *testing.T) {
+	t.Run("when fill + stroke, rounded stroke uses base (thinnest) thickness and overlays the thicker side as an accent line", func(t *testing.T) {
 		t.Parallel()
 		next := mocks.NewCellWriter(t)
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell"))
@@ -98,8 +98,8 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
 		fpdf.EXPECT().GetXY().Return(0.0, 0.0)
 		fpdf.EXPECT().SetFillColor(1, 2, 3)
-		// Mixed: top=2pt, bottom=0.5pt → average = (2+0.5)/2 = 1.25
-		fpdf.EXPECT().SetLineWidth(1.25)
+		// Mixed: top=2pt, bottom=0.5pt → base (rounded stroke) = thinnest = 0.5.
+		fpdf.EXPECT().SetLineWidth(0.5)
 		fpdf.EXPECT().SetDrawColor(10, 20, 30)
 		fpdf.EXPECT().MoveTo(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"))
 		fpdf.EXPECT().LineTo(mock.AnythingOfType("float64"), mock.AnythingOfType("float64")).Times(4)
@@ -110,7 +110,13 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		).Times(4)
 		fpdf.EXPECT().ClosePath()
 		fpdf.EXPECT().DrawPath("DF")
-		// Restore
+		// Accent overlay: the 2pt top side (> 0.5 base) is drawn as a straight line.
+		fpdf.EXPECT().SetLineWidth(2.0)
+		fpdf.EXPECT().Line(
+			mock.AnythingOfType("float64"), mock.AnythingOfType("float64"),
+			mock.AnythingOfType("float64"), mock.AnythingOfType("float64"),
+		)
+		// Restore (stroke + accent state).
 		fpdf.EXPECT().SetLineWidth(0.2)
 		fpdf.EXPECT().SetDrawColor(0, 0, 0)
 		fpdf.EXPECT().SetFillColor(0, 0, 0)
@@ -124,6 +130,31 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 			BorderTopThickness:    2.0,
 			BorderBottomThickness: 0.5,
 			BorderColor:           &props.Color{Red: 10, Green: 20, Blue: 30},
+		})
+	})
+
+	t.Run("when square full radius cell, should draw ellipse primitive without straight edges", func(t *testing.T) {
+		t.Parallel()
+		next := mocks.NewCellWriter(t)
+		next.EXPECT().Apply(10.0, 10.0, config, mock.AnythingOfType("*props.Cell"))
+
+		fpdf := newPDF(t)
+		fpdf.EXPECT().GetLineWidth().Return(0.2)
+		fpdf.EXPECT().GetDrawColor().Return(0, 0, 0)
+		fpdf.EXPECT().GetFillColor().Return(0, 0, 0)
+		fpdf.EXPECT().GetXY().Return(0.0, 0.0)
+		fpdf.EXPECT().SetFillColor(39, 118, 145)
+		fpdf.EXPECT().Ellipse(5.0, 5.0, 5.08, 5.08, 0.0, "F")
+		fpdf.EXPECT().SetLineWidth(0.2)
+		fpdf.EXPECT().SetDrawColor(0, 0, 0)
+		fpdf.EXPECT().SetFillColor(0, 0, 0)
+
+		sut := cellwriter.NewBorderRadiusStyler(fpdf)
+		sut.SetNext(next)
+
+		sut.Apply(10, 10, config, &props.Cell{
+			BorderRadius:    999,
+			BackgroundColor: &props.Color{Red: 39, Green: 118, Blue: 145},
 		})
 	})
 }

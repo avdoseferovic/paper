@@ -6,6 +6,7 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 )
 
@@ -41,6 +42,26 @@ func TestComputeNodeStyle_FontSize(t *testing.T) {
 
 	style := computeNodeStyle(nil, findFirstNode(t, doc, "p"), nil)
 	assert.InDelta(t, 12*0.352778, style.FontSize, 0.01)
+}
+
+func TestHorizontalFlexExtrasHonorsBorderBoxSizing(t *testing.T) {
+	t.Parallel()
+
+	style := &css.ComputedStyle{
+		BoxSizing:        "border-box",
+		PaddingLeft:      2,
+		PaddingRight:     3,
+		BorderLeftWidth:  0.5,
+		BorderLeftStyle:  "solid",
+		BorderRightWidth: 0.75,
+		BorderRightStyle: "solid",
+		MarginLeft:       4,
+		MarginRight:      5,
+	}
+
+	assert.Equal(t, 9.0, horizontalFlexExtras(style))
+	style.BoxSizing = "content-box"
+	assert.Equal(t, 15.25, horizontalFlexExtras(style))
 }
 
 func TestStylesheet_RulesAppliedToMatchingNodes(t *testing.T) {
@@ -163,6 +184,26 @@ func TestBlockCellStyle_FilterDropShadowMapsToBoxShadow(t *testing.T) {
 	assert.InDelta(t, 2.0, cell.BoxShadow[0].OffsetX, 0.001)
 	assert.InDelta(t, 3.0, cell.BoxShadow[0].OffsetY, 0.001)
 	assert.InDelta(t, 4.0, cell.BoxShadow[0].BlurRadius, 0.001)
+}
+
+func TestBlockCellStyle_BorderStyleNoneSuppressesBorderWidths(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><body><div style="background:#277691;border-width:1pt;border-style:none;border-color:#d7e0e6;border-radius:999px"></div></body></html>`)
+	require.NoError(t, err)
+
+	style := computeNodeStyle(nil, findFirstNode(t, doc, "div"), nil)
+	cell := (&translator{}).blockCellStyle(style)
+	require.NotNil(t, cell)
+	require.NotNil(t, cell.BackgroundColor)
+	assert.Equal(t, 0.0, cell.BorderTopThickness)
+	assert.Equal(t, 0.0, cell.BorderRightThickness)
+	assert.Equal(t, 0.0, cell.BorderBottomThickness)
+	assert.Equal(t, 0.0, cell.BorderLeftThickness)
+	assert.Nil(t, cell.BorderTopColor)
+	assert.Nil(t, cell.BorderRightColor)
+	assert.Nil(t, cell.BorderBottomColor)
+	assert.Nil(t, cell.BorderLeftColor)
+	assert.Greater(t, cell.BorderRadiusTopLeft, 0.0)
 }
 
 func TestParseInlineStyle_DataURIURLKeepsSemicolon(t *testing.T) {

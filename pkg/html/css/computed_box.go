@@ -4,6 +4,8 @@ import "strings"
 
 func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 	switch ctx.prop {
+	case "box-sizing":
+		s.BoxSizing = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "padding-top":
 		s.PaddingTop = ParseLengthCtx(ctx.val, s.FontSize, ctx.ctxWidth)
 	case "padding-right":
@@ -29,7 +31,13 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 	case "visibility":
 		s.Visibility = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "width":
-		s.Width = ParseLengthCtx(ctx.val, ctx.parentFontSize, ctx.ctxWidth)
+		if strings.EqualFold(strings.TrimSpace(ctx.val), cssValueAuto) {
+			s.Width = 0
+			s.WidthAuto = true
+		} else {
+			s.Width = ParseLengthCtx(ctx.val, ctx.parentFontSize, ctx.ctxWidth)
+			s.WidthAuto = false
+		}
 	case "height":
 		s.Height = ParseLength(ctx.val, 0)
 	case "min-width":
@@ -40,6 +48,8 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 		s.MinHeight = ParseLength(ctx.val, 0)
 	case "max-height":
 		s.MaxHeight = ParseLength(ctx.val, 0)
+	case "border-spacing":
+		s.applyBorderSpacing(ctx.val, ctx.parentFontSize)
 	case "object-fit":
 		s.ObjectFit = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "object-position":
@@ -48,4 +58,18 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 		return false
 	}
 	return true
+}
+
+func (s *ComputedStyle) applyBorderSpacing(value string, parentFontSize float64) {
+	parts := strings.Fields(value)
+	if len(parts) == 0 {
+		return
+	}
+	x := ParseLength(parts[0], parentFontSize)
+	y := x
+	if len(parts) > 1 {
+		y = ParseLength(parts[1], parentFontSize)
+	}
+	s.BorderSpacingX = x
+	s.BorderSpacingY = y
 }

@@ -618,6 +618,18 @@ func TestProvider_EnsurePage(t *testing.T) {
 		sut.(core.PageProvider).EnsurePage(2)
 		fpdf.AssertNotCalled(t, "AddPage")
 	})
+
+	t.Run("stops when backend page does not advance", func(t *testing.T) {
+		t.Parallel()
+		fpdf := newPDF(t)
+		fpdf.EXPECT().PageNo().Return(1).Once()
+		fpdf.EXPECT().AddPage().Once()
+		fpdf.EXPECT().PageNo().Return(1).Once()
+
+		sut := gofpdf.New(&gofpdf.Dependencies{PDF: fpdf})
+
+		sut.(core.PageProvider).EnsurePage(2)
+	})
 }
 
 func TestProvider_CreateCol(t *testing.T) {
@@ -941,7 +953,7 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		text.EXPECT().Add("could not add image to document", cell, merror.DefaultErrorText).Once()
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(errors.New("anyError")).Once()
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(errors.New("anyError")).Once()
 
 		fpdf := newPDF(t)
 		fpdf.EXPECT().ClearError().Once()
@@ -979,7 +991,7 @@ func TestProvider_AddBackgroundImageFromBytes(t *testing.T) {
 		}
 
 		image := mocks.NewImage(t)
-		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, true).Return(nil).Once()
+		image.EXPECT().Add(img, cell, cfg.Margins, &prop, img.Extension, false).Return(nil).Once()
 
 		fpdf := newPDF(t)
 		fpdf.EXPECT().SetHomeXY().Once()

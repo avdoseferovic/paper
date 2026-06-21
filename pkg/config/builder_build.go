@@ -14,24 +14,28 @@ func (b *CfgBuilder) Build() *entity.Config {
 	}
 
 	return &entity.Config{
-		ProviderType:         b.providerType,
-		Dimensions:           cloneDimensions(b.getDimensions()),
-		Margins:              cloneMargins(b.margins),
-		GenerationMode:       b.generationMode,
-		ChunkWorkers:         b.chunkWorkers,
-		Debug:                b.debug,
-		MaxGridSize:          b.maxGridSize,
-		DefaultFont:          cloneFont(b.defaultFont),
-		PageNumber:           pageNumber,
-		Protection:           cloneProtection(b.protection),
-		Compression:          b.compression,
-		Metadata:             cloneMetadata(b.metadata),
-		CustomFonts:          append([]entity.CustomFont(nil), b.customFonts...),
-		BackgroundImage:      cloneImage(b.backgroundImage),
-		DisableAutoPageBreak: b.disableAutoPageBreak,
-		HTMLLimits:           b.htmlLimits,
-		OutlineFromHeadings:  b.outlineFromHeadings,
-		Watermark:            props.CloneWatermark(b.watermark),
+		ProviderType:                   b.providerType,
+		Dimensions:                     cloneDimensions(b.getDimensions()),
+		Margins:                        cloneMargins(b.margins),
+		GenerationMode:                 b.generationMode,
+		ChunkWorkers:                   b.chunkWorkers,
+		Debug:                          b.debug,
+		MaxGridSize:                    b.maxGridSize,
+		DefaultFont:                    cloneFont(b.defaultFont),
+		PageNumber:                     pageNumber,
+		Protection:                     cloneProtection(b.protection),
+		Compression:                    b.compression,
+		Metadata:                       cloneMetadata(b.metadata),
+		CustomFonts:                    append([]entity.CustomFont(nil), b.customFonts...),
+		BackgroundImage:                cloneImage(b.backgroundImage),
+		FirstPageBackgroundImage:       cloneImage(b.firstPageBackgroundImage),
+		FirstPageForegroundImage:       cloneImage(b.firstPageForegroundImage),
+		FirstPageForegroundImages:      cloneImages(b.firstPageForegroundImages),
+		FirstPageFinalForegroundImages: cloneImages(b.firstPageFinalForegroundImages),
+		DisableAutoPageBreak:           b.disableAutoPageBreak,
+		HTMLLimits:                     b.htmlLimits,
+		OutlineFromHeadings:            b.outlineFromHeadings,
+		Watermark:                      props.CloneWatermark(b.watermark),
 	}
 }
 
@@ -108,5 +112,25 @@ func cloneImage(image *entity.Image) *entity.Image {
 	clone := *image
 	clone.Bytes = append([]byte(nil), image.Bytes...)
 	clone.Dimensions = cloneDimensions(image.Dimensions)
+	clone.PageCell = cloneCell(image.PageCell)
+	return &clone
+}
+
+func cloneImages(images []*entity.Image) []*entity.Image {
+	if len(images) == 0 {
+		return nil
+	}
+	clones := make([]*entity.Image, 0, len(images))
+	for _, image := range images {
+		clones = append(clones, cloneImage(image))
+	}
+	return clones
+}
+
+func cloneCell(cell *entity.Cell) *entity.Cell {
+	if cell == nil {
+		return nil
+	}
+	clone := *cell
 	return &clone
 }

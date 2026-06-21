@@ -1,6 +1,11 @@
 package table
 
-import "math"
+import (
+	"math"
+	"strings"
+
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+)
 
 // WithColumnWidths configures relative column widths. Values are normalized to
 // fractions that sum to 1. Non-positive or missing values fall back to the
@@ -8,6 +13,42 @@ import "math"
 func WithColumnWidths(widths []float64) Option {
 	return func(t *Table) {
 		t.columnWidths = normalizeColumnWidths(widths, t.colCount)
+	}
+}
+
+// WithWidth sets a preferred rendered table width in millimetres. When the
+// parent cell is wider, the table uses this width; when the parent is narrower,
+// it clamps to the parent width.
+func WithWidth(width float64) Option {
+	return func(t *Table) {
+		if width > 0 && !math.IsNaN(width) && !math.IsInf(width, 0) {
+			t.preferredWidth = width
+		}
+	}
+}
+
+// WithAlign positions a preferred-width table inside a wider parent cell.
+func WithAlign(align string) Option {
+	return func(t *Table) {
+		switch strings.ToLower(strings.TrimSpace(align)) {
+		case "center", "right":
+			t.align = strings.ToLower(strings.TrimSpace(align))
+		default:
+			t.align = ""
+		}
+	}
+}
+
+// WithBorderSpacing reserves horizontal and vertical spacing between table
+// cells, matching CSS border-spacing for separate-border tables.
+func WithBorderSpacing(x, y float64) Option {
+	return func(t *Table) {
+		if x > 0 && !math.IsNaN(x) && !math.IsInf(x, 0) {
+			t.borderSpacingX = x
+		}
+		if y > 0 && !math.IsNaN(y) && !math.IsInf(y, 0) {
+			t.borderSpacingY = y
+		}
 	}
 }
 
@@ -48,10 +89,41 @@ func (t *Table) columnWidth(totalWidth float64, col int) float64 {
 	if t == nil || t.colCount <= 0 || col < 0 || col >= t.colCount {
 		return 0
 	}
+	totalWidth = t.contentColumnsWidth(totalWidth)
 	if len(t.columnWidths) == t.colCount {
 		return totalWidth * t.columnWidths[col]
 	}
 	return totalWidth / float64(t.colCount)
+}
+
+func (t *Table) contentColumnsWidth(totalWidth float64) float64 {
+	if t == nil || t.colCount <= 1 || t.borderSpacingX <= 0 {
+		return totalWidth
+	}
+	spacing := t.borderSpacingX * float64(t.colCount-1)
+	if spacing >= totalWidth {
+		return 0
+	}
+	return totalWidth - spacing
+}
+
+func (t *Table) tableCell(cell *entity.Cell) entity.Cell {
+	if cell == nil {
+		return entity.Cell{}
+	}
+	out := cell.Copy()
+	if t == nil || t.preferredWidth <= 0 || t.preferredWidth >= out.Width {
+		return out
+	}
+	delta := out.Width - t.preferredWidth
+	switch t.align {
+	case "right":
+		out.X += delta
+	case "center":
+		out.X += delta / 2
+	}
+	out.Width = t.preferredWidth
+	return out
 }
 
 func (t *Table) columnSpanWidth(totalWidth float64, startCol, span int) float64 {
@@ -59,8 +131,12 @@ func (t *Table) columnSpanWidth(totalWidth float64, startCol, span int) float64 
 		span = 1
 	}
 	width := 0.0
-	for c := startCol; c < startCol+span && c < t.colCount; c++ {
+	endCol := min(startCol+span, t.colCount)
+	for c := startCol; c < endCol; c++ {
 		width += t.columnWidth(totalWidth, c)
+	}
+	if t != nil && t.borderSpacingX > 0 && endCol-startCol > 1 {
+		width += t.borderSpacingX * float64(endCol-startCol-1)
 	}
 	return width
 }

@@ -9,13 +9,14 @@ import (
 
 // computeRowHeights runs the two-pass rowspan height algorithm and caches results.
 func (t *Table) computeRowHeights(provider core.Provider, cell *entity.Cell) {
-	if len(t.rowHeights) == t.rowCount && t.rowHeightWidth == cell.Width {
+	tableCell := t.tableCell(cell)
+	if len(t.rowHeights) == t.rowCount && t.rowHeightWidth == tableCell.Width {
 		return
 	}
-	heights := t.passOne(provider, cell)
-	t.passTwo(provider, cell, heights)
+	heights := t.passOne(provider, &tableCell)
+	t.passTwo(provider, &tableCell, heights)
 	t.rowHeights = heights
-	t.rowHeightWidth = cell.Width
+	t.rowHeightWidth = tableCell.Width
 }
 
 // passOne computes heights for single-row cells.
@@ -27,13 +28,19 @@ func (t *Table) passOne(provider core.Provider, cell *entity.Cell) []float64 {
 		for _, c := range row {
 			originCol := t.originColumn(flat)
 			flat++
-			if c.Rowspan > 1 || c.Content == nil {
+			if c.Rowspan > 1 {
 				continue
 			}
-			width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
-			inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
-			if h := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style); h > heights[r] {
-				heights[r] = h
+			needed := c.Height
+			if c.Content != nil {
+				width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
+				inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
+				if h := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style); h > needed {
+					needed = h
+				}
+			}
+			if needed > heights[r] {
+				heights[r] = needed
 			}
 		}
 		if heights[r] == 0 {
@@ -50,12 +57,20 @@ func (t *Table) passTwo(provider core.Provider, cell *entity.Cell, heights []flo
 		for _, c := range row {
 			originCol := t.originColumn(flat)
 			flat++
-			if c.Rowspan <= 1 || c.Content == nil {
+			if c.Rowspan <= 1 {
 				continue
 			}
-			width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
-			inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
-			needed := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style)
+			needed := c.Height
+			if c.Content != nil {
+				width := t.columnSpanWidth(cell.Width, originCol, c.Colspan)
+				inner := paddedTableCell(0, 0, width, cell.Height, c.Style)
+				if h := c.Content.GetHeight(provider, &inner) + verticalPadding(c.Style); h > needed {
+					needed = h
+				}
+			}
+			if needed <= 0 {
+				continue
+			}
 			spanEnd := min(r+c.Rowspan, t.rowCount)
 			sum := 0.0
 			for i := r; i < spanEnd; i++ {

@@ -85,6 +85,27 @@ func TestTranslate_Inline(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
+
+	t.Run("div with inline children produces one row", func(t *testing.T) {
+		t.Parallel()
+		// A block container whose children are all inline-level establishes a
+		// single inline formatting context: "<strong>1</strong> = text" must
+		// stay on one line, not split into a row per child.
+		doc := parseDoc(t, "<html><body><div><strong>1</strong> = trifft fast nicht zu: long answer text</div></body></html>")
+		rows, err := translate.Translate(context.Background(), doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 1)
+	})
+
+	t.Run("div with mixed inline and block children groups inline runs", func(t *testing.T) {
+		t.Parallel()
+		// Leading inline text + a block child + trailing inline text → the two
+		// inline groups each collapse to one row, with the block in between.
+		doc := parseDoc(t, "<html><body><div>before <b>x</b><p>block</p>after <i>y</i></div></body></html>")
+		rows, err := translate.Translate(context.Background(), doc)
+		require.NoError(t, err)
+		assert.Len(t, rows, 3)
+	})
 }
 
 func TestTranslate_Table(t *testing.T) {

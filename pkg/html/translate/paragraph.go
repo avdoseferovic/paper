@@ -82,6 +82,7 @@ func richTextAlignFromCSS(value string) consts.Align {
 // element. Defaults match the original hrRow behaviour when no style is set.
 func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle) core.Row {
 	lineProp := props.Line{}
+	lineProp.SizePercent = 100
 	if style.BorderTopWidth > 0 {
 		lineProp.Thickness = style.BorderTopWidth
 	}
@@ -97,7 +98,50 @@ func (tr *translator) styledHrRowWithStyle(_ *dom.Node, style *css.ComputedStyle
 	if style.BorderTopWidth > 0 {
 		h = style.BorderTopWidth + 0.5
 	}
+	if style.Height > 0 {
+		h = style.Height
+	}
 	return row.New(h).Add(c)
+}
+
+// inlineGroupRow builds a single paragraph row from a run of consecutive
+// inline-level sibling nodes — a CSS anonymous block box. It keeps mixed inline
+// content (e.g. "<strong>1</strong> = text") on one line instead of stacking a
+// row per child. Returns ok=false when the group has no visible content (e.g.
+// whitespace between block siblings). The parent block's padding/background/
+// border are NOT applied here — the surrounding blockContainer paints those —
+// so the text is not double-inset.
+func (tr *translator) inlineGroupRow(nodes []*dom.Node, style *css.ComputedStyle) (core.Row, bool) {
+	ctx := tr.styledRunContext(blockInlineStyle(style))
+	var runs []props.RichRun
+	for _, c := range nodes {
+		walkInline(c, ctx, &runs)
+	}
+	if !hasVisibleRun(runs) {
+		return nil, false
+	}
+	rtProp := richTextPropsFromStyle(style)
+	rtProp.Top, rtProp.Right, rtProp.Bottom, rtProp.Left = 0, 0, 0, 0
+	rt := richtext.New(runs, rtProp)
+	if tr.anchorReg != nil {
+		rt.WithAnchorRegistry(tr.anchorReg)
+	}
+	r := row.New().Add(col.New().Add(rt))
+	return r, true
+}
+
+// hasVisibleRun reports whether any run carries renderable content (an image or
+// non-whitespace text).
+func hasVisibleRun(runs []props.RichRun) bool {
+	for _, r := range runs {
+		if r.Image != nil {
+			return true
+		}
+		if strings.TrimSpace(r.Text) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // wrapTextRow handles raw text nodes at block level.

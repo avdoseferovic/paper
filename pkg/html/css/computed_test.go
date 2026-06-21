@@ -38,6 +38,18 @@ func TestApplyCtx_CalcPercentWidth(t *testing.T) {
 		assert.InDelta(t, 0.0, s.Width, 0.01)
 	})
 
+	t.Run("width auto is preserved as explicit auto", func(t *testing.T) {
+		t.Parallel()
+		s := css.NewComputedStyle()
+		s.ApplyCtx("width", "auto", nil, 170.0)
+		assert.True(t, s.WidthAuto)
+		assert.Equal(t, 0.0, s.Width)
+
+		s.ApplyCtx("width", "20mm", nil, 170.0)
+		assert.False(t, s.WidthAuto)
+		assert.Equal(t, 20.0, s.Width)
+	})
+
 	t.Run("min/max width use ctxWidth for percentages", func(t *testing.T) {
 		t.Parallel()
 		s := css.NewComputedStyle()

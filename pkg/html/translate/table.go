@@ -15,24 +15,34 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
-// tableRows converts a <table> element into one Paper row containing a Table component.
-// When a <caption> child exists, it is emitted as a centred row above the table.
-// When <colgroup>/<col> children provide widths, they are mapped to relative
-// table column widths.
-func (tr *translator) tableRows(n *dom.Node) []core.Row {
+func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedStyle) []core.Row {
 	var out []core.Row
 	for _, c := range n.Children() {
 		if c.Tag() == "caption" {
 			out = append(out, tr.captionRow(c))
 		}
 	}
-	cells := tr.buildTableMatrix(n)
+	cells := tr.buildTableMatrix(n, tableStyle)
 	if len(cells) == 0 {
 		return out
 	}
 	var opts []table.Option
-	if widths := tr.tableColumnWidths(n); len(widths) > 0 {
+	widths := tr.tableColumnWidths(n, tableStyle)
+	if tableStyle.Width > 0 {
+		opts = append(opts, table.WithWidth(tableStyle.Width))
+	} else if tableStyle.WidthAuto {
+		if preferredWidth := preferredTableWidth(widths); preferredWidth > 0 {
+			opts = append(opts, table.WithWidth(preferredWidth))
+		}
+	}
+	if tableStyle.TextAlign == "center" || tableStyle.TextAlign == "right" {
+		opts = append(opts, table.WithAlign(tableStyle.TextAlign))
+	}
+	if len(widths) > 0 {
 		opts = append(opts, table.WithColumnWidths(widths))
+	}
+	if tableStyle.BorderSpacingX > 0 || tableStyle.BorderSpacingY > 0 {
+		opts = append(opts, table.WithBorderSpacing(tableStyle.BorderSpacingX, tableStyle.BorderSpacingY))
 	}
 	tbl, err := table.New(cells, opts...)
 	if err != nil {
@@ -43,8 +53,18 @@ func (tr *translator) tableRows(n *dom.Node) []core.Row {
 	return out
 }
 
-func (tr *translator) tableColumnWidths(n *dom.Node) []float64 {
-	tableStyle := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
+func preferredTableWidth(widths []float64) float64 {
+	total := 0.0
+	for _, width := range widths {
+		if width <= 0 {
+			return 0
+		}
+		total += width
+	}
+	return total
+}
+
+func (tr *translator) tableColumnWidths(n *dom.Node, tableStyle *css.ComputedStyle) []float64 {
 	refWidth := tableStyle.Width
 	if refWidth <= 0 {
 		refWidth = tr.contentWidthMM
@@ -119,8 +139,7 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 	return row.New().Add(col.New().Add(rt))
 }
 
-func (tr *translator) buildTableMatrix(n *dom.Node) [][]table.Cell {
-	tableStyle := computeNodeStyleRooted(tr.sheet, n, tr.rootStyle)
+func (tr *translator) buildTableMatrix(n *dom.Node, tableStyle *css.ComputedStyle) [][]table.Cell {
 	var matrix [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {
@@ -170,9 +189,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
 	runs := tr.inlineRunsStyled(td, blockInlineStyle(cellStyle))
-	if len(runs) == 0 {
-		runs = []props.RichRun{{Text: ""}}
-	}
+	height := explicitTableCellHeight(cellStyle, rowStyle)
 
 	// Propagate row-level color to runs that have no own color.
 	effectiveColor := cellStyle.Color
@@ -188,16 +205,36 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 		}
 	}
 
-	content := richtext.New(runs)
+	rtProp := richTextPropsFromStyle(cellStyle)
+	rtProp.Top, rtProp.Right, rtProp.Bottom, rtProp.Left = 0, 0, 0, 0
+
+	var content core.Component
+	if len(runs) > 0 {
+		content = richtext.New(runs, rtProp)
+	} else if height <= 0 {
+		content = richtext.New([]props.RichRun{{Text: ""}}, rtProp)
+	}
 
 	cellProp := tableCellStyle(cellStyle, rowStyle)
 
 	return table.Cell{
-		Content: content,
-		Colspan: colspan,
-		Rowspan: rowspan,
-		Style:   cellProp,
+		Content:       content,
+		Colspan:       colspan,
+		Rowspan:       rowspan,
+		Style:         cellProp,
+		Height:        height,
+		VerticalAlign: cellStyle.VerticalAlign,
 	}
+}
+
+func explicitTableCellHeight(cellStyle, rowStyle *css.ComputedStyle) float64 {
+	if cellStyle != nil && cellStyle.Height > 0 {
+		return cellStyle.Height
+	}
+	if rowStyle != nil && rowStyle.Height > 0 {
+		return rowStyle.Height
+	}
+	return 0
 }
 
 func tableCellStyle(cellStyle, rowStyle *css.ComputedStyle) *props.Cell {
@@ -215,6 +252,9 @@ func tableCellStyle(cellStyle, rowStyle *css.ComputedStyle) *props.Cell {
 
 	if cellProp.BackgroundColor == nil && cellProp.BackgroundGradient == nil && rowStyle != nil && rowStyle.BackgroundColor != nil {
 		cellProp.BackgroundColor = toPropsColor(rowStyle.BackgroundColor, effectiveOpacity(cellStyle))
+	}
+	if cellProp.BackgroundColor == nil && cellProp.BackgroundGradient == nil && rowStyle != nil && rowStyle.BackgroundGradient != nil {
+		cellProp.BackgroundGradient = cssGradientToProps(rowStyle.BackgroundGradient)
 	}
 
 	if isEmptyTableCellStyle(cellProp) {

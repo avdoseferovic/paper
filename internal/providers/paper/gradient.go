@@ -40,21 +40,18 @@ func (gr *GradientRenderer) DrawGradient(cell *entity.Cell, g *props.Gradient, w
 		return
 	}
 
-	key := gradientCacheKey(g, widthMM, heightMM)
+	left, top, _, _ := gr.pdf.GetMargins()
+	x := cell.X + left
+	y := cell.Y + top
+	pxW, pxH := gradientRasterDimensions(g, widthMM, heightMM)
+
+	key := gradientCacheKey(g, pxW, pxH)
 
 	gr.mu.Lock()
 	imgName, cached := gr.nameMap[key]
 	gr.mu.Unlock()
 
 	if !cached {
-		pxW := int(math.Round(widthMM * gradientDPI / 25.4))
-		pxH := int(math.Round(heightMM * gradientDPI / 25.4))
-		if pxW < 1 {
-			pxW = 1
-		}
-		if pxH < 1 {
-			pxH = 1
-		}
 		img := rasteriseGradient(g, pxW, pxH)
 		var buf bytes.Buffer
 		// This PNG is a throwaway transport buffer: RegisterImageOptionsReader
@@ -76,16 +73,42 @@ func (gr *GradientRenderer) DrawGradient(cell *entity.Cell, g *props.Gradient, w
 		gr.mu.Unlock()
 	}
 
-	left, top, _, _ := gr.pdf.GetMargins()
-	gr.pdf.Image(imgName, cell.X+left, cell.Y+top, widthMM, heightMM, false, "PNG", 0, "")
+	gr.pdf.Image(imgName, x, y, widthMM, heightMM, false, "PNG", 0, "")
+}
+
+func gradientRasterDimensions(g *props.Gradient, widthMM, heightMM float64) (int, int) {
+	pxW := int(math.Round(widthMM * gradientDPI / 25.4))
+	pxH := int(math.Round(heightMM * gradientDPI / 25.4))
+	if pxW < 1 {
+		pxW = 1
+	}
+	if pxH < 1 {
+		pxH = 1
+	}
+	if isHorizontalLinearGradient(g) {
+		pxH = 1
+	}
+	return pxW, pxH
+}
+
+func isHorizontalLinearGradient(g *props.Gradient) bool {
+	if g == nil || g.Kind != props.GradientLinear {
+		return false
+	}
+	deg := math.Mod(g.AngleDeg, 360)
+	if deg < 0 {
+		deg += 360
+	}
+	const epsilon = 0.000001
+	return math.Abs(deg-90) <= epsilon || math.Abs(deg-270) <= epsilon
 }
 
 // gradientCacheKey returns a stable hex string for the given gradient + dimensions.
-func gradientCacheKey(g *props.Gradient, widthMM, heightMM float64) string {
+func gradientCacheKey(g *props.Gradient, pxW, pxH int) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%d,%.1f,%.4f", g.Kind, g.AngleDeg, g.CX)
 	fmt.Fprintf(&sb, ",%.4f,%v", g.CY, g.Circle)
-	fmt.Fprintf(&sb, ",%.1fx%.1f@%d", widthMM, heightMM, int(gradientDPI))
+	fmt.Fprintf(&sb, ",%dx%d@%d", pxW, pxH, int(gradientDPI))
 	for _, s := range g.Stops {
 		fmt.Fprintf(&sb, ",(%d,%d,%d,%.2f@%.4f)",
 			s.Color.Red, s.Color.Green, s.Color.Blue, 0.0, s.Position)
@@ -114,20 +137,44 @@ func rasteriseLinear(img *image.RGBA, g *props.Gradient, w, h int) {
 	rad := g.AngleDeg * math.Pi / 180.0
 	dx := math.Sin(rad)
 	dy := -math.Cos(rad)
+	minProj, maxProj := linearGradientProjectionBounds(dx, dy, w, h)
+	span := maxProj - minProj
+	if span == 0 {
+		span = 1
+	}
 
 	for py := range h {
 		for px := range w {
-			// Normalised [0,1] coordinates of the pixel centre.
-			nx := (float64(px) + 0.5) / float64(w)
-			ny := (float64(py) + 0.5) / float64(h)
-			// Project onto gradient direction.
-			t := nx*dx + ny*dy
-			// Clamp t to [0,1] range from stop0.pos to stopN.pos.
-			t = clamp01((t + 1) / 2) // shift from [-1,1] to [0,1]
+			// Project the pixel centre onto the gradient direction, then
+			// normalise across the projected rectangle corners. This makes
+			// axis-aligned CSS gradients use the full stop range across the box.
+			proj := (float64(px)+0.5)*dx + (float64(py)+0.5)*dy
+			t := clamp01((proj - minProj) / span)
 			c := interpolateStops(g.Stops, t)
 			img.SetRGBA(px, py, c)
 		}
 	}
+}
+
+func linearGradientProjectionBounds(dx, dy float64, w, h int) (float64, float64) {
+	fw := float64(w)
+	fh := float64(h)
+	projections := [...]float64{
+		0,
+		fw * dx,
+		fh * dy,
+		fw*dx + fh*dy,
+	}
+	minProj, maxProj := projections[0], projections[0]
+	for _, p := range projections[1:] {
+		if p < minProj {
+			minProj = p
+		}
+		if p > maxProj {
+			maxProj = p
+		}
+	}
+	return minProj, maxProj
 }
 
 func rasteriseRadial(img *image.RGBA, g *props.Gradient, w, h int) {

@@ -26,13 +26,21 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 			tokens[i].width = r.Image.Width
 			continue
 		}
+		if tokens[i].isFixedInlineBox(r) {
+			tokens[i].width = r.InlineBoxWidth
+			continue
+		}
 		translated, width := input.measure(r, tokens[i].text)
 		tokens[i].translated = translated
 		tokens[i].width = width
 		if r.LetterSpacing > 0 {
-			runeCount := len([]rune(translated))
-			if runeCount > 1 {
-				tokens[i].width += float64(runeCount-1) * r.LetterSpacing
+			// CSS letter-spacing adds spacing after EVERY glyph, including the
+			// last one of a token and space glyphs between words. Reserving the
+			// trailing spacing keeps word gaps (space glyph + spacing) from
+			// collapsing so letter-spaced text like uppercase kickers doesn't
+			// merge into one run. Matches the per-glyph advance in renderTokenText.
+			if runeCount := len([]rune(translated)); runeCount > 0 {
+				tokens[i].width += float64(runeCount) * r.LetterSpacing
 			}
 		}
 	}
@@ -41,34 +49,49 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 	if input.prop != nil {
 		firstLineIndent = input.prop.FirstLineIndent
 	}
+	boxStart, boxEnd := inlineBoxGroupBoundaries(tokens, runs)
+	runStart, runEnd := runTokenBoundaries(tokens)
 	lineY := 0
 	curX := firstXForLine(lineY, firstLineIndent)
-	noWrap := input.whiteSpace == "nowrap" || input.whiteSpace == richTextWhiteSpacePre
-	for i := range tokens {
+	noWrap := input.whiteSpace == richTextWhiteSpaceNoWrap || input.whiteSpace == richTextWhiteSpacePre
+	for i := 0; i < len(tokens); {
 		t := &tokens[i]
 		if t.isBreak {
 			t.lineY = lineY
 			lineY++
 			curX = firstXForLine(lineY, firstLineIndent)
+			i++
 			continue
 		}
 
 		lineStart := firstXForLine(lineY, firstLineIndent)
 		if t.skipAtLineStart && curX == lineStart {
 			t.skip = true
+			i++
 			continue
 		}
-		if !noWrap && curX > lineStart && curX+t.width > input.width {
+		groupEnd := wrapGroupEnd(tokens, runs, i)
+		groupAdvance := tokenGroupAdvance(tokens, runs, boxStart, boxEnd, runStart, runEnd, i, groupEnd)
+		if !noWrap && curX > lineStart && curX+groupAdvance > input.width {
 			lineY++
 			curX = firstXForLine(lineY, firstLineIndent)
 			if t.skipAtLineStart {
 				t.skip = true
+				i++
 				continue
 			}
 		}
-		t.x = curX
-		curX += t.width
-		t.lineY = lineY
+		for j := i; j < groupEnd; j++ {
+			run := runs[tokens[j].runIdx]
+			before, after := tokenInlineSpacing(run, boxStart[j], boxEnd[j], runStart[j], runEnd[j])
+			curX += before
+			tokens[j].x = curX
+			curX += tokens[j].width
+			tokens[j].right = curX + after
+			curX = tokens[j].right
+			tokens[j].lineY = lineY
+		}
+		i = groupEnd
 	}
 
 	lineWidths := lineWidths(tokens)
@@ -78,13 +101,152 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 	return tokens, lineWidths
 }
 
+func tokenGroupAdvance(tokens []rtToken, runs []resolvedRun, boxStart, boxEnd, runStart, runEnd []bool, start, end int) float64 {
+	total := 0.0
+	for i := start; i < end; i++ {
+		run := runs[tokens[i].runIdx]
+		before, after := tokenInlineSpacing(run, boxStart[i], boxEnd[i], runStart[i], runEnd[i])
+		total += before + tokens[i].width + after
+	}
+	return total
+}
+
+// wrapGroupEnd returns the exclusive end of the token group that must wrap as
+// one unit starting at start: the token's nowrap group, extended across glued
+// tokens (words adjacent with no whitespace, e.g. `<strong>Stress</strong>?`)
+// and their nowrap groups.
+func wrapGroupEnd(tokens []rtToken, runs []resolvedRun, start int) int {
+	end := nowrapTokenGroupEnd(tokens, runs, start)
+	for end < len(tokens) && !tokens[end].isBreak && tokens[end].gluePrev {
+		end = nowrapTokenGroupEnd(tokens, runs, end)
+	}
+	return end
+}
+
+func nowrapTokenGroupEnd(tokens []rtToken, runs []resolvedRun, start int) int {
+	key := nowrapTokenGroupKey(tokens[start], runs)
+	if key == 0 {
+		return start + 1
+	}
+	end := start + 1
+	for end < len(tokens) && !tokens[end].isBreak && nowrapTokenGroupKey(tokens[end], runs) == key {
+		end++
+	}
+	return end
+}
+
+func nowrapTokenGroupKey(t rtToken, runs []resolvedRun) int {
+	if t.runIdx < 0 || t.runIdx >= len(runs) {
+		return 0
+	}
+	run := runs[t.runIdx]
+	if normalizeRichTextWhiteSpace(run.WhiteSpace) != richTextWhiteSpaceNoWrap {
+		return 0
+	}
+	if run.InlineBoxID > 0 {
+		return run.InlineBoxID
+	}
+	return -(t.runIdx + 1)
+}
+
+func tokenInlineSpacing(run resolvedRun, boxStart, boxEnd, runStart, runEnd bool) (float64, float64) {
+	before := 0.0
+	after := 0.0
+	// Reserve a background run's horizontal padding in the flow so adjacent
+	// pills/badges don't overlap — their backgrounds are drawn inflated by the
+	// same padding in renderRunBackgrounds. Padding belongs to the shared inline
+	// box, while margins belong to the individual run. This matters for nested
+	// generated content such as `.choice::before { margin-right: ... }` inside a
+	// larger pill: the marker's margin must create an internal gap without
+	// repeating the parent pill padding.
+	if run.hasInlineBox() {
+		if boxStart {
+			before += run.inlineBorderWidth() + run.inlinePadLeft()
+		}
+		if boxEnd {
+			after += run.inlinePadRight() + run.inlineBorderWidth()
+		}
+	}
+	if runStart {
+		before += run.InlineMarginLeft
+	}
+	if runEnd {
+		after += run.InlineMarginRight
+	}
+	return before, after
+}
+
+// inlineBoxGroupBoundaries marks whether each token is the first/last
+// renderable token of a contiguous same-inline-box group. Used to reserve
+// background padding only at the outer edges of a shared inline box.
+func inlineBoxGroupBoundaries(tokens []rtToken, runs []resolvedRun) ([]bool, []bool) {
+	start := make([]bool, len(tokens))
+	end := make([]bool, len(tokens))
+	prev := -1
+	for i := range tokens {
+		if tokens[i].isBreak || tokens[i].skip {
+			continue
+		}
+		if prev < 0 || richTextInlineBoxKey(tokens[prev], runs) != richTextInlineBoxKey(tokens[i], runs) {
+			start[i] = true
+			if prev >= 0 {
+				end[prev] = true
+			}
+		}
+		prev = i
+	}
+	if prev >= 0 {
+		end[prev] = true
+	}
+	return start, end
+}
+
+// runTokenBoundaries marks whether each token is the first/last renderable
+// token of a contiguous same-run group. Used for run-local margins, including
+// generated-content pseudo-elements nested inside a shared parent inline box.
+func runTokenBoundaries(tokens []rtToken) ([]bool, []bool) {
+	start := make([]bool, len(tokens))
+	end := make([]bool, len(tokens))
+	prev := -1
+	for i := range tokens {
+		if tokens[i].isBreak || tokens[i].skip {
+			continue
+		}
+		if prev < 0 || tokens[prev].runIdx != tokens[i].runIdx {
+			start[i] = true
+			if prev >= 0 {
+				end[prev] = true
+			}
+		}
+		prev = i
+	}
+	if prev >= 0 {
+		end[prev] = true
+	}
+	return start, end
+}
+
+func richTextInlineBoxKey(t rtToken, runs []resolvedRun) int {
+	if t.runIdx < 0 || t.runIdx >= len(runs) {
+		return 0
+	}
+	if id := runs[t.runIdx].InlineBoxID; id > 0 {
+		return id
+	}
+	return -(t.runIdx + 1)
+}
+
 func lineWidths(tokens []rtToken) map[int]float64 {
 	lineWidths := make(map[int]float64)
 	for _, t := range tokens {
 		if t.isBreak || t.skip {
 			continue
 		}
-		if right := t.x + t.width; right > lineWidths[t.lineY] {
+		right := t.right
+		if right == 0 {
+			right = t.x + t.width
+		}
+		if right > lineWidths[t.lineY] {
 			lineWidths[t.lineY] = right
 		}
 	}

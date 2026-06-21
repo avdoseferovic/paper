@@ -7,24 +7,28 @@ import (
 
 // Config is the configuration of a paper instance.
 type Config struct {
-	ProviderType         consts.ProviderType
-	Dimensions           *Dimensions
-	Margins              *Margins
-	DefaultFont          *props.Font
-	CustomFonts          []CustomFont
-	GenerationMode       consts.GenerationMode
-	ChunkWorkers         int
-	Debug                bool
-	MaxGridSize          int
-	PageNumber           *props.PageNumber
-	Protection           *Protection
-	Compression          bool
-	Metadata             *Metadata
-	BackgroundImage      *Image
-	DisableAutoPageBreak bool
-	HTMLLimits           HTMLLimits
-	OutlineFromHeadings  bool
-	Watermark            *props.Watermark
+	ProviderType                   consts.ProviderType
+	Dimensions                     *Dimensions
+	Margins                        *Margins
+	DefaultFont                    *props.Font
+	CustomFonts                    []CustomFont
+	GenerationMode                 consts.GenerationMode
+	ChunkWorkers                   int
+	Debug                          bool
+	MaxGridSize                    int
+	PageNumber                     *props.PageNumber
+	Protection                     *Protection
+	Compression                    bool
+	Metadata                       *Metadata
+	BackgroundImage                *Image
+	FirstPageBackgroundImage       *Image
+	FirstPageForegroundImage       *Image
+	FirstPageForegroundImages      []*Image
+	FirstPageFinalForegroundImages []*Image
+	DisableAutoPageBreak           bool
+	HTMLLimits                     HTMLLimits
+	OutlineFromHeadings            bool
+	Watermark                      *props.Watermark
 }
 
 // ToMap converts Config to a map[string]any .
@@ -76,6 +80,30 @@ func (c *Config) ToMap() map[string]any {
 
 	if c.BackgroundImage != nil {
 		m = c.BackgroundImage.AppendMap(m)
+	}
+
+	if c.FirstPageBackgroundImage != nil {
+		if len(c.FirstPageBackgroundImage.Bytes) != 0 {
+			m["entity_first_page_background_image_bytes"] = len(c.FirstPageBackgroundImage.Bytes)
+		}
+		if c.FirstPageBackgroundImage.Extension != "" {
+			m["entity_first_page_background_image_extension"] = c.FirstPageBackgroundImage.Extension
+		}
+	}
+
+	if c.FirstPageForegroundImage != nil {
+		if len(c.FirstPageForegroundImage.Bytes) != 0 {
+			m["entity_first_page_foreground_image_bytes"] = len(c.FirstPageForegroundImage.Bytes)
+		}
+		if c.FirstPageForegroundImage.Extension != "" {
+			m["entity_first_page_foreground_image_extension"] = c.FirstPageForegroundImage.Extension
+		}
+	}
+	if len(c.FirstPageForegroundImages) != 0 {
+		m["entity_first_page_foreground_images"] = len(c.FirstPageForegroundImages)
+	}
+	if len(c.FirstPageFinalForegroundImages) != 0 {
+		m["entity_first_page_final_foreground_images"] = len(c.FirstPageFinalForegroundImages)
 	}
 
 	if c.DisableAutoPageBreak {

@@ -10,7 +10,12 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
-const richTextWhiteSpacePre = "pre"
+const (
+	richTextWhiteSpaceNoWrap  = "nowrap"
+	richTextWhiteSpacePre     = "pre"
+	richTextWhiteSpacePreLine = "pre-line"
+	richTextWhiteSpacePreWrap = "pre-wrap"
+)
 
 // MeasureString sets the current font and returns the string width in mm.
 // All intermediate state is method-local; no struct mutation occurs beyond the
@@ -33,6 +38,31 @@ func (s *Text) AddTextAt(x, y float64, text string, prop *props.Text) {
 // resolvedRun is a RichRun with empty font fields filled in from the surrounding default.
 type resolvedRun struct {
 	props.RichRun
+}
+
+func (r resolvedRun) hasInlineBox() bool {
+	return r.Background != nil || (r.BorderColor != nil && r.BorderWidth > 0) || len(r.BoxShadows) > 0
+}
+
+func (r resolvedRun) inlinePadLeft() float64 {
+	if r.BgPadLeft != 0 || r.BgPadRight != 0 {
+		return r.BgPadLeft
+	}
+	return r.BgPadX
+}
+
+func (r resolvedRun) inlinePadRight() float64 {
+	if r.BgPadLeft != 0 || r.BgPadRight != 0 {
+		return r.BgPadRight
+	}
+	return r.BgPadX
+}
+
+func (r resolvedRun) inlineBorderWidth() float64 {
+	if r.BorderColor != nil && r.BorderWidth > 0 {
+		return r.BorderWidth
+	}
+	return 0
 }
 
 // AddRichText renders a paragraph of mixed inline runs within cell.
@@ -150,7 +180,32 @@ func (s *Text) richTextLineMetrics(resolved []resolvedRun, prop *props.RichText)
 	if imageHeight := maxRichRunImageHeight(resolved); imageHeight > lineHeight*lineMultiplier {
 		lineMultiplier = imageHeight / lineHeight
 	}
+	// Reserve vertical room for inline-box pills (background/border runs with
+	// vertical padding). The per-line advance is uniform (lineHeight ×
+	// lineMultiplier), so without this a wrapped row of padded pills overlaps the
+	// row above — the vertical analogue of reserving horizontal pill padding.
+	if pillHeight := maxRichRunInlineBoxPillHeight(resolved, lineHeight); pillHeight > lineHeight*lineMultiplier {
+		lineMultiplier = pillHeight / lineHeight
+	}
 	return lineHeight, lineMultiplier
+}
+
+// maxRichRunInlineBoxPillHeight returns the tallest inline-box pill, including
+// its vertical padding and border — the full painted height from
+// drawRunBackground (boxLineHeight + 2×(BgPadY+border)).
+func maxRichRunInlineBoxPillHeight(runs []resolvedRun, lineHeight float64) float64 {
+	maxHeight := 0.0
+	for i := range runs {
+		r := runs[i]
+		if !r.hasInlineBox() {
+			continue
+		}
+		h := richRunInlineBoxLineHeight(r, lineHeight) + 2*(r.BgPadY+r.inlineBorderWidth())
+		if h > maxHeight {
+			maxHeight = h
+		}
+	}
+	return maxHeight
 }
 
 func richTextLineCount(tokens []rtToken) int {
@@ -179,14 +234,23 @@ type rtToken struct {
 	runIdx          int
 	width           float64
 	x               float64
+	right           float64
 	lineY           int
 	isBreak         bool
 	skip            bool
 	skipAtLineStart bool
+	// gluePrev marks a word that continues the previous word token with no
+	// whitespace between them (e.g. `<strong>Stress</strong>?`). CSS defines no
+	// break opportunity there, so layout wraps the glued sequence as one unit.
+	gluePrev bool
 }
 
 func (t rtToken) isImage(run resolvedRun) bool {
 	return run.Image != nil && t.text == "" && !t.isBreak
+}
+
+func (t rtToken) isFixedInlineBox(run resolvedRun) bool {
+	return run.hasFixedInlineBox() && t.text == "" && !t.isBreak
 }
 
 // tokeniseRuns splits the resolved run sequence into renderable text spans,
@@ -194,38 +258,127 @@ func (t rtToken) isImage(run resolvedRun) bool {
 func tokeniseRuns(runs []resolvedRun, whiteSpace string) []rtToken {
 	var out []rtToken
 	pendingCollapsedSpace := false
+	pendingCollapsedSpaceRunIdx := -1
 	for i, r := range runs {
+		if r.ForceBreak {
+			out = append(out, rtToken{runIdx: i, isBreak: true})
+			pendingCollapsedSpace = false
+			pendingCollapsedSpaceRunIdx = -1
+			continue
+		}
 		if r.Image != nil {
 			if pendingCollapsedSpace && hasTextOnCurrentLine(out) {
-				out = append(out, rtToken{text: " ", runIdx: i, skipAtLineStart: true})
+				out = append(out, rtToken{text: " ", runIdx: pendingCollapsedSpaceRunIdx, skipAtLineStart: true})
 			}
 			pendingCollapsedSpace = false
+			pendingCollapsedSpaceRunIdx = -1
 			out = append(out, rtToken{runIdx: i})
 			continue
 		}
-		switch whiteSpace {
-		case richTextWhiteSpacePre, "pre-wrap":
+		if r.hasFixedInlineBox() && r.Text == "" {
+			if pendingCollapsedSpace && hasTextOnCurrentLine(out) {
+				out = append(out, rtToken{text: " ", runIdx: pendingCollapsedSpaceRunIdx, skipAtLineStart: true})
+			}
+			pendingCollapsedSpace = false
+			pendingCollapsedSpaceRunIdx = -1
+			out = append(out, rtToken{runIdx: i})
+			continue
+		}
+		runWhiteSpace := normalizeRichTextWhiteSpace(r.WhiteSpace)
+		switch {
+		case runWhiteSpace == richTextWhiteSpaceNoWrap:
+			out, pendingCollapsedSpace, pendingCollapsedSpaceRunIdx = appendCollapsedNowrapToken(
+				out,
+				r.Text,
+				i,
+				pendingCollapsedSpace,
+				pendingCollapsedSpaceRunIdx,
+			)
+		case whiteSpace == richTextWhiteSpacePre || whiteSpace == richTextWhiteSpacePreWrap:
 			out = append(out, tokenisePreservedText(r.Text, i)...)
-		case "pre-line":
-			out, pendingCollapsedSpace = appendCollapsedTokens(out, r.Text, i, true, pendingCollapsedSpace)
+		case whiteSpace == richTextWhiteSpacePreLine:
+			out, pendingCollapsedSpace, pendingCollapsedSpaceRunIdx = appendCollapsedTokens(
+				out,
+				r.Text,
+				i,
+				true,
+				pendingCollapsedSpace,
+				pendingCollapsedSpaceRunIdx,
+			)
 		default:
-			out, pendingCollapsedSpace = appendCollapsedTokens(out, r.Text, i, false, pendingCollapsedSpace)
+			out, pendingCollapsedSpace, pendingCollapsedSpaceRunIdx = appendCollapsedTokens(
+				out,
+				r.Text,
+				i,
+				false,
+				pendingCollapsedSpace,
+				pendingCollapsedSpaceRunIdx,
+			)
 		}
 	}
 	return out
 }
 
-func appendCollapsedTokens(out []rtToken, text string, runIdx int, preserveNewlines bool, pendingSpace bool) ([]rtToken, bool) {
+func appendCollapsedNowrapToken(
+	out []rtToken,
+	text string,
+	runIdx int,
+	pendingSpace bool,
+	pendingSpaceRunIdx int,
+) ([]rtToken, bool, int) {
+	before := len(out)
+	out, pendingSpace, pendingSpaceRunIdx = appendCollapsedTokens(out, text, runIdx, false, pendingSpace, pendingSpaceRunIdx)
+	if len(out) == before {
+		return out, pendingSpace, pendingSpaceRunIdx
+	}
+
+	merged := make([]rtToken, 0, len(out))
+	merged = append(merged, out[:before]...)
+	var b strings.Builder
+	glue := false
+	flush := func() {
+		if b.Len() == 0 {
+			return
+		}
+		merged = append(merged, rtToken{text: b.String(), runIdx: runIdx, gluePrev: glue})
+		b.Reset()
+		glue = false
+	}
+	for _, t := range out[before:] {
+		if !t.isBreak && t.text != "" && t.runIdx == runIdx {
+			if b.Len() == 0 {
+				glue = t.gluePrev
+			}
+			b.WriteString(t.text)
+			continue
+		}
+		flush()
+		merged = append(merged, t)
+	}
+	flush()
+	return merged, pendingSpace, pendingSpaceRunIdx
+}
+
+func appendCollapsedTokens(
+	out []rtToken,
+	text string,
+	runIdx int,
+	preserveNewlines bool,
+	pendingSpace bool,
+	pendingSpaceRunIdx int,
+) ([]rtToken, bool, int) {
 	var b strings.Builder
 	flushWord := func() {
 		if b.Len() == 0 {
 			return
 		}
 		if pendingSpace && hasTextOnCurrentLine(out) {
-			out = append(out, rtToken{text: " ", runIdx: runIdx, skipAtLineStart: true})
+			out = append(out, rtToken{text: " ", runIdx: pendingSpaceRunIdx, skipAtLineStart: true})
 		}
+		glue := !pendingSpace && endsInGlueableWord(out)
 		pendingSpace = false
-		out = append(out, rtToken{text: b.String(), runIdx: runIdx})
+		pendingSpaceRunIdx = -1
+		out = append(out, rtToken{text: b.String(), runIdx: runIdx, gluePrev: glue})
 		b.Reset()
 	}
 	for _, r := range text {
@@ -233,17 +386,34 @@ func appendCollapsedTokens(out []rtToken, text string, runIdx int, preserveNewli
 			flushWord()
 			out = append(out, rtToken{runIdx: runIdx, isBreak: true})
 			pendingSpace = false
+			pendingSpaceRunIdx = -1
 			continue
 		}
-		if unicode.IsSpace(r) {
+		if isCollapsibleRichSpace(r) {
 			flushWord()
 			pendingSpace = true
+			pendingSpaceRunIdx = runIdx
 			continue
 		}
 		b.WriteRune(r)
 	}
 	flushWord()
-	return out, pendingSpace
+	return out, pendingSpace, pendingSpaceRunIdx
+}
+
+func isCollapsibleRichSpace(r rune) bool {
+	return unicode.IsSpace(r) && r != '\u00a0'
+}
+
+// endsInGlueableWord reports whether the last token is a word another word can
+// glue to. Images and fixed inline boxes are replaced elements \u2014 CSS allows
+// breaks around those even without whitespace \u2014 so only text words glue.
+func endsInGlueableWord(tokens []rtToken) bool {
+	if len(tokens) == 0 {
+		return false
+	}
+	last := tokens[len(tokens)-1]
+	return !last.isBreak && last.text != "" && last.text != " "
 }
 
 func tokenisePreservedText(text string, runIdx int) []rtToken {
@@ -306,7 +476,7 @@ func alignmentOffset(a consts.Align, width, lineWidth float64) float64 {
 
 func normalizeRichTextWhiteSpace(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "nowrap", richTextWhiteSpacePre, "pre-wrap", "pre-line":
+	case richTextWhiteSpaceNoWrap, richTextWhiteSpacePre, richTextWhiteSpacePreWrap, richTextWhiteSpacePreLine:
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
 		return "normal"
@@ -319,6 +489,9 @@ func maxRichRunImageHeight(runs []resolvedRun) float64 {
 		if run.Image != nil && run.Image.Height > maxHeight {
 			maxHeight = run.Image.Height
 		}
+		if run.InlineBoxHeight > maxHeight {
+			maxHeight = run.InlineBoxHeight
+		}
 	}
 	return maxHeight
 }
@@ -329,6 +502,10 @@ func (r resolvedRun) styleWithUnderline() fontstyle.Type {
 		return fontstyle.Type(string(r.Style) + "U")
 	}
 	return r.Style
+}
+
+func (r resolvedRun) hasFixedInlineBox() bool {
+	return r.InlineBoxWidth > 0 || r.InlineBoxHeight > 0
 }
 
 // translateUnicode applies the gofpdf Unicode translator for built-in font families

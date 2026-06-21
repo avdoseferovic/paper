@@ -264,6 +264,8 @@ func (f *PDF) Close() {
 
 type coreFontSet map[string]bool
 
+const coreFontZapfDingbats = "zapfdingbats"
+
 var standardPageSizes = map[string]SizeType{
 	"a3":      {841.89, 1190.55},
 	"a4":      {595.28, 841.89},
@@ -281,7 +283,7 @@ var coreFontNames = []string{
 	"helvetica",
 	"times",
 	"symbol",
-	"zapfdingbats",
+	coreFontZapfDingbats,
 }
 
 func cloneStandardPageSizes() map[string]SizeType {

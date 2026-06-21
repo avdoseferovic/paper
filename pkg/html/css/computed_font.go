@@ -25,9 +25,11 @@ func (s *ComputedStyle) applyFontProperty(ctx computedPropertyContext) bool {
 }
 
 func normFontWeight(val string) string {
-	switch val {
+	switch strings.ToLower(strings.TrimSpace(val)) {
 	case "bold", "bolder", "700", "800", "900":
 		return "bold"
+	case "500", "600":
+		return strings.TrimSpace(val)
 	default:
 		return "normal"
 	}

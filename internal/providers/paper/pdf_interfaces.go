@@ -60,20 +60,40 @@ type fontPDF interface {
 }
 
 type textPDF interface {
-	ClipEnd()
-	ClipRect(x, y, w, h float64, outline bool)
+	textMetricsPDF
+	textDrawingPDF
+	textImagePDF
+	textLinkPDF
+}
+
+type textMetricsPDF interface {
 	GetMargins() (left, top, right, bottom float64)
 	GetStringWidth(s string) float64
-	Image(imageNameStr string, x, y, w, h float64, flow bool, tp string, link int, linkStr string)
-	Link(x, y, w, h float64, link int)
-	LinkString(x, y, w, h float64, linkStr string)
+	UnicodeTranslatorFromDescriptor(cpStr string) func(string) string
+}
+
+type textDrawingPDF interface {
+	ClipEnd()
+	ClipRect(x, y, w, h float64, outline bool)
+	Ellipse(x, y, rx, ry, degRotate float64, styleStr string)
 	Rect(x, y, w, h float64, styleStr string)
-	RegisterImageOptionsReader(imgName string, options pdf.ImageOptions, r io.Reader) *pdf.ImageInfoType
+	RoundedRect(x, y, w, h, radius float64, corners string, stylestr string)
 	SetAlpha(alpha float64, blendModeStr string)
+	SetDrawColor(r, g, b int)
 	SetFillColor(r, g, b int)
+	SetLineWidth(width float64)
 	SetTextColor(r, g, b int)
 	Text(x, y float64, txtStr string)
-	UnicodeTranslatorFromDescriptor(cpStr string) func(string) string
+}
+
+type textImagePDF interface {
+	Image(imageNameStr string, x, y, w, h float64, flow bool, tp string, link int, linkStr string)
+	RegisterImageOptionsReader(imgName string, options pdf.ImageOptions, r io.Reader) *pdf.ImageInfoType
+}
+
+type textLinkPDF interface {
+	Link(x, y, w, h float64, link int)
+	LinkString(x, y, w, h float64, linkStr string)
 }
 
 type imagePDF interface {

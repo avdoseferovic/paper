@@ -68,6 +68,122 @@ func TestTypography_LetterSpacing_Propagated(t *testing.T) {
 	assert.InDelta(t, 0.176389, runs[0].LetterSpacing, 0.001)
 }
 
+func TestTypography_NumericSemiboldFontWeightPropagated(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		html string
+		want fontstyle.Type
+	}{
+		{name: "500", html: `<p style="font-weight:500">medium</p>`, want: fontstyle.Normal},
+		{name: "600", html: `<p style="font-weight:600">semi</p>`, want: fontstyle.Semibold},
+		{name: "600 italic", html: `<p style="font-weight:600;font-style:italic">semi</p>`, want: fontstyle.SemiboldItalic},
+		{name: "700 remains bold", html: `<p style="font-weight:700">bold</p>`, want: fontstyle.Bold},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			runs := runsFromHTML(t, tt.html)
+			require.NotEmpty(t, runs)
+			assert.Equal(t, tt.want, runs[0].Style)
+		})
+	}
+}
+
+func TestTypography_InlineLineHeightPropagated(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<p><span style="line-height:1.35">spaced</span></p>`)
+	require.NotEmpty(t, runs)
+	assert.InDelta(t, 1.35, runs[0].LineHeight, 0.001)
+}
+
+func TestTypography_StylesheetDeclarationsApplyDeterministically(t *testing.T) {
+	t.Parallel()
+
+	html := `<style>.chip{font-size:6.5pt;font-weight:bold;line-height:1.15;letter-spacing:0.05em;text-transform:uppercase}</style><p><span class="chip">psychisch</span></p>`
+	expectedLetterSpacing := 6.5 * 0.352778 * 0.05
+	for i := 0; i < 20; i++ {
+		runs := runsFromHTML(t, html)
+		require.Len(t, runs, 1)
+		assert.Equal(t, "PSYCHISCH", runs[0].Text)
+		assert.InDelta(t, expectedLetterSpacing, runs[0].LetterSpacing, 0.001)
+	}
+}
+
+func TestTypography_LetterSpacing_InheritedByFlexItem(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<style>.row{display:flex;letter-spacing:0.5pt;}.item{flex:1;}</style><div class="row"><span class="item">spaced</span></div>`)
+	require.NoError(t, err)
+
+	var rowNode, itemNode *dom.Node
+	doc.Walk(func(n *dom.Node) bool {
+		switch n.Tag() {
+		case "div":
+			rowNode = n
+		case "span":
+			itemNode = n
+		}
+		return true
+	})
+	require.NotNil(t, rowNode)
+	require.NotNil(t, itemNode)
+
+	inlineCSS, _ := doc.StyleSources()
+	tr := &translator{sheet: parseStylesheet(string(inlineCSS))}
+	rowStyle := computeNodeStyle(tr.sheet, rowNode, nil)
+	itemStyle := computeNodeStyle(tr.sheet, itemNode, rowStyle)
+	runs := tr.inlineRunsStyled(itemNode, blockInlineStyle(itemStyle))
+
+	require.NotEmpty(t, runs)
+	assert.InDelta(t, 0.176389, itemStyle.LetterSpacing, 0.001)
+	assert.InDelta(t, 0.176389, runs[0].LetterSpacing, 0.001)
+}
+
+func TestTypography_EmptyStyledInlineBoxProducesFixedRun(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<p><span style="display:inline-block;width:12px;height:12px;border:1px solid #ccd6dd;border-radius:3px"></span><span>Label</span></p>`)
+
+	require.Len(t, runs, 2)
+	assert.Equal(t, "", runs[0].Text)
+	assert.InDelta(t, 3.175, runs[0].InlineBoxWidth, 0.001)
+	assert.InDelta(t, 3.175, runs[0].InlineBoxHeight, 0.001)
+	require.NotNil(t, runs[0].BorderColor)
+	assert.Equal(t, "Label", runs[1].Text)
+}
+
+func TestTypography_EmptyStyledInlineBoxHonorsBorderBoxSizing(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>*{box-sizing:border-box}</style><p><span style="display:inline-block;width:12px;height:12px;border:1px solid #ccd6dd;border-radius:3px"></span><span>Label</span></p>`)
+
+	require.Len(t, runs, 2)
+	assert.Equal(t, "", runs[0].Text)
+	// CSS width/height are the outer border-box. Paper stores the content box
+	// and the inline painter adds the two 1px borders back during rendering.
+	assert.InDelta(t, 12*0.264583-2*0.264583, runs[0].InlineBoxWidth, 0.001)
+	assert.InDelta(t, 12*0.264583-2*0.264583, runs[0].InlineBoxHeight, 0.001)
+	require.NotNil(t, runs[0].BorderColor)
+	assert.Equal(t, "Label", runs[1].Text)
+}
+
+func TestTypography_InlineFlexGapBecomesRunMargin(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+		.choice{display:inline-flex;gap:6px}
+		.mk{width:12px;height:12px;border:1px solid #ccd6dd}
+	</style><p><span class="choice"><span class="mk"></span><span>Label</span></span></p>`)
+
+	require.Len(t, runs, 2)
+	assert.InDelta(t, 1.5875, runs[0].InlineMarginRight, 0.001)
+	assert.Equal(t, "Label", runs[1].Text)
+}
+
 func TestTypography_TextShadow_PropagatesMultipleShadows(t *testing.T) {
 	t.Parallel()
 
@@ -153,10 +269,11 @@ func TestTypography_VisibilityInheritedAndOverridable(t *testing.T) {
 func TestTypography_InlineCSSVerticalAlignMappedToRuns(t *testing.T) {
 	t.Parallel()
 
-	runs := runsFromHTML(t, `<p>H<span style="vertical-align:sub;font-size:9pt">2</span>O x<span style="vertical-align:super;font-size:9pt">2</span></p>`)
+	runs := runsFromHTML(t, `<p>H<span style="vertical-align:sub;font-size:9pt">2</span>O x<span style="vertical-align:super;font-size:9pt">2</span><span style="vertical-align:1.25mm">y</span></p>`)
 	require.NotEmpty(t, runs)
 
 	var foundSub, foundSuper bool
+	var foundOffset bool
 	for _, run := range runs {
 		switch run.Text {
 		case "2":
@@ -168,34 +285,60 @@ func TestTypography_InlineCSSVerticalAlignMappedToRuns(t *testing.T) {
 				assert.InDelta(t, 9.0, run.Size, 0.01)
 				foundSuper = true
 			}
+		case "y":
+			assert.InDelta(t, 1.25, run.VerticalOffset, 0.001)
+			foundOffset = true
 		}
 	}
 	assert.True(t, foundSub, "expected CSS vertical-align:sub run")
 	assert.True(t, foundSuper, "expected CSS vertical-align:super run")
+	assert.True(t, foundOffset, "expected CSS vertical-align length run")
 }
 
 func TestTypography_StylesheetInlineSelectorMappedToRuns(t *testing.T) {
 	t.Parallel()
 
-	runs := runsFromHTML(t, `<style>.chem{vertical-align:sub}.power{vertical-align:super}</style><p>H<span class="chem">2</span>O x<span class="power">2</span></p>`)
+	runs := runsFromHTML(t, `<style>.chem{vertical-align:sub}.power{vertical-align:super}.offset{vertical-align:1.25mm}</style><p>H<span class="chem">2</span>O x<span class="power">2</span><span class="offset">y</span></p>`)
 	require.NotEmpty(t, runs)
 
-	var foundSub, foundSuper bool
+	var foundSub, foundSuper, foundOffset bool
 	for _, run := range runs {
-		if run.Text != "2" {
-			continue
+		switch run.Text {
+		case "2":
+			foundSub = foundSub || run.VerticalAlign == "sub"
+			foundSuper = foundSuper || run.VerticalAlign == "super"
+		case "y":
+			assert.InDelta(t, 1.25, run.VerticalOffset, 0.001)
+			foundOffset = true
 		}
-		foundSub = foundSub || run.VerticalAlign == "sub"
-		foundSuper = foundSuper || run.VerticalAlign == "super"
 	}
 	assert.True(t, foundSub, "expected stylesheet subscript run")
 	assert.True(t, foundSuper, "expected stylesheet superscript run")
+	assert.True(t, foundOffset, "expected stylesheet vertical-align length run")
+}
+
+func TestTypography_StylesheetInlineBoxSelectorKeepsVerticalOffset(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>.r2 .practice-mark{background:#277691;padding:6px 10px;vertical-align:2mm}</style><body class="r2"><p><span class="practice-mark">GP</span> Practice</p></body>`)
+	require.NotEmpty(t, runs)
+
+	var found bool
+	for _, run := range runs {
+		if run.Text != "GP" {
+			continue
+		}
+		require.NotNil(t, run.Background)
+		assert.InDelta(t, 2.0, run.VerticalOffset, 0.001)
+		found = true
+	}
+	assert.True(t, found, "expected practice mark run")
 }
 
 func TestTypography_InlineCSSMappedToRichRun(t *testing.T) {
 	t.Parallel()
 
-	runs := runsFromHTML(t, `<p><span style="font-family:'Courier New', monospace;font-weight:bold;font-style:italic;text-decoration:underline line-through;background-color:#eee;color:red">styled</span></p>`)
+	runs := runsFromHTML(t, `<p><span style="font-family:'Courier New', monospace;font-weight:bold;font-style:italic;text-decoration:underline line-through;background-color:#eee;color:red;padding:1mm 2mm;margin-left:2mm;margin-right:3mm;border:0.5mm solid #dde5e9">styled</span></p>`)
 	require.Len(t, runs, 1)
 
 	run := runs[0]
@@ -206,6 +349,89 @@ func TestTypography_InlineCSSMappedToRichRun(t *testing.T) {
 	require.NotNil(t, run.Background)
 	require.NotNil(t, run.Color)
 	assert.Equal(t, 255, run.Color.Red)
+	assert.Equal(t, 2.0, run.BgPadX)
+	assert.Equal(t, 1.0, run.BgPadY)
+	require.NotNil(t, run.BorderColor)
+	assert.Equal(t, 221, run.BorderColor.Red)
+	assert.Equal(t, 229, run.BorderColor.Green)
+	assert.Equal(t, 233, run.BorderColor.Blue)
+	assert.Equal(t, 0.5, run.BorderWidth)
+	assert.Equal(t, 2.0, run.InlineMarginLeft)
+	assert.Equal(t, 3.0, run.InlineMarginRight)
+}
+
+func TestTypography_NestedInlineBoxSharesParentPill(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+.chip{background:#f8f9fa;border:0.5mm solid #dde5e9;border-radius:9999px;padding:1mm 2mm;color:#46535f}
+.dot{color:#277691}
+</style><p><span class="chip"><span class="dot">•</span>&nbsp;Barthel</span></p>`)
+	require.GreaterOrEqual(t, len(runs), 2)
+
+	boxID := runs[0].InlineBoxID
+	require.True(t, boxID > 0)
+	for _, run := range runs {
+		assert.Equal(t, boxID, run.InlineBoxID)
+		require.NotNil(t, run.Background)
+		require.NotNil(t, run.BorderColor)
+		assert.Equal(t, 0.5, run.BorderWidth)
+		assert.Equal(t, 2.0, run.BgPadX)
+		assert.Equal(t, 1.0, run.BgPadY)
+	}
+	require.NotNil(t, runs[0].Color)
+	assert.Equal(t, 39, runs[0].Color.Red)
+	require.NotNil(t, runs[len(runs)-1].Color)
+	assert.Equal(t, 70, runs[len(runs)-1].Color.Red)
+}
+
+func TestTypography_NestedInlineBoxCarriesBoxShadow(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+.chip{background:#fff;border-radius:9999px;padding:1mm 2mm;box-shadow:0 1mm 2mm rgba(0,0,0,0.2)}
+.dot{color:#277691}
+</style><p><span class="chip"><span class="dot">•</span>&nbsp;Barthel</span></p>`)
+	require.GreaterOrEqual(t, len(runs), 2)
+
+	boxID := runs[0].InlineBoxID
+	require.True(t, boxID > 0)
+	for _, run := range runs {
+		assert.Equal(t, boxID, run.InlineBoxID)
+		require.Len(t, run.BoxShadows, 1)
+		assert.InDelta(t, 1.0, run.BoxShadows[0].OffsetY, 0.001)
+		assert.InDelta(t, 2.0, run.BoxShadows[0].BlurRadius, 0.001)
+		require.NotNil(t, run.BoxShadows[0].Color)
+		require.NotNil(t, run.BoxShadows[0].Color.Alpha)
+		assert.InDelta(t, 0.2, *run.BoxShadows[0].Color.Alpha, 0.001)
+	}
+}
+
+func TestTypography_InlineBoxKeepsAsymmetricHorizontalPadding(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+.chip{background:#f8f9fa;border-radius:9999px;padding:1mm 3mm 1mm 2mm;color:#46535f}
+</style><p><span class="chip">Barthel</span></p>`)
+	require.NotEmpty(t, runs)
+
+	for _, run := range runs {
+		assert.Equal(t, 2.0, run.BgPadLeft)
+		assert.Equal(t, 3.0, run.BgPadRight)
+	}
+}
+
+func TestTypography_InlineWhiteSpaceNowrapMappedToRun(t *testing.T) {
+	t.Parallel()
+
+	runs := runsFromHTML(t, `<style>
+	.choice{white-space:nowrap;background:#eef6f8;border-radius:9999px;padding:1mm 2mm}
+	</style><p><span class="choice">two words</span></p>`)
+	require.NotEmpty(t, runs)
+
+	for _, run := range runs {
+		assert.Equal(t, "nowrap", run.WhiteSpace)
+	}
 }
 
 func TestTypography_PseudoElementsGenerateStyledContent(t *testing.T) {
@@ -245,7 +471,7 @@ func TestTypography_PseudoElementContentSupportsURLImage(t *testing.T) {
 
 	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(minimalPNG(t))
 	runs := runsFromHTML(t, `<style>
-p::before { content:url("`+uri+`") " "; width:2mm; height:3mm }
+p::before { content:url("`+uri+`") " "; display:inline-block; width:2mm; height:3mm }
 </style><p>Label</p>`)
 	require.Len(t, runs, 3)
 	require.NotNil(t, runs[0].Image)
@@ -261,6 +487,21 @@ func TestTypography_PseudoElementContentSupportsURLSVG(t *testing.T) {
 
 	uri := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(minimalSVG))
 	runs := runsFromHTML(t, `<style>
+p::before { content:url("`+uri+`") " "; display:inline-block; width:3mm; height:3mm }
+</style><p>Vector</p>`)
+	require.Len(t, runs, 3)
+	require.NotNil(t, runs[0].Image)
+	assert.Equal(t, extension.Png, runs[0].Image.Extension)
+	assert.InDelta(t, 3.0, runs[0].Image.Width, 0.001)
+	assert.InDelta(t, 3.0, runs[0].Image.Height, 0.001)
+	assert.Equal(t, "Vector", runs[2].Text)
+}
+
+func TestTypography_PseudoElementContentURLInlineUsesExplicitSize(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(minimalSVG))
+	runs := runsFromHTML(t, `<style>
 p::before { content:url("`+uri+`") " "; width:3mm; height:3mm }
 </style><p>Vector</p>`)
 	require.Len(t, runs, 3)
@@ -268,6 +509,21 @@ p::before { content:url("`+uri+`") " "; width:3mm; height:3mm }
 	assert.Equal(t, extension.Png, runs[0].Image.Extension)
 	assert.InDelta(t, 3.0, runs[0].Image.Width, 0.001)
 	assert.InDelta(t, 3.0, runs[0].Image.Height, 0.001)
+	assert.Equal(t, "Vector", runs[2].Text)
+}
+
+func TestTypography_PseudoElementContentURLInlineWithoutSizeUsesIntrinsicSize(t *testing.T) {
+	t.Parallel()
+
+	uri := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(minimalSVG))
+	runs := runsFromHTML(t, `<style>
+p::before { content:url("`+uri+`") " " }
+</style><p>Vector</p>`)
+	require.Len(t, runs, 3)
+	require.NotNil(t, runs[0].Image)
+	assert.Equal(t, extension.Png, runs[0].Image.Extension)
+	assert.InDelta(t, 32.0*0.264583, runs[0].Image.Width, 0.001)
+	assert.InDelta(t, 32.0*0.264583, runs[0].Image.Height, 0.001)
 	assert.Equal(t, "Vector", runs[2].Text)
 }
 

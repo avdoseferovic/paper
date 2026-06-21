@@ -55,6 +55,27 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 114, cells[0].Style.BackgroundColor.Blue) // 0x72 = 114
 	})
 
+	t.Run("tr background gradient propagates to cell when cell has no own background", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr style="background-image:linear-gradient(to right, red, blue)"><td>Cell</td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Style, "cell Style should be set from row background gradient")
+		require.NotNil(t, cells[0].Style.BackgroundGradient)
+		assert.Equal(t, 90.0, cells[0].Style.BackgroundGradient.AngleDeg)
+		require.Len(t, cells[0].Style.BackgroundGradient.Stops, 2)
+		assert.Equal(t, 255, cells[0].Style.BackgroundGradient.Stops[0].Color.Red)
+		assert.Equal(t, 255, cells[0].Style.BackgroundGradient.Stops[1].Color.Blue)
+	})
+
 	t.Run("cell's own background wins over row background", func(t *testing.T) {
 		t.Parallel()
 		tr, doc := parseTranslator(t, `<html><body><table>
@@ -109,6 +130,78 @@ func TestBuildCell_RowStyleBackground(t *testing.T) {
 		assert.Equal(t, 3.0, cells[0].Style.PaddingRight)
 		assert.Equal(t, 4.0, cells[0].Style.PaddingBottom)
 		assert.Equal(t, 5.0, cells[0].Style.PaddingLeft)
+	})
+
+	t.Run("cell text alignment is carried into rich text content", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><td style="text-align:right">Value</td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Content)
+		details := cells[0].Content.GetStructure().GetData().Details
+		assert.Equal(t, consts.AlignRight, details["align"])
+	})
+
+	t.Run("cell line breaks are preserved in rich text content", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><td>Title<br><span>Subtitle</span></td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		require.NotNil(t, cells[0].Content)
+		assert.Equal(t, "Title\nSubtitle", cells[0].Content.GetStructure().GetData().Value)
+	})
+
+	t.Run("explicit td height is carried without dummy text for empty cells", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr><td style="height:1.4mm;vertical-align:middle;background-color:#277691"></td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		assert.Equal(t, 1.4, cells[0].Height)
+		assert.Equal(t, "middle", cells[0].VerticalAlign)
+		assert.Nil(t, cells[0].Content)
+		require.NotNil(t, cells[0].Style)
+		require.NotNil(t, cells[0].Style.BackgroundColor)
+	})
+
+	t.Run("explicit tr height is used as cell height fallback", func(t *testing.T) {
+		t.Parallel()
+		tr, doc := parseTranslator(t, `<html><body><table>
+			<tr style="height:2mm"><td style="background-color:#277691"></td></tr>
+		</table></body></html>`)
+
+		trNode := findNode(doc, "tr")
+		require.NotNil(t, trNode)
+
+		rowStyle := computeNodeStyle(tr.sheet, trNode, nil)
+		cells := tr.buildRow(trNode, rowStyle)
+
+		require.Len(t, cells, 1)
+		assert.Equal(t, 2.0, cells[0].Height)
+		assert.Nil(t, cells[0].Content)
 	})
 
 	t.Run("built-in table header padding applies when css omits padding", func(t *testing.T) {
@@ -193,6 +286,99 @@ func TestTranslate_TableRowStyle_Integration(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
+}
+
+func TestTranslate_TableWidthAndAlignOptions(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><table style="width:34mm;text-align:right"><tr><td>Ja</td><td>Nein</td></tr></table></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var found bool
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type != "table" {
+			return
+		}
+		found = true
+		assert.Equal(t, 34.0, s.Details["preferred_width"])
+		assert.Equal(t, "right", s.Details["align"])
+	})
+	assert.True(t, found, "expected table structure")
+}
+
+func TestTranslate_TableAutoWidthUsesAbsoluteColgroupSum(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><table style="width:auto;text-align:right">
+		<colgroup><col width="5mm"><col width="10mm"><col width="15mm"></colgroup>
+		<tr><td>A</td><td>B</td><td>C</td></tr>
+	</table></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "table" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, 30.0, details["preferred_width"])
+	assert.Equal(t, "right", details["align"])
+	assert.InDeltaSlice(t, []float64{1.0 / 6.0, 1.0 / 3.0, 0.5}, details["column_widths"], 0.0001)
+}
+
+func TestTranslate_TableBorderSpacingOption(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><table style="width:28mm;border-spacing:2mm 1mm"><tr><td>Ja</td><td>Nein</td></tr></table></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "table" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, 28.0, details["preferred_width"])
+	assert.Equal(t, 2.0, details["border_spacing_x"])
+	assert.Equal(t, 1.0, details["border_spacing_y"])
+}
+
+func TestTranslate_TableWidthResolvesAgainstParentContext(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><head><style>
+		.wrap { width:80mm }
+		table.inner { width:50%; text-align:right }
+	</style></head><body><div class="wrap"><table class="inner"><tr><td>A</td></tr></table></div></body></html>`)
+	require.NoError(t, err)
+
+	rows, err := Translate(context.Background(), doc, WithContentWidth(170))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "table" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.Equal(t, 40.0, details["preferred_width"])
+	assert.Equal(t, "right", details["align"])
 }
 
 func TestTranslate_TableColgroupWidths(t *testing.T) {

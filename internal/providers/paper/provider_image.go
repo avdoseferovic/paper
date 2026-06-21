@@ -53,7 +53,7 @@ func (g *provider) AddBackgroundImageFromBytes(bytes []byte, cell *entity.Cell, 
 		return
 	}
 
-	err = g.image.Add(img, cell, g.cfg.Margins, prop, extension, true)
+	err = g.image.Add(img, cell, g.cfg.Margins, prop, extension, false)
 	if err != nil {
 		message := "could not add image to document"
 		g.recordRenderIssue("background_image.add", message, err)
