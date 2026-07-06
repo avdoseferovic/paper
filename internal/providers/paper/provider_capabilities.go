@@ -60,8 +60,14 @@ func (g *provider) SetCursor(x, y float64) {
 // by absolute coordinates and do not reliably trigger gofpdf's cursor-based
 // automatic page break between logical pages.
 func (g *provider) EnsurePage(pageNumber int) {
-	for g.fpdf.PageNo() < pageNumber {
+	current := g.fpdf.PageNo()
+	for current < pageNumber {
 		g.fpdf.AddPage()
+		next := g.fpdf.PageNo()
+		if next <= current {
+			return
+		}
+		current = next
 	}
 }
 

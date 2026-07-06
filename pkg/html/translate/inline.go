@@ -51,6 +51,7 @@ func (tr *translator) styledRunContext(style *css.ComputedStyle) runContext {
 		style:          style,
 		counters:       counters,
 		quotes:         quotes,
+		inlineBoxSeq:   &tr.inlineBoxSeq,
 		styleResolver:  tr.computeInlineStyle,
 		pseudoResolver: tr.computePseudoStyle,
 	}
@@ -70,6 +71,10 @@ func inlineRunsWithContext(n *dom.Node, ctx runContext) []props.RichRun {
 	}
 	if ctx.quotes == nil {
 		ctx.quotes = newQuoteState()
+	}
+	if ctx.inlineBoxSeq == nil {
+		seq := 0
+		ctx.inlineBoxSeq = &seq
 	}
 	var runs []props.RichRun
 	if n != nil && n.Tag() != "" {
@@ -108,6 +113,8 @@ type runContext struct {
 	style          *css.ComputedStyle
 	counters       *counterState
 	quotes         *quoteState
+	inlineBox      *inlineBoxStyle
+	inlineBoxSeq   *int
 	styleResolver  func(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle
 	pseudoResolver func(n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle
 }
@@ -141,12 +148,19 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	if isDisplayNone(n) || (next.style != nil && next.style.Display == displayNone) {
 		return
 	}
+	if box, ok := inlineBoxFromStyle(next.style, ctx.style); ok {
+		*next.inlineBoxSeq++
+		box.ID = *next.inlineBoxSeq
+		next.inlineBox = &box
+	}
 	counterScope := next.counters.enter(next.style)
 	defer next.counters.exit(counterScope)
-	if tag == "picture" && ctx.inlinePicture != nil {
+	if tag == tagPicture && ctx.inlinePicture != nil {
 		if img, ok := ctx.inlinePicture(n); ok {
 			run := richRunFromContext("", next)
 			run.Image = img
+			run.InlineBoxWidth = 0
+			run.InlineBoxHeight = 0
 			*runs = append(*runs, run)
 			return
 		}
@@ -158,17 +172,64 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	appendGeneratedContent(n, next, "before", runs)
 	if tag == "q" {
 		*runs = append(*runs, richRunFromContext(next.quotes.open(next.style), next))
-		for _, c := range n.Children() {
-			walkInline(c, next, runs)
-		}
+		walkInlineChildren(n, next, runs)
 		*runs = append(*runs, richRunFromContext(next.quotes.close(next.style), next))
 		appendGeneratedContent(n, next, "after", runs)
 		return
 	}
-	for _, c := range n.Children() {
-		walkInline(c, next, runs)
+	beforeChildren := len(*runs)
+	walkInlineChildren(n, next, runs)
+	if len(*runs) == beforeChildren && shouldEmitEmptyInlineBox(next.style) {
+		*runs = append(*runs, richRunFromContext("", next))
 	}
 	appendGeneratedContent(n, next, "after", runs)
+}
+
+func walkInlineChildren(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
+	children := n.Children()
+	for i, c := range children {
+		before := len(*runs)
+		walkInline(c, ctx, runs)
+		if shouldApplyInlineFlexGap(ctx.style, children, i) {
+			addInlineGapToLastRun(runs, before, ctx.style.ColumnGap)
+		}
+	}
+}
+
+func shouldApplyInlineFlexGap(style *css.ComputedStyle, children []*dom.Node, idx int) bool {
+	if style == nil || style.Display != displayFlex || style.ColumnGap <= 0 {
+		return false
+	}
+	for i := idx + 1; i < len(children); i++ {
+		if !isWhitespaceNode(children[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+func addInlineGapToLastRun(runs *[]props.RichRun, before int, gap float64) {
+	if gap <= 0 || len(*runs) <= before {
+		return
+	}
+	for i := len(*runs) - 1; i >= before; i-- {
+		if (*runs)[i].ForceBreak {
+			continue
+		}
+		(*runs)[i].InlineMarginRight += gap
+		return
+	}
+}
+
+func shouldEmitEmptyInlineBox(style *css.ComputedStyle) bool {
+	if style == nil {
+		return false
+	}
+	if style.Width <= 0 && style.Height <= 0 {
+		return false
+	}
+	box, ok := inlineBoxFromStyle(style, nil)
+	return ok && (box.BorderColor != nil || box.Background != nil || len(box.BoxShadows) > 0)
 }
 
 func appendGeneratedContent(n *dom.Node, ctx runContext, pseudo string, runs *[]props.RichRun) {
@@ -226,7 +287,59 @@ func richRunFromContext(text string, ctx runContext) props.RichRun {
 		}
 	}
 	applyInlineStyleToRun(ctx.style, &run)
+	applyInlineBoxToRun(ctx.inlineBox, &run)
 	return run
+}
+
+func applyInlineBoxToRun(box *inlineBoxStyle, run *props.RichRun) {
+	if box == nil || run == nil {
+		return
+	}
+	run.InlineBoxID = box.ID
+	if box.Background != nil && run.Background == nil {
+		run.Background = props.CloneColor(box.Background)
+	}
+	if box.BorderColor != nil && run.BorderColor == nil {
+		run.BorderColor = props.CloneColor(box.BorderColor)
+	}
+	if box.BorderWidth > 0 && run.BorderWidth == 0 {
+		run.BorderWidth = box.BorderWidth
+	}
+	if box.Radius > 0 && run.BgRadius == 0 {
+		run.BgRadius = box.Radius
+	}
+	if box.PadLeft == box.PadRight && box.PadLeft > 0 && run.BgPadX == 0 {
+		run.BgPadX = box.PadLeft
+	}
+	if box.PadLeft > 0 && run.BgPadLeft == 0 {
+		run.BgPadLeft = box.PadLeft
+	}
+	if box.PadRight > 0 && run.BgPadRight == 0 {
+		run.BgPadRight = box.PadRight
+	}
+	if box.PadY > 0 && run.BgPadY == 0 {
+		run.BgPadY = box.PadY
+	}
+	if box.MarginLeft > 0 && run.InlineMarginLeft == 0 {
+		run.InlineMarginLeft = box.MarginLeft
+	}
+	if box.MarginRight > 0 && run.InlineMarginRight == 0 {
+		run.InlineMarginRight = box.MarginRight
+	}
+	if len(box.BoxShadows) > 0 && len(run.BoxShadows) == 0 {
+		run.BoxShadows = clonePropShadows(box.BoxShadows)
+	}
+}
+
+func clonePropShadows(shadows []props.Shadow) []props.Shadow {
+	if shadows == nil {
+		return nil
+	}
+	clone := make([]props.Shadow, len(shadows))
+	for i, shadow := range shadows {
+		clone[i] = props.CloneShadow(shadow)
+	}
+	return clone
 }
 
 // handleSelfClosing handles tags that emit a run directly without recursion.
@@ -234,13 +347,15 @@ func richRunFromContext(text string, ctx runContext) props.RichRun {
 func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.RichRun) bool {
 	switch tag {
 	case "br":
-		*runs = append(*runs, props.RichRun{Text: "\n", Style: ctx.toStyle()})
+		*runs = append(*runs, props.RichRun{Text: "\n", ForceBreak: true, Style: ctx.toStyle()})
 		return true
 	case tagImg:
 		if ctx.inlineImage != nil {
 			if img, ok := ctx.inlineImage(n); ok {
 				run := richRunFromContext("", ctx)
 				run.Image = img
+				run.InlineBoxWidth = 0
+				run.InlineBoxHeight = 0
 				*runs = append(*runs, run)
 				return true
 			}
@@ -254,6 +369,8 @@ func handleSelfClosing(tag string, n *dom.Node, ctx runContext, runs *[]props.Ri
 			if img, ok := ctx.inlineSVG(n); ok {
 				run := richRunFromContext("", ctx)
 				run.Image = img
+				run.InlineBoxWidth = 0
+				run.InlineBoxHeight = 0
 				*runs = append(*runs, run)
 				return true
 			}

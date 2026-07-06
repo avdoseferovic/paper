@@ -29,7 +29,7 @@ type stylesheet struct {
 
 type compiledRule struct {
 	matcher      cascadia.Sel
-	declarations map[string]string
+	declarations []cssDeclaration
 	order        int // source order (lower = earlier in stylesheet text)
 }
 
@@ -115,14 +115,7 @@ func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM flo
 	if rule.kind != qualifiedRule {
 		return
 	}
-	decls := make(map[string]string, len(rule.declarations))
-	for _, d := range rule.declarations {
-		if d.property == "" {
-			continue
-		}
-		decls[d.property] = d.value
-	}
-	decls = css.ExpandShorthands(decls)
+	decls := expandDeclarationsInOrder(rule.declarations)
 	for _, sel := range rule.selectors {
 		baseSelector, pseudo := splitPseudoElementSelector(sel)
 		m, err := cascadia.Parse(baseSelector)
@@ -144,6 +137,25 @@ func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM flo
 		}
 		s.rules = append(s.rules, compiled)
 	}
+}
+
+func expandDeclarationsInOrder(declarations []cssDeclaration) []cssDeclaration {
+	expanded := make([]cssDeclaration, 0, len(declarations))
+	for _, d := range declarations {
+		if d.property == "" {
+			continue
+		}
+		parts := css.ExpandShorthands(map[string]string{d.property: d.value})
+		keys := make([]string, 0, len(parts))
+		for prop := range parts {
+			keys = append(keys, prop)
+		}
+		sort.Strings(keys)
+		for _, prop := range keys {
+			expanded = append(expanded, cssDeclaration{property: prop, value: parts[prop]})
+		}
+	}
+	return expanded
 }
 
 func mediaAppliesToPrintAtWidth(prelude string, contentWidthMM float64) bool {
@@ -300,8 +312,8 @@ func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, pare
 		return matching[i].order < matching[j].order
 	})
 	for _, rule := range matching {
-		for prop, val := range rule.declarations {
-			style.ApplyCtx(prop, val, parent, ctxWidth)
+		for _, declaration := range rule.declarations {
+			style.ApplyCtx(declaration.property, declaration.value, parent, ctxWidth)
 		}
 	}
 }
@@ -334,8 +346,8 @@ func (s *stylesheet) applyPseudoToNodeCtx(
 		return matching[i].order < matching[j].order
 	})
 	for _, rule := range matching {
-		for prop, val := range rule.declarations {
-			style.ApplyCtx(prop, val, parent, ctxWidth)
+		for _, declaration := range rule.declarations {
+			style.ApplyCtx(declaration.property, declaration.value, parent, ctxWidth)
 		}
 	}
 }

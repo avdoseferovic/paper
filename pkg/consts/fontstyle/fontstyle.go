@@ -9,10 +9,14 @@ const (
 	Normal Type = ""
 	// Bold represents a bold style.
 	Bold Type = "B"
+	// Semibold represents a medium/semibold style.
+	Semibold Type = "M"
 	// Italic represents an italic style.
 	Italic Type = "I"
 	// BoldItalic represents a bold and italic style.
 	BoldItalic Type = Bold + Italic
+	// SemiboldItalic represents a semibold and italic style.
+	SemiboldItalic Type = Semibold + Italic
 	// Underline represents underlined style.
 	Underline Type = "U"
 	// Strikethrough represents strike-through style.
@@ -27,7 +31,9 @@ func (s Type) IsValid() bool {
 			Normal,
 			Italic,
 			Bold,
+			Semibold,
 			BoldItalic,
+			SemiboldItalic,
 			Underline,
 			Strikethrough:
 		default:

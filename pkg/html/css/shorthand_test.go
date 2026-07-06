@@ -22,7 +22,8 @@ func TestNormFontWeight(t *testing.T) {
 		{name: "normal keyword", val: "normal", want: "normal"},
 		{name: "lighter keyword", val: "lighter", want: "normal"},
 		{name: "numeric 400 below bold threshold", val: "400", want: "normal"},
-		{name: "numeric 600 below bold threshold", val: "600", want: "normal"},
+		{name: "numeric 500 semibold", val: "500", want: "500"},
+		{name: "numeric 600 semibold", val: "600", want: "600"},
 		{name: "empty", val: "", want: "normal"},
 		{name: "unknown", val: "heavy", want: "normal"},
 	}

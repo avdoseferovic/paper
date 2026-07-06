@@ -116,3 +116,103 @@ func TestMultiCellJustifiedRTLUsesRightAlignment(t *testing.T) {
 	}
 	mustOutput(t, f)
 }
+
+func TestUTF8NonBreakingSpaceUsesSpaceAdvance(t *testing.T) {
+	f := &PDF{
+		isCurrentUTF8: true,
+		currentFont: fontDefType{
+			Cw: make([]int, 256*256),
+		},
+	}
+	f.currentFont.Cw[' '] = 250
+	f.currentFont.Cw['\u00a0'] = 65535
+	f.fontSize = 10
+
+	space := f.GetStringWidth(" ")
+	nbsp := f.GetStringWidth("\u00a0")
+	if nbsp != space {
+		t.Fatalf("NBSP width = %v, want regular space width %v", nbsp, space)
+	}
+}
+
+func TestUTF8TextFallsBackToRegisteredFontForUnsupportedRune(t *testing.T) {
+	f := fallbackFontTestPDF()
+
+	if got, want := f.GetStringWidth("A\u2264"), 13.0; got != want {
+		t.Fatalf("fallback-aware width = %v, want %v", got, want)
+	}
+
+	f.Text(10, 20, "A\u2264A")
+
+	body := f.buffer.String()
+	if !strings.Contains(body, "/F1") || !strings.Contains(body, "/F2") {
+		t.Fatalf("expected text operations to select both primary and fallback fonts, got:\n%s", body)
+	}
+	if _, ok := f.fonts["primary"].usedRunes[0x2264]; ok {
+		t.Fatalf("primary font should not be assigned unsupported <= rune")
+	}
+	if got := f.fonts["fallback"].usedRunes[0x2264]; got != 0x2264 {
+		t.Fatalf("fallback font used rune = %x, want 2264", got)
+	}
+}
+
+func TestUTF8CellFormatFallsBackToRegisteredFontForUnsupportedRune(t *testing.T) {
+	f := fallbackFontTestPDF()
+
+	f.CellFormat(40, 10, "A\u2264A", "", 0, "L", false, 0, "")
+
+	body := f.buffer.String()
+	if !strings.Contains(body, "/F1") || !strings.Contains(body, "/F2") {
+		t.Fatalf("expected cell text operations to select both primary and fallback fonts, got:\n%s", body)
+	}
+	if _, ok := f.fonts["primary"].usedRunes[0x2264]; ok {
+		t.Fatalf("primary font should not be assigned unsupported <= rune")
+	}
+	if got := f.fonts["fallback"].usedRunes[0x2264]; got != 0x2264 {
+		t.Fatalf("fallback font used rune = %x, want 2264", got)
+	}
+}
+
+func fallbackFontTestPDF() *PDF {
+	primary := fallbackTestFont("primary", "1", map[rune]int{
+		'A': 600,
+		' ': 250,
+	})
+	fallback := fallbackTestFont("fallback", "2", map[rune]int{
+		'\u2264': 700,
+	})
+	return &PDF{
+		k:                1,
+		h:                100,
+		page:             1,
+		fontSize:         10,
+		fontSizePt:       10,
+		fonts:            map[string]fontDefType{"primary": primary, "fallback": fallback},
+		currentFont:      primary,
+		isCurrentUTF8:    true,
+		x:                10,
+		y:                10,
+		pageBreakTrigger: 1000,
+	}
+}
+
+func fallbackTestFont(name, id string, widths map[rune]int) fontDefType {
+	cw := make([]int, 256*256)
+	cmap := make(map[int]int, len(widths))
+	for r, w := range widths {
+		cw[int(r)] = w
+		cmap[int(r)] = int(r)
+	}
+	return fontDefType{
+		Tp:        fontTypeUTF8,
+		Name:      name,
+		i:         id,
+		Cw:        cw,
+		CwExtra:   map[int]int{},
+		usedRunes: map[int]int{},
+		runeToCID: map[int]int{},
+		utf8File: &utf8FontFile{
+			charSymbolDictionary: cmap,
+		},
+	}
+}

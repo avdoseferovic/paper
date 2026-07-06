@@ -72,6 +72,30 @@ type Row interface {
 	Render(provider Provider, cell entity.Cell)
 }
 
+// PageControl carries non-content pagination directives consumed by the page
+// builder. It is intentionally small: HTML translation can emit a control row
+// without depending on the concrete paper builder.
+type PageControl struct {
+	Blank                     bool
+	SuppressFooter            bool
+	SuppressPageNumber        bool
+	CountPageNumber           bool
+	DecorFirstPageOnly        bool
+	TopMargin                 *float64
+	TopMarginFirstPageOnly    bool
+	ContinuationTopMargin     *float64
+	RenderOffsetX             *float64
+	RenderOffsetY             *float64
+	RenderOffsetFirstPageOnly bool
+	ContinuationRenderOffsetX *float64
+	ContinuationRenderOffsetY *float64
+}
+
+// PageController marks a zero-content Row as a pagination control directive.
+type PageController interface {
+	PageControl() PageControl
+}
+
 // Page is the interface that wraps the basic methods of a page.
 type Page interface {
 	Node

@@ -447,13 +447,9 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 		size = f.fontSizePt
 	}
 
-	fontKey := familyStr + styleStr
-	if _, ok := f.fonts[fontKey]; !ok {
-		var loaded bool
-		familyStr, styleStr, fontKey, loaded = f.loadCoreFont(familyStr, styleStr)
-		if !loaded {
-			return
-		}
+	familyStr, styleStr, fontKey, ok := f.resolveFont(familyStr, styleStr)
+	if !ok {
+		return
 	}
 
 	f.fontFamily = familyStr
@@ -469,6 +465,53 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 	if f.page > 0 {
 		f.outf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
 	}
+}
+
+func (f *PDF) resolveFont(familyStr, styleStr string) (string, string, string, bool) {
+	fontKey := familyStr + styleStr
+	if _, ok := f.fonts[fontKey]; ok {
+		return familyStr, styleStr, fontKey, true
+	}
+	if !f.isCoreFontFamily(familyStr) {
+		if fallbackKey, fallbackStyle, ok := f.customFontStyleFallback(familyStr, styleStr); ok {
+			return familyStr, fallbackStyle, fallbackKey, true
+		}
+	}
+	return f.loadCoreFont(familyStr, styleStr)
+}
+
+func (f *PDF) isCoreFontFamily(familyStr string) bool {
+	switch familyStr {
+	case "arial":
+		familyStr = "helvetica"
+	case "symbol":
+		familyStr = coreFontZapfDingbats
+	}
+	_, ok := f.coreFonts[familyStr]
+	return ok
+}
+
+func (f *PDF) customFontStyleFallback(familyStr, styleStr string) (string, string, bool) {
+	var candidates []string
+	switch styleStr {
+	case "BI":
+		candidates = []string{"B", "I", ""}
+	case "MI":
+		candidates = []string{"M", "I", ""}
+	case "M":
+		candidates = []string{""}
+	case "B", "I":
+		candidates = []string{""}
+	default:
+		return "", "", false
+	}
+	for _, candidate := range candidates {
+		key := familyStr + candidate
+		if _, found := f.fonts[key]; found {
+			return key, candidate, true
+		}
+	}
+	return "", "", false
 }
 
 func (f *PDF) normalizedFontFamily(familyStr string) string {
@@ -488,6 +531,9 @@ func (f *PDF) normalizedFontStyle(styleStr string) string {
 	if styleStr == "IB" {
 		return "BI"
 	}
+	if styleStr == "IM" {
+		return "MI"
+	}
 	return styleStr
 }
 
@@ -500,11 +546,12 @@ func (f *PDF) loadCoreFont(familyStr, styleStr string) (string, string, string, 
 		return familyStr, styleStr, familyStr + styleStr, false
 	}
 	if familyStr == "symbol" {
-		familyStr = "zapfdingbats"
+		familyStr = coreFontZapfDingbats
 	}
-	if familyStr == "zapfdingbats" {
+	if familyStr == coreFontZapfDingbats {
 		styleStr = ""
 	}
+	styleStr = f.coreFontStyleFallback(familyStr, styleStr)
 
 	fontKey := familyStr + styleStr
 	if _, ok := f.fonts[fontKey]; ok {
@@ -515,6 +562,25 @@ func (f *PDF) loadCoreFont(familyStr, styleStr string) (string, string, string, 
 		f.AddFontFromReader(familyStr, styleStr, rdr)
 	}
 	return familyStr, styleStr, fontKey, f.err == nil
+}
+
+func (f *PDF) coreFontStyleFallback(familyStr, styleStr string) string {
+	switch styleStr {
+	case "MI":
+		if f.coreFontDefinitionExists(familyStr, "I") {
+			return "I"
+		}
+		return ""
+	case "M":
+		return ""
+	default:
+		return styleStr
+	}
+}
+
+func (f *PDF) coreFontDefinitionExists(familyStr, styleStr string) bool {
+	_, err := coreFontFS.ReadFile("embedded/fonts/" + familyStr + styleStr + ".json")
+	return err == nil
 }
 
 // SetFontStyle sets the style of the current font. See also SetFont()

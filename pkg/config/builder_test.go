@@ -921,6 +921,323 @@ func TestCfgBuilder_WithBackgroundImage(t *testing.T) {
 	})
 }
 
+func TestCfgBuilder_WithBackgroundImageAt(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned background, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithBackgroundImageAt([]byte{1, 2, 3}, extension.Png, 4, 5, 6, 7).Build()
+
+		// Assert
+		assert.Equal(t, []byte{1, 2, 3}, cfg.BackgroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.BackgroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 4, Y: 5, Width: 6, Height: 7}, cfg.BackgroundImage.PageCell)
+	})
+}
+
+func TestCfgBuilder_WithBackgroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned background fit, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithBackgroundImageAtFit([]byte{1, 2, 3}, extension.Png, 4, 5, 6, 7, "contain").Build()
+
+		// Assert
+		assert.Equal(t, []byte{1, 2, 3}, cfg.BackgroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.BackgroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 4, Y: 5, Width: 6, Height: 7}, cfg.BackgroundImage.PageCell)
+		assert.Equal(t, "contain", cfg.BackgroundImage.ObjectFit)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageBackgroundImage(t *testing.T) {
+	t.Parallel()
+	t.Run("when with first page background, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageBackgroundImage([]byte{4, 5, 6}, extension.Png).Build()
+
+		// Assert
+		assert.Equal(t, []byte{4, 5, 6}, cfg.FirstPageBackgroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageBackgroundImage.Extension)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageBackgroundImageAt(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned first page background, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageBackgroundImageAt([]byte{4, 5, 6}, extension.Png, 7, 8, 9, 10).Build()
+
+		// Assert
+		assert.Equal(t, []byte{4, 5, 6}, cfg.FirstPageBackgroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageBackgroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 7, Y: 8, Width: 9, Height: 10}, cfg.FirstPageBackgroundImage.PageCell)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageBackgroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned first page background fit, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageBackgroundImageAtFit([]byte{4, 5, 6}, extension.Png, 7, 8, 9, 10, "fill").Build()
+
+		// Assert
+		assert.Equal(t, []byte{4, 5, 6}, cfg.FirstPageBackgroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageBackgroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 7, Y: 8, Width: 9, Height: 10}, cfg.FirstPageBackgroundImage.PageCell)
+		assert.Equal(t, "fill", cfg.FirstPageBackgroundImage.ObjectFit)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageForegroundImage(t *testing.T) {
+	t.Parallel()
+	t.Run("when with first page foreground, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageForegroundImage([]byte{7, 8, 9}, extension.Png).Build()
+
+		// Assert
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageForegroundImage.Extension)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageForegroundImageAt(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned first page foreground, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageForegroundImageAt([]byte{7, 8, 9}, extension.Png, 10, 11, 12, 13).Build()
+
+		// Assert
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageForegroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 10, Y: 11, Width: 12, Height: 13}, cfg.FirstPageForegroundImage.PageCell)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageForegroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned first page foreground fit, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageForegroundImageAtFit([]byte{7, 8, 9}, extension.Png, 10, 11, 12, 13, "cover").Build()
+
+		// Assert
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageForegroundImage.Extension)
+		assert.Equal(t, &entity.Cell{X: 10, Y: 11, Width: 12, Height: 13}, cfg.FirstPageForegroundImage.PageCell)
+		assert.Equal(t, "cover", cfg.FirstPageForegroundImage.ObjectFit)
+		assert.Len(t, cfg.FirstPageForegroundImages, 1)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageForegroundImage(t *testing.T) {
+	t.Parallel()
+	t.Run("when additional foreground is first, should also set legacy first image", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithAdditionalFirstPageForegroundImage([]byte{1, 2, 3}, extension.Jpg).Build()
+
+		// Assert
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageForegroundImage.Extension)
+		assert.Len(t, cfg.FirstPageForegroundImages, 1)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageForegroundImages[0].Extension)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageForegroundImageAt(t *testing.T) {
+	t.Parallel()
+	t.Run("when with additional positioned first page foreground, should append", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithFirstPageForegroundImageAt([]byte{7, 8, 9}, extension.Png, 10, 11, 12, 13).
+			WithAdditionalFirstPageForegroundImageAt([]byte{1, 2, 3}, extension.Jpg, 20, 21, 22, 23).
+			Build()
+
+		// Assert
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Len(t, cfg.FirstPageForegroundImages, 2)
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageForegroundImages[0].Extension)
+		assert.Equal(t, &entity.Cell{X: 10, Y: 11, Width: 12, Height: 13}, cfg.FirstPageForegroundImages[0].PageCell)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageForegroundImages[1].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageForegroundImages[1].Extension)
+		assert.Equal(t, &entity.Cell{X: 20, Y: 21, Width: 22, Height: 23}, cfg.FirstPageForegroundImages[1].PageCell)
+
+		cfg.FirstPageForegroundImages[0].Bytes[0] = 0
+		next := sut.Build()
+		assert.Equal(t, []byte{7, 8, 9}, next.FirstPageForegroundImages[0].Bytes)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageForegroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with additional positioned first page foreground fit, should append", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithFirstPageForegroundImage([]byte{7, 8, 9}, extension.Png).
+			WithAdditionalFirstPageForegroundImageAtFit([]byte{1, 2, 3}, extension.Jpg, 20, 21, 22, 23, "fill").
+			Build()
+
+		// Assert
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
+		assert.Len(t, cfg.FirstPageForegroundImages, 2)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageForegroundImages[1].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageForegroundImages[1].Extension)
+		assert.Equal(t, &entity.Cell{X: 20, Y: 21, Width: 22, Height: 23}, cfg.FirstPageForegroundImages[1].PageCell)
+		assert.Equal(t, "fill", cfg.FirstPageForegroundImages[1].ObjectFit)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageFinalForegroundImage(t *testing.T) {
+	t.Parallel()
+	t.Run("when with first page final foreground, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageFinalForegroundImage([]byte{7, 8, 9}, extension.Png).Build()
+
+		// Assert
+		assert.Len(t, cfg.FirstPageFinalForegroundImages, 1)
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageFinalForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageFinalForegroundImages[0].Extension)
+	})
+}
+
+func TestCfgBuilder_WithFirstPageFinalForegroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with positioned first page final foreground fit, should apply", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.WithFirstPageFinalForegroundImageAtFit([]byte{7, 8, 9}, extension.Png, 10, 11, 12, 13, "cover").Build()
+
+		// Assert
+		assert.Len(t, cfg.FirstPageFinalForegroundImages, 1)
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageFinalForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageFinalForegroundImages[0].Extension)
+		assert.Equal(t, &entity.Cell{X: 10, Y: 11, Width: 12, Height: 13}, cfg.FirstPageFinalForegroundImages[0].PageCell)
+		assert.Equal(t, "cover", cfg.FirstPageFinalForegroundImages[0].ObjectFit)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageFinalForegroundImage(t *testing.T) {
+	t.Parallel()
+	t.Run("when with additional first page final foreground, should append", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithFirstPageFinalForegroundImage([]byte{7, 8, 9}, extension.Png).
+			WithAdditionalFirstPageFinalForegroundImage([]byte{1, 2, 3}, extension.Jpg).
+			Build()
+
+		// Assert
+		assert.Len(t, cfg.FirstPageFinalForegroundImages, 2)
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageFinalForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageFinalForegroundImages[0].Extension)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageFinalForegroundImages[1].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageFinalForegroundImages[1].Extension)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageFinalForegroundImageAt(t *testing.T) {
+	t.Parallel()
+	t.Run("when with additional positioned first page final foreground, should append", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithFirstPageFinalForegroundImageAt([]byte{7, 8, 9}, extension.Png, 10, 11, 12, 13).
+			WithAdditionalFirstPageFinalForegroundImageAt([]byte{1, 2, 3}, extension.Jpg, 20, 21, 22, 23).
+			Build()
+
+		// Assert
+		assert.Len(t, cfg.FirstPageFinalForegroundImages, 2)
+		assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageFinalForegroundImages[0].Bytes)
+		assert.Equal(t, extension.Png, cfg.FirstPageFinalForegroundImages[0].Extension)
+		assert.Equal(t, &entity.Cell{X: 10, Y: 11, Width: 12, Height: 13}, cfg.FirstPageFinalForegroundImages[0].PageCell)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageFinalForegroundImages[1].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageFinalForegroundImages[1].Extension)
+		assert.Equal(t, &entity.Cell{X: 20, Y: 21, Width: 22, Height: 23}, cfg.FirstPageFinalForegroundImages[1].PageCell)
+
+		cfg.FirstPageFinalForegroundImages[0].Bytes[0] = 0
+		next := sut.Build()
+		assert.Equal(t, []byte{7, 8, 9}, next.FirstPageFinalForegroundImages[0].Bytes)
+	})
+}
+
+func TestCfgBuilder_WithAdditionalFirstPageFinalForegroundImageAtFit(t *testing.T) {
+	t.Parallel()
+	t.Run("when with additional positioned first page final foreground fit, should append", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		sut := config.NewBuilder()
+
+		// Act
+		cfg := sut.
+			WithFirstPageFinalForegroundImage([]byte{7, 8, 9}, extension.Png).
+			WithAdditionalFirstPageFinalForegroundImageAtFit([]byte{1, 2, 3}, extension.Jpg, 20, 21, 22, 23, "fill").
+			Build()
+
+		// Assert
+		assert.Len(t, cfg.FirstPageFinalForegroundImages, 2)
+		assert.Equal(t, []byte{1, 2, 3}, cfg.FirstPageFinalForegroundImages[1].Bytes)
+		assert.Equal(t, extension.Jpg, cfg.FirstPageFinalForegroundImages[1].Extension)
+		assert.Equal(t, &entity.Cell{X: 20, Y: 21, Width: 22, Height: 23}, cfg.FirstPageFinalForegroundImages[1].PageCell)
+		assert.Equal(t, "fill", cfg.FirstPageFinalForegroundImages[1].ObjectFit)
+	})
+}
+
 func TestBuilder_WithDisableAutoPageBreak(t *testing.T) {
 	t.Parallel()
 	t.Run("when disable auto page break is false, should not change the default value", func(t *testing.T) {

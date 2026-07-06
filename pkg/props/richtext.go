@@ -20,24 +20,66 @@ type RichImage struct {
 
 // RichRun is a single styled segment within a RichText paragraph.
 type RichRun struct {
-	Text          string
-	Image         *RichImage
-	Family        string
-	Style         fontstyle.Type
-	Size          float64
-	SizeScale     float64 // multiplier applied after Size/default font resolution; 0 = unchanged
-	Color         *Color
-	Underline     bool
-	Strikethrough bool
-	Hyperlink     *string
-	VerticalAlign string // "baseline" | "sub" | "super"
-	Hidden        bool   // preserves layout but skips painting for CSS visibility:hidden
+	Text           string
+	ForceBreak     bool
+	Image          *RichImage
+	WhiteSpace     string // per-run CSS white-space override; currently "nowrap" affects line breaking
+	Family         string
+	Style          fontstyle.Type
+	Size           float64
+	SizeScale      float64 // multiplier applied after Size/default font resolution; 0 = unchanged
+	LineHeight     float64 // per-run CSS line-height multiplier for inline box painting; 0 = default metrics
+	Color          *Color
+	Underline      bool
+	Strikethrough  bool
+	Hyperlink      *string
+	VerticalAlign  string // "baseline" | "sub" | "super"
+	VerticalOffset float64
+	Hidden         bool // preserves layout but skips painting for CSS visibility:hidden
 
 	// LetterSpacing is extra character spacing in mm (0 = default).
 	LetterSpacing float64
 	// Background, when non-nil, paints a filled rectangle behind the run before
 	// drawing the text. Used by HTML <mark>, <kbd>, inline <code>.
 	Background *Color
+	// BgRadius is the corner radius (mm) for the run background — renders the
+	// background as a rounded "pill"/badge. 0 = sharp rectangle.
+	BgRadius float64
+	// BgPadX is extra horizontal padding (mm) added to each side of the run
+	// background, so a badge/pill has breathing room around its text. 0 = none.
+	BgPadX float64
+	// BgPadLeft/BgPadRight override BgPadX for asymmetric inline boxes. When both
+	// are zero, BgPadX is used as the backward-compatible symmetric fallback.
+	BgPadLeft  float64
+	BgPadRight float64
+	// BgPadY is extra vertical padding (mm) added above and below the run
+	// background. It affects only the painted background box; line layout is
+	// controlled by RichText.LineHeight.
+	BgPadY float64
+	// BorderColor, when non-nil with BorderWidth > 0, paints a uniform border
+	// around the same inline box used for Background/BgRadius/BgPadX/BgPadY.
+	BorderColor *Color
+	// BorderWidth is the uniform inline border thickness in millimetres.
+	BorderWidth float64
+	// InlineMarginLeft reserves horizontal space before this inline box. It is
+	// layout-only and does not expand the painted background/border.
+	InlineMarginLeft float64
+	// InlineMarginRight reserves horizontal space after this inline box. It is
+	// layout-only and does not expand the painted background/border.
+	InlineMarginRight float64
+	// InlineBoxID groups adjacent runs that belong to the same styled inline
+	// element so backgrounds/borders are painted once around the whole element
+	// even when nested spans split the text into multiple runs.
+	InlineBoxID int
+	// BoxShadows, when non-empty, paints CSS box-shadow style shadows behind the
+	// same inline box used for Background/BgRadius/BgPadX/BgPadY.
+	BoxShadows []Shadow
+	// InlineBoxWidth/InlineBoxHeight reserve a fixed-size inline box for empty
+	// styled elements such as checkbox markers. The dimensions are content-box
+	// sizes in millimetres; border and padding are added by the inline box
+	// painter just like text-backed runs.
+	InlineBoxWidth  float64
+	InlineBoxHeight float64
 	// LocalAnchor, when non-empty, makes the run an internal PDF link target
 	// to the named destination (registered via id="…" on a block element).
 	// Takes precedence over Hyperlink.
@@ -114,6 +156,8 @@ func NormalizeRichRun(run RichRun, font *Font) RichRun {
 	}
 	run.Color = CloneColor(run.Color)
 	run.Background = CloneColor(run.Background)
+	run.BorderColor = CloneColor(run.BorderColor)
+	run.BoxShadows = cloneShadows(run.BoxShadows)
 	if run.Image != nil {
 		image := *run.Image
 		image.Bytes = append([]byte(nil), run.Image.Bytes...)

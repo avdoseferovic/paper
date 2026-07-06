@@ -149,6 +149,8 @@ func (f *PDF) SetAlpha(alpha float64, blendModeStr string) {
 	f.outf("/GS%d gs", pos)
 }
 
+const lineStyleRound = "round"
+
 // SetLineWidth defines the line width. By default, the value equals 0.2 mm.
 // The method can be called before the first page is created. The value is
 // retained from page to page.
@@ -175,7 +177,7 @@ func (f *PDF) GetLineWidth() float64 {
 func (f *PDF) SetLineCapStyle(styleStr string) {
 	var capStyle int
 	switch styleStr {
-	case "round":
+	case lineStyleRound:
 		capStyle = 1
 	case "square":
 		capStyle = 2
@@ -194,7 +196,7 @@ func (f *PDF) SetLineCapStyle(styleStr string) {
 func (f *PDF) SetLineJoinStyle(styleStr string) {
 	var joinStyle int
 	switch styleStr {
-	case "round":
+	case lineStyleRound:
 		joinStyle = 1
 	case "bevel":
 		joinStyle = 2
@@ -204,6 +206,18 @@ func (f *PDF) SetLineJoinStyle(styleStr string) {
 	f.joinStyle = joinStyle
 	if f.page > 0 {
 		f.outf("%d j", f.joinStyle)
+	}
+}
+
+// GetLineJoinStyle returns the current line join style.
+func (f *PDF) GetLineJoinStyle() string {
+	switch f.joinStyle {
+	case 1:
+		return lineStyleRound
+	case 2:
+		return "bevel"
+	default:
+		return "miter"
 	}
 }
 
@@ -315,6 +329,7 @@ func (f *PDF) RoundedRect(x, y, w, h, r float64, corners string, stylestr string
 func (f *PDF) RoundedRectExt(x, y, w, h, rTL, rTR, rBR, rBL float64, stylestr string) {
 	f.roundedRectPath(x, y, w, h, rTL, rTR, rBR, rBL)
 	f.out(fillDrawOp(stylestr))
+	f.out("Q")
 }
 
 // Circle draws a circle centered on point (x, y) with radius r.
@@ -340,7 +355,23 @@ func (f *PDF) Circle(x, y, r float64, styleStr string) {
 //
 // The Circle() example demonstrates this method.
 func (f *PDF) Ellipse(x, y, rx, ry, degRotate float64, styleStr string) {
+	if degRotate == 0 {
+		f.closedEllipse(x, y, rx, ry, styleStr)
+		return
+	}
 	f.arc(x, y, rx, ry, degRotate, 0, 360, styleStr, false)
+}
+
+func (f *PDF) closedEllipse(x, y, rx, ry float64, styleStr string) {
+	const k = 0.5522847498
+
+	f.point(x+rx, y)
+	f.curve(x+rx, y+k*ry, x+k*rx, y+ry, x, y+ry)
+	f.curve(x-k*rx, y+ry, x-rx, y+k*ry, x-rx, y)
+	f.curve(x-rx, y-k*ry, x-k*rx, y-ry, x, y-ry)
+	f.curve(x+k*rx, y-ry, x+rx, y-k*ry, x+rx, y)
+	f.out("h")
+	f.out(fillDrawOp(styleStr))
 }
 
 // Polygon draws a closed figure defined by a series of vertices specified by
@@ -397,7 +428,7 @@ func (f *PDF) Beziergon(points []PointType, styleStr string) {
 
 // point outputs current point
 func (f *PDF) point(x, y float64) {
-	f.outf("%.2f %.2f m", x*f.k, (f.h-y)*f.k)
+	f.outf("%.5f %.5f m", x*f.k, (f.h-y)*f.k)
 }
 
 // curve outputs a single cubic Bézier curve segment from current point
@@ -636,8 +667,9 @@ func (f *PDF) ClipRoundedRectExt(x, y, w, h, rTL, rTR, rBR, rBL float64, outline
 }
 
 // add a rectangle path with rounded corners.
-// routine shared by RoundedRect() and ClipRoundedRect(), which add the
-// drawing operation
+// routine shared by RoundedRect() and ClipRoundedRect(), which add the drawing
+// operation. The path starts with a graphics-state save; normal drawing restores
+// it immediately, while clipping restores it in ClipEnd.
 func (f *PDF) roundedRectPath(x, y, w, h, rTL, rTR, rBR, rBL float64) {
 	k := f.k
 	hp := f.h
@@ -667,6 +699,7 @@ func (f *PDF) roundedRectPath(x, y, w, h, rTL, rTR, rBR, rBL float64) {
 	if rTL != 0 {
 		f.clipArc(xc-rTL, yc-rTL*myArc, xc-rTL*myArc, yc-rTL, xc, yc-rTL)
 	}
+	f.out("h")
 }
 
 // ClipEllipse begins an elliptical clipping operation. The ellipse is centered
@@ -778,7 +811,7 @@ func (f *PDF) MoveTo(x, y float64) {
 //
 // The MoveTo() example demonstrates this method.
 func (f *PDF) LineTo(x, y float64) {
-	f.outf("%.2f %.2f l", x*f.k, (f.h-y)*f.k)
+	f.outf("%.5f %.5f l", x*f.k, (f.h-y)*f.k)
 	f.x, f.y = x, y
 }
 
@@ -916,9 +949,31 @@ func (f *PDF) arc(x, y, rx, ry, degRotate, degStart, degEnd float64,
 		}
 	}
 	if !path {
-		f.out(fillDrawOp(styleStr))
+		op := fillDrawOp(styleStr)
+		if isClosedArc(degStart, degEnd) && pathPaintsStroke(op) {
+			f.out("h")
+		}
+		f.out(op)
 	}
 	if degRotate != 0 {
 		f.out("Q")
+	}
+}
+
+func isClosedArc(degStart, degEnd float64) bool {
+	const epsilon = 0.000001
+	sweep := math.Abs(degEnd - degStart)
+	if sweep <= epsilon {
+		return false
+	}
+	return math.Abs(math.Mod(sweep, 360)) <= epsilon || math.Abs(math.Mod(sweep, 360)-360) <= epsilon
+}
+
+func pathPaintsStroke(op string) bool {
+	switch op {
+	case "S", "s", "B", "B*", "b", "b*":
+		return true
+	default:
+		return false
 	}
 }

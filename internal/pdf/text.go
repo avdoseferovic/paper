@@ -3,6 +3,7 @@ package pdf
 import (
 	"bytes"
 	"math"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -39,10 +40,29 @@ func (f *PDF) GetStringSymbolWidth(s string) int {
 	return w
 }
 
+func pdfGlyphRune(r rune) rune {
+	switch r {
+	case '\u00a0':
+		return ' '
+	default:
+		return r
+	}
+}
+
 func (f *PDF) currentRuneWidth(r rune) int {
+	r = pdfGlyphRune(r)
+	if f.isCurrentUTF8 && !fontSupportsRune(f.currentFont, r) {
+		if fallbackKey, ok := f.fallbackFontKeyForRune(r); ok {
+			return runeWidthForFont(f.fonts[fallbackKey], r)
+		}
+	}
+	return runeWidthForFont(f.currentFont, r)
+}
+
+func runeWidthForFont(font fontDefType, r rune) int {
 	char := int(r)
-	if char >= 0 && char < len(f.currentFont.Cw) {
-		width := f.currentFont.Cw[char]
+	if char >= 0 && char < len(font.Cw) {
+		width := font.Cw[char]
 		if width > 0 {
 			if width == 65535 {
 				return 0
@@ -50,16 +70,99 @@ func (f *PDF) currentRuneWidth(r rune) int {
 			return width
 		}
 	}
-	if width := f.currentFont.CwExtra[char]; width > 0 {
+	if width := font.CwExtra[char]; width > 0 {
 		if width == 65535 {
 			return 0
 		}
 		return width
 	}
-	if f.currentFont.Desc.MissingWidth != 0 {
-		return f.currentFont.Desc.MissingWidth
+	if font.Desc.MissingWidth != 0 {
+		return font.Desc.MissingWidth
 	}
 	return 500
+}
+
+func fontSupportsRune(font fontDefType, r rune) bool {
+	r = pdfGlyphRune(r)
+	if font.Tp == fontTypeUTF8 || font.Tp == fontTypeUTF8Bitmap || font.utf8File != nil {
+		if font.utf8File == nil {
+			return true
+		}
+		_, ok := font.utf8File.charSymbolDictionary[int(r)]
+		return ok
+	}
+	char := int(r)
+	return char >= 0 && char < len(font.Cw) && font.Cw[char] > 0
+}
+
+func (f *PDF) fallbackFontKeyForRune(r rune) (string, bool) {
+	if len(f.fonts) == 0 {
+		return "", false
+	}
+	currentKey := f.currentFont.Name
+	keys := make([]string, 0, len(f.fonts))
+	for key := range f.fonts {
+		if key != currentKey {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		if fontSupportsRune(f.fonts[key], r) {
+			return key, true
+		}
+	}
+	return "", false
+}
+
+type textFontSegment struct {
+	text    string
+	fontKey string
+}
+
+func (f *PDF) textFontSegments(s string) []textFontSegment {
+	currentKey := f.currentFont.Name
+	if !f.isCurrentUTF8 || currentKey == "" {
+		return []textFontSegment{{text: s, fontKey: currentKey}}
+	}
+
+	segments := make([]textFontSegment, 0, 2)
+	var b strings.Builder
+	activeKey := ""
+	flush := func() {
+		if b.Len() == 0 {
+			return
+		}
+		segments = append(segments, textFontSegment{text: b.String(), fontKey: activeKey})
+		b.Reset()
+	}
+	for _, r := range s {
+		key := currentKey
+		if !fontSupportsRune(f.currentFont, r) {
+			if fallbackKey, ok := f.fallbackFontKeyForRune(r); ok {
+				key = fallbackKey
+			}
+		}
+		if activeKey != "" && key != activeKey {
+			flush()
+		}
+		activeKey = key
+		b.WriteRune(r)
+	}
+	flush()
+	if len(segments) == 0 {
+		return []textFontSegment{{text: s, fontKey: currentKey}}
+	}
+	return segments
+}
+
+func textSegmentsNeedFallback(segments []textFontSegment, currentKey string) bool {
+	for _, segment := range segments {
+		if segment.fontKey != "" && segment.fontKey != currentKey {
+			return true
+		}
+	}
+	return false
 }
 
 // Text prints a character string. The origin (x, y) is on the left of the
@@ -76,12 +179,12 @@ func (f *PDF) Text(x, y float64, txtStr string) {
 	}
 
 	var txt2 string
+	var handled bool
 	if f.isCurrentUTF8 {
-		if f.isRTL {
-			txtStr = reverseText(txtStr)
-			x -= f.GetStringWidth(txtStr)
+		x, txtStr, txt2, handled = f.utf8TextPayload(x, y, txtStr)
+		if handled {
+			return
 		}
-		txt2 = f.escape(f.stringToCIDs(txtStr))
 	} else {
 		txt2 = f.escape(txtStr)
 	}
@@ -96,6 +199,81 @@ func (f *PDF) Text(x, y float64, txtStr string) {
 		s = sprintf("q %s %s Q", f.color.text.str, s)
 	}
 	f.out(s)
+}
+
+func (f *PDF) utf8TextPayload(x, y float64, txtStr string) (float64, string, string, bool) {
+	if f.isRTL {
+		txtStr = reverseText(txtStr)
+		x -= f.GetStringWidth(txtStr)
+	}
+	segments := f.textFontSegments(txtStr)
+	if textSegmentsNeedFallback(segments, f.currentFont.Name) {
+		f.outputTextSegments(x, y, txtStr, segments)
+		return x, txtStr, "", true
+	}
+	return x, txtStr, f.escape(f.stringToCIDs(txtStr)), false
+}
+
+func (f *PDF) outputTextSegments(x, y float64, txtStr string, segments []textFontSegment) {
+	s := f.textSegmentsOperation(x, y, segments)
+	if f.underline && txtStr != "" {
+		s += " " + f.dounderline(x, y, txtStr)
+	}
+	if f.strikeout && txtStr != "" {
+		s += " " + f.dostrikeout(x, y, txtStr)
+	}
+	if f.colorFlag {
+		s = sprintf("q %s %s Q", f.color.text.str, s)
+	}
+	f.out(s)
+}
+
+func (f *PDF) textSegmentsOperation(x, y float64, segments []textFontSegment) string {
+	var s fmtBuffer
+	currentX := x
+	for _, segment := range segments {
+		if segment.text == "" {
+			continue
+		}
+		escaped, width, ok := f.escapedTextAndWidthForFontKey(segment.fontKey, segment.text)
+		if !ok {
+			continue
+		}
+		font := f.fonts[segment.fontKey]
+		s.printf("BT /F%s %.2f Tf %.2f %.2f Td (%s)Tj ET ", font.i, f.fontSizePt, currentX*f.k, (f.h-y)*f.k, escaped)
+		currentX += width
+	}
+	if f.currentFont.i != "" {
+		s.printf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
+	}
+	return s.String()
+}
+
+func (f *PDF) escapedTextAndWidthForFontKey(fontKey, text string) (string, float64, bool) {
+	font, ok := f.fonts[fontKey]
+	if !ok {
+		return "", 0, false
+	}
+	origFont := f.currentFont
+	origUTF8 := f.isCurrentUTF8
+	origKey := origFont.Name
+
+	f.currentFont = font
+	f.isCurrentUTF8 = font.Tp == fontTypeUTF8 || font.Tp == fontTypeUTF8Bitmap
+	var escaped string
+	if f.isCurrentUTF8 {
+		escaped = f.escape(f.stringToCIDs(text))
+	} else {
+		escaped = f.escape(text)
+	}
+	width := float64(f.GetStringSymbolWidth(text)) * f.fontSize / 1000
+	f.fonts[fontKey] = f.currentFont
+	if origKey == fontKey {
+		origFont = f.currentFont
+	}
+	f.currentFont = origFont
+	f.isCurrentUTF8 = origUTF8
+	return escaped, width, true
 }
 
 // SetWordSpacing sets spacing between words of following text. See the
@@ -324,9 +502,24 @@ func (f *PDF) appendCellTextOperation(
 	if (f.ws != 0 || alignStr == "J") && f.isCurrentUTF8 {
 		return f.appendJustifiedUTF8CellText(s, w, h, txtStr, dx)
 	}
-	renderedText, escapedText := f.cellEscapedText(txtStr)
 	bt := (f.x + dx) * f.k
-	td := (f.h - (f.y + dy + .5*h + .3*f.fontSize)) * f.k
+	textY := f.y + dy + .5*h + .3*f.fontSize
+	td := (f.h - textY) * f.k
+	if f.isCurrentUTF8 {
+		renderedText := txtStr
+		if f.isRTL {
+			renderedText = reverseText(renderedText)
+		}
+		segments := f.textFontSegments(renderedText)
+		if textSegmentsNeedFallback(segments, f.currentFont.Name) {
+			s.printf("%s", f.textSegmentsOperation(f.x+dx, textY, segments))
+			return renderedText
+		}
+		escapedText := f.escape(f.stringToCIDs(renderedText))
+		s.printf("BT %.2f %.2f Td (%s)Tj ET", bt, td, escapedText)
+		return renderedText
+	}
+	renderedText, escapedText := f.cellEscapedText(txtStr)
 	s.printf("BT %.2f %.2f Td (%s)Tj ET", bt, td, escapedText)
 	return renderedText
 }

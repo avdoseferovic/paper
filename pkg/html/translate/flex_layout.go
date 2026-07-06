@@ -14,21 +14,30 @@ func Hamilton(weights []float64, total int) []int {
 	return layout.Hamilton(weights, total)
 }
 
-// computeFlexSizes allocates gridSize integer cells across flex items.
-// Percentage-basis items get a fixed share first; remaining cells go to grow items
-// via Hamilton's largest-remainder. Items with neither basis nor grow get default
-// grow=1 so unstyled flex children participate equally.
+const defaultFlexContentWidthMM = 170.0
+
+// computeFlexSizes allocates gridSize integer cells across flex items using the
+// default A4-ish content width. Tests use this wrapper to preserve the old hook.
 func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
+	return computeFlexSizesForWidth(styles, gridSize, defaultFlexContentWidthMM)
+}
+
+// computeFlexSizesForWidth allocates gridSize integer cells across flex items.
+// Percentage and length-basis items get a fixed share first; remaining cells go
+// to grow items via Hamilton's largest-remainder. Items with neither basis nor
+// grow get default grow=1 so unstyled flex children participate equally.
+func computeFlexSizesForWidth(styles []*css.ComputedStyle, gridSize int, contentWidthMM float64) []int {
 	sizes := make([]int, len(styles))
 	fixedTotal := 0
+	var fixedIndices []int
 	var growIndices []int
 	var growWeights []float64
 
 	for i, s := range styles {
-		if s.FlexBasisPct > 0 {
-			share := max(int(s.FlexBasisPct/100.0*float64(gridSize)+0.5), 1)
+		if share, ok := fixedFlexShare(s, gridSize, contentWidthMM); ok {
 			sizes[i] = share
 			fixedTotal += share
+			fixedIndices = append(fixedIndices, i)
 		} else {
 			growIndices = append(growIndices, i)
 			growWeights = append(growWeights, effectiveGrow(s))
@@ -37,13 +46,15 @@ func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
 
 	// Clamp percentages that collectively exceed gridSize by scaling them down.
 	if fixedTotal > gridSize {
-		scale := float64(gridSize) / float64(fixedTotal)
+		weights := make([]float64, len(fixedIndices))
+		for i, idx := range fixedIndices {
+			weights[i] = float64(sizes[idx])
+		}
+		scaled := layout.BumpZerosWithoutOverflow(layout.ProportionalUnits(weights, gridSize), gridSize)
 		fixedTotal = 0
-		for i, s := range styles {
-			if s.FlexBasisPct > 0 {
-				sizes[i] = max(int(float64(sizes[i])*scale), 1)
-				fixedTotal += sizes[i]
-			}
+		for i, idx := range fixedIndices {
+			sizes[idx] = scaled[i]
+			fixedTotal += scaled[i]
 		}
 	}
 
@@ -60,6 +71,22 @@ func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
 		}
 	}
 	return sizes
+}
+
+func fixedFlexShare(s *css.ComputedStyle, gridSize int, contentWidthMM float64) (int, bool) {
+	if s == nil {
+		return 0, false
+	}
+	if s.FlexBasisPct > 0 {
+		return max(int(s.FlexBasisPct/100.0*float64(gridSize)+0.5), 1), true
+	}
+	if s.FlexBasis <= 0 {
+		return 0, false
+	}
+	if contentWidthMM <= 0 {
+		contentWidthMM = defaultFlexContentWidthMM
+	}
+	return max(int(s.FlexBasis/contentWidthMM*float64(gridSize)+0.5), 1), true
 }
 
 // effectiveGrow returns the flex-grow value, defaulting to 1 for items with no

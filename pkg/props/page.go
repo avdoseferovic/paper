@@ -46,6 +46,12 @@ type PageNumber struct {
 	Size float64
 	// Color defines which will be applied to page count.
 	Color *Color
+	// OffsetY adjusts the page number vertically in millimeters.
+	// Positive values move it down; negative values move it up.
+	OffsetY float64
+	// OffsetX adjusts the page number horizontally in millimeters.
+	// Positive values move it right; negative values move it left.
+	OffsetX float64
 }
 
 // ClonePageNumber returns an independent copy of p.
@@ -70,8 +76,11 @@ func (p *PageNumber) GetNumberTextProp(height float64) *Text {
 		text.Align = consts.AlignRight
 	}
 
+	text.Top = p.OffsetY
+	text.Left = p.OffsetX
+	text.Right = -p.OffsetX
 	if isBottomPageNumberPlace(p.Place) {
-		text.Top = height
+		text.Top += height
 	}
 
 	text.BreakLineStrategy = consts.BreakLineEmptySpace
@@ -136,6 +145,14 @@ func (p *PageNumber) AppendMap(m map[string]any) map[string]any {
 
 	if p.Size != 0 {
 		m["page_number_size"] = p.Size
+	}
+
+	if p.OffsetY != 0 {
+		m["page_number_offset_y"] = p.OffsetY
+	}
+
+	if p.OffsetX != 0 {
+		m["page_number_offset_x"] = p.OffsetX
 	}
 
 	if p.Color != nil {

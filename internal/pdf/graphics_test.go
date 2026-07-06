@@ -1,6 +1,10 @@
 package pdf
 
-import "testing"
+import (
+	"regexp"
+	"strings"
+	"testing"
+)
 
 func TestColorSettersAndGetters(t *testing.T) {
 	f := readyPDF(t)
@@ -51,8 +55,17 @@ func TestLineCapAndJoinStyles(t *testing.T) {
 	for _, s := range []string{"butt", "round", "square", "unknown"} {
 		f.SetLineCapStyle(s)
 	}
-	for _, s := range []string{"miter", "round", "bevel", "unknown"} {
-		f.SetLineJoinStyle(s)
+	tests := map[string]string{
+		"miter":   "miter",
+		"round":   "round",
+		"bevel":   "bevel",
+		"unknown": "miter",
+	}
+	for value, want := range tests {
+		f.SetLineJoinStyle(value)
+		if got := f.GetLineJoinStyle(); got != want {
+			t.Fatalf("GetLineJoinStyle after %q = %q, want %q", value, got, want)
+		}
 	}
 	if f.Err() {
 		t.Fatalf("style setters errored: %v", f.Error())
@@ -87,6 +100,50 @@ func TestPrimitiveShapes(t *testing.T) {
 	mustOutput(t, f)
 }
 
+func TestEllipseClosesFullArcBeforePainting(t *testing.T) {
+	f := readyPDF(t)
+	f.Circle(40, 40, 10, "D")
+
+	content := f.pages[f.page].String()
+	if !strings.Contains(content, "\nh\nS\n") {
+		t.Fatalf("expected stroked circle to close path before stroke:\n%s", content)
+	}
+}
+
+func TestPartialArcStaysOpen(t *testing.T) {
+	f := readyPDF(t)
+	f.Arc(40, 40, 10, 10, 0, 0, 180, "D")
+
+	content := f.pages[f.page].String()
+	if strings.Contains(content, "\nh\nS\n") {
+		t.Fatalf("partial arc should not close path before stroke:\n%s", content)
+	}
+}
+
+func TestFillOnlyEllipseClosesFullPath(t *testing.T) {
+	f := readyPDF(t)
+	f.Circle(40, 40, 10, "F")
+
+	content := f.pages[f.page].String()
+	if !strings.Contains(content, "\nh\nf\n") {
+		t.Fatalf("fill-only circle should close full path before fill:\n%s", content)
+	}
+}
+
+func TestPathMoveAndLineUseFiveDecimalPrecision(t *testing.T) {
+	f := readyPDF(t)
+	f.MoveTo(10.1234, 20.5678)
+	f.LineTo(30.2345, 20.5678)
+
+	content := f.pages[f.page].String()
+	if !regexp.MustCompile(`\d+\.\d{5} \d+\.\d{5} m`).MatchString(content) {
+		t.Fatalf("MoveTo should use five decimal places:\n%s", content)
+	}
+	if !regexp.MustCompile(`\d+\.\d{5} \d+\.\d{5} l`).MatchString(content) {
+		t.Fatalf("LineTo should use five decimal places:\n%s", content)
+	}
+}
+
 func TestPolygonAndBeziergon(t *testing.T) {
 	f := readyPDF(t)
 	pts := []PointType{{X: 10, Y: 10}, {X: 60, Y: 10}, {X: 35, Y: 50}}
@@ -109,6 +166,43 @@ func TestRoundedRectVariants(t *testing.T) {
 		t.Fatalf("rounded rect errored: %v", f.Error())
 	}
 	mustOutput(t, f)
+}
+
+func TestRoundedRectBalancesGraphicsState(t *testing.T) {
+	f := readyPDF(t)
+	f.RoundedRect(10, 10, 60, 40, 5, "1234", "F")
+	f.RoundedRectExt(10, 60, 60, 40, 3, 6, 9, 12, "FD")
+
+	content := f.pages[f.page].String()
+	q, Q := graphicsStateOpCounts(content)
+	if q != Q {
+		t.Fatalf("rounded rectangles leaked graphics state: q=%d Q=%d\n%s", q, Q, content)
+	}
+	if q == 0 {
+		t.Fatalf("expected rounded rectangles to use graphics-state isolation")
+	}
+}
+
+func TestRoundedRectClosesPathBeforePainting(t *testing.T) {
+	f := readyPDF(t)
+	f.RoundedRect(10, 10, 60, 20, 10, "1234", "FD")
+
+	content := f.pages[f.page].String()
+	if !strings.Contains(content, "\nh\nB\n") {
+		t.Fatalf("expected rounded rectangle to close path before fill/stroke:\n%s", content)
+	}
+}
+
+func graphicsStateOpCounts(content string) (q, Q int) {
+	for _, field := range strings.Fields(content) {
+		switch field {
+		case "q":
+			q++
+		case "Q":
+			Q++
+		}
+	}
+	return q, Q
 }
 
 func TestPathDrawingAPI(t *testing.T) {

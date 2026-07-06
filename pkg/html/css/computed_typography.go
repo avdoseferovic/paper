@@ -13,15 +13,16 @@ func (s *ComputedStyle) applyTypographyProperty(ctx computedPropertyContext) boo
 	case "white-space":
 		s.WhiteSpace = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "page-break-before", "break-before":
-		s.PageBreakBefore = strings.TrimSpace(ctx.val)
+		s.PageBreakBefore = normalizePageBreakValue(ctx.val)
 	case "page-break-after", "break-after":
-		s.PageBreakAfter = strings.TrimSpace(ctx.val)
+		s.PageBreakAfter = normalizePageBreakValue(ctx.val)
 	case "page-break-inside", "break-inside":
-		s.BreakInside = strings.TrimSpace(ctx.val)
+		s.BreakInside = strings.ToLower(strings.TrimSpace(ctx.val))
 	case "list-style-type":
 		s.ListStyleType = strings.TrimSpace(ctx.val)
 	case "vertical-align":
 		s.VerticalAlign = strings.ToLower(strings.TrimSpace(ctx.val))
+		s.VerticalOffset = ParseLength(ctx.val, s.FontSize)
 	case "content":
 		s.Content = strings.TrimSpace(ctx.val)
 	case "counter-reset":
@@ -34,4 +35,17 @@ func (s *ComputedStyle) applyTypographyProperty(ctx computedPropertyContext) boo
 		return false
 	}
 	return true
+}
+
+func normalizePageBreakValue(value string) string {
+	v := strings.ToLower(strings.TrimSpace(value))
+	switch v {
+	case "page", "left", "right", "recto", "verso":
+		// Modern break-before/break-after use "page"; legacy page-break-* also
+		// allowed left/right. Paper does not choose page parity, so all of these
+		// map to the same hard page break marker.
+		return "always"
+	default:
+		return v
+	}
 }

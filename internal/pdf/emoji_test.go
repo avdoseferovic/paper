@@ -25,6 +25,26 @@ func TestStringToCIDsRemapsSupplementaryRunes(t *testing.T) {
 	}
 }
 
+func TestStringToCIDsMapsNonBreakingSpaceToSpaceGlyph(t *testing.T) {
+	t.Parallel()
+
+	f := &PDF{
+		currentFont: fontDefType{
+			usedRunes: map[int]int{},
+			runeToCID: map[int]int{},
+		},
+	}
+
+	got := []byte(f.stringToCIDs("\u00a0"))
+	want := []byte{0x00, 0x20}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("expected NBSP CID bytes %v, got %v", want, got)
+	}
+	if gotRune := f.currentFont.usedRunes[0x20]; gotRune != ' ' {
+		t.Fatalf("expected NBSP to use the space glyph, got U+%04X", gotRune)
+	}
+}
+
 func TestColorEmojiToggleRequiresColorFont(t *testing.T) {
 	t.Parallel()
 

@@ -230,7 +230,23 @@ func (tr *translator) inlineImageWithSource(n *dom.Node, src string) (*props.Ric
 }
 
 func (tr *translator) generatedContentImage(src string, style *css.ComputedStyle) (*props.RichImage, bool) {
-	return tr.richImageFromSource(src, style, imageDimensionsFromStyle(style), "", "content.url")
+	dimensions := imageDimensionsFromStyle(style)
+	if generatedContentUsesInlineIntrinsicSize(style) {
+		dimensions.width = 0
+		dimensions.height = 0
+	}
+	return tr.richImageFromSource(src, style, dimensions, "", "content.url")
+}
+
+func generatedContentUsesInlineIntrinsicSize(style *css.ComputedStyle) bool {
+	if style == nil {
+		return true
+	}
+	if style.Width > 0 || style.Height > 0 {
+		return false
+	}
+	display := strings.ToLower(strings.TrimSpace(style.Display))
+	return display == "" || display == "inline"
 }
 
 func (tr *translator) richImageFromSource(
@@ -631,7 +647,8 @@ func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (co
 		}
 		return nil, false
 	}
-	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 10)
+	intrinsicWidth, intrinsicHeight := svgIntrinsicSizeMM(widthPx, heightPx)
+	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 10)
 
 	cellWidth := tr.contentWidthMM
 	if cellWidth <= 0 {
@@ -669,7 +686,8 @@ func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {
 		}
 		return nil, false
 	}
-	widthMM, heightMM := resolveImageDimensions(dimensions, svgraster.MMFromPx(widthPx), svgraster.MMFromPx(heightPx), 4)
+	intrinsicWidth, intrinsicHeight := svgIntrinsicSizeMM(widthPx, heightPx)
+	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 4)
 	return &props.RichImage{
 		Bytes:          pngBytes,
 		Extension:      extension.Png,
@@ -796,7 +814,8 @@ func (tr *translator) prepareImageData(
 			}
 			return nil, "", 0, 0, false
 		}
-		return pngBytes, imageExtPNG, svgraster.MMFromPx(w), svgraster.MMFromPx(h), true
+		intrinsicWidth, intrinsicHeight := svgIntrinsicSizeMM(w, h)
+		return pngBytes, imageExtPNG, intrinsicWidth, intrinsicHeight, true
 	}
 
 	intrinsicWidth, intrinsicHeight, err := tr.rasterImageSizeMM(data)
@@ -806,6 +825,10 @@ func (tr *translator) prepareImageData(
 		return nil, "", 0, 0, false
 	}
 	return data, ext, intrinsicWidth, intrinsicHeight, true
+}
+
+func svgIntrinsicSizeMM(widthPx, heightPx int) (float64, float64) {
+	return css.ParseLength(strconv.Itoa(widthPx)+"px", 0), css.ParseLength(strconv.Itoa(heightPx)+"px", 0)
 }
 
 func applyImageDimensionStyle(dimensions imageDimensionStyle, style *css.ComputedStyle) imageDimensionStyle {

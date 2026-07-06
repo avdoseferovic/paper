@@ -8,29 +8,37 @@ import (
 
 // Render draws the table into the PDF cell.
 func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
-	t.computeRowHeights(provider, cell)
-	y := cell.Y
+	tableCell := t.tableCell(cell)
+	t.computeRowHeights(provider, &tableCell)
+	y := tableCell.Y
 
 	for r := range t.rowCount {
 		rowH := t.rowHeights[r]
-		x := cell.X
+		x := tableCell.X
 		for c := range t.colCount {
-			colWidth := t.columnWidth(cell.Width, c)
+			colWidth := t.columnWidth(tableCell.Width, c)
+			advanceColumn := func() {
+				x += colWidth
+				if c < t.colCount-1 {
+					x += t.borderSpacingX
+				}
+			}
 			slot := t.grid[r][c]
 			// Skip empty and spanned slots. Render each declared cell only at its origin.
 			if slot < 0 {
-				x += colWidth
+				advanceColumn()
 				continue
 			}
 			declCell := t.cellAtFlatIndex(slot)
 			if declCell == nil {
-				x += colWidth
+				advanceColumn()
 				continue
 			}
-			w := t.columnSpanWidth(cell.Width, c, declCell.Colspan)
-			innerCell := paddedTableCell(x, y, w, rowH, declCell.Style)
+			w := t.columnSpanWidth(tableCell.Width, c, declCell.Colspan)
+			outerCell := explicitCellBox(x, y, w, rowH, declCell)
+			innerCell := paddedTableCell(outerCell.X, outerCell.Y, outerCell.Width, outerCell.Height, declCell.Style)
 			if declCell.Style != nil {
-				paintCell := layout.ApplyCellMargins(entity.Cell{X: x, Y: y, Width: w, Height: rowH}, declCell.Style)
+				paintCell := layout.ApplyCellMargins(outerCell, declCell.Style)
 				if pp, ok := provider.(core.PositionProvider); ok {
 					pp.SetCursor(paintCell.X, paintCell.Y)
 				}
@@ -39,9 +47,26 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 			if declCell.Content != nil {
 				declCell.Content.Render(provider, &innerCell)
 			}
-			x += colWidth
+			advanceColumn()
 		}
 		provider.CreateRow(rowH)
 		y += rowH
+		if r < t.rowCount-1 {
+			y += t.borderSpacingY
+		}
 	}
+}
+
+func explicitCellBox(x, y, width, rowHeight float64, cell *Cell) entity.Cell {
+	height := rowHeight
+	if cell != nil && cell.Height > 0 && cell.Height < rowHeight {
+		height = cell.Height
+		switch cell.VerticalAlign {
+		case "middle":
+			y += (rowHeight - height) / 2
+		case "bottom":
+			y += rowHeight - height
+		}
+	}
+	return entity.Cell{X: x, Y: y, Width: width, Height: height}
 }

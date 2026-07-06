@@ -76,6 +76,8 @@ func TestApplyFontProperty(t *testing.T) {
 			{"700", "bold"},
 			{"800", "bold"},
 			{"900", "bold"},
+			{"500", "500"},
+			{"600", "600"},
 			{"normal", "normal"},
 			{"400", "normal"},
 			{"lighter", "normal"},
@@ -315,6 +317,18 @@ func TestApplyTypographyProperty(t *testing.T) {
 	assert.Equal(t, "section 0", s.CounterReset)
 	assert.Equal(t, "section", s.CounterIncrement)
 	assert.Equal(t, `"«" "»"`, s.Quotes)
+}
+
+func TestApplyTypographyProperty_NormalizesPageBreakAliases(t *testing.T) {
+	t.Parallel()
+
+	s := NewComputedStyle()
+	s.Apply("break-before", " Page ", nil)
+	s.Apply("page-break-after", " LEFT ", nil)
+	s.Apply("break-inside", " Avoid ", nil)
+	assert.Equal(t, "always", s.PageBreakBefore)
+	assert.Equal(t, "always", s.PageBreakAfter)
+	assert.Equal(t, "avoid", s.BreakInside)
 }
 
 // --- applyFlexProperty ---

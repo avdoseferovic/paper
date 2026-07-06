@@ -35,7 +35,7 @@ func (f *PDF) HasColorEmoji() bool {
 func (f *PDF) stringToCIDs(s string) string {
 	var b bytes.Buffer
 	for _, r := range s {
-		cid := f.getOrAssignCID(int(r))
+		cid := f.getOrAssignCID(int(pdfGlyphRune(r)))
 		cid16, ok := checkedUint16(cid)
 		if !ok {
 			continue

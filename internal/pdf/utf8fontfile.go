@@ -2,8 +2,10 @@ package pdf
 
 import (
 	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"strings"
 )
@@ -141,6 +143,17 @@ func (utf *utf8FontFile) parseFile() error {
 	if utf.err != nil {
 		return utf.err
 	}
+	if codeType == 0x774F4646 {
+		sfnt, err := unpackWOFF1Font(utf.fileReader.array)
+		if err != nil {
+			return err
+		}
+		utf.fileReader = &fileReader{array: sfnt}
+		codeType = uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
+		if utf.err != nil {
+			return utf.err
+		}
+	}
 	if codeType == 0x4F54544F {
 		return errUnsupportedCFFFont
 	}
@@ -161,6 +174,137 @@ func (utf *utf8FontFile) parseFile() error {
 	utf.parseTables()
 	utf.setError(utf.fileReader.err)
 	return utf.err
+}
+
+type woffTable struct {
+	tag        []byte
+	checksum   int
+	origLength int
+	data       []byte
+}
+
+func unpackWOFF1Font(data []byte) ([]byte, error) {
+	if len(data) < 44 {
+		return nil, fmt.Errorf("%w: WOFF header is truncated", errUnexpectedTrueTypeCodeType)
+	}
+	if binary.BigEndian.Uint32(data[0:4]) != 0x774F4646 {
+		return data, nil
+	}
+	length := int(binary.BigEndian.Uint32(data[8:12]))
+	numTables := int(binary.BigEndian.Uint16(data[12:14]))
+	totalSfntSize := int(binary.BigEndian.Uint32(data[16:20]))
+	if length < 44 || length > len(data) {
+		return nil, fmt.Errorf("%w: WOFF length %d exceeds input size %d", errUTF8Font, length, len(data))
+	}
+	if numTables < 1 {
+		return nil, fmt.Errorf("%w: WOFF table count is zero", errUTF8Font)
+	}
+	directoryEnd := 44 + numTables*20
+	if directoryEnd > length {
+		return nil, fmt.Errorf("%w: WOFF table directory is truncated", errUTF8Font)
+	}
+	data = data[:length]
+
+	tables := make([]woffTable, 0, numTables)
+	for i := range numTables {
+		entry := data[44+i*20 : 44+(i+1)*20]
+		offset := int(binary.BigEndian.Uint32(entry[4:8]))
+		compLength := int(binary.BigEndian.Uint32(entry[8:12]))
+		origLength := int(binary.BigEndian.Uint32(entry[12:16]))
+		if compLength < 0 || origLength < 0 || offset < 0 ||
+			offset > len(data) || offset+compLength > len(data) {
+			return nil, fmt.Errorf("%w: WOFF table %d exceeds font data", errUTF8Font, i)
+		}
+
+		tableBytes := data[offset : offset+compLength]
+		switch {
+		case compLength < origLength:
+			reader, err := zlib.NewReader(bytes.NewReader(tableBytes))
+			if err != nil {
+				return nil, fmt.Errorf("%w: WOFF table %d decompression failed: %w", errUTF8Font, i, err)
+			}
+			tableBytes, err = io.ReadAll(reader)
+			closeErr := reader.Close()
+			if err != nil {
+				return nil, fmt.Errorf("%w: WOFF table %d decompression failed: %w", errUTF8Font, i, err)
+			}
+			if closeErr != nil {
+				return nil, fmt.Errorf("%w: WOFF table %d decompression failed: %w", errUTF8Font, i, closeErr)
+			}
+		case compLength > origLength:
+			return nil, fmt.Errorf("%w: WOFF table %d compressed length exceeds original length", errUTF8Font, i)
+		default:
+			tableBytes = append([]byte(nil), tableBytes...)
+		}
+		if len(tableBytes) != origLength {
+			return nil, fmt.Errorf("%w: WOFF table %d length = %d, want %d", errUTF8Font, i, len(tableBytes), origLength)
+		}
+		tables = append(tables, woffTable{
+			tag:        append([]byte(nil), entry[0:4]...),
+			checksum:   int(binary.BigEndian.Uint32(entry[16:20])),
+			origLength: origLength,
+			data:       tableBytes,
+		})
+	}
+
+	out, err := buildWOFF1SFNT(data[4:8], tables)
+	if err != nil {
+		return nil, err
+	}
+	if totalSfntSize != 0 && totalSfntSize != len(out) {
+		return nil, fmt.Errorf("%w: WOFF totalSfntSize = %d, rebuilt size = %d", errUTF8Font, totalSfntSize, len(out))
+	}
+	return out, nil
+}
+
+func buildWOFF1SFNT(flavor []byte, tables []woffTable) ([]byte, error) {
+	if len(flavor) != 4 {
+		return nil, fmt.Errorf("%w: WOFF sfnt flavor is invalid", errUTF8Font)
+	}
+	numTables := len(tables)
+	headerSize := 12 + numTables*16
+	totalSize := headerSize
+	for _, table := range tables {
+		totalSize += paddedLength(table.origLength)
+	}
+	out := make([]byte, totalSize)
+	copy(out[0:4], flavor)
+	binary.BigEndian.PutUint16(out[4:6], uint16(numTables)) // #nosec G115 -- numTables is read from a uint16 WOFF field.
+	searchRange, entrySelector, rangeShift := sfntSearchParams(numTables)
+	binary.BigEndian.PutUint16(out[6:8], uint16(searchRange))    // #nosec G115 -- values fit OpenType uint16.
+	binary.BigEndian.PutUint16(out[8:10], uint16(entrySelector)) // #nosec G115 -- values fit OpenType uint16.
+	binary.BigEndian.PutUint16(out[10:12], uint16(rangeShift))   // #nosec G115 -- values fit OpenType uint16.
+
+	offset := headerSize
+	for i, table := range tables {
+		record := out[12+i*16 : 12+(i+1)*16]
+		copy(record[0:4], table.tag)
+		binary.BigEndian.PutUint32(record[4:8], uint32(table.checksum))     // #nosec G115 -- checksum is a uint32 field.
+		binary.BigEndian.PutUint32(record[8:12], uint32(offset))            // #nosec G115 -- rebuilt fonts are bounded by memory.
+		binary.BigEndian.PutUint32(record[12:16], uint32(table.origLength)) // #nosec G115 -- origLength is a uint32 WOFF field.
+		copy(out[offset:offset+len(table.data)], table.data)
+		offset += paddedLength(table.origLength)
+	}
+	return out, nil
+}
+
+func sfntSearchParams(numTables int) (int, int, int) {
+	maxPower := 1
+	entrySelector := 0
+	for maxPower*2 <= numTables {
+		maxPower *= 2
+		entrySelector++
+	}
+	searchRange := maxPower * 16
+	rangeShift := numTables*16 - searchRange
+	return searchRange, entrySelector, rangeShift
+}
+
+func paddedLength(length int) int {
+	if rem := length % 4; rem != 0 {
+		return length + 4 - rem
+	}
+	return length
 }
 
 func (utf *utf8FontFile) hasOutlineTables() bool {
@@ -1528,7 +1672,9 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[int]int, map[int]int, []int) {
 	symbolCollection := map[int]int{0: 0}
 	charSymbolPairCollection := make(map[int]int)
-	for cid, char := range usedRunes {
+	usedRuneCIDs := keySortInt(usedRunes)
+	for _, cid := range usedRuneCIDs {
+		char := usedRunes[cid]
 		glyphID, ok := utf.charSymbolDictionary[char]
 		if ok {
 			utf.addSymbol(char, cid, glyphID, symbolCollection, charSymbolPairCollection)

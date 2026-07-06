@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -54,6 +57,62 @@ func TestFromHTML_WhenHeaderNestedInArticle_ShouldStayInline(t *testing.T) {
 	assert.Equal(t, 1, bytes.Count(doc.GetBytes(), []byte("INLINE-HEADER")), "nested header renders inline exactly once")
 }
 
+func TestFromHTML_WhenCSSHardBreaks_ShouldCreateSingleNewPage(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithCompression(false).Build()
+	cases := map[string]string{
+		"legacy before always": `<p>PAGE ONE</p><p style="page-break-before: always">PAGE TWO</p>`,
+		"legacy after always":  `<p style="page-break-after: always">PAGE ONE</p><p>PAGE TWO</p>`,
+		"modern before page":   `<p>PAGE ONE</p><p style="break-before: page">PAGE TWO</p>`,
+		"modern after page":    `<p style="break-after: page">PAGE ONE</p><p>PAGE TWO</p>`,
+	}
+	for name, html := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			doc, err := paper.FromHTML(context.Background(), html, cfg)
+
+			require.NoError(t, err)
+			assert.Equal(t, 2, pdfPageCount(t, doc.GetBytes()), name)
+		})
+	}
+}
+
+func TestFromHTML_WhenCSSHardBreakAtTop_ShouldNotCreateLeadingBlankPage(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithCompression(false).Build()
+	doc, err := paper.FromHTML(context.Background(), `<p style="page-break-before: always">ONLY PAGE</p>`, cfg)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, pdfPageCount(t, doc.GetBytes()))
+}
+
+func TestFromHTML_WhenConsecutiveCSSHardBreaks_ShouldCollapseAtPageTop(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithCompression(false).Build()
+	doc, err := paper.FromHTML(
+		context.Background(),
+		`<p style="page-break-after: always">PAGE ONE</p><p style="page-break-before: always">PAGE TWO</p>`,
+		cfg,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, pdfPageCount(t, doc.GetBytes()))
+}
+
+func TestFromHTML_WhenModernBreakValueIsCaseAndWhitespaceInsensitive(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithCompression(false).Build()
+	doc, err := paper.FromHTML(context.Background(), `<p>PAGE ONE</p><p style="break-before: Page ">PAGE TWO</p>`, cfg)
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, pdfPageCount(t, doc.GetBytes()))
+}
+
 func TestFromHTML_WhenHeaderTallerThanPage_ShouldReturnError(t *testing.T) {
 	t.Parallel()
 
@@ -98,6 +157,37 @@ func TestHTMLFromString_WhenTopLevelHeader_ShouldKeepLegacyInlineBehavior(t *tes
 
 	require.NoError(t, err)
 	assert.Len(t, rows, 2, "rows-only API keeps header inline as a normal row")
+}
+
+func TestHTML_WhenNestedUnicodeFlag_ShouldRenderWithinDeadline(t *testing.T) {
+	t.Parallel()
+
+	_, testFile, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	fontDir := filepath.Join(filepath.Dir(testFile), "docs", "assets", "fonts")
+	var body strings.Builder
+	for range 160 {
+		body.WriteString(`<p>Finding <span class="flag"><span class="flag-icon">▲</span> Warnsymptom</span></p>`)
+	}
+	htmlStr := `<style>
+@font-face { font-family: "ArialUnicode"; src: url("arial-unicode-ms.ttf") format("truetype") }
+body { font-family: helvetica; font-size: 10pt; }
+.flag { display:inline-block; font-size:6.5pt; font-weight:bold; color:#b3261e; background:#fbe7e6; padding:3px 8px; border-radius:9999px; white-space:nowrap; }
+.flag-icon { font-family: "ArialUnicode"; font-size:5.7pt; margin-right:3px; }
+</style>` + body.String()
+
+	rows, err := html.FromString(context.Background(), htmlStr, html.WithStylesheetBaseDir(fontDir))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	m := paper.New(config.NewBuilder().WithCompression(false).Build())
+	m.AddRows(rows...)
+	doc, err := m.Generate(ctx)
+
+	require.NoError(t, err)
+	assert.True(t, len(doc.GetBytes()) > 1000, "expected a generated PDF")
+	assert.True(t, pdfPageCount(t, doc.GetBytes()) < 20, "nested unicode flags must not explode pagination")
 }
 
 const pageRuleHTML = `<style>@page { size: A5; margin: 10mm }</style><p>content</p>`

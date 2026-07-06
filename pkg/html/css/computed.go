@@ -23,6 +23,7 @@ type ComputedStyle struct {
 	PaddingRight  float64
 	PaddingBottom float64
 	PaddingLeft   float64
+	BoxSizing     string // "content-box" | "border-box"; empty = content-box
 
 	MarginTop    float64
 	MarginRight  float64
@@ -73,11 +74,14 @@ type ComputedStyle struct {
 	Display        string // "block" | "inline" | "inline-block" | "none" | "flex" | "table" | ...
 	Visibility     string // "visible" | "hidden" | "collapse"
 	Width          float64
+	WidthAuto      bool
 	Height         float64
 	MinWidth       float64
 	MaxWidth       float64
 	MinHeight      float64
 	MaxHeight      float64
+	BorderSpacingX float64
+	BorderSpacingY float64
 	ObjectFit      string
 	ObjectPosition string
 
@@ -113,6 +117,7 @@ type ComputedStyle struct {
 	TextIndent       float64 // mm; first-line indent
 	WhiteSpace       string  // "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line"
 	VerticalAlign    string  // "baseline" | "sub" | "super" | "sup"
+	VerticalOffset   float64 // mm; length-valued vertical-align offset
 	Content          string  // generated content for ::before/::after
 	CounterReset     string  // raw counter-reset value, evaluated by the translator
 	CounterIncrement string  // raw counter-increment value, evaluated by the translator
@@ -180,8 +185,16 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 	}
 
 	// Resolve any var() references in val before dispatching to handlers.
-	if strings.Contains(val, "var(") {
+	if hadVar := strings.Contains(val, "var("); hadVar {
 		val = ResolveVars(val, s.Vars)
+		// Shorthands carrying a var() are left unexpanded at parse time (the
+		// value isn't concrete until now). Re-expand and apply the longhands.
+		if expanded := expandOne(prop, val); !isIdentityExpansion(prop, expanded) {
+			for p, v := range expanded {
+				s.ApplyCtx(p, v, parent, ctxWidth)
+			}
+			return
+		}
 	}
 
 	ctx := computedPropertyContext{

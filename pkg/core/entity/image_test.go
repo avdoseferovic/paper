@@ -24,6 +24,11 @@ func TestImage_AppendMap(t *testing.T) {
 	assert.Equal(t, extension.Png, m["entity_extension"])
 	assert.Equal(t, 100.0, m["background_dimension_width"])
 	assert.Equal(t, 200.0, m["background_dimension_height"])
+	assert.Equal(t, 1.0, m["background_page_cell_x"])
+	assert.Equal(t, 2.0, m["background_page_cell_y"])
+	assert.Equal(t, 3.0, m["background_page_cell_width"])
+	assert.Equal(t, 4.0, m["background_page_cell_height"])
+	assert.Equal(t, "fill", m["background_object_fit"])
 }
 
 func fixtureImage() entity.Image {
@@ -32,5 +37,7 @@ func fixtureImage() entity.Image {
 		Bytes:      []byte{1, 2, 3},
 		Extension:  extension.Png,
 		Dimensions: &dimensions,
+		PageCell:   &entity.Cell{X: 1, Y: 2, Width: 3, Height: 4},
+		ObjectFit:  "fill",
 	}
 }

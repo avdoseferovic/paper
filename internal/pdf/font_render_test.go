@@ -87,6 +87,34 @@ func TestUnderlineAndStrikeoutRendering(t *testing.T) {
 	mustOutput(t, f)
 }
 
+func TestCoreFontSemiboldStyleFallbacksToAvailableStyle(t *testing.T) {
+	t.Run("semibold falls back to regular", func(t *testing.T) {
+		f := readyPDF(t)
+		f.SetFont("Helvetica", "M", 12)
+		f.Cell(40, 10, "semibold fallback")
+		if err := f.Error(); err != nil {
+			t.Fatalf("missing core semibold style should fall back to regular: %v", err)
+		}
+		if f.fontStyle != "" {
+			t.Fatalf("expected semibold fallback to regular style, got %q", f.fontStyle)
+		}
+		mustOutput(t, f)
+	})
+
+	t.Run("semibold italic falls back to italic", func(t *testing.T) {
+		f := readyPDF(t)
+		f.SetFont("Helvetica", "MI", 12)
+		f.Cell(40, 10, "semibold italic fallback")
+		if err := f.Error(); err != nil {
+			t.Fatalf("missing core semibold italic style should fall back to italic: %v", err)
+		}
+		if f.fontStyle != "I" {
+			t.Fatalf("expected semibold italic fallback to italic style, got %q", f.fontStyle)
+		}
+		mustOutput(t, f)
+	})
+}
+
 func TestSubWriteOffsetsBaseline(t *testing.T) {
 	f := readyPDF(t)
 	f.SetXY(10, 30)

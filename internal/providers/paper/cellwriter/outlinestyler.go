@@ -11,9 +11,8 @@ type outlineStyler struct {
 }
 
 // NewOutlineStyler creates a CellWriter chain node that draws an outline
-// OUTSIDE the cell box (does not affect layout). It must be the LAST node in
-// the chain so it can read the final cell position from GetXY after other nodes
-// have drawn. The cursor position is saved and restored before forwarding.
+// OUTSIDE the cell box (does not affect layout). It draws before downstream
+// fills/content so thick decorative outlines can act as halos behind the cell.
 func NewOutlineStyler(fpdf any) CellWriter {
 	return &outlineStyler{
 		stylerTemplate: stylerTemplate{fpdf: fpdf, name: "outlineStyler"},
@@ -22,33 +21,25 @@ func NewOutlineStyler(fpdf any) CellWriter {
 
 func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
 	needOutline := prop != nil && prop.OutlineWidth > 0
-
-	// Capture the cell origin BEFORE the downstream chain moves the cursor
-	// (cellWriter's CellFormat advances X to the cell's right edge).
-	fpdf := asPDF[outlinePDF](o.fpdf)
-	var x, y float64
-	if needOutline {
-		x, y = fpdf.GetXY()
-	}
-
-	o.GoToNext(width, height, config, prop)
-
 	if !needOutline {
+		o.GoToNext(width, height, config, prop)
 		return
 	}
+
+	fpdf := asPDF[outlinePDF](o.fpdf)
+	x, y := fpdf.GetXY()
 
 	// Save state.
 	origWidth := fpdf.GetLineWidth()
 	origR, origG, origB := fpdf.GetDrawColor()
-	defer func() {
-		fpdf.SetLineWidth(origWidth)
-		fpdf.SetDrawColor(origR, origG, origB)
-	}()
+
+	colorR, colorG, colorB := origR, origG, origB
+	if prop.OutlineColor != nil {
+		colorR, colorG, colorB = prop.OutlineColor.Red, prop.OutlineColor.Green, prop.OutlineColor.Blue
+	}
 
 	fpdf.SetLineWidth(prop.OutlineWidth)
-	if prop.OutlineColor != nil {
-		fpdf.SetDrawColor(prop.OutlineColor.Red, prop.OutlineColor.Green, prop.OutlineColor.Blue)
-	}
+	fpdf.SetDrawColor(colorR, colorG, colorB)
 
 	// Outline rect sits outside the cell: expanded by (outlineOffset + width/2).
 	expansion := prop.OutlineOffset + prop.OutlineWidth/2
@@ -65,9 +56,31 @@ func (o *outlineStyler) Apply(width, height float64, config *entity.Config, prop
 		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
 	}
 
-	fpdf.Rect(rx, ry, rw, rh, "D")
+	if radius := outlineRadius(prop, expansion, rw, rh); radius > 0 {
+		if isCompactFullRoundCell(rw, rh, radius, radius, radius, radius) {
+			fpdf.Ellipse(rx+rw/2, ry+rh/2, rw/2, rh/2, 0, "D")
+		} else {
+			fpdf.RoundedRect(rx, ry, rw, rh, radius, "1234", "D")
+		}
+	} else {
+		fpdf.Rect(rx, ry, rw, rh, "D")
+	}
 
 	if prop.OutlineStyle != consts.LineStyleSolid && prop.OutlineStyle != "" {
 		fpdf.SetDashPattern([]float64{1, 0}, 0)
 	}
+
+	fpdf.SetLineWidth(origWidth)
+	fpdf.SetDrawColor(origR, origG, origB)
+
+	o.GoToNext(width, height, config, prop)
+}
+
+func outlineRadius(prop *props.Cell, expansion, width, height float64) float64 {
+	if prop == nil || !prop.HasBorderRadius() {
+		return 0
+	}
+	tl, tr, br, bl := prop.EffectiveRadii()
+	radius := max(max(tl, tr), max(br, bl)) + expansion
+	return clampRadius(radius, width, height)
 }

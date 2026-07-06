@@ -42,6 +42,22 @@ func TestType_IsValid(t *testing.T) {
 		// Act & Assert
 		assert.True(t, fontStyle.IsValid())
 	})
+	t.Run("when style is semibold, should be valid", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		fontStyle := fontstyle.Semibold
+
+		// Act & Assert
+		assert.True(t, fontStyle.IsValid())
+	})
+	t.Run("when style is semibold, strike-through and italic, should be valid", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		fontStyle := fontstyle.Semibold + fontstyle.Strikethrough + fontstyle.Italic
+
+		// Act & Assert
+		assert.True(t, fontStyle.IsValid())
+	})
 	t.Run("when style is underline, should be valid", func(t *testing.T) {
 		t.Parallel()
 		// Arrange

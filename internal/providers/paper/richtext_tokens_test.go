@@ -40,6 +40,50 @@ func TestTokenisePreservedText(t *testing.T) {
 	})
 }
 
+func TestTokeniseRuns_ForceBreak(t *testing.T) {
+	t.Parallel()
+
+	tokens := tokeniseRuns([]resolvedRun{
+		{RichRun: props.RichRun{Text: "Title"}},
+		{RichRun: props.RichRun{Text: "\n", ForceBreak: true}},
+		{RichRun: props.RichRun{Text: "Subtitle"}},
+	}, "normal")
+
+	require.Len(t, tokens, 3)
+	assert.Equal(t, "Title", tokens[0].text)
+	assert.True(t, tokens[1].isBreak)
+	assert.Equal(t, "Subtitle", tokens[2].text)
+
+	collapsed := tokeniseRuns([]resolvedRun{
+		{RichRun: props.RichRun{Text: "Title"}},
+		{RichRun: props.RichRun{Text: "\n"}},
+		{RichRun: props.RichRun{Text: "Subtitle"}},
+	}, "normal")
+
+	require.Len(t, collapsed, 3)
+	assert.Equal(t, "Title", collapsed[0].text)
+	assert.Equal(t, " ", collapsed[1].text)
+	assert.Equal(t, "Subtitle", collapsed[2].text)
+}
+
+func TestTokeniseRuns_InterRunCollapsedSpaceKeepsSourceRun(t *testing.T) {
+	t.Parallel()
+
+	tokens := tokeniseRuns([]resolvedRun{
+		{RichRun: props.RichRun{Text: "A", InlineBoxID: 1}},
+		{RichRun: props.RichRun{Text: " "}},
+		{RichRun: props.RichRun{Text: "B", InlineBoxID: 2}},
+	}, "normal")
+
+	require.Len(t, tokens, 3)
+	assert.Equal(t, "A", tokens[0].text)
+	assert.Equal(t, 0, tokens[0].runIdx)
+	assert.Equal(t, " ", tokens[1].text)
+	assert.Equal(t, 1, tokens[1].runIdx, "inter-run space must not inherit the next inline box")
+	assert.Equal(t, "B", tokens[2].text)
+	assert.Equal(t, 2, tokens[2].runIdx)
+}
+
 func TestHasTextOnCurrentLine(t *testing.T) {
 	t.Parallel()
 

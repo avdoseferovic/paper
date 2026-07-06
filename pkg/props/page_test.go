@@ -199,6 +199,60 @@ func TestPage_GetNumberTextProp(t *testing.T) {
 		assert.Equal(t, 0.0, textProp.VerticalPadding)
 		assert.Equal(t, &props.Color{Red: 100, Green: 50, Blue: 200}, textProp.Color)
 	})
+	t.Run("when offset y is set, should adjust top placement", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := fixture.PageProp()
+		prop.Place = props.Top
+		prop.OffsetY = 2.5
+
+		// Act
+		textProp := prop.GetNumberTextProp(100)
+
+		// Assert
+		assert.Equal(t, 2.5, textProp.Top)
+	})
+	t.Run("when offset y is set on bottom placement, should adjust from bottom baseline", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := fixture.PageProp()
+		prop.Place = props.Bottom
+		prop.OffsetY = -3.0
+
+		// Act
+		textProp := prop.GetNumberTextProp(100)
+
+		// Assert
+		assert.Equal(t, 97.0, textProp.Top)
+	})
+	t.Run("when offset x is set, should shift center placement horizontally", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := fixture.PageProp()
+		prop.Place = props.Bottom
+		prop.OffsetX = 4.75
+
+		// Act
+		textProp := prop.GetNumberTextProp(100)
+
+		// Assert
+		assert.Equal(t, 4.75, textProp.Left)
+		assert.Equal(t, -4.75, textProp.Right)
+	})
+	t.Run("when offset x is negative, should shift placement left", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := fixture.PageProp()
+		prop.Place = props.Bottom
+		prop.OffsetX = -2.25
+
+		// Act
+		textProp := prop.GetNumberTextProp(100)
+
+		// Assert
+		assert.Equal(t, -2.25, textProp.Left)
+		assert.Equal(t, 2.25, textProp.Right)
+	})
 	t.Run("when place is left bottom, should map correctly", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
@@ -297,6 +351,8 @@ func TestPageNumber_AppendMap(t *testing.T) {
 			Size:    15,
 			Style:   fontstyle.Bold,
 			Family:  consts.FontFamilyHelvetica,
+			OffsetY: -3,
+			OffsetX: 4.75,
 		}
 
 		m := make(map[string]any)
@@ -310,6 +366,8 @@ func TestPageNumber_AppendMap(t *testing.T) {
 		assert.Equal(t, consts.FontFamilyHelvetica, m["page_number_family"])
 		assert.Equal(t, fontstyle.Bold, m["page_number_style"])
 		assert.Equal(t, 15.0, m["page_number_size"])
+		assert.Equal(t, -3.0, m["page_number_offset_y"])
+		assert.Equal(t, 4.75, m["page_number_offset_x"])
 		assert.Equal(t, "RGB(255, 0, 0)", m["page_number_color"])
 	})
 }

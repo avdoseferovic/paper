@@ -1,8 +1,10 @@
 package translate
 
 const (
-	cssValueAuto = "auto"
-	cssValueNone = "none"
+	cssValueAuto   = "auto"
+	cssValueHidden = "hidden"
+	cssValueNormal = "normal"
+	cssValueNone   = "none"
 
 	displayFlex = "flex"
 	displayNone = cssValueNone
@@ -10,6 +12,8 @@ const (
 	flexAlignCenter = "center"
 	flexAlignEnd    = "flex-end"
 	flexAlignStart  = "flex-start"
+	flexWrap        = "wrap"
+	flexWrapReverse = "wrap-reverse"
 
 	imageExtJPG = "jpg"
 	imageExtPNG = "png"
@@ -17,9 +21,10 @@ const (
 
 	listStyleDecimal = "decimal"
 
-	tagImg   = "img"
-	tagTable = "table"
-	tagSVG   = "svg"
+	tagImg     = "img"
+	tagPicture = "picture"
+	tagTable   = "table"
+	tagSVG     = "svg"
 
 	verticalAlignBaseline = "baseline"
 	verticalAlignSub      = "sub"

@@ -210,6 +210,29 @@ func TestMeasureRichText_UsesTallestRunLineHeight(t *testing.T) {
 	assert.Equal(t, 9.0, sut.MeasureRichText(runs, &entity.Cell{Width: 100, Height: 100}, prop))
 }
 
+func TestMeasureRichText_DoesNotUseInlineRunLineHeightForPagination(t *testing.T) {
+	t.Parallel()
+
+	font := mocks.NewFont(t)
+	font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+	font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+	font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(4.0).Maybe()
+
+	pdf := newPDF(t)
+	pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+	pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(1.0).Maybe()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "chip", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, LineHeight: 1.5},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+	assert.Equal(t, 4.0, sut.MeasureRichText(runs, &entity.Cell{Width: 100, Height: 100}, prop))
+}
+
 func TestAddRichText_TextShadow(t *testing.T) {
 	t.Parallel()
 
@@ -468,6 +491,7 @@ func TestAddRichText_VerticalAlign(t *testing.T) {
 		{Text: "base", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10},
 		{Text: "sub", Family: consts.FontFamilyArial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "sub"},
 		{Text: "super", Family: consts.FontFamilyArial, Style: fontstyle.Normal, SizeScale: 0.75, VerticalAlign: "super"},
+		{Text: "offset", Family: consts.FontFamilyArial, Style: fontstyle.Normal, VerticalOffset: 1.25},
 	}
 
 	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
@@ -476,8 +500,10 @@ func TestAddRichText_VerticalAlign(t *testing.T) {
 	require.Contains(t, textY, "base")
 	require.Contains(t, textY, "sub")
 	require.Contains(t, textY, "super")
+	require.Contains(t, textY, "offset")
 	assert.Greater(t, textY["sub"], textY["base"])
 	assert.Less(t, textY["super"], textY["base"])
+	assert.InDelta(t, textY["base"]+1.25, textY["offset"], 0.001)
 	assert.Contains(t, sizes, 7.5)
 }
 
@@ -505,6 +531,38 @@ func TestAddRichText_InlineImage(t *testing.T) {
 				Width:     4,
 				Height:    3,
 			},
+		},
+	}
+
+	sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+	sut.AddRichText(runs, &entity.Cell{X: 2, Y: 0, Width: 50, Height: 20}, prop)
+}
+
+func TestAddRichText_InlineImageVerticalOffsetUsesCSSDirection(t *testing.T) {
+	t.Parallel()
+
+	pdf, font := baseRichTextSetup(t)
+	imageBytes := []byte("\x89PNG\r\n\x1a\ninline-offset")
+	options := pdfbackend.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+
+	pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
+		Return(&pdfbackend.ImageInfoType{}).
+		Once()
+	pdf.EXPECT().Image(mock.AnythingOfType("string"), 18.0, 1.5, 4.0, 3.0, false, "", 0, "").
+		Once()
+
+	prop := &props.RichText{}
+	prop.MakeValid(nil)
+	runs := []props.RichRun{
+		{Text: "A "},
+		{
+			Image: &props.RichImage{
+				Bytes:     imageBytes,
+				Extension: extension.Png,
+				Width:     4,
+				Height:    3,
+			},
+			VerticalOffset: -0.5,
 		},
 	}
 
@@ -547,6 +605,19 @@ func TestAddRichText_InlineImageObjectFitClipsToImageBox(t *testing.T) {
 	sut.AddRichText(runs, &entity.Cell{X: 2, Y: 0, Width: 50, Height: 20}, prop)
 }
 
+// nearY matches a float64 within a small tolerance. Pill-geometry assertions
+// pin the painted rect's vertical anchor; using a tolerance keeps them robust
+// to floating-point noise while still asserting the intended position.
+func nearY(want float64) interface{} {
+	return mock.MatchedBy(func(got float64) bool {
+		d := got - want
+		if d < 0 {
+			d = -d
+		}
+		return d < 0.01
+	})
+}
+
 func TestAddRichText_Background(t *testing.T) {
 	t.Parallel()
 
@@ -584,6 +655,422 @@ func TestAddRichText_Background(t *testing.T) {
 		pdf.AssertNotCalled(t, "Rect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 
 		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("shadow-only inline box draws shadow without foreground box", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		alpha := 0.4
+		pdf.EXPECT().SetFillColor(1, 2, 3).Once()
+		pdf.EXPECT().SetAlpha(0.4, "Normal").Once()
+		pdf.EXPECT().RoundedRect(1.0, nearY(2.73), 10.0, 4.0, 2.0, "1234", "F").Once()
+		pdf.EXPECT().SetAlpha(1.0, "Normal").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+		pdf.AssertNotCalled(t, "Rect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+
+		runs := []props.RichRun{{
+			Text:       "hello",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			BgRadius:   2,
+			BgPadX:     1,
+			BoxShadows: []props.Shadow{{OffsetX: 1, OffsetY: 2, Color: &props.Color{Red: 1, Green: 2, Blue: 3, Alpha: &alpha}}},
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("run with vertical background padding expands painted rect", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, nearY(-0.77), 12.0, 7.0, "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:       "hello",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			Background: bg,
+			BgPadX:     2,
+			BgPadY:     1.5,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("run with inline line-height expands painted rect without pagination", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, nearY(-1.77), 12.0, 9.0, "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:       "hello",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			Background: bg,
+			BgPadX:     2,
+			BgPadY:     1.5,
+			LineHeight: 1.5,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("inline line-height uses css font-size floor for painted rect", func(t *testing.T) {
+		t.Parallel()
+		origColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetColor().Return(origColor)
+		font.EXPECT().SetFont(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Maybe()
+		font.EXPECT().SetColor(mock.AnythingOfType("*props.Color")).Maybe()
+		font.EXPECT().GetHeight(mock.AnythingOfType("string"), mock.AnythingOfType("fontstyle.Type"), mock.AnythingOfType("float64")).Return(2.0).Maybe()
+
+		pdf := newPDF(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s }).Maybe()
+		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
+		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
+
+		near := func(want float64) interface{} {
+			return mock.MatchedBy(func(got float64) bool {
+				d := got - want
+				if d < 0 {
+					d = -d
+				}
+				return d < 0.0001
+			})
+		}
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, near(-3.4158358), 12.0, near(8.29167), "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:       "hello",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			Background: bg,
+			BgPadX:     2,
+			BgPadY:     1.5,
+			LineHeight: 1.5,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("run with asymmetric horizontal background padding expands painted rect", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, nearY(0.73), 13.0, 4.0, "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:       "hello",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			Background: bg,
+			BgPadLeft:  1,
+			BgPadRight: 4,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("run with background border strokes rounded inline box", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 248, Green: 249, Blue: 250}
+		borderColor := &props.Color{Red: 221, Green: 229, Blue: 233}
+		pdf.EXPECT().SetFillColor(248, 249, 250).Once()
+		pdf.EXPECT().SetDrawColor(221, 229, 233).Once()
+		pdf.EXPECT().SetLineWidth(0.5).Once()
+		pdf.EXPECT().RoundedRect(0.0, nearY(-1.27), 13.0, 8.0, 2.0, "1234", "FD").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+		pdf.EXPECT().SetDrawColor(0, 0, 0).Once()
+		pdf.EXPECT().SetLineWidth(consts.DefaultLineThickness).Once()
+
+		runs := []props.RichRun{{
+			Text:        "hello",
+			Family:      consts.FontFamilyArial,
+			Style:       fontstyle.Normal,
+			Size:        10,
+			Background:  bg,
+			BgRadius:    2,
+			BgPadX:      2,
+			BgPadY:      1.5,
+			BorderColor: borderColor,
+			BorderWidth: 0.5,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("compact full-round inline box uses ellipse primitive", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 39, Green: 118, Blue: 145}
+		pdf.EXPECT().SetFillColor(39, 118, 145).Once()
+		pdf.EXPECT().Ellipse(4.0, nearY(2.73), 4.0, 4.0, 0.0, "F").Once()
+		pdf.AssertNotCalled(t, "RoundedRect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:       "dot",
+			Family:     consts.FontFamilyArial,
+			Style:      fontstyle.Normal,
+			Size:       10,
+			Background: bg,
+			BgRadius:   999,
+			BgPadY:     2,
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("runs with same inline box id paint one shared rounded box", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 248, Green: 249, Blue: 250}
+		borderColor := &props.Color{Red: 221, Green: 229, Blue: 233}
+		pdf.EXPECT().SetFillColor(248, 249, 250).Once()
+		pdf.EXPECT().SetDrawColor(221, 229, 233).Once()
+		pdf.EXPECT().SetLineWidth(0.5).Once()
+		pdf.EXPECT().RoundedRect(0.0, nearY(-1.27), 21.0, 8.0, 2.0, "1234", "FD").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+		pdf.EXPECT().SetDrawColor(0, 0, 0).Once()
+		pdf.EXPECT().SetLineWidth(consts.DefaultLineThickness).Once()
+
+		runs := []props.RichRun{
+			{
+				Text:        "a",
+				Family:      consts.FontFamilyArial,
+				Style:       fontstyle.Normal,
+				Size:        10,
+				Background:  bg,
+				BgRadius:    2,
+				BgPadX:      2,
+				BgPadY:      1.5,
+				BorderColor: borderColor,
+				BorderWidth: 0.5,
+				InlineBoxID: 9,
+			},
+			{
+				Text:        "b",
+				Family:      consts.FontFamilyArial,
+				Style:       fontstyle.Bold,
+				Size:        10,
+				Background:  bg,
+				BgRadius:    2,
+				BgPadX:      2,
+				BgPadY:      1.5,
+				BorderColor: borderColor,
+				BorderWidth: 0.5,
+				InlineBoxID: 9,
+			},
+		}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("image and text with same inline box id paint one shared rounded box", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		imageBytes := []byte("\x89PNG\r\n\x1a\nbox")
+		options := pdfbackend.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+		bg := &props.Color{Red: 248, Green: 249, Blue: 250}
+		borderColor := &props.Color{Red: 221, Green: 229, Blue: 233}
+		pdf.EXPECT().SetFillColor(248, 249, 250).Once()
+		pdf.EXPECT().SetDrawColor(221, 229, 233).Once()
+		pdf.EXPECT().SetLineWidth(0.5).Once()
+		pdf.EXPECT().RoundedRect(0.0, nearY(-1.27), 13.0, 8.0, 2.0, "1234", "FD").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+		pdf.EXPECT().SetDrawColor(0, 0, 0).Once()
+		pdf.EXPECT().SetLineWidth(consts.DefaultLineThickness).Once()
+		pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
+			Return(&pdfbackend.ImageInfoType{}).
+			Once()
+		pdf.EXPECT().Image(mock.AnythingOfType("string"), 1.5, 2.0, 2.0, 2.0, false, "", 0, "").
+			Once()
+
+		runs := []props.RichRun{
+			{
+				Image:       &props.RichImage{Bytes: imageBytes, Extension: extension.Png, Width: 2, Height: 2},
+				Background:  bg,
+				BgRadius:    2,
+				BgPadX:      1,
+				BgPadY:      1.5,
+				BorderColor: borderColor,
+				BorderWidth: 0.5,
+				InlineBoxID: 9,
+			},
+			{
+				Text:        "x",
+				Family:      consts.FontFamilyArial,
+				Style:       fontstyle.Normal,
+				Size:        10,
+				Background:  bg,
+				BgRadius:    2,
+				BgPadX:      1,
+				BgPadY:      1.5,
+				BorderColor: borderColor,
+				BorderWidth: 0.5,
+				InlineBoxID: 9,
+			},
+		}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("shifted generated image does not shift shared inline box", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		imageBytes := []byte("\x89PNG\r\n\x1a\nbox")
+		options := pdfbackend.ImageOptions{ReadDpi: false, ImageType: string(extension.Png)}
+		bg := &props.Color{Red: 248, Green: 249, Blue: 250}
+		borderColor := &props.Color{Red: 221, Green: 229, Blue: 233}
+		pdf.EXPECT().SetFillColor(248, 249, 250).Once()
+		pdf.EXPECT().SetDrawColor(221, 229, 233).Once()
+		pdf.EXPECT().SetLineWidth(0.5).Once()
+		pdf.EXPECT().RoundedRect(0.0, nearY(-1.27), 13.0, 8.0, 2.0, "1234", "FD").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+		pdf.EXPECT().SetDrawColor(0, 0, 0).Once()
+		pdf.EXPECT().SetLineWidth(consts.DefaultLineThickness).Once()
+		pdf.EXPECT().RegisterImageOptionsReader(mock.AnythingOfType("string"), options, bytes.NewReader(imageBytes)).
+			Return(&pdfbackend.ImageInfoType{}).
+			Once()
+		pdf.EXPECT().Image(mock.AnythingOfType("string"), mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), 2.0, 2.0, false, "", 0, "").
+			Once()
+
+		runs := []props.RichRun{
+			{
+				Image:          &props.RichImage{Bytes: imageBytes, Extension: extension.Png, Width: 2, Height: 2},
+				Background:     bg,
+				BgRadius:       2,
+				BgPadX:         1,
+				BgPadY:         1.5,
+				BorderColor:    borderColor,
+				BorderWidth:    0.5,
+				InlineBoxID:    9,
+				VerticalOffset: -0.3,
+			},
+			{
+				Text:        "x",
+				Family:      consts.FontFamilyArial,
+				Style:       fontstyle.Normal,
+				Size:        10,
+				Background:  bg,
+				BgRadius:    2,
+				BgPadX:      1,
+				BgPadY:      1.5,
+				BorderColor: borderColor,
+				BorderWidth: 0.5,
+				InlineBoxID: 9,
+			},
+		}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("vertical aligned run shifts background with text", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, nearY(1.53), 8.0, 4.0, "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:          "hello",
+			Family:        consts.FontFamilyArial,
+			Style:         fontstyle.Normal,
+			Size:          10,
+			Background:    bg,
+			VerticalAlign: "sub",
+		}}
+		prop := &props.RichText{}
+		prop.MakeValid(nil)
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+		sut.AddRichText(runs, &entity.Cell{X: 0, Y: 0, Width: 50, Height: 20}, prop)
+	})
+
+	t.Run("vertical offset run shifts background with text", func(t *testing.T) {
+		t.Parallel()
+		pdf, font := baseRichTextSetup(t)
+
+		bg := &props.Color{Red: 255, Green: 255, Blue: 0}
+		pdf.EXPECT().SetFillColor(255, 255, 0).Once()
+		pdf.EXPECT().Rect(0.0, nearY(1.98), 8.0, 4.0, "F").Once()
+		pdf.EXPECT().SetFillColor(255, 255, 255).Once()
+
+		runs := []props.RichRun{{
+			Text:           "hello",
+			Family:         consts.FontFamilyArial,
+			Style:          fontstyle.Normal,
+			Size:           10,
+			Background:     bg,
+			VerticalOffset: 1.25,
+		}}
 		prop := &props.RichText{}
 		prop.MakeValid(nil)
 
