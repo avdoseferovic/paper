@@ -9,6 +9,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Added richer HTML/CSS rendering support for inline boxes, shadows, pseudo-element
+  image content, flex/table layout, page-break controls, and typography details
+  including semibold, line-height, letter-spacing, vertical-align, and `nowrap`.
+- Added public controls for positioned page images, first-page foreground/final
+  foreground overlays, page-number offsets, table width/alignment/border-spacing,
+  and pagination directives used by HTML translation.
 - Added a public PDF outline (bookmarks) API: `props.Outline` on `props.Text`
   and the richtext paragraph prop adds entries to the viewer's bookmark
   sidebar (`Level` 0-n nesting, optional `Title` override).

@@ -7,6 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/translate"
 )
 
@@ -25,6 +26,67 @@ func TestPageBreakRow_GetHeight_IsZero(t *testing.T) {
 	// GetHeight must return 0 (no real content)
 	h := row.GetHeight(nil, nil)
 	assert.Equal(t, 0.0, h)
+}
+
+func TestPageControlRow_Methods(t *testing.T) {
+	t.Parallel()
+
+	top := 1.5
+	continuationTop := 0.5
+	row := translate.NewPageControlRow(core.PageControl{
+		SuppressFooter:            true,
+		SuppressPageNumber:        true,
+		CountPageNumber:           true,
+		DecorFirstPageOnly:        true,
+		TopMargin:                 &top,
+		TopMarginFirstPageOnly:    true,
+		ContinuationTopMargin:     &continuationTop,
+		RenderOffsetFirstPageOnly: true,
+	})
+
+	pc, ok := row.(core.PageController)
+	require.True(t, ok)
+	control := pc.PageControl()
+	assert.False(t, control.Blank)
+	assert.True(t, control.SuppressFooter)
+	assert.True(t, control.SuppressPageNumber)
+	assert.True(t, control.CountPageNumber)
+	assert.True(t, control.DecorFirstPageOnly)
+	require.NotNil(t, control.TopMargin)
+	assert.Equal(t, top, *control.TopMargin)
+	assert.True(t, control.TopMarginFirstPageOnly)
+	require.NotNil(t, control.ContinuationTopMargin)
+	assert.Equal(t, continuationTop, *control.ContinuationTopMargin)
+
+	assert.Equal(t, 0.0, row.GetHeight(nil, nil))
+	row.Render(nil, entity.Cell{})
+	row.SetConfig(nil)
+	assert.Equal(t, row, row.Add())
+	assert.Equal(t, row, row.WithStyle(nil))
+	assert.Nil(t, row.GetColumns())
+
+	str := row.GetStructure().GetData()
+	assert.Equal(t, "page_control", str.Type)
+	assert.Equal(t, false, str.Details["blank"])
+	assert.Equal(t, true, str.Details["suppress_footer"])
+	assert.Equal(t, true, str.Details["suppress_page_number"])
+	assert.Equal(t, true, str.Details["count_page_number"])
+	assert.Equal(t, true, str.Details["decor_first_page_only"])
+	assert.Equal(t, &top, str.Details["top_margin"])
+	assert.Equal(t, true, str.Details["top_margin_first_page_only"])
+	assert.Equal(t, &continuationTop, str.Details["continuation_top_margin"])
+}
+
+func TestBlankPageRow_ForcesBlankControl(t *testing.T) {
+	t.Parallel()
+
+	row := translate.NewBlankPageRow(core.PageControl{SuppressFooter: true})
+
+	pc, ok := row.(core.PageController)
+	require.True(t, ok)
+	control := pc.PageControl()
+	assert.True(t, control.Blank)
+	assert.True(t, control.SuppressFooter)
 }
 
 func TestTranslate_PageBreakAfter_ProducesBreakRow(t *testing.T) {
