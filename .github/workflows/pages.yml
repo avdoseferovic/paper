@@ -46,7 +46,8 @@ jobs:
           cp -r docs _site
           rm -f _site/go.mod _site/go.sum
           rm -rf _site/plans
-          find _site -name '*.go' -delete
+          # Keep assets/examples/*/main.go — docsify embeds them via ':include'.
+          find _site -name '*_test.go' -delete
           mkdir -p _site/playground
           cp examples/cmd/wasm/web/index.html      _site/playground/
           cp examples/cmd/wasm/web/paper.wasm       _site/playground/
