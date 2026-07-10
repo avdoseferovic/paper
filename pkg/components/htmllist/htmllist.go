@@ -200,6 +200,15 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 	}
 }
 
+// MarkerLabel returns the formatted marker text for a zero-based item index,
+// honoring Start/StartSet/Reversed. ok is false for out-of-range indexes.
+func (l *HTMLList) MarkerLabel(i int) (string, bool) {
+	if l == nil || i < 0 || i >= len(l.items) {
+		return "", false
+	}
+	return l.itemMarkerLabel(i)
+}
+
 // itemMarkerLabel resolves the marker label for an item, honouring per-item
 // ::marker overrides: suppressed markers render nothing, custom content
 // renders even when the list style is None.
@@ -383,13 +392,4 @@ func (l *HTMLList) markerIndex(itemIndex int) int {
 		return start - itemIndex - 1
 	}
 	return start + itemIndex - 1
-}
-
-// MarkerLabel returns the formatted marker text for a zero-based item index,
-// honoring Start/StartSet/Reversed. ok is false for out-of-range indexes.
-func (l *HTMLList) MarkerLabel(i int) (string, bool) {
-	if l == nil || i < 0 || i >= len(l.items) {
-		return "", false
-	}
-	return l.itemMarkerLabel(i)
 }

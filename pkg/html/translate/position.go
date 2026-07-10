@@ -63,7 +63,7 @@ func (r *absoluteRow) GetStructure() *node.Node[core.Structure] {
 		"position":      position,
 		"x":             r.x,
 		"y":             r.y,
-		"right":         r.right,
+		cssValueRight:   r.right,
 		"width":         r.width,
 		"right_aligned": r.rightAligned,
 	}

@@ -2,7 +2,7 @@ module github.com/avdoseferovic/paper/examples
 
 go 1.26.4
 
-require github.com/avdoseferovic/paper v0.1.0
+require github.com/avdoseferovic/paper v0.2.1
 
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect

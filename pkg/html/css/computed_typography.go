@@ -40,7 +40,7 @@ func (s *ComputedStyle) applyTypographyProperty(ctx computedPropertyContext) boo
 func normalizePageBreakValue(value string) string {
 	v := strings.ToLower(strings.TrimSpace(value))
 	switch v {
-	case "page", "left", "right", "recto", "verso":
+	case "page", cssValueLeft, cssValueRight, "recto", "verso":
 		// Modern break-before/break-after use "page"; legacy page-break-* also
 		// allowed left/right. Paper does not choose page parity, so all of these
 		// map to the same hard page break marker.

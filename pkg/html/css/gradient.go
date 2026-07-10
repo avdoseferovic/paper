@@ -222,9 +222,9 @@ func parseRadialPosition(pos string) (float64, float64) {
 		return 0.5, 0.0
 	case "bottom":
 		return 0.5, 1.0
-	case "left":
+	case cssValueLeft:
 		return 0.0, 0.5
-	case "right":
+	case cssValueRight:
 		return 1.0, 0.5
 	case "top left", "left top":
 		return 0.0, 0.0

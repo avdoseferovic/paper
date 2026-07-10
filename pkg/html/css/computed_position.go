@@ -11,11 +11,11 @@ func (s *ComputedStyle) applyPositionProperty(ctx computedPropertyContext) bool 
 		s.applyPosition(ctx.val)
 	case "top":
 		s.applyPositionOffset(&s.Top, ctx.val, ctx.parentFontSize, ctx.ctxWidth)
-	case "right":
+	case cssValueRight:
 		s.applyPositionOffset(&s.Right, ctx.val, ctx.parentFontSize, ctx.ctxWidth)
 	case "bottom":
 		s.applyPositionOffset(&s.Bottom, ctx.val, ctx.parentFontSize, ctx.ctxWidth)
-	case "left":
+	case cssValueLeft:
 		s.applyPositionOffset(&s.Left, ctx.val, ctx.parentFontSize, ctx.ctxWidth)
 	case "z-index":
 		s.applyZIndex(ctx.val)

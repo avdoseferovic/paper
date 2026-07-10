@@ -43,7 +43,8 @@ func (tr *translator) buildList(n *dom.Node) *htmllist.HTMLList {
 	if n.Tag() == "ol" {
 		style = listStyleFromType(n.Attr("type"))
 		if raw := strings.TrimSpace(n.Attr("start")); raw != "" {
-			if v, err := strconv.Atoi(raw); err == nil {
+			v, err := strconv.Atoi(raw)
+			if err == nil {
 				start = v
 				startSet = true
 			}

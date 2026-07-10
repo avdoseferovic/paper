@@ -76,9 +76,9 @@ func (p *perSideBorderStyler) drawSide(
 	fpdf.SetLineWidth(thickness)
 
 	if color != nil {
-		fpdf.SetDrawColor(color.Red, color.Green, color.Blue)
+		applyDrawColor(fpdf, color)
 	} else if prop.BorderColor != nil {
-		fpdf.SetDrawColor(prop.BorderColor.Red, prop.BorderColor.Green, prop.BorderColor.Blue)
+		applyDrawColor(fpdf, prop.BorderColor)
 	}
 
 	switch style {

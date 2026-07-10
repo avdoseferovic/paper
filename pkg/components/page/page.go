@@ -163,34 +163,6 @@ func (p *Page) SetNumber(number int, total int) {
 	p.total = total
 }
 
-// renderRows renders the page's rows in paint-layer order: rows whose
-// RenderLayer is negative paint first (behind the flow), flow rows (no layer
-// or layer 0) next, and positive layers last (in front). Every row keeps the
-// Y position it would have in plain flow order — layered rows typically
-// report zero height, so they don't consume flow space.
-func (p *Page) renderRows(provider core.Provider, innerCell entity.Cell) {
-	type placedRow struct {
-		row   core.Row
-		cell  entity.Cell
-		layer int
-	}
-	placed := make([]placedRow, 0, len(p.rows))
-	for _, row := range p.rows {
-		pr := placedRow{row: row, cell: innerCell}
-		if lr, ok := row.(core.LayeredRow); ok {
-			pr.layer = lr.RenderLayer()
-		}
-		placed = append(placed, pr)
-		innerCell.Y += row.GetHeight(provider, &innerCell)
-	}
-	sort.SliceStable(placed, func(i, j int) bool {
-		return placed[i].layer < placed[j].layer
-	})
-	for _, pr := range placed {
-		pr.row.Render(provider, pr.cell)
-	}
-}
-
 // SetPageIndex records the physical 1-based page index.
 func (p *Page) SetPageIndex(index int) {
 	p.index = index
@@ -264,4 +236,32 @@ func (p *Page) contentCell(cell entity.Cell) entity.Cell {
 
 func (p *Page) isFirstPage() bool {
 	return p.index == 1 || (p.index == 0 && p.number == 1)
+}
+
+// renderRows renders the page's rows in paint-layer order: rows whose
+// RenderLayer is negative paint first (behind the flow), flow rows (no layer
+// or layer 0) next, and positive layers last (in front). Every row keeps the
+// Y position it would have in plain flow order — layered rows typically
+// report zero height, so they don't consume flow space.
+func (p *Page) renderRows(provider core.Provider, innerCell entity.Cell) {
+	type placedRow struct {
+		row   core.Row
+		cell  entity.Cell
+		layer int
+	}
+	placed := make([]placedRow, 0, len(p.rows))
+	for _, row := range p.rows {
+		pr := placedRow{row: row, cell: innerCell}
+		if lr, ok := row.(core.LayeredRow); ok {
+			pr.layer = lr.RenderLayer()
+		}
+		placed = append(placed, pr)
+		innerCell.Y += row.GetHeight(provider, &innerCell)
+	}
+	sort.SliceStable(placed, func(i, j int) bool {
+		return placed[i].layer < placed[j].layer
+	})
+	for _, pr := range placed {
+		pr.row.Render(provider, pr.cell)
+	}
 }

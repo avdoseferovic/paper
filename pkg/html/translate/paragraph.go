@@ -112,7 +112,7 @@ func richTextAlignFromCSS(value string) consts.Align {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case flexAlignCenter:
 		return consts.AlignCenter
-	case "right", "end":
+	case cssValueRight, "end":
 		return consts.AlignRight
 	case "justify":
 		return consts.AlignJustify

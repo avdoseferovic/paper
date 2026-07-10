@@ -158,6 +158,7 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 	// Load the fallback font (if configured and needed) BEFORE the font
 	// registration rows are emitted so its registrations are included.
 	tr.loadFallbackFontIfNeeded(ctx, body, resolver)
+	tr.installRemoteImageResolver(ctx)
 	// Pre-pass: collect all id values so forward references (link before
 	// target) resolve correctly at render time via the shared anchor registry.
 	tr.anchorIDs = collectAnchorIDs(body)

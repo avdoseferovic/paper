@@ -163,7 +163,7 @@ func (s *Text) drawRunBackground(r resolvedRun, x, yTop, w, lineHeight float64) 
 	translucent := false
 	if r.Background != nil {
 		drawMode = "F"
-		s.pdf.SetFillColor(r.Background.Red, r.Background.Green, r.Background.Blue)
+		setPDFFillColor(s.pdf, r.Background)
 		translucent = r.Background.Alpha != nil && *r.Background.Alpha < 1
 	}
 	if r.BorderColor != nil && r.BorderWidth > 0 {
@@ -385,7 +385,7 @@ func (s *Text) renderTokenShadows(r resolvedRun, origColor *props.Color, x, y fl
 			continue
 		}
 		sc := shadow.Color
-		s.pdf.SetTextColor(sc.Red, sc.Green, sc.Blue)
+		setPDFTextColor(s.pdf, sc)
 		s.pdf.Text(x+shadow.OffsetX, y+shadow.OffsetY, translated)
 		painted = true
 	}
@@ -394,9 +394,9 @@ func (s *Text) renderTokenShadows(r resolvedRun, origColor *props.Color, x, y fl
 	}
 	// Restore run colour before drawing normal text.
 	if r.Color != nil {
-		s.pdf.SetTextColor(r.Color.Red, r.Color.Green, r.Color.Blue)
+		setPDFTextColor(s.pdf, r.Color)
 	} else {
-		s.pdf.SetTextColor(origColor.Red, origColor.Green, origColor.Blue)
+		setPDFTextColor(s.pdf, origColor)
 	}
 }
 

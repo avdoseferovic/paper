@@ -6,6 +6,9 @@ import (
 )
 
 type (
+	// ParseError indicates the input HTML could not be parsed into a document.
+	ParseError = translate.ParseError
+
 	// AssetError indicates a document-referenced asset failed to load while
 	// converting HTML with WithStrictAssets enabled.
 	AssetError = translate.AssetError

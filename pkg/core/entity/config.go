@@ -160,9 +160,12 @@ func (c *Config) ToMap() map[string]any {
 		m["config_html_max_style_rules"] = c.HTMLLimits.MaxStyleRules
 	}
 
-	if c.AcroForm != nil {
-		m["config_acroform_fields"] = len(c.AcroForm.Fields())
-	}
+	return c.appendCatalogMap(m)
+}
+
+// appendCatalogMap adds the document-catalog feature entries to a config map.
+func (c *Config) appendCatalogMap(m map[string]any) map[string]any {
+	m = appendAcroFormMap(c.AcroForm, m)
 	m = appendAnnotationsMap(c.Annotations, m)
 	m = appendPageGeometriesMap(c.PageGeometries, m)
 	if c.PdfA != nil {

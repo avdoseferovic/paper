@@ -36,7 +36,7 @@ func DocumentFromString(ctx context.Context, htmlStr string, opts ...Option) (*D
 	}
 	doc, err := dom.Parse(htmlStr)
 	if err != nil {
-		return nil, err
+		return nil, &translate.ParseError{Err: err}
 	}
 	err = conversionCanceled(ctx)
 	if err != nil {

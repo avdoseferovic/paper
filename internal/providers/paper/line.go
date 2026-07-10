@@ -37,9 +37,7 @@ func (l *Line) renderVertical(cell *entity.Cell, prop *props.Line) {
 
 	left, top, _, _ := l.pdf.GetMargins()
 
-	if prop.Color != nil {
-		l.pdf.SetDrawColor(prop.Color.Red, prop.Color.Green, prop.Color.Blue)
-	}
+	setPDFDrawColor(l.pdf, prop.Color)
 	l.pdf.SetLineWidth(prop.Thickness)
 
 	setDashPattern(l.pdf, prop.Style)
@@ -47,7 +45,7 @@ func (l *Line) renderVertical(cell *entity.Cell, prop *props.Line) {
 	l.pdf.Line(left+cell.X+position, top+cell.Y+space, left+cell.X+position, top+cell.Y+cell.Height-space)
 
 	if prop.Color != nil {
-		l.pdf.SetDrawColor(l.defaultColor.Red, l.defaultColor.Green, l.defaultColor.Blue)
+		setPDFDrawColor(l.pdf, l.defaultColor)
 	}
 	l.pdf.SetLineWidth(l.defaultThickness)
 	resetDashPattern(l.pdf, prop.Style)
@@ -61,9 +59,7 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 
 	left, top, _, _ := l.pdf.GetMargins()
 
-	if prop.Color != nil {
-		l.pdf.SetDrawColor(prop.Color.Red, prop.Color.Green, prop.Color.Blue)
-	}
+	setPDFDrawColor(l.pdf, prop.Color)
 	l.pdf.SetLineWidth(prop.Thickness)
 
 	setDashPattern(l.pdf, prop.Style)
@@ -71,7 +67,7 @@ func (l *Line) renderHorizontal(cell *entity.Cell, prop *props.Line) {
 	l.pdf.Line(left+cell.X+space, top+cell.Y+position, left+cell.X+cell.Width-space, top+cell.Y+position)
 
 	if prop.Color != nil {
-		l.pdf.SetDrawColor(l.defaultColor.Red, l.defaultColor.Green, l.defaultColor.Blue)
+		setPDFDrawColor(l.pdf, l.defaultColor)
 	}
 	l.pdf.SetLineWidth(l.defaultThickness)
 	resetDashPattern(l.pdf, prop.Style)

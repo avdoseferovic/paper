@@ -41,11 +41,6 @@ const (
 	inputTypePassword = "password"
 )
 
-//nolint:unused // Kept for package-level tests that exercise the legacy helper directly.
-func (tr *translator) formControlRows(n *dom.Node, style *css.ComputedStyle) []core.Row {
-	return tr.formControlRowsContext(context.Background(), n, style)
-}
-
 func (tr *translator) formControlRowsContext(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
 	runCtx := tr.styledRunContextContext(ctx, style)
 	runs, handled := formControlRuns(n, runCtx)

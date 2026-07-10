@@ -9,6 +9,64 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Added interactive AcroForm generation (`config.WithAcroForm`, `Paper.SetAcroForm`,
+  `pkg/forms` field builders) with fill, flatten, and read-back via `pkg/forms.FormFiller`.
+- Added PDF/A conformance output (`config.WithPdfA`, levels 1B-4E) with XMP
+  metadata, extension schemas, and sRGB or custom output intents; Level-A
+  profiles enable tagged output automatically.
+- Added tagged (accessible) PDF output (`config.WithTaggedPDF`, `Paper.SetTagged`)
+  with structure tree, marked content, and `/Lang` (`config.WithLanguage`).
+- Added document-catalog features: viewer preferences (`config.WithViewerPreferences`),
+  page labels, file attachments, named destinations, page annotations
+  (`Paper.AddAnnotation` and friends), per-page geometry boxes/rotation,
+  explicit file IDs (`config.WithFileID`), and deterministic byte-stable builds
+  (`config.WithDeterministic`).
+- Added `pkg/reader` (parse, page remove/reorder/extract, rotate, crop, redact,
+  `reader.MergeFiles`) backed by new `merge.BytesSelected`/`merge.PageSelection`.
+- Added `pkg/sign` (CMS/PAdES digital signatures, timestamps, DSS/LTV), `pkg/svg`,
+  `pkg/barcode`, `pkg/image` (GIF/WebP/TIFF via codec normalization), `pkg/tmpl`,
+  and CMYK color support (`props.Color.CMYK`).
+- Added HTML pipeline features: CSS multi-column, grid, and position/transform
+  support, form controls, automatic fallback fonts for non-WinAnsi text
+  (`html.WithFallbackFontPath`), opt-in remote assets (`html.WithRemoteAssets`,
+  `html.WithURLPolicy`, `html.WithHTTPClient`), strict asset errors
+  (`html.WithStrictAssets`), `!important` cascade handling, and typed
+  `html.ParseError`/`html.AssetError`/`html.LimitError` surfaces.
+
+### Fixed
+
+- Fixed merged PDFs rendering blank: `merge.Bytes` now materializes inherited
+  page-tree attributes (`/MediaBox`, `/Resources`, `/Rotate`, crop boxes) onto
+  each copied page.
+- Fixed RC4-protected documents corrupting every Info string after the first
+  (per-string keystream), non-ASCII outline titles showing mojibake (UTF-16
+  encoding), page-number aliases rendering missing glyphs with UTF-8 fonts,
+  `SetAlpha` emitting an invalid blend mode for the empty string, XMP metadata
+  never being referenced from the catalog, bookmark destinations on mixed page
+  sizes, PDF dates missing timezone offsets, and a potential panic embedding
+  uncompressed Type1 fonts.
+- Fixed silent text corruption: core-font Unicode translation is now
+  case-insensitive on the family name, and characters outside cp1252 are
+  reported through `GetReport()` instead of being replaced silently.
+- Fixed text layout issues: dash-break line caching, trailing-space alignment
+  at wrap points, dotted cell borders rendering dashed, checkbox label
+  encoding and centering, CSS-correct justify (last line not stretched), and
+  `props.Text` mutation during rendering.
+- Fixed HTML/CSS fidelity: `rem`/`in` units, `&nbsp;` preservation,
+  deterministic inline shorthand expansion, `line-height` with units or
+  percentages, `border` shorthand color functions and width keywords,
+  `font-size` percentages/keywords, modern color syntax (`rgb(255 0 0 / .5)`,
+  hue units), `<tfoot>` ordering, body-level inline grouping,
+  `<ol start="0">`, CSS hex escapes in `content` strings, em-valued heights
+  and border widths, and malformed box shorthands being dropped instead of
+  zeroed.
+
+### Security
+
+- Upgraded `golang.org/x/image` to v0.43.0 (fixes GO-2026-5032, GO-2026-4961,
+  GO-2026-5066, GO-2026-5062 and related decode panics) and pinned the Go
+  toolchain to 1.26.5.
+
 - Added richer HTML/CSS rendering support for inline boxes, shadows, pseudo-element
   image content, flex/table layout, page-break controls, and typography details
   including semibold, line-height, letter-spacing, vertical-align, and `nowrap`.

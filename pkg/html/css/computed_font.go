@@ -51,7 +51,7 @@ func parseFontSize(value string, parentFontSize float64) (float64, bool) {
 		return base * 10 / 16, true
 	case "small":
 		return base * 13 / 16, true
-	case "medium":
+	case cssValueMedium:
 		return base, true
 	case "large":
 		return base * 18 / 16, true
@@ -82,7 +82,8 @@ func parseLineHeight(value string, fontSize, parentFontSize float64) (float64, b
 	if frac, ok := ParsePercentage(value); ok {
 		return frac, frac > 0
 	}
-	if unitless, err := strconv.ParseFloat(value, 64); err == nil {
+	unitless, err := strconv.ParseFloat(value, 64)
+	if err == nil {
 		return unitless, unitless > 0
 	}
 	base := fontSize
@@ -99,10 +100,12 @@ func parseLineHeight(value string, fontSize, parentFontSize float64) (float64, b
 	return length / base, true
 }
 
+const cssValueBold = "bold"
+
 func normFontWeight(val string) string {
 	switch strings.ToLower(strings.TrimSpace(val)) {
-	case "bold", "bolder", "700", "800", "900":
-		return "bold"
+	case cssValueBold, "bolder", "700", "800", "900":
+		return cssValueBold
 	case "500", "600":
 		return strings.TrimSpace(val)
 	default:

@@ -43,11 +43,11 @@ func expandOne(prop, val string) map[string]string {
 	case "border-top":
 		return expandBorderSide("top", val)
 	case "border-right":
-		return expandBorderSide("right", val)
+		return expandBorderSide(cssValueRight, val)
 	case "border-bottom":
 		return expandBorderSide("bottom", val)
 	case "border-left":
-		return expandBorderSide("left", val)
+		return expandBorderSide(cssValueLeft, val)
 	case "border-radius":
 		return expandBorderRadius(val)
 	case "padding":
@@ -222,7 +222,7 @@ func hasTopLevelComma(value string) bool {
 func expandBorderAll(val string) map[string]string {
 	width, style, color := parseBorderTriple(val)
 	out := make(map[string]string, 12)
-	for _, side := range []string{"top", "right", "bottom", "left"} {
+	for _, side := range []string{"top", cssValueRight, "bottom", cssValueLeft} {
 		out["border-"+side+"-width"] = width
 		out["border-"+side+"-style"] = style
 		out["border-"+side+"-color"] = color
@@ -265,7 +265,7 @@ func parseBorderTriple(val string) (string, string, string) {
 		}
 	}
 	if width == "" {
-		width = "medium"
+		width = cssValueMedium
 	}
 	if style == "" {
 		style = cssValueNone

@@ -7,6 +7,7 @@ const (
 	cssValueNormal = "normal"
 	cssValueNone   = "none"
 	cssValueSolid  = "solid"
+	cssValueRight  = "right"
 
 	displayFlex = "flex"
 	displayGrid = "grid"

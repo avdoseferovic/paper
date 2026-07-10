@@ -65,8 +65,9 @@ func httpGetBytes(ctx context.Context, client *http.Client, rawURL string, maxBy
 	if err != nil {
 		return nil, fmt.Errorf("html: building request for %s: %w", rawURL, err)
 	}
-	//nolint:gosec // Remote asset loading is explicit opt-in; callers can gate URLs with URLPolicy.
-	resp, err := client.Do(req)
+	// Remote asset fetching is explicit opt-in (WithRemoteAssets); URLPolicy
+	// lets callers gate the reachable targets.
+	resp, err := client.Do(req) //nolint:gosec // G704: see opt-in note above.
 	if err != nil {
 		return nil, fmt.Errorf("html: fetch %s: %w", rawURL, err)
 	}
@@ -95,4 +96,28 @@ func extFromURL(rawURL string) string {
 		return extFromFilename(u.Path)
 	}
 	return extFromFilename(rawURL)
+}
+
+// installRemoteImageResolver routes http(s) <img> sources through the remote
+// fetcher when remote assets are enabled and no custom resolver is set. The
+// returned resolver captures ctx so image fetches observe cancellation.
+func (tr *translator) installRemoteImageResolver(ctx context.Context) {
+	if tr == nil || !tr.remoteAssets || tr.imageResolver != nil {
+		return
+	}
+	baseDir := tr.imageBaseDir
+	limits := tr.limits
+	tr.imageResolver = func(src string) ([]byte, string, error) {
+		if isHTTPURL(src) {
+			data, err := tr.fetchRemoteURL(ctx, src, defaultRemoteAssetBytes)
+			if err != nil {
+				return nil, "", err
+			}
+			return data, extFromURL(src), nil
+		}
+		if baseDir != "" {
+			return baseDirResolverWithLimits(baseDir, limits)(src)
+		}
+		return safeDefaultResolverWithLimits(src, limits)
+	}
 }

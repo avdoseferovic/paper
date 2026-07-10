@@ -35,7 +35,7 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 			opts = append(opts, table.WithWidth(preferredWidth))
 		}
 	}
-	if tableStyle.TextAlign == "center" || tableStyle.TextAlign == "right" {
+	if tableStyle.TextAlign == flexAlignCenter || tableStyle.TextAlign == cssValueRight {
 		opts = append(opts, table.WithAlign(tableStyle.TextAlign))
 	}
 	if len(widths) > 0 {
@@ -91,13 +91,13 @@ func (tr *translator) tableColumnWidths(n *dom.Node, tableStyle *css.ComputedSty
 			if width <= 0 {
 				width = groupWidth
 			}
-			span := atoiOr(child.Attr("span"), 1)
+			span := atoiOrOne(child.Attr("span"))
 			for range span {
 				widths = append(widths, width)
 			}
 		}
 		if !groupHasCol {
-			span := atoiOr(group.Attr("span"), 1)
+			span := atoiOrOne(group.Attr("span"))
 			for range span {
 				widths = append(widths, groupWidth)
 			}
@@ -195,8 +195,8 @@ func (tr *translator) buildRow(trNode *dom.Node, parentStyle *css.ComputedStyle)
 
 // buildCell builds a single table.Cell, using rowStyle as a background/color fallback.
 func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table.Cell {
-	colspan := atoiOr(td.Attr("colspan"), 1)
-	rowspan := atoiOr(td.Attr("rowspan"), 1)
+	colspan := atoiOrOne(td.Attr("colspan"))
+	rowspan := atoiOrOne(td.Attr("rowspan"))
 
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
@@ -304,7 +304,8 @@ func isEmptyTableCellStyle(cell *props.Cell) bool {
 			cell.BorderRadiusBottomRight == 0)
 }
 
-func atoiOr(s string, def int) int {
+func atoiOrOne(s string) int {
+	const def = 1
 	if s == "" {
 		return def
 	}

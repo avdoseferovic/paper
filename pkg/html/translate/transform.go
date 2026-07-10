@@ -309,7 +309,7 @@ func resolveTransformOriginComponent(value string, dimension, fontSize float64) 
 		return 0
 	case transformOriginCenter:
 		return dimension / 2
-	case "right", "bottom":
+	case cssValueRight, "bottom":
 		return dimension
 	default:
 		return parseTransformLength(value, fontSize, dimension)

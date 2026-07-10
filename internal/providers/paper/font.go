@@ -94,7 +94,7 @@ func (s *Font) SetColor(color *props.Color) {
 	}
 
 	s.fontColor = color
-	s.pdf.SetTextColor(color.Red, color.Green, color.Blue)
+	setPDFTextColor(s.pdf, color)
 }
 
 func (s *Font) GetColor() *props.Color {

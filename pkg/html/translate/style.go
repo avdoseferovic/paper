@@ -1200,9 +1200,7 @@ func parseInlineStyleImportance(decl string) (map[string]string, map[string]stri
 		if important {
 			target = rawImportant
 		}
-		for expandedProp, expandedVal := range css.ExpandShorthands(map[string]string{prop: val}) {
-			target[expandedProp] = expandedVal
-		}
+		maps.Copy(target, css.ExpandShorthands(map[string]string{prop: val}))
 	}
 	return rawNormal, rawImportant
 }

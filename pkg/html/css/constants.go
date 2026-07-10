@@ -9,5 +9,7 @@ const (
 	cssValueStart   = "start"
 	cssValueEnd     = "end"
 	cssValueCenter  = "center"
+	cssValueLeft    = "left"
+	cssValueRight   = "right"
 	cssValueStretch = "stretch"
 )

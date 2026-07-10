@@ -33,9 +33,9 @@ func applyColorStyler(
 }
 
 func setDrawColor(pdf colorStylerPDF, color *props.Color) {
-	pdf.SetDrawColor(color.Red, color.Green, color.Blue)
+	applyDrawColor(pdf, color)
 }
 
 func setFillColor(pdf colorStylerPDF, color *props.Color) {
-	pdf.SetFillColor(color.Red, color.Green, color.Blue)
+	applyFillColor(pdf, color)
 }

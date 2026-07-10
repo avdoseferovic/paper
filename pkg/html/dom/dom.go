@@ -263,7 +263,7 @@ func collapseWhitespace(s string) string {
 	b.Grow(len(s))
 	inSpace := false
 	for _, r := range s {
-		if r < 0x80 && isASCIISpace(byte(r)) {
+		if isCollapsibleSpace(r) {
 			inSpace = true
 			continue
 		}
@@ -279,6 +279,13 @@ func collapseWhitespace(s string) string {
 	return b.String()
 }
 
-func isASCIISpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
+// isCollapsibleSpace reports whether r is ASCII whitespace that collapses
+// under the CSS white-space rules. U+00A0 (nbsp) is intentionally excluded.
+func isCollapsibleSpace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r', '\f', '\v':
+		return true
+	default:
+		return false
+	}
 }

@@ -149,7 +149,7 @@ func FromString(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row
 	}
 	doc, err := dom.Parse(htmlStr)
 	if err != nil {
-		return nil, err
+		return nil, &translate.ParseError{Err: err}
 	}
 	err = conversionCanceled(ctx)
 	if err != nil {
