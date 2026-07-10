@@ -31,8 +31,11 @@ func TestLayoutRichTextTokensWrapsAndPreservesOrder(t *testing.T) {
 	assert.Equal(t, 1, tokens[2].lineY)
 	assert.Equal(t, "gamma", tokens[4].text)
 	assert.Equal(t, 2, tokens[4].lineY)
-	assert.Equal(t, 6.0, lineWidths[0])
-	assert.Equal(t, 5.0, lineWidths[1])
+	// SEMANTICS CHANGE: line widths previously included the trailing space left
+	// behind at each wrap point (6.0 and 5.0). Spaces at a wrap point now hang
+	// (browser behavior), so measured widths cover the words only.
+	assert.Equal(t, 5.0, lineWidths[0])
+	assert.Equal(t, 4.0, lineWidths[1])
 	assert.Equal(t, 5.0, lineWidths[2])
 }
 
@@ -335,6 +338,55 @@ func TestLayoutRichTextTokensJustifiesWrappedLines(t *testing.T) {
 	assert.Equal(t, 0.0, tokens[4].x, "last line remains left aligned")
 	assert.Equal(t, 5.5, lineWidths[0])
 	assert.Equal(t, 2.0, lineWidths[1])
+}
+
+func TestLayoutRichTextTokensHangsTrailingSpaceAtWrapPoint(t *testing.T) {
+	t.Parallel()
+
+	// "aa bb " fits width 6 exactly including the trailing space, so the space
+	// stays on line 0 while "cc" wraps. Browsers drop (hang) collapse-mode
+	// spaces at a wrap point: the space must not count towards the measured
+	// line width used for right/center alignment.
+	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb cc"}}}
+	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
+		prop:       &props.RichText{Align: consts.AlignRight},
+		width:      6,
+		whiteSpace: "normal",
+		measure: func(_ resolvedRun, text string) (string, float64) {
+			return text, float64(len(text))
+		},
+	})
+
+	require.Len(t, tokens, 5)
+	assert.Equal(t, " ", tokens[3].text)
+	assert.Equal(t, 0, tokens[3].lineY)
+	assert.True(t, tokens[3].skip, "trailing space at the wrap point should hang and not render")
+	assert.Equal(t, 5.0, lineWidths[0], "hanging space must not inflate the measured line width")
+	assert.Equal(t, 2.0, lineWidths[1])
+}
+
+func TestLayoutRichTextTokensJustifyIgnoresTrailingSpaceAtWrapPoint(t *testing.T) {
+	t.Parallel()
+
+	// Same wrap as above but justified: the slack must be distributed into the
+	// interior space only, never dumped into the invisible trailing space.
+	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb cc"}}}
+	tokens, lineWidths := layoutRichTextTokens(runs, richTextLayoutInput{
+		prop:       &props.RichText{Align: consts.AlignJustify},
+		width:      6,
+		whiteSpace: "normal",
+		measure: func(_ resolvedRun, text string) (string, float64) {
+			return text, float64(len(text))
+		},
+	})
+
+	require.Len(t, tokens, 5)
+	assert.True(t, tokens[3].skip, "trailing space at the wrap point should hang")
+	// slack = 6 - 5 = 1, all of it into the single interior space
+	assert.Equal(t, 2.0, tokens[1].width, "interior space absorbs the full slack")
+	assert.Equal(t, 4.0, tokens[2].x, "'bb' shifts right by the expanded space")
+	assert.Equal(t, 6.0, lineWidths[0])
+	assert.Equal(t, 0.0, tokens[4].x, "last line stays start-aligned")
 }
 
 func TestLayoutRichTextTokensTreatsOnlyEmptyImageTokenAsImage(t *testing.T) {

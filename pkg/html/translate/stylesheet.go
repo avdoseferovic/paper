@@ -52,6 +52,8 @@ h2 { padding: 2mm 0 1mm 0 }
 h3 { padding: 1mm 0 }
 th { padding: 0.8mm 1mm }
 ul, ol { margin-top: 2mm; margin-bottom: 1mm }
+fieldset { margin-top: 9pt; margin-bottom: 9pt }
+legend { font-weight: bold; padding-bottom: 4pt }
 dt { padding-top: 1mm }
 dd { padding-bottom: 1mm }
 summary { padding: 1mm 0 }
@@ -117,26 +119,32 @@ func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM flo
 	}
 	decls := expandDeclarationsInOrder(rule.declarations)
 	for _, sel := range rule.selectors {
-		baseSelector, pseudo := splitPseudoElementSelector(sel)
-		m, err := cascadia.Parse(baseSelector)
-		if err != nil {
-			continue
+		for _, expanded := range expandIsWhereSelectors(sel) {
+			s.addCompiledSelector(expanded, decls, order)
 		}
-		compiled := compiledRule{
-			matcher:      m,
-			declarations: decls,
-			order:        *order,
-		}
-		*order++
-		if pseudo != "" {
-			s.pseudos = append(s.pseudos, compiledPseudoRule{
-				compiledRule: compiled,
-				pseudo:       pseudo,
-			})
-			continue
-		}
-		s.rules = append(s.rules, compiled)
 	}
+}
+
+func (s *stylesheet) addCompiledSelector(sel string, decls []cssDeclaration, order *int) {
+	baseSelector, pseudo := splitPseudoElementSelector(sel)
+	m, err := cascadia.Parse(baseSelector)
+	if err != nil {
+		return
+	}
+	compiled := compiledRule{
+		matcher:      m,
+		declarations: decls,
+		order:        *order,
+	}
+	*order++
+	if pseudo != "" {
+		s.pseudos = append(s.pseudos, compiledPseudoRule{
+			compiledRule: compiled,
+			pseudo:       pseudo,
+		})
+		return
+	}
+	s.rules = append(s.rules, compiled)
 }
 
 func expandDeclarationsInOrder(declarations []cssDeclaration) []cssDeclaration {
@@ -152,7 +160,11 @@ func expandDeclarationsInOrder(declarations []cssDeclaration) []cssDeclaration {
 		}
 		sort.Strings(keys)
 		for _, prop := range keys {
-			expanded = append(expanded, cssDeclaration{property: prop, value: parts[prop]})
+			expanded = append(expanded, cssDeclaration{
+				property:  prop,
+				value:     parts[prop],
+				important: d.important,
+			})
 		}
 	}
 	return expanded
@@ -274,6 +286,8 @@ func splitPseudoElementSelector(selector string) (string, string) {
 		{value: ":before", pseudo: "before"},
 		{value: "::after", pseudo: "after"},
 		{value: ":after", pseudo: "after"},
+		{value: "::marker", pseudo: "marker"},
+		{value: "::placeholder", pseudo: "placeholder"},
 	} {
 		if strings.HasSuffix(lower, suffix.value) {
 			base := strings.TrimSpace(trimmed[:len(trimmed)-len(suffix.value)])
@@ -289,8 +303,16 @@ func splitPseudoElementSelector(selector string) (string, string) {
 // applyToNodeCtx merges all matching stylesheet declarations into the ComputedStyle
 // following CSS cascade rules: lower specificity first, equal specificity by source
 // order (later wins). A class selector therefore wins over a tag selector even if
-// the tag rule appears later in the stylesheet text.
-func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, parent *css.ComputedStyle, ctxWidth float64) {
+// the tag rule appears later in the stylesheet text. Only declarations whose
+// !important flag equals important are applied — callers layer the two phases
+// around inline styles (normal → inline normal → important → inline important).
+func (s *stylesheet) applyToNodeCtx(
+	n *html.Node,
+	style *css.ComputedStyle,
+	parent *css.ComputedStyle,
+	ctxWidth float64,
+	important bool,
+) {
 	if s == nil || len(s.rules) == 0 {
 		return
 	}
@@ -300,6 +322,18 @@ func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, pare
 			matching = append(matching, rule)
 		}
 	}
+	sortRulesByCascade(matching)
+	for _, rule := range matching {
+		for _, declaration := range rule.declarations {
+			if declaration.important != important {
+				continue
+			}
+			style.ApplyCtx(declaration.property, declaration.value, parent, ctxWidth)
+		}
+	}
+}
+
+func sortRulesByCascade(matching []compiledRule) {
 	sort.SliceStable(matching, func(i, j int) bool {
 		si := matching[i].matcher.Specificity()
 		sj := matching[j].matcher.Specificity()
@@ -311,11 +345,20 @@ func (s *stylesheet) applyToNodeCtx(n *html.Node, style *css.ComputedStyle, pare
 		}
 		return matching[i].order < matching[j].order
 	})
-	for _, rule := range matching {
-		for _, declaration := range rule.declarations {
-			style.ApplyCtx(declaration.property, declaration.value, parent, ctxWidth)
+}
+
+// hasPseudoRulesFor reports whether any rule for the given pseudo-element
+// matches the node.
+func (s *stylesheet) hasPseudoRulesFor(n *html.Node, pseudo string) bool {
+	if s == nil || n == nil {
+		return false
+	}
+	for _, rule := range s.pseudos {
+		if rule.pseudo == pseudo && rule.matcher.Match(n) {
+			return true
 		}
 	}
+	return false
 }
 
 func (s *stylesheet) applyPseudoToNodeCtx(

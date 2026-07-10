@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	mock "github.com/avdoseferovic/paper/internal/mocktest"
@@ -64,6 +65,60 @@ func TestGetLinesHeight(t *testing.T) {
 		height := text.GetLinesQuantity("tttt tttt tttt tttt", textProp, 11)
 
 		assert.Equal(t, 2, height)
+	})
+
+	t.Run("when BreakLineDash with non-ASCII text, should cache translated lines so a later Add renders translated glyphs", func(t *testing.T) {
+		t.Parallel()
+		// Regression: GetLinesQuantity computed the dash-broken lines from the
+		// RAW text but cached them under the TRANSLATED key, so a later Add()
+		// hit the cache and rendered untranslated glyphs.
+		cell := &entity.Cell{X: 0, Y: 0, Width: 8, Height: 100}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family:            consts.FontFamilyArial,
+			Style:             fontstyle.Normal,
+			Size:              10,
+			Align:             consts.AlignLeft,
+			BreakLineStrategy: consts.BreakLineDash,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := newPDF(t)
+		// cp1252-style translator: non-ASCII runes are replaced with '.'
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string {
+			var b strings.Builder
+			for _, r := range s {
+				if r < 0x80 {
+					b.WriteRune(r)
+				} else {
+					b.WriteByte('.')
+				}
+			}
+			return b.String()
+		})
+		// dash breaking of the TRANSLATED ".." into [".-", "."]
+		pdf.EXPECT().GetStringWidth(" - ").Return(2.0)
+		pdf.EXPECT().GetStringWidth(".").Return(5.0)
+		// Add: translated text does not fit → uses the cached lines
+		pdf.EXPECT().GetStringWidth("..").Return(12.0)
+		pdf.EXPECT().GetStringWidth(".-").Return(6.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// rendered lines must contain translated glyphs, not the raw "żż"
+		pdf.EXPECT().Text(0.0, 5.0, ".-")
+		pdf.EXPECT().Text(0.0, 10.0, ".")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act: measure first (populates the cache), then render
+		lines := sut.GetLinesQuantity("żż", textProp, 8)
+		sut.Add("żż", cell, textProp)
+
+		assert.Equal(t, 2, lines)
 	})
 }
 
@@ -231,8 +286,13 @@ func TestText_Add(t *testing.T) {
 		// Act
 		sut.Add("hello", cell, textProp)
 	})
-	t.Run("when single line with justify align, should render each word at calculated position", func(t *testing.T) {
+	t.Run("when single line with justify align, should render left aligned without stretching", func(t *testing.T) {
 		t.Parallel()
+		// SEMANTICS CHANGE: this test previously asserted that a single justified
+		// line was stretched to the full column width. Per CSS text-align: justify
+		// semantics (and matching justifyRichTextLines), the last line of a
+		// paragraph — and therefore a single line — is start-aligned, never
+		// stretched. Only non-final wrapped lines are justified.
 		// Arrange
 		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
 		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
@@ -254,22 +314,136 @@ func TestText_Add(t *testing.T) {
 		// initial width check in Add: fits in 100
 		pdf.EXPECT().GetStringWidth("hello world").Return(30.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
-		// addLine justify: textNotSpaces="helloworld", GetStringWidth("helloworld")=25
-		// defaultSpaceWidth=GetStringWidth(" ")=3
-		// spaceWidth=(100-25)/1=75
-		// word "hello": Text(0, 5, "hello"), finishX=0+10=10, x=10+75=85
-		// word "world": Text(85, 5, "world")
-		pdf.EXPECT().GetStringWidth("helloworld").Return(25.0)
-		pdf.EXPECT().GetStringWidth(" ").Return(3.0)
-		pdf.EXPECT().GetStringWidth("hello").Return(10.0)
-		pdf.EXPECT().GetStringWidth("world").Return(15.0)
-		pdf.EXPECT().Text(0.0, 5.0, "hello")
-		pdf.EXPECT().Text(85.0, 5.0, "world")
+		// single (= last) line: rendered left aligned as one string
+		pdf.EXPECT().Text(0.0, 5.0, "hello world")
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
 
 		// Act
 		sut.Add("hello world", cell, textProp)
+	})
+	t.Run("when multiple lines with justify align, should stretch all lines except the last", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family: consts.FontFamilyArial,
+			Style:  fontstyle.Normal,
+			Size:   10,
+			Align:  consts.AlignJustify,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := newPDF(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		// full text does not fit in width=100
+		pdf.EXPECT().GetStringWidth("w1 w2 w3 w4").Return(200.0)
+		// line breaking: "w1"(40) + " w2"(45) = 85 fits; " w3"(45) wraps;
+		// "w3"(40) + " w4"(45) = 85 fits → lines: ["w1 w2", "w3 w4"]
+		pdf.EXPECT().GetStringWidth("w1").Return(40.0)
+		pdf.EXPECT().GetStringWidth(" w2").Return(45.0)
+		pdf.EXPECT().GetStringWidth(" w3").Return(45.0)
+		pdf.EXPECT().GetStringWidth("w3").Return(40.0)
+		pdf.EXPECT().GetStringWidth(" w4").Return(45.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// line 0 (justified): textNotSpaces="w1w2"(80), spaceWidth=(100-80)/1=20
+		// "w1" at x=0, finishX=40, next x=40+20=60 → "w2" at x=60
+		pdf.EXPECT().GetStringWidth("w1 w2").Return(85.0)
+		pdf.EXPECT().GetStringWidth("w1w2").Return(80.0)
+		pdf.EXPECT().GetStringWidth(" ").Return(5.0)
+		pdf.EXPECT().GetStringWidth("w2").Return(45.0)
+		pdf.EXPECT().Text(0.0, 5.0, "w1")
+		pdf.EXPECT().Text(60.0, 5.0, "w2")
+		// line 1 (last line of the paragraph): left aligned, NOT stretched
+		pdf.EXPECT().GetStringWidth("w3 w4").Return(85.0)
+		pdf.EXPECT().Text(0.0, 10.0, "w3 w4")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("w1 w2 w3 w4", cell, textProp)
+	})
+	t.Run("when family uses mixed case, should still apply code page translation", func(t *testing.T) {
+		t.Parallel()
+		// Regression: textToUnicode compared the family with == against the
+		// lowercase constants, so "Helvetica" skipped cp1252 translation and
+		// rendered mojibake while "helvetica" worked.
+		// Arrange
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family: "Helvetica",
+			Style:  fontstyle.Normal,
+			Size:   10,
+			Align:  consts.AlignLeft,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont("Helvetica", fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight("Helvetica", fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := newPDF(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string {
+			return strings.ReplaceAll(s, "é", "\xe9")
+		})
+		pdf.EXPECT().GetStringWidth("caf\xe9").Return(20.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// translated text must be rendered, not the raw UTF-8 input
+		pdf.EXPECT().Text(0.0, 5.0, "caf\xe9")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("café", cell, textProp)
+	})
+	t.Run("when clamping paddings, should not mutate the caller's prop", func(t *testing.T) {
+		t.Parallel()
+		// Regression: Add wrote the clamped Top/Left/Right back through the
+		// *props.Text pointer, so a component rendered once in a small cell kept
+		// the clamped values for every later render.
+		// Arrange
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family: consts.FontFamilyArial,
+			Style:  fontstyle.Normal,
+			Size:   10,
+			Align:  consts.AlignLeft,
+			Top:    100, // exceeds cell.Height=50
+			Left:   150, // exceeds cell.Width=100
+			Right:  150, // exceeds cell.Width=100
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(consts.FontFamilyArial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := newPDF(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		pdf.EXPECT().GetStringWidth("").Return(0.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// clamped internally: top=50, left=100 → Text(100, 55, "")
+		pdf.EXPECT().Text(100.0, 55.0, "")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("", cell, textProp)
+
+		// Assert: the caller's prop keeps its original values
+		assert.Equal(t, 100.0, textProp.Top)
+		assert.Equal(t, 150.0, textProp.Left)
+		assert.Equal(t, 150.0, textProp.Right)
 	})
 	t.Run("when text exceeds cell width with empty space strategy, should split into multiple lines", func(t *testing.T) {
 		t.Parallel()

@@ -165,6 +165,7 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported("img.src", err.Error())
+		tr.reportAssetError("image", src, err)
 		if errors.Is(err, htmllimits.ErrImageTooLarge) {
 			tr.err = err
 		}
@@ -259,6 +260,7 @@ func (tr *translator) richImageFromSource(
 	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported(unsupportedPrefix+".src", err.Error())
+		tr.reportAssetError("image", src, err)
 		if errors.Is(err, htmllimits.ErrImageTooLarge) {
 			tr.err = err
 		}
@@ -724,6 +726,7 @@ func (tr *translator) backgroundImage(style *css.ComputedStyle) *props.CellBackg
 	data, ext, err := tr.resolveImage(src)
 	if err != nil {
 		tr.unsupported("background-image.src", err.Error())
+		tr.reportAssetError("background-image", src, err)
 		if errors.Is(err, htmllimits.ErrImageTooLarge) {
 			tr.err = err
 		}

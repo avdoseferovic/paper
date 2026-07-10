@@ -94,11 +94,35 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 		i = groupEnd
 	}
 
+	hangTrailingWrapSpaces(tokens)
+
 	lineWidths := lineWidths(tokens)
 	if input.prop != nil && input.prop.Align == consts.AlignJustify {
 		justifyRichTextLines(tokens, lineWidths, input.width)
 	}
 	return tokens, lineWidths
+}
+
+// hangTrailingWrapSpaces marks collapse-mode space tokens that end a line
+// (i.e. the following word wrapped or a forced break follows) as skipped.
+// Browsers hang spaces at a wrap point: they contribute neither to the
+// measured line width used for right/center alignment nor to justification.
+// Only collapse-mode spaces hang — preserved whitespace (white-space: pre /
+// pre-wrap) is tokenised inside word tokens and is never affected; the
+// skipAtLineStart flag identifies collapse-mode spaces.
+func hangTrailingWrapSpaces(tokens []rtToken) {
+	lastOnLine := make(map[int]int)
+	for i := range tokens {
+		if tokens[i].isBreak || tokens[i].skip {
+			continue
+		}
+		lastOnLine[tokens[i].lineY] = i
+	}
+	for _, i := range lastOnLine {
+		if tokens[i].text == " " && tokens[i].skipAtLineStart {
+			tokens[i].skip = true
+		}
+	}
 }
 
 func tokenGroupAdvance(tokens []rtToken, runs []resolvedRun, boxStart, boxEnd, runStart, runEnd []bool, start, end int) float64 {

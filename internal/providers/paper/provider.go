@@ -76,7 +76,7 @@ type provider struct {
 // New is the constructor of provider for gofpdf.
 func New(dep *Dependencies) core.Provider {
 	richText, _ := dep.Text.(*Text)
-	return &provider{
+	p := &provider{
 		fpdf:         asProviderPDF[providerPDF](dep.PDF),
 		transformPDF: asProviderPDF[providerTransformPDF](dep.PDF),
 		documentPDF:  asProviderPDF[providerDocumentPDF](dep.PDF),
@@ -93,6 +93,14 @@ func New(dep *Dependencies) core.Provider {
 		cfg:          dep.Cfg,
 		cache:        dep.Cache,
 	}
+	if richText != nil {
+		// Surface text render fallbacks (e.g. glyphs the core-font code page
+		// cannot encode) through the provider's render issue report.
+		richText.SetRenderIssueSink(func(operation, message string) {
+			p.recordRenderIssue(operation, message, nil)
+		})
+	}
+	return p
 }
 
 func asProviderPDF[T any](pdf any) T {

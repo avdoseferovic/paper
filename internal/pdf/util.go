@@ -316,7 +316,26 @@ func isChinese(rune2 rune) bool {
 // Condition font family string to PDF name compliance. See section 5.3 (Names)
 // in https://resources.infosecinstitute.com/pdf-file-format-basic-structure/
 func fontFamilyEscape(familyStr string) string {
-	escStr := strings.ReplaceAll(familyStr, " ", "#20")
-	// Additional replacements can take place here
-	return escStr
+	return pdfNameEscape(familyStr)
+}
+
+// pdfNameEscape escapes a string for use as a PDF name object (PDF 32000-1
+// §7.3.5): every byte outside the regular printable range and every
+// delimiter or '#' is written as #XX.
+func pdfNameEscape(s string) string {
+	var b strings.Builder
+	for i := range len(s) {
+		c := s[i]
+		switch {
+		case c < '!' || c > '~':
+			fmt.Fprintf(&b, "#%02X", c)
+		case c == '#' || c == '/' || c == '%' ||
+			c == '(' || c == ')' || c == '<' || c == '>' ||
+			c == '[' || c == ']' || c == '{' || c == '}':
+			fmt.Fprintf(&b, "#%02X", c)
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
 }

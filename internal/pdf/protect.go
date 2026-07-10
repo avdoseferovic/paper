@@ -47,16 +47,15 @@ type protectType struct {
 	objNum        int
 	fileID        []byte
 	random        io.Reader
-	rc4cipher     *rc4.Cipher
-	rc4n          uint32 // Object number associated with rc4 cipher
 }
 
+// rc4 encrypts buf in place. The PDF standard security handler encrypts every
+// string and stream independently, so a fresh cipher (and keystream) must be
+// created for each call; reusing a cipher across strings of the same object
+// would continue the keystream and corrupt every string after the first.
 func (p *protectType) rc4(n uint32, buf *[]byte) {
-	if p.rc4cipher == nil || p.rc4n != n {
-		p.rc4cipher, _ = rc4.NewCipher(p.objectKey(n)) // #nosec G405 -- required by the PDF security handler.
-		p.rc4n = n
-	}
-	p.rc4cipher.XORKeyStream(*buf, *buf)
+	c, _ := rc4.NewCipher(p.objectKey(n)) // #nosec G405 -- required by the PDF security handler.
+	c.XORKeyStream(*buf, *buf)
 }
 
 func (p *protectType) objectKey(n uint32) []byte {

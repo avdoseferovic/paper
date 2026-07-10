@@ -40,7 +40,10 @@ func (m *Paper) generateDocument(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
-	if m.config.Protection != nil {
+	// Protection and document-catalog features (forms, PDF/A, tagged PDF,
+	// attachments, ...) are emitted once per document; chunked generation
+	// would lose them in the merge, so both force sequential mode.
+	if m.config.Protection != nil || m.config.HasDocumentCatalog() {
 		return m.generateSequentially(ctx)
 	}
 

@@ -25,14 +25,15 @@ var (
 var errUnsupportedPDF = errors.New("unsupported PDF")
 
 type pdfDocument struct {
-	data        []byte
-	version     string
-	xrefOffset  int
-	rootID      int
-	pagesRootID int
-	objects     map[int]pdfObject
-	pageTreeIDs map[int]struct{}
-	pageIDs     []int
+	data          []byte
+	version       string
+	xrefOffset    int
+	rootID        int
+	pagesRootID   int
+	objects       map[int]pdfObject
+	pageTreeIDs   map[int]struct{}
+	pageIDs       []int
+	pageInherited map[int][]pageAttr
 
 	// outlineRootID is the source-local /Outlines root object, or 0 when the
 	// document has no (parseable) outline. outlineTopIDs holds the top-level
@@ -87,15 +88,16 @@ func parsePDF(data []byte) (*pdfDocument, error) {
 	}
 
 	document := &pdfDocument{
-		data:        data,
-		version:     parseVersion(data),
-		xrefOffset:  xrefOffset,
-		rootID:      rootID,
-		pagesRootID: pagesRootID,
-		objects:     objects,
-		pageTreeIDs: make(map[int]struct{}),
+		data:          data,
+		version:       parseVersion(data),
+		xrefOffset:    xrefOffset,
+		rootID:        rootID,
+		pagesRootID:   pagesRootID,
+		objects:       objects,
+		pageTreeIDs:   make(map[int]struct{}),
+		pageInherited: make(map[int][]pageAttr),
 	}
-	document.pageIDs, err = collectPages(document, pagesRootID, map[int]bool{})
+	document.pageIDs, err = collectPages(document, pagesRootID, nil, map[int]bool{})
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +339,7 @@ func parsePagesRootID(root []byte) (int, error) {
 	return pagesRootID, nil
 }
 
-func collectPages(document *pdfDocument, objectID int, visited map[int]bool) ([]int, error) {
+func collectPages(document *pdfDocument, objectID int, inherited []pageAttr, visited map[int]bool) ([]int, error) {
 	if visited[objectID] {
 		return nil, fmt.Errorf("%w: page tree cycle at object %d", errUnsupportedPDF, objectID)
 	}
@@ -348,6 +350,9 @@ func collectPages(document *pdfDocument, objectID int, visited map[int]bool) ([]
 		return nil, fmt.Errorf("%w: page tree object %d not found", errUnsupportedPDF, objectID)
 	}
 	if pageTypeRe.Match(object.content) {
+		if len(inherited) > 0 {
+			document.pageInherited[objectID] = inherited
+		}
 		return []int{objectID}, nil
 	}
 	if !pagesTypeRe.Match(object.content) {
@@ -360,9 +365,10 @@ func collectPages(document *pdfDocument, objectID int, visited map[int]bool) ([]
 		return nil, fmt.Errorf("%w: pages object %d has no kids", errUnsupportedPDF, objectID)
 	}
 
+	inherited = mergeInheritedAttrs(inherited, object.content)
 	var pages []int
 	for _, kid := range kids {
-		kidPages, err := collectPages(document, kid, visited)
+		kidPages, err := collectPages(document, kid, inherited, visited)
 		if err != nil {
 			return nil, err
 		}

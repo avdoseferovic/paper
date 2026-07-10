@@ -116,6 +116,7 @@ type checkboxPDF interface {
 	Line(x1, y1, x2, y2 float64)
 	Rect(x, y, w, h float64, styleStr string)
 	Text(x, y float64, txtStr string)
+	UnicodeTranslatorFromDescriptor(cpStr string) func(string) string
 }
 
 type gradientPDF interface {

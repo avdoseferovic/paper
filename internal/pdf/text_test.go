@@ -1,6 +1,8 @@
 package pdf
 
 import (
+	"bytes"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -125,6 +127,51 @@ func TestBookmark(t *testing.T) {
 	out := mustOutput(t, f)
 	if !strings.Contains(string(out), "Outlines") {
 		t.Error("expected Outlines dictionary in output with bookmarks")
+	}
+}
+
+func TestBookmarkNonASCIITitleUsesUTF16(t *testing.T) {
+	f := readyPDF(t) // core font: isCurrentUTF8 is false
+	f.Bookmark("Résumé", 0, 0)
+	if f.Err() {
+		t.Fatalf("bookmark errored: %v", f.Error())
+	}
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, append([]byte("/Title ("), 0xFE, 0xFF)) {
+		t.Fatal("expected non-ASCII bookmark title to be UTF-16BE encoded with BOM")
+	}
+}
+
+func TestBookmarkASCIITitleStaysPlain(t *testing.T) {
+	f := readyPDF(t)
+	f.Bookmark("Chapter 1", 0, 0)
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, []byte("/Title (Chapter 1)")) {
+		t.Fatal("expected ASCII bookmark title to stay a plain string")
+	}
+}
+
+func TestBookmarkDestUsesOwnPageHeight(t *testing.T) {
+	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "pt", SizeStr: "A4"})
+	f.AddPage()
+	f.SetFont("Helvetica", "", 12)
+	f.Bookmark("First", 0, 100)
+	f.AddPageFormat("P", SizeType{Wd: 400, Ht: 2000})
+	f.Bookmark("Second", 0, 100)
+	if f.Err() {
+		t.Fatalf("bookmark errored: %v", f.Error())
+	}
+	out := mustOutput(t, f)
+
+	// Page 1 is A4 (841.89 pt tall): dest must use the A4 height, not the
+	// final page's 2000 pt height.
+	if !bytes.Contains(out, []byte("/Dest [3 0 R /XYZ 0 741.89 null]")) {
+		t.Fatalf("bookmark on page 1 should use that page's height, output: %s",
+			regexp.MustCompile(`/Dest [^\n]*`).FindAll(out, -1))
+	}
+	if !bytes.Contains(out, []byte("/Dest [5 0 R /XYZ 0 1900.00 null]")) {
+		t.Fatalf("bookmark on page 2 should use that page's height, output: %s",
+			regexp.MustCompile(`/Dest [^\n]*`).FindAll(out, -1))
 	}
 }
 

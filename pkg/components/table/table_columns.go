@@ -39,6 +39,15 @@ func WithAlign(align string) Option {
 	}
 }
 
+// WithBorderCollapse merges adjacent cell borders, matching CSS
+// border-collapse: collapse. Interior cell edges are drawn once instead of
+// twice; border-spacing is ignored by CSS in this mode.
+func WithBorderCollapse(collapse bool) Option {
+	return func(t *Table) {
+		t.borderCollapse = collapse
+	}
+}
+
 // WithBorderSpacing reserves horizontal and vertical spacing between table
 // cells, matching CSS border-spacing for separate-border tables.
 func WithBorderSpacing(x, y float64) Option {

@@ -116,4 +116,28 @@ func TestBorderLineStyler_Apply(t *testing.T) {
 		// Act
 		sut.Apply(width, height, cfg, prop)
 	})
+	t.Run("When has prop and line style is dotted, should apply dotted pattern and call next", func(t *testing.T) {
+		t.Parallel()
+		// Regression: dotted borders used the dashed pattern {1,1}. Dotted must
+		// use {0.4,0.4}, matching line.go, persideborder.go and outlinestyler.go.
+		width := 100.0
+		height := 100.0
+		cfg := &entity.Config{}
+		prop := &props.Cell{
+			LineStyle: consts.LineStyleDotted,
+		}
+
+		inner := mocks.NewCellWriter(t)
+		inner.EXPECT().Apply(width, height, cfg, prop).Once()
+
+		fpdf := newPDF(t)
+		fpdf.EXPECT().SetDashPattern([]float64{0.4, 0.4}, 0.0).Once()
+		fpdf.EXPECT().SetDashPattern([]float64{1, 0}, 0.0).Once()
+
+		sut := cellwriter.NewBorderLineStyler(fpdf)
+		sut.SetNext(inner)
+
+		// Act
+		sut.Apply(width, height, cfg, prop)
+	})
 }

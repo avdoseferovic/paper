@@ -27,3 +27,27 @@ func WithUnsafeNoLimits() Option {
 		c.limitsSet = true
 	}
 }
+
+// WithMaxElements caps the number of DOM nodes translated. Exceeding the cap
+// returns a *LimitError with Kind LimitElements. Other limits keep their safe
+// default values.
+func WithMaxElements(n int) Option {
+	return func(c *config) {
+		if n > 0 {
+			c.limits.MaxDOMNodes = n
+			c.limitsSet = true
+		}
+	}
+}
+
+// WithMaxDepth caps the DOM nesting depth translated. Exceeding the cap
+// returns a *LimitError with Kind LimitDepth. Other limits keep their safe
+// default values.
+func WithMaxDepth(n int) Option {
+	return func(c *config) {
+		if n > 0 {
+			c.limits.MaxDOMDepth = n
+			c.limitsSet = true
+		}
+	}
+}

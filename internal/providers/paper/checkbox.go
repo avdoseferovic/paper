@@ -8,9 +8,16 @@ import (
 
 const labelGap = 1.0
 
+// checkboxLabelBaselineRatio places the label baseline so the cap height is
+// visually centered on the checkbox: the middle of a glyph's cap box sits
+// ~0.35 * fontHeight above the baseline (consistent with the vertical
+// centering in provider_capabilities.go and richtext_render.go).
+const checkboxLabelBaselineRatio = 0.35
+
 type Checkbox struct {
-	pdf  checkboxPDF
-	font core.Font
+	pdf                   checkboxPDF
+	font                  core.Font
+	defaultCodeTranslator func(string) string
 }
 
 // NewCheckbox create a Checkbox.
@@ -40,8 +47,21 @@ func (c *Checkbox) Add(label string, cell *entity.Cell, prop *props.Checkbox) {
 		fontHeight := c.font.GetHeight(family, style, size)
 
 		labelX := x + prop.Size + labelGap
-		labelY := y + prop.Size/2 + fontHeight/2
+		labelY := y + prop.Size/2 + fontHeight*checkboxLabelBaselineRatio
 
-		c.pdf.Text(labelX, labelY, label)
+		c.pdf.Text(labelX, labelY, c.translateLabel(label, family))
 	}
+}
+
+// translateLabel applies the code page translation for core font families so
+// non-ASCII labels don't render as mojibake, mirroring Text.translateUnicode.
+// Custom (UTF-8) fonts pass through unchanged.
+func (c *Checkbox) translateLabel(label, family string) string {
+	if !isCoreFontFamily(family) {
+		return label
+	}
+	if c.defaultCodeTranslator == nil {
+		c.defaultCodeTranslator = c.pdf.UnicodeTranslatorFromDescriptor("")
+	}
+	return c.defaultCodeTranslator(label)
 }

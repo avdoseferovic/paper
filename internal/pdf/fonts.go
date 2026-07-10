@@ -203,9 +203,6 @@ func (f *PDF) newUTF8FontDefinition(fontKey, fileStr string, utf8File *utf8FontF
 		runeToCID:      make(map[int]int),
 		hasColorGlyphs: utf8File.hasColorGlyphs,
 	}
-	for cid, r := range sbarr {
-		def.runeToCID[r] = cid
-	}
 	return def
 }
 
@@ -723,9 +720,11 @@ func (f *PDF) putFontFileObject(file string, info fontFileType) {
 	}
 	compressed := strings.HasSuffix(file, ".z")
 	if !compressed && info.length2 > 0 {
-		buf := font[6:info.length1]
-		buf = append(buf, font[6+info.length1+6:info.length2]...)
-		font = buf
+		font, err = stripType1Segments(font, info.length1, info.length2)
+		if err != nil {
+			f.err = err
+			return
+		}
 	}
 	stream := f.encryptedStream(font)
 	if f.err != nil {
@@ -742,6 +741,25 @@ func (f *PDF) putFontFileObject(file string, info fontFileType) {
 	f.out(">>")
 	f.putstream(stream)
 	f.out("endobj")
+}
+
+// stripType1Segments extracts the clear-text and binary portions of a Type1
+// PFB font file. The file layout is a 6-byte segment header, length1 bytes of
+// clear text, another 6-byte segment header, and length2 bytes of binary data.
+func stripType1Segments(font []byte, length1, length2 int64) ([]byte, error) {
+	const headerSize = 6
+	clearStart := int64(headerSize)
+	clearEnd := clearStart + length1
+	binaryStart := clearEnd + headerSize
+	binaryEnd := binaryStart + length2
+	if length1 < 0 || length2 < 0 || binaryEnd > int64(len(font)) {
+		return nil, staticErrorf(errType1FontSegmentBounds,
+			"length1 %d, length2 %d, file size %d", length1, length2, len(font))
+	}
+	buf := make([]byte, 0, length1+length2)
+	buf = append(buf, font[clearStart:clearEnd]...)
+	buf = append(buf, font[binaryStart:binaryEnd]...)
+	return buf, nil
 }
 
 func (f *PDF) fontFileContent(file string, info fontFileType) ([]byte, error) {

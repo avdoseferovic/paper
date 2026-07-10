@@ -9,6 +9,10 @@ const (
 	mmPerPx = 0.264583
 	mmPerPt = 0.352778
 	mmPerCm = 10.0
+	mmPerIn = 25.4
+	// defaultRemMM approximates 1rem (16px root font size) when a value uses
+	// rem with no root context available.
+	defaultRemMM = 16 * mmPerPx
 )
 
 // ParsePercentage parses a CSS percentage value (e.g. "25%") and returns
@@ -44,16 +48,24 @@ func ParseLength(value string, parentFontSize float64) float64 {
 		return v
 	}
 
+	remFactor := parentFontSize
+	if remFactor == 0 {
+		remFactor = defaultRemMM
+	}
+	// Longer suffixes must be checked before their suffixes ("rem" before
+	// "em", "mm"/"cm" before "m"): "1rem" also ends in "em" and must not be
+	// rejected because "1r" fails to parse.
 	units := []struct {
 		suffix string
 		factor float64
 	}{
+		{"rem", remFactor}, // approximate: rem resolves like em against the parent
 		{"mm", 1},
 		{"cm", mmPerCm},
 		{"pt", mmPerPt},
 		{"px", mmPerPx},
+		{"in", mmPerIn},
 		{"em", parentFontSize},
-		{"rem", parentFontSize}, // approximate: treat rem same as em
 	}
 
 	for _, u := range units {
@@ -61,9 +73,9 @@ func ParseLength(value string, parentFontSize float64) float64 {
 		if !ok {
 			continue
 		}
-		num, err := strconv.ParseFloat(numStr, 64)
+		num, err := strconv.ParseFloat(strings.TrimSpace(numStr), 64)
 		if err != nil {
-			return 0
+			continue
 		}
 		return num * u.factor
 	}

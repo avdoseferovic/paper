@@ -33,7 +33,7 @@ func Bytes(ctx context.Context, pdfs ...[]byte) ([]byte, error) {
 		return nil, err
 	}
 
-	merged, err := writeMergedPDF(documents)
+	merged, err := writeMergedPDF(documents, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotMergePDFs, err)
 	}

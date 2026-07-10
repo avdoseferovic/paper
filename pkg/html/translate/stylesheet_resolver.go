@@ -57,21 +57,31 @@ func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 // URI or panicking resolver never crashes the caller. Returns the bytes
 // (nil on failure) and a flag indicating whether the load succeeded.
 func safeLoadStylesheet(resolver StylesheetResolver, href string) ([]byte, bool) {
+	data, err := safeLoadStylesheetErr(resolver, href)
+	return data, err == nil
+}
+
+// errStylesheetResolverPanic reports that a resolver panicked while loading;
+// the panic value is attached as context.
+var errStylesheetResolverPanic = errors.New("html: stylesheet resolver panicked")
+
+// safeLoadStylesheetErr is safeLoadStylesheet with the underlying error
+// preserved so strict-asset callers can surface it (e.g. fs.ErrNotExist).
+// A panicking resolver is converted into an error.
+func safeLoadStylesheetErr(resolver StylesheetResolver, href string) ([]byte, error) {
 	var data []byte
-	ok := false
+	var err error
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
 				data = nil
-				ok = false
+				err = fmt.Errorf("%w: %q: %v", errStylesheetResolverPanic, href, r)
 			}
 		}()
-		d, err := resolver(href)
-		if err != nil {
-			return
-		}
-		data = d
-		ok = true
+		data, err = resolver(href)
 	}()
-	return data, ok
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

@@ -15,13 +15,13 @@ func (s *ComputedStyle) applyBorderProperty(ctx computedPropertyContext) bool {
 	case "outline":
 		parseOutlineShorthand(ctx.val, s, ctx.parentFontSize)
 	case "border-top-width":
-		s.BorderTopWidth = ParseLength(ctx.val, 0)
+		s.BorderTopWidth = s.parseBorderWidth(ctx)
 	case "border-right-width":
-		s.BorderRightWidth = ParseLength(ctx.val, 0)
+		s.BorderRightWidth = s.parseBorderWidth(ctx)
 	case "border-bottom-width":
-		s.BorderBottomWidth = ParseLength(ctx.val, 0)
+		s.BorderBottomWidth = s.parseBorderWidth(ctx)
 	case "border-left-width":
-		s.BorderLeftWidth = ParseLength(ctx.val, 0)
+		s.BorderLeftWidth = s.parseBorderWidth(ctx)
 	case "border-top-style":
 		s.BorderTopStyle = ctx.val
 	case "border-right-style":
@@ -42,20 +42,20 @@ func (s *ComputedStyle) applyBorderProperty(ctx computedPropertyContext) bool {
 		c := ParseColor(ctx.val)
 		s.BorderTopColor, s.BorderRightColor, s.BorderBottomColor, s.BorderLeftColor = c, c, c, c
 	case "border-width":
-		w := ParseLength(ctx.val, 0)
+		w := s.parseBorderWidth(ctx)
 		s.BorderTopWidth, s.BorderRightWidth, s.BorderBottomWidth, s.BorderLeftWidth = w, w, w, w
 	case "border-style":
 		s.BorderTopStyle, s.BorderRightStyle, s.BorderBottomStyle, s.BorderLeftStyle = ctx.val, ctx.val, ctx.val, ctx.val
 	case "border-radius":
-		s.BorderRadius = ParseLength(ctx.val, 0)
+		s.BorderRadius = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "border-top-left-radius":
-		s.BorderRadiusTopLeft = ParseLength(ctx.val, 0)
+		s.BorderRadiusTopLeft = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "border-top-right-radius":
-		s.BorderRadiusTopRight = ParseLength(ctx.val, 0)
+		s.BorderRadiusTopRight = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "border-bottom-left-radius":
-		s.BorderRadiusBottomLeft = ParseLength(ctx.val, 0)
+		s.BorderRadiusBottomLeft = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "border-bottom-right-radius":
-		s.BorderRadiusBottomRight = ParseLength(ctx.val, 0)
+		s.BorderRadiusBottomRight = ParseLength(ctx.val, s.borderFontSize(ctx))
 	default:
 		return false
 	}
@@ -83,4 +83,27 @@ func parseOutlineShorthand(val string, s *ComputedStyle, parentFontSize float64)
 			s.OutlineWidth = l
 		}
 	}
+}
+
+// borderFontSize resolves the font size used for em-valued border lengths:
+// the element's own size when set, else the inherited parent size.
+func (s *ComputedStyle) borderFontSize(ctx computedPropertyContext) float64 {
+	if s.FontSize > 0 {
+		return s.FontSize
+	}
+	return ctx.parentFontSize
+}
+
+// parseBorderWidth resolves a border width, accepting the CSS width keywords
+// (thin/medium/thick as 1/3/5 px) alongside lengths.
+func (s *ComputedStyle) parseBorderWidth(ctx computedPropertyContext) float64 {
+	switch strings.ToLower(strings.TrimSpace(ctx.val)) {
+	case "thin":
+		return mmPerPx
+	case cssValueMedium:
+		return 3 * mmPerPx
+	case "thick":
+		return 5 * mmPerPx
+	}
+	return ParseLength(ctx.val, s.borderFontSize(ctx))
 }

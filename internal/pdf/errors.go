@@ -24,6 +24,7 @@ const (
 )
 
 var (
+	errAcroFormObjectNumber        = errors.New("acroform object number mismatch")
 	errAlphaOutOfRange             = errors.New("alpha value (0.0 - 1.0) is out of range")
 	errClipEndSequence             = errors.New("error attempting to end clip operation out of sequence")
 	errClipProcedureOpen           = errors.New("clip procedure must be explicitly ended")
@@ -40,6 +41,7 @@ var (
 	errTransformationProcedureOpen = errors.New("transformation procedure must be explicitly ended")
 	errTrueTypeCollectionEmpty     = errors.New("TrueType collection has no fonts")
 	errTrueTypeCollectionOffset    = errors.New("TrueType collection font offset is invalid")
+	errType1FontSegmentBounds      = errors.New("type1 font segment lengths exceed file size")
 	errUnsupportedCFFFont          = errors.New("unsupported OpenType CFF font")
 	errUnsupportedFontType         = errors.New("unsupported font type")
 	errUnsupportedImageType        = errors.New("unsupported image type")

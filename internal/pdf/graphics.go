@@ -120,14 +120,13 @@ func (f *PDF) SetAlpha(alpha float64, blendModeStr string) {
 	if f.err != nil {
 		return
 	}
-	var bl blendModeType
 	switch blendModeStr {
 	case blendModeNormal, "Multiply", "Screen", "Overlay",
 		"Darken", "Lighten", "ColorDodge", "ColorBurn", "HardLight", "SoftLight",
 		"Difference", "Exclusion", "Hue", "Saturation", "Color", "Luminosity":
-		bl.modeStr = blendModeStr
+		// valid blend mode name, used as-is
 	case "":
-		bl.modeStr = blendModeNormal
+		blendModeStr = blendModeNormal
 	default:
 		f.err = fmt.Errorf("%w: %q", errUnrecognizedBlendMode, blendModeStr)
 		return
@@ -633,6 +632,11 @@ func (f *PDF) ClipRect(x, y, w, h float64, outline bool) {
 // restore unclipped operations.
 func (f *PDF) ClipText(x, y float64, txtStr string, outline bool) {
 	f.clipNest++
+	if f.isCurrentUTF8 {
+		// UTF-8 fonts use Identity-H encoding: the string must be converted
+		// to CIDs just like Text() does, not written as raw UTF-8 bytes.
+		txtStr = f.stringToCIDs(txtStr)
+	}
 	f.outf("q BT %.5f %.5f Td %d Tr (%s) Tj ET", x*f.k, (f.h-y)*f.k, intIf(outline, 5, 7), f.escape(txtStr))
 }
 

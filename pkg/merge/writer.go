@@ -21,7 +21,10 @@ type objectKey struct {
 	number int
 }
 
-func writeMergedPDF(documents []*pdfDocument) ([]byte, error) {
+// writeMergedPDF writes documents into one PDF. selections, when non-nil,
+// holds for each document the zero-based page indexes (in output order) to
+// include in the merged page tree; a nil entry keeps every page.
+func writeMergedPDF(documents []*pdfDocument, selections [][]int) ([]byte, error) {
 	objectMap := make(map[objectKey]int)
 	nextObjectID := firstCopiedObjectID
 	for source, document := range documents {
@@ -40,6 +43,8 @@ func writeMergedPDF(documents []*pdfDocument) ([]byte, error) {
 		pageSet := make(map[int]struct{}, len(document.pageIDs))
 		for _, pageID := range document.pageIDs {
 			pageSet[pageID] = struct{}{}
+		}
+		for _, pageID := range selectedPageIDs(document, selections, source) {
 			pageIDs = append(pageIDs, objectMap[objectKey{source: source, number: pageID}])
 		}
 
@@ -48,7 +53,11 @@ func writeMergedPDF(documents []*pdfDocument) ([]byte, error) {
 				continue
 			}
 			newObjectID := objectMap[objectKey{source: source, number: objectID}]
-			content := rewriteObjectReferences(document.objects[objectID].content, source, objectMap)
+			content := document.objects[objectID].content
+			if _, ok := pageSet[objectID]; ok {
+				content = injectInheritedAttrs(content, document.pageInherited[objectID])
+			}
+			content = rewriteObjectReferences(content, source, objectMap)
 			if _, ok := pageSet[objectID]; ok {
 				content = replacePageParent(content, mergedPagesObjectID)
 			}

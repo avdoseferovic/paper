@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -44,6 +45,48 @@ func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) 
 		r = r.WithStyle(cellStyle)
 	}
 	return r
+}
+
+// paragraphBlockRows returns the block-level rows for a paragraph. When the
+// paragraph contains form controls, its vertical padding moves out into
+// spacer rows: control chrome (background/border boxes) paints beyond the
+// text line box, so padding kept inside the richtext would be overdrawn.
+func (tr *translator) paragraphBlockRows(n *dom.Node, style *css.ComputedStyle) []core.Row {
+	if style == nil || style.PaddingTop <= 0 && style.PaddingBottom <= 0 || !containsFormControl(n) {
+		return []core.Row{tr.paragraphRowStyled(n, style)}
+	}
+	inner := cloneComputedStyle(style)
+	top, bottom := inner.PaddingTop, inner.PaddingBottom
+	inner.PaddingTop, inner.PaddingBottom = 0, 0
+	rows := []core.Row{tr.paragraphRowStyled(n, inner)}
+	if top > 0 {
+		rows = append([]core.Row{spacerRow(top)}, rows...)
+	}
+	if bottom > 0 {
+		rows = append(rows, spacerRow(bottom))
+	}
+	return rows
+}
+
+// containsFormControl reports whether any descendant is a form control tag.
+func containsFormControl(n *dom.Node) bool {
+	for _, c := range n.Children() {
+		switch c.Tag() {
+		case tagInput, tagButton, tagSelect, tagTextArea:
+			return true
+		}
+		if containsFormControl(c) {
+			return true
+		}
+	}
+	return false
+}
+
+// paragraphRowStyledContext is paragraphRowStyled for context-aware call
+// paths. Run assembly is synchronous, so ctx is not consulted beyond the
+// caller's own cancellation checks.
+func (tr *translator) paragraphRowStyledContext(_ context.Context, n *dom.Node, style *css.ComputedStyle) core.Row {
+	return tr.paragraphRowStyled(n, style)
 }
 
 func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {

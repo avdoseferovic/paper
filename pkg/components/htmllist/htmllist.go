@@ -25,8 +25,11 @@ const (
 
 // Prop holds list-level configuration.
 type Prop struct {
-	Style         StyleType
-	Start         int     // 1-based first marker value; 0 = default
+	Style StyleType
+	Start int // first marker value; 0 = default unless StartSet
+	// StartSet distinguishes an explicit start="0" (or negative start) from
+	// the attribute being absent.
+	StartSet      bool
 	Reversed      bool    // ordered markers count down from Start or item count
 	Indent        float64 // mm per nesting level
 	MarkerPadding float64 // mm gap between marker and content
@@ -44,6 +47,20 @@ type Prop struct {
 type Item struct {
 	Content core.Component
 	SubList *HTMLList
+	// Marker optionally overrides how this item's marker renders (from CSS
+	// ::marker rules). nil keeps the list-level default.
+	Marker *ItemMarker
+}
+
+// ItemMarker overrides a single item's marker rendering.
+type ItemMarker struct {
+	// Text replaces the style-derived label (e.g. ::marker content). A custom
+	// text renders even when the list style is None.
+	Text string
+	// Suppress removes the marker entirely (::marker content: none).
+	Suppress bool
+	// TextProp carries per-item text overrides; zero fields keep defaults.
+	TextProp *props.Text
 }
 
 // HTMLList is a core.Component rendering bullet/numbered lists.
@@ -156,11 +173,11 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 			}
 		}
 
-		marker := FormatMarker(l.prop.Style, l.markerIndex(i))
+		marker, show := l.itemMarkerLabel(i)
 		// Marker is anchored to the first line of the item, not stretched to itemH.
 		markerCell := &entity.Cell{X: cell.X, Y: y, Width: gutter, Height: lineH}
-		if l.prop.Style != None {
-			l.renderMarker(provider, marker, markerCell)
+		if show {
+			l.renderMarker(provider, marker, markerCell, l.items[i].Marker)
 		}
 
 		if item.Content != nil {
@@ -183,17 +200,35 @@ func (l *HTMLList) Render(provider core.Provider, cell *entity.Cell) {
 	}
 }
 
+// itemMarkerLabel resolves the marker label for an item, honouring per-item
+// ::marker overrides: suppressed markers render nothing, custom content
+// renders even when the list style is None.
+func (l *HTMLList) itemMarkerLabel(i int) (string, bool) {
+	if m := l.items[i].Marker; m != nil {
+		if m.Suppress {
+			return "", false
+		}
+		if m.Text != "" {
+			return m.Text, true
+		}
+	}
+	if l.prop.Style == None {
+		return "", false
+	}
+	return FormatMarker(l.prop.Style, l.markerIndex(i)), true
+}
+
 // renderMarker draws a single list marker — either as text (default) or as a
 // filled circle with the index centred inside (DecimalCircle style).
-func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *entity.Cell) {
+func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *entity.Cell, override *ItemMarker) {
 	if l.prop.Style != DecimalCircle {
-		provider.AddText(label, cell, l.markerTextProp())
+		provider.AddText(label, cell, l.itemMarkerTextProp(override))
 		return
 	}
 	// Circle marker: best-effort via ShapeProvider; fallback to text-only.
 	sp, ok := provider.(core.ShapeProvider)
 	if !ok {
-		provider.AddText(label, cell, l.markerTextProp())
+		provider.AddText(label, cell, l.itemMarkerTextProp(override))
 		return
 	}
 	// Draw the circle slightly larger than the text line box. The marker cell's
@@ -243,19 +278,21 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 // so the inscribed circle is readable (otherwise a 2-char "10" measurement
 // produces a circle smaller than the digit it contains).
 func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
-	if l.prop.Style == None {
+	if !l.anyMarkerShows() {
 		return 0
 	}
 	if l.prop.GutterWidth > 0 {
 		return l.prop.GutterWidth
 	}
-	tp := l.markerTextProp()
 	lineH := l.itemRowHeight(provider, &entity.Cell{Width: 100})
 	textWidth := 0.0
 	if rtp, ok := provider.(core.RichTextProvider); ok {
 		for i := range len(l.items) {
-			m := FormatMarker(l.prop.Style, l.markerIndex(i))
-			w := rtp.MeasureString(m, tp)
+			m, show := l.itemMarkerLabel(i)
+			if !show {
+				continue
+			}
+			w := rtp.MeasureString(m, l.itemMarkerTextProp(l.items[i].Marker))
 			if w > textWidth {
 				textWidth = w
 			}
@@ -290,6 +327,40 @@ func (l *HTMLList) markerTextProp() *props.Text {
 	return tp
 }
 
+// anyMarkerShows reports whether at least one item renders a marker, so the
+// gutter is reserved. Style None normally means no gutter, but a per-item
+// ::marker content override still renders.
+func (l *HTMLList) anyMarkerShows() bool {
+	for i := range l.items {
+		if _, show := l.itemMarkerLabel(i); show {
+			return true
+		}
+	}
+	return false
+}
+
+// itemMarkerTextProp merges an item's ::marker overrides onto the list-level
+// marker text prop. nil override keeps the default.
+func (l *HTMLList) itemMarkerTextProp(override *ItemMarker) *props.Text {
+	tp := l.markerTextProp()
+	if override == nil || override.TextProp == nil {
+		return tp
+	}
+	if override.TextProp.Color != nil {
+		tp.Color = props.CloneColor(override.TextProp.Color)
+	}
+	if override.TextProp.Size > 0 {
+		tp.Size = override.TextProp.Size
+	}
+	if override.TextProp.Family != "" {
+		tp.Family = override.TextProp.Family
+	}
+	if override.TextProp.Style != "" {
+		tp.Style = override.TextProp.Style
+	}
+	return tp
+}
+
 func (l *HTMLList) circleMarkerTextProp() *props.Text {
 	tp := l.markerTextProp()
 	tp.Style = fontstyle.Bold
@@ -302,14 +373,23 @@ func (l *HTMLList) circleMarkerTextProp() *props.Text {
 
 func (l *HTMLList) markerIndex(itemIndex int) int {
 	start := l.prop.Start
-	if start == 0 {
+	if start == 0 && !l.prop.StartSet {
 		start = 1
 		if l.prop.Reversed {
 			start = len(l.items)
 		}
 	}
 	if l.prop.Reversed {
-		return max(start-itemIndex, 1) - 1
+		return start - itemIndex - 1
 	}
-	return max(start+itemIndex, 1) - 1
+	return start + itemIndex - 1
+}
+
+// MarkerLabel returns the formatted marker text for a zero-based item index,
+// honoring Start/StartSet/Reversed. ok is false for out-of-range indexes.
+func (l *HTMLList) MarkerLabel(i int) (string, bool) {
+	if l == nil || i < 0 || i >= len(l.items) {
+		return "", false
+	}
+	return l.itemMarkerLabel(i)
 }

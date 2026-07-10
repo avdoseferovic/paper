@@ -2,6 +2,7 @@ package paper_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -87,17 +88,21 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    8,
 		}
 
+		fontHeight := 3.0
+		y := 9.0
+
 		fpdf := newPDF(t)
 		fpdf.EXPECT().GetMargins().Return(2.0, 3.0, 2.0, 3.0)
+		fpdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// x = 5 + 1 + 2 = 8, y = 5 + 1 + 3 = 9
-		fpdf.EXPECT().Rect(8.0, 9.0, 8.0, 8.0, "D")
+		fpdf.EXPECT().Rect(8.0, y, 8.0, 8.0, "D")
 		// labelX = x + size + gap = 8 + 8 + 1 = 17
-		// labelY = y + size/2 + fontHeight/2 = 9 + 4 + 1.5 = 14.5
-		fpdf.EXPECT().Text(17.0, 14.5, "label")
+		// labelY centers the cap height on the box: y + size/2 + fontHeight*0.35
+		fpdf.EXPECT().Text(17.0, y+prop.Size/2+fontHeight*0.35, "label")
 
 		font := mocks.NewFont(t)
 		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 10.0)
-		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(3.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 10.0).Return(fontHeight)
 
 		sut := gofpdf.NewCheckbox(fpdf, font)
 
@@ -115,24 +120,86 @@ func TestCheckbox_Add(t *testing.T) {
 			Size:    10,
 		}
 
+		fontHeight := 4.0
+
 		fpdf := newPDF(t)
 		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		fpdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
 		// x = 0, y = 0
 		fpdf.EXPECT().Rect(0.0, 0.0, 10.0, 10.0, "D")
 		fpdf.EXPECT().Line(0.0, 0.0, 10.0, 10.0)
 		fpdf.EXPECT().Line(10.0, 0.0, 0.0, 10.0)
 		// labelX = 0 + 10 + 1 = 11
-		// labelY = 0 + 5 + 2 = 7
-		fpdf.EXPECT().Text(11.0, 7.0, "option")
+		// labelY = 0 + 10/2 + fontHeight*0.35
+		fpdf.EXPECT().Text(11.0, 0.0+prop.Size/2+fontHeight*0.35, "option")
 
 		font := mocks.NewFont(t)
 		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 12.0)
-		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 12.0).Return(4.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 12.0).Return(fontHeight)
 
 		sut := gofpdf.NewCheckbox(fpdf, font)
 
 		// Act
 		sut.Add("option", cell, prop)
+	})
+	t.Run("when label has non-ASCII chars and font is a core family, should translate the label", func(t *testing.T) {
+		t.Parallel()
+		// Regression: the label was drawn without cp1252 translation, producing
+		// mojibake for non-ASCII text with core fonts.
+		cell := &entity.Cell{X: 0, Y: 0}
+		prop := &props.Checkbox{
+			Checked: false,
+			Top:     0,
+			Left:    0,
+			Size:    10,
+		}
+
+		fontHeight := 4.0
+
+		fpdf := newPDF(t)
+		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		fpdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string {
+			return strings.ReplaceAll(s, "é", "\xe9")
+		})
+		fpdf.EXPECT().Rect(0.0, 0.0, 10.0, 10.0, "D")
+		// translated label, not the raw UTF-8 input
+		fpdf.EXPECT().Text(11.0, 0.0+prop.Size/2+fontHeight*0.35, "caf\xe9")
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return(consts.FontFamilyArial, fontstyle.Normal, 12.0)
+		font.EXPECT().GetHeight(consts.FontFamilyArial, fontstyle.Normal, 12.0).Return(fontHeight)
+
+		sut := gofpdf.NewCheckbox(fpdf, font)
+
+		// Act
+		sut.Add("café", cell, prop)
+	})
+	t.Run("when font is a custom UTF-8 family, should not translate the label", func(t *testing.T) {
+		t.Parallel()
+		cell := &entity.Cell{X: 0, Y: 0}
+		prop := &props.Checkbox{
+			Checked: false,
+			Top:     0,
+			Left:    0,
+			Size:    10,
+		}
+
+		fontHeight := 4.0
+
+		fpdf := newPDF(t)
+		fpdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// no UnicodeTranslatorFromDescriptor expectation: custom fonts pass through
+		fpdf.EXPECT().Rect(0.0, 0.0, 10.0, 10.0, "D")
+		fpdf.EXPECT().Text(11.0, 0.0+prop.Size/2+fontHeight*0.35, "café")
+
+		font := mocks.NewFont(t)
+		font.EXPECT().GetFont().Return("roboto", fontstyle.Normal, 12.0)
+		font.EXPECT().GetHeight("roboto", fontstyle.Normal, 12.0).Return(fontHeight)
+
+		sut := gofpdf.NewCheckbox(fpdf, font)
+
+		// Act
+		sut.Add("café", cell, prop)
 	})
 	t.Run("when margins are set, should offset x and y by margin values", func(t *testing.T) {
 		t.Parallel()

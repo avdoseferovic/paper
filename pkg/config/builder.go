@@ -26,7 +26,23 @@ type Builder interface {
 	documentFirstPageForegroundBuilder
 	documentFirstPageFinalForegroundBuilder
 	metadataBuilder
+	documentCatalogBuilder
 	Build() *entity.Config
+}
+
+type documentCatalogBuilder interface {
+	WithAcroForm(form *entity.AcroForm) Builder
+	WithAnnotations(annotations ...entity.PageAnnotation) Builder
+	WithPageGeometries(geometries ...entity.PageGeometry) Builder
+	WithPdfA(config entity.PdfAConfig) Builder
+	WithTaggedPDF(enabled bool) Builder
+	WithLanguage(language string) Builder
+	WithViewerPreferences(prefs entity.ViewerPreferences) Builder
+	WithPageLabels(labels ...entity.PageLabelRange) Builder
+	WithFileAttachments(attachments ...entity.FileAttachment) Builder
+	WithNamedDestinations(destinations ...entity.NamedDestination) Builder
+	WithFileID(id []byte) Builder
+	WithDeterministic(deterministic bool) Builder
 }
 
 type dimensionsBuilder interface {
@@ -159,6 +175,18 @@ type CfgBuilder struct {
 	watermark                      *props.Watermark
 	generationMode                 consts.GenerationMode
 	htmlLimits                     entity.HTMLLimits
+	acroForm                       *entity.AcroForm
+	annotations                    []entity.PageAnnotation
+	pageGeometries                 []entity.PageGeometry
+	pdfA                           *entity.PdfAConfig
+	taggedPDF                      bool
+	language                       string
+	viewerPreferences              *entity.ViewerPreferences
+	pageLabels                     []entity.PageLabelRange
+	attachments                    []entity.FileAttachment
+	namedDestinations              []entity.NamedDestination
+	fileID                         []byte
+	deterministic                  bool
 }
 
 // NewBuilder is responsible to create an instance of Builder.

@@ -96,6 +96,27 @@ type ComputedStyle struct {
 	RowGap    float64 // mm
 	ColumnGap float64 // mm
 
+	// Multi-column properties
+	ColumnCount     int     // 0 = auto
+	ColumnWidth     float64 // mm; 0 = auto
+	ColumnSpan      string  // "all" | "none"
+	ColumnRuleWidth float64 // mm
+	ColumnRuleStyle string  // "solid" | "dashed" | "dotted" | ...
+	ColumnRuleColor *RGBColor
+
+	// Grid container/item properties
+	GridTemplateColumns string
+	GridTemplateRows    string
+	GridAutoFlow        string
+	GridAutoRows        string
+	GridTemplateAreas   [][]string
+	GridArea            string
+	GridColumnStart     int    // 0 = auto
+	GridColumnEnd       int    // 0 = auto
+	GridRowStart        int    // 0 = auto
+	GridRowEnd          int    // 0 = auto
+	JustifyItems        string // "start" | "end" | "center" | "stretch"
+
 	// Flex item properties
 	FlexGrow      float64 // default 0; used as proportional weight in layout
 	FlexShrink    float64 // parsed/stored; no independent layout effect (quantizer prevents overflow)
@@ -127,6 +148,28 @@ type ComputedStyle struct {
 	PageBreakBefore string // "always" | "avoid" | "auto"
 	PageBreakAfter  string // "always" | "avoid" | "auto"
 	BreakInside     string // "avoid" | "auto"
+
+	// Positioning. Position holds the CSS position keyword ("static",
+	// "relative", "absolute", "fixed", "sticky"); empty means unset. The box
+	// offsets are resolved lengths in mm (0 = unset/auto — CSS "auto" offsets
+	// are never stored). ZIndexSet distinguishes an explicit `z-index: 0` from
+	// the property being absent.
+	Position  string
+	Top       float64 // mm
+	Right     float64 // mm
+	Bottom    float64 // mm
+	Left      float64 // mm
+	ZIndex    int
+	ZIndexSet bool
+
+	// Transform holds the raw CSS transform list (e.g. "rotate(3deg) scale(2)")
+	// and TransformOrigin the raw transform-origin value; both are parsed by
+	// the consumer at render time so lengths can resolve against the box size.
+	Transform       string
+	TransformOrigin string
+
+	// TextDecorationColor overrides the decoration line color; nil = currentColor.
+	TextDecorationColor *RGBColor
 
 	// CSS custom properties (--name: value). Stored as a flat map per element;
 	// cascade inheritance is handled by callers (computeNodeStyle) which copy
@@ -208,6 +251,10 @@ func (s *ComputedStyle) ApplyCtx(prop, val string, parent *ComputedStyle, ctxWid
 		s.applyBoxProperty(ctx) ||
 		s.applyBorderProperty(ctx) ||
 		s.applyFlexProperty(ctx) ||
+		s.applyGridProperty(ctx) ||
+		s.applyColumnProperty(ctx) ||
+		s.applyPositionProperty(ctx) ||
+		s.applyTransformProperty(ctx) ||
 		s.applyTypographyProperty(ctx) {
 		return
 	}

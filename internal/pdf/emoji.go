@@ -61,13 +61,48 @@ func (f *PDF) getOrAssignCID(r int) int {
 	cid := r
 	if r > 0xFFFF {
 		cid = f.findNextFreeCID()
-	} else if original, used := f.currentFont.usedRunes[r]; used && original != r {
+	} else if original, used := f.currentFont.usedRunes[r]; used && original != r && original != 0 {
+		// The identity slot is claimed by a different rune: remap to the PUA.
+		// A slot whose value is 0 was merely pre-seeded by makeSubsetRange
+		// (reserved for identity use, e.g. alias replacement digits) and is
+		// claimed by the matching rune instead of being remapped.
 		cid = f.findNextFreeCID()
 	}
 
 	f.currentFont.runeToCID[r] = cid
 	f.currentFont.usedRunes[cid] = r
 	return cid
+}
+
+// claimUTF8AliasRunes marks the runes of an alias replacement string as used
+// identity CIDs in every UTF-8 font. Alias replacement injects identity
+// UTF-16BE CIDs directly into page content streams, bypassing
+// getOrAssignCID, so the font subsets must be told to keep those glyphs.
+func (f *PDF) claimUTF8AliasRunes(replacement string) {
+	for _, font := range f.fonts {
+		if font.utf8File == nil || font.usedRunes == nil {
+			continue
+		}
+		for _, r := range replacement {
+			claimIdentityCID(font, int(pdfGlyphRune(r)))
+		}
+	}
+}
+
+// claimIdentityCID claims the identity CID slot for r unless another rune
+// already owns it. A missing slot or the pre-seeded sentinel value 0 counts
+// as unclaimed.
+func claimIdentityCID(font fontDefType, r int) {
+	if r <= 0 || r > 0xFFFF {
+		return
+	}
+	if owner, used := font.usedRunes[r]; used && owner != 0 && owner != r {
+		return
+	}
+	font.usedRunes[r] = r
+	if font.runeToCID != nil {
+		font.runeToCID[r] = r
+	}
 }
 
 func (f *PDF) findNextFreeCID() int {

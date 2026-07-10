@@ -18,6 +18,9 @@ type Text struct {
 	font                  core.Font
 	layoutCache           map[textLayoutKey][]string
 	defaultCodeTranslator func(string) string
+	// issueSink receives render fallback issues (e.g. glyphs the core-font
+	// code page cannot encode). Nil when no collector is wired.
+	issueSink func(operation, message string)
 }
 
 type textLayoutKey struct {
@@ -44,25 +47,19 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	s.font.SetFont(textProp.Family, textProp.Style, textProp.Size)
 	fontHeight := s.font.GetHeight(textProp.Family, textProp.Style, textProp.Size)
 
-	if textProp.Top > cell.Height {
-		textProp.Top = cell.Height
-	}
+	// Clamp on local copies: writing through textProp would leak the clamped
+	// values into the caller's persistent component prop.
+	top := min(textProp.Top, cell.Height)
+	left := min(textProp.Left, cell.Width)
+	right := min(textProp.Right, cell.Width)
 
-	if textProp.Left > cell.Width {
-		textProp.Left = cell.Width
-	}
-
-	if textProp.Right > cell.Width {
-		textProp.Right = cell.Width
-	}
-
-	width := cell.Width - textProp.Left - textProp.Right
+	width := cell.Width - left - right
 	if width < 0 {
 		width = 0
 	}
 
-	x := cell.X + textProp.Left
-	y := cell.Y + textProp.Top
+	x := cell.X + left
+	y := cell.Y + top
 
 	originalColor := s.font.GetColor()
 	if textProp.Color != nil {
@@ -79,11 +76,12 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 
 	// Apply Unicode before calc spaces
 	unicodeText := s.textToUnicode(text, textProp)
+	s.reportUnsupportedGlyphs(text, unicodeText)
 	stringWidth := s.pdf.GetStringWidth(unicodeText)
 
 	// If should add one line
 	if stringWidth <= width {
-		s.addLine(textProp, x, width, y, stringWidth, unicodeText)
+		s.addLine(textProp, x, width, y, stringWidth, unicodeText, true)
 		s.font.SetColor(originalColor)
 		return
 	}
@@ -95,7 +93,7 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	for index, line := range lines {
 		lineWidth := s.pdf.GetStringWidth(line)
 
-		s.addLine(textProp, x, width, y+float64(index)*fontHeight+accumulateOffsetY, lineWidth, line)
+		s.addLine(textProp, x, width, y+float64(index)*fontHeight+accumulateOffsetY, lineWidth, line, index == len(lines)-1)
 		accumulateOffsetY += textProp.VerticalPadding
 	}
 
@@ -109,7 +107,10 @@ func (s *Text) GetLinesQuantity(text string, textProp *props.Text, colWidth floa
 	textTranslated := s.textToUnicode(text, textProp)
 
 	if textProp.BreakLineStrategy == consts.BreakLineDash {
-		lines := s.getLinesBreakingLineWithDash(text, colWidth)
+		// Break the TRANSLATED text: the render path (getCachedLines) operates
+		// on translated text, so caching raw-text lines under the translated key
+		// would make a later Add render untranslated glyphs.
+		lines := s.getLinesBreakingLineWithDash(textTranslated, colWidth)
 		s.setCachedLines(textTranslated, textProp, colWidth, lines)
 		return len(lines)
 	}
@@ -212,12 +213,15 @@ func (s *Text) getLinesBreakingLineWithDash(words string, colWidth float64) []st
 	return lines
 }
 
-func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, textWidth float64, text string) {
+func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, textWidth float64, text string, lastLine bool) {
 	left, top, _, _ := s.pdf.GetMargins()
 
 	fontHeight := s.font.GetHeight(textProp.Family, textProp.Style, textProp.Size)
 
-	if textProp.Align == consts.AlignLeft {
+	// CSS text-align: justify semantics: the last line of a paragraph (and a
+	// single line) is start-aligned, never stretched — matching
+	// justifyRichTextLines for rich text.
+	if textProp.Align == consts.AlignLeft || (textProp.Align == consts.AlignJustify && lastLine) {
 		s.pdf.Text(xColOffset+left, yColOffset+top, text)
 
 		if textProp.Hyperlink != nil {
@@ -275,22 +279,7 @@ func (s *Text) addLine(textProp *props.Text, xColOffset, colWidth, yColOffset, t
 }
 
 func (s *Text) textToUnicode(txt string, props *props.Text) string {
-	if props.Family == consts.FontFamilyArial ||
-		props.Family == consts.FontFamilyHelvetica ||
-		props.Family == consts.FontFamilySymbol ||
-		props.Family == consts.FontFamilyZapBats ||
-		props.Family == consts.FontFamilyCourier {
-		return s.translateDefaultCodePage(txt)
-	}
-
-	return txt
-}
-
-func (s *Text) translateDefaultCodePage(txt string) string {
-	if s.defaultCodeTranslator == nil {
-		s.defaultCodeTranslator = s.pdf.UnicodeTranslatorFromDescriptor("")
-	}
-	return s.defaultCodeTranslator(txt)
+	return s.translateUnicode(txt, props.Family)
 }
 
 func isIncorrectSpaceWidth(textWidth, spaceWidth, defaultSpaceWidth float64, text string) bool {

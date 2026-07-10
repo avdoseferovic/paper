@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"maps"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -358,6 +359,13 @@ func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []co
 		breakInside:   style.BreakInside == breakInsideAvoid,
 	}
 	return newSplittableContainerRow(container)
+}
+
+// buildContainerRowContext is buildContainerRow for context-aware call paths.
+// Row assembly is synchronous, so ctx is not consulted beyond the caller's own
+// cancellation checks.
+func (tr *translator) buildContainerRowContext(_ context.Context, style *css.ComputedStyle, childRows []core.Row) core.Row {
+	return tr.buildContainerRow(style, childRows)
 }
 
 // splittableContainerRow wraps a blockContainer in a real row.Row (so it

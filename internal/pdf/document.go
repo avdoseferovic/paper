@@ -113,6 +113,12 @@ func (f *PDF) SetXmpMetadata(xmpStream []byte) {
 	f.xmp = xmpStream
 }
 
+// SetLanguage sets the document language that is written to the catalog's
+// /Lang entry, e.g. "en-US".
+func (f *PDF) SetLanguage(lang string) {
+	f.language = lang
+}
+
 // AliasNbPages defines an alias for the total number of pages. It will be
 // substituted as the document is closed. An empty string is replaced with the
 // string "{nb}".
@@ -172,17 +178,26 @@ func (f *PDF) RegisterAlias(alias, replacement string) {
 func (f *PDF) replaceAliases() {
 	for mode := range 2 {
 		for alias, replacement := range f.aliasMap {
+			searchStr, replaceStr := alias, replacement
 			if mode == 1 {
-				alias = utf8toutf16(alias, false)
-				replacement = utf8toutf16(replacement, false)
+				searchStr = utf8toutf16(alias, false)
+				replaceStr = utf8toutf16(replacement, false)
 			}
+			replaced := false
 			for n := 1; n <= f.page; n++ {
 				s := f.pages[n].String()
-				if strings.Contains(s, alias) {
-					s = strings.ReplaceAll(s, alias, replacement)
+				if strings.Contains(s, searchStr) {
+					s = strings.ReplaceAll(s, searchStr, replaceStr)
 					f.pages[n].Truncate(0)
 					f.pages[n].WriteString(s)
+					replaced = true
 				}
+			}
+			if mode == 1 && replaced {
+				// The UTF-16BE replacement was injected as identity CIDs;
+				// claim those CIDs in every UTF-8 font so the subsets map
+				// them to real glyphs instead of .notdef.
+				f.claimUTF8AliasRunes(replacement)
 			}
 		}
 	}
@@ -234,10 +249,26 @@ func (f *PDF) putinfo() {
 	if len(f.creator) > 0 {
 		f.outf("/Creator %s", f.textstring(f.creator))
 	}
-	creation := timeOrNow(f.creationDate)
-	f.outf("/CreationDate %s", f.textstring("D:"+creation.Format("20060102150405")))
-	mod := timeOrNow(f.modDate)
-	f.outf("/ModDate %s", f.textstring("D:"+mod.Format("20060102150405")))
+	creation := f.docTime(f.creationDate)
+	f.outf("/CreationDate %s", f.textstring(pdfDateString(creation)))
+	mod := f.docTime(f.modDate)
+	f.outf("/ModDate %s", f.textstring(pdfDateString(mod)))
+}
+
+// pdfDateString formats a time as a PDF date string including the timezone
+// offset, e.g. "D:20200102150405+05'30'" or "D:20200102150405Z" for UTC.
+func pdfDateString(tm time.Time) string {
+	base := tm.Format("D:20060102150405")
+	_, offset := tm.Zone()
+	if offset == 0 {
+		return base + "Z"
+	}
+	sign := byte('+')
+	if offset < 0 {
+		sign = '-'
+		offset = -offset
+	}
+	return fmt.Sprintf("%s%c%02d'%02d'", base, sign, offset/3600, offset%3600/60)
 }
 
 func (f *PDF) putcatalog() {
@@ -271,13 +302,30 @@ func (f *PDF) putcatalog() {
 
 	if len(f.outlines) > 0 {
 		f.outf("/Outlines %d 0 R", f.outlineRoot)
-		f.out("/PageMode /UseOutlines")
+		if f.viewerPrefs == nil || f.viewerPrefs.PageMode == "" {
+			f.out("/PageMode /UseOutlines")
+		}
 	}
 
-	if f.javascript != nil {
-		f.out("/Names <<")
-		f.outf("/JavaScript %d 0 R", f.nJs)
-		f.out(">>")
+	f.putCatalogNames()
+	f.putPageLabels()
+	f.putViewerPreferences()
+
+	if f.xmpObj > 0 {
+		f.outf("/Metadata %d 0 R", f.xmpObj)
+	}
+	if f.outputIntentObj > 0 {
+		f.outf("/OutputIntents [%d 0 R]", f.outputIntentObj)
+	}
+	if f.acroForm != nil {
+		f.outf("/AcroForm %d 0 R", f.acroForm.ref)
+	}
+	if f.taggedPDF && f.structTreeRoot > 0 {
+		f.out("/MarkInfo << /Marked true >>")
+		f.outf("/StructTreeRoot %d 0 R", f.structTreeRoot)
+	}
+	if f.language != "" {
+		f.outf("/Lang %s", f.textstring(f.language))
 	}
 }
 
@@ -509,8 +557,16 @@ func (f *PDF) puttrailer() {
 	f.outf("/Size %d", f.n+1)
 	f.outf("/Root %d 0 R", f.n)
 	f.outf("/Info %d 0 R", f.n-1)
+	explicitID := f.trailerFileID()
+	if len(explicitID) > 0 {
+		id := pdfHexString(explicitID)
+		f.outf("/ID [%s%s]", id, id)
+	}
 	if f.protect.encrypted {
 		f.outf("/Encrypt %d 0 R", f.protect.objNum)
+		if len(explicitID) > 0 {
+			return
+		}
 		if f.protect.algorithm == ProtectionAES128 && len(f.protect.fileID) > 0 {
 			id := pdfHexString(f.protect.fileID)
 			f.outf("/ID [%s%s]", id, id)
@@ -525,10 +581,12 @@ func pdfHexString(data []byte) string {
 }
 
 func (f *PDF) putxmp() {
+	f.xmpObj = 0
 	if len(f.xmp) == 0 {
 		return
 	}
 	f.newobj()
+	f.xmpObj = f.n
 	stream := f.encryptedStream(f.xmp)
 	if f.err != nil {
 		return
@@ -544,15 +602,34 @@ func (f *PDF) enddoc() {
 	}
 	f.putheader()
 
+	// AcroForm object numbers are reserved relative to the page objects (two
+	// objects per page starting at object 3), so the form must be prepared
+	// before the pages are written (page dicts reference the widget refs in
+	// their /Annots arrays) and emitted immediately after them.
+	f.prepareAcroForm(f.page)
 	f.putpages()
+	f.putAcroFormObjects()
+	f.putTaggedStructure(f.page)
+	if f.err != nil {
+		return
+	}
 	f.putresources()
 	if f.err != nil {
 		return
 	}
 
 	f.putbookmarks()
+	f.putAttachmentObjects()
+	if f.err != nil {
+		return
+	}
 
+	f.preparePdfAMetadata()
 	f.putxmp()
+	f.putPdfAOutputIntent()
+	if f.err != nil {
+		return
+	}
 
 	f.newobj()
 	f.out("<<")

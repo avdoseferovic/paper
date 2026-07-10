@@ -139,18 +139,30 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 	return row.New().Add(col.New().Add(rt))
 }
 
+// buildTableMatrix assembles table rows in rendering order: header rows
+// first, then body rows (from <tbody> or direct <tr> children), then footer
+// rows — regardless of the source order of the row groups (HTML permits
+// <tfoot> before <tbody>).
 func (tr *translator) buildTableMatrix(n *dom.Node, tableStyle *css.ComputedStyle) [][]table.Cell {
-	var matrix [][]table.Cell
+	var head, body, foot [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {
-		case "thead", "tbody", "tfoot":
-			matrix = append(matrix, tr.collectRows(child, tableStyle)...)
+		case "thead":
+			head = append(head, tr.collectRows(child, tableStyle)...)
+		case "tfoot":
+			foot = append(foot, tr.collectRows(child, tableStyle)...)
+		case "tbody":
+			body = append(body, tr.collectRows(child, tableStyle)...)
 		case "tr":
 			if rowCells := tr.buildRow(child, tableStyle); rowCells != nil {
-				matrix = append(matrix, rowCells)
+				body = append(body, rowCells)
 			}
 		}
 	}
+	matrix := make([][]table.Cell, 0, len(head)+len(body)+len(foot))
+	matrix = append(matrix, head...)
+	matrix = append(matrix, body...)
+	matrix = append(matrix, foot...)
 	return matrix
 }
 

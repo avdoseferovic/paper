@@ -45,6 +45,10 @@ func CloneColor(c *Color) *Color {
 		alpha := *c.Alpha
 		clone.Alpha = &alpha
 	}
+	if c.CMYK != nil {
+		cmyk := *c.CMYK
+		clone.CMYK = &cmyk
+	}
 	return &clone
 }
 
@@ -70,6 +74,17 @@ type Color struct {
 	Blue int
 	// Alpha is the translucency in [0, 1]; nil = fully opaque (default).
 	Alpha *float64
+	// CMYK, when set, renders through the device-CMYK pipeline on backends
+	// that support it; the RGB components remain the fallback.
+	CMYK *CMYKColor
+}
+
+// CMYKColor represents a device-CMYK color. All components are in [0, 1].
+type CMYKColor struct {
+	Cyan    float64
+	Magenta float64
+	Yellow  float64
+	Key     float64
 }
 
 // ToString returns a string representation of the Color, including Alpha

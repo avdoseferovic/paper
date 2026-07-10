@@ -113,10 +113,12 @@ func parseHex8(hex string) *RGBColor {
 }
 
 // parseRGBFunc parses the argument portion of rgb(…) — i.e. "255, 0, 0)".
+// An optional fourth (alpha) component is accepted for the modern
+// "rgb(255 0 0 / 0.5)" syntax.
 func parseRGBFunc(args string) *RGBColor {
 	args = stripTrailingParen(args)
 	parts := splitCSSArgs(args)
-	if len(parts) != 3 {
+	if len(parts) != 3 && len(parts) != 4 {
 		return nil
 	}
 	r, ok1 := parseColorChannel(parts[0])
@@ -125,7 +127,15 @@ func parseRGBFunc(args string) *RGBColor {
 	if !ok1 || !ok2 || !ok3 {
 		return nil
 	}
-	return &RGBColor{R: clamp255(r), G: clamp255(g), B: clamp255(b), A: 1.0}
+	alpha := 1.0
+	if len(parts) == 4 {
+		a, ok := parseAlphaChannel(parts[3])
+		if !ok {
+			return nil
+		}
+		alpha = a
+	}
+	return &RGBColor{R: clamp255(r), G: clamp255(g), B: clamp255(b), A: alpha}
 }
 
 // parseRGBAFunc parses the argument portion of rgba(…).
@@ -145,39 +155,35 @@ func parseRGBAFunc(args string) *RGBColor {
 	return &RGBColor{R: clamp255(r), G: clamp255(g), B: clamp255(b), A: a}
 }
 
-// parseHSLFunc parses hsl(hue, sat%, light%).
+// parseHSLFunc parses hsl(hue, sat%, light%) with an optional alpha and
+// optional angle unit on the hue.
 func parseHSLFunc(args string) *RGBColor {
 	args = stripTrailingParen(args)
 	parts := splitCSSArgs(args)
-	if len(parts) != 3 {
+	if len(parts) != 3 && len(parts) != 4 {
 		return nil
 	}
-	h, ok1 := parseFloat(parts[0])
+	h, ok1 := parseHue(parts[0])
 	s, ok2 := parsePctOrFloat(parts[1])
 	l, ok3 := parsePctOrFloat(parts[2])
 	if !ok1 || !ok2 || !ok3 {
 		return nil
 	}
+	alpha := 1.0
+	if len(parts) == 4 {
+		a, ok := parseAlphaChannel(parts[3])
+		if !ok {
+			return nil
+		}
+		alpha = a
+	}
 	r, g, b := hslToRGB(h, s, l)
-	return &RGBColor{R: r, G: g, B: b, A: 1.0}
+	return &RGBColor{R: r, G: g, B: b, A: alpha}
 }
 
 // parseHSLAFunc parses hsla(hue, sat%, light%, alpha).
 func parseHSLAFunc(args string) *RGBColor {
-	args = stripTrailingParen(args)
-	parts := splitCSSArgs(args)
-	if len(parts) != 4 {
-		return nil
-	}
-	h, ok1 := parseFloat(parts[0])
-	s, ok2 := parsePctOrFloat(parts[1])
-	l, ok3 := parsePctOrFloat(parts[2])
-	a, ok4 := parseAlphaChannel(parts[3])
-	if !ok1 || !ok2 || !ok3 || !ok4 {
-		return nil
-	}
-	r, g, b := hslToRGB(h, s, l)
-	return &RGBColor{R: r, G: g, B: b, A: a}
+	return parseHSLFunc(args)
 }
 
 // hslToRGB converts HSL (h in [0,360), s and l in [0,1]) to RGB [0,255].
@@ -303,14 +309,42 @@ func stripTrailingParen(s string) string {
 }
 
 // splitCSSArgs splits "255, 0, 0" or "255,0,0" on commas, trimming whitespace.
+// splitCSSArgs splits a color-function argument list. It accepts both the
+// legacy comma syntax ("255, 0, 0, 0.5") and the modern space syntax with an
+// optional slash-separated alpha ("255 0 0 / 0.5").
 func splitCSSArgs(s string) []string {
-	parts := strings.Split(s, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
+	s = strings.ReplaceAll(s, "/", " ")
+	if strings.Contains(s, ",") {
+		parts := strings.Split(s, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				out = append(out, p)
+			}
 		}
+		return out
 	}
-	return out
+	return strings.Fields(s)
+}
+
+// parseHue parses a CSS hue component, accepting a plain number or the deg,
+// rad, grad, and turn angle units.
+func parseHue(s string) (float64, bool) {
+	s = strings.TrimSpace(strings.ToLower(s))
+	switch {
+	case strings.HasSuffix(s, "deg"):
+		return parseFloat(strings.TrimSuffix(s, "deg"))
+	case strings.HasSuffix(s, "grad"):
+		v, ok := parseFloat(strings.TrimSuffix(s, "grad"))
+		return v * 0.9, ok
+	case strings.HasSuffix(s, "rad"):
+		v, ok := parseFloat(strings.TrimSuffix(s, "rad"))
+		return v * 180 / math.Pi, ok
+	case strings.HasSuffix(s, "turn"):
+		v, ok := parseFloat(strings.TrimSuffix(s, "turn"))
+		return v * 360, ok
+	default:
+		return parseFloat(s)
+	}
 }

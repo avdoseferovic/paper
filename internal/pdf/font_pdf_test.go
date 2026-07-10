@@ -165,6 +165,56 @@ func TestOutputReturnsErrorWhenUTF8FontSubsettingFails(t *testing.T) {
 	}
 }
 
+func TestAliasNbPagesUTF8FontRendersDigits(t *testing.T) {
+	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
+	if err != nil {
+		t.Fatalf("read custom font fixture: %v", err)
+	}
+
+	pdf := NewCustom(&InitType{
+		OrientationStr: "P",
+		UnitStr:        "mm",
+		SizeStr:        "A4",
+	})
+	pdf.SetCompression(false)
+	pdf.AliasNbPages("")
+	pdf.AddUTF8FontFromBytes("arial-unicode-ms", "", fontBytes)
+	pdf.AddPage()
+	pdf.SetFont("arial-unicode-ms", "", 12)
+	pdf.Write(5, "Page 1 of {nb}")
+	pdf.AddPage()
+	pdf.Write(5, "Page 2 of {nb}")
+
+	var out bytes.Buffer
+	if err := pdf.Output(&out); err != nil {
+		t.Fatalf("output alias PDF: %v", err)
+	}
+	body := out.Bytes()
+
+	// The alias is replaced with identity UTF-16BE CIDs ("2" -> 0x0032), so
+	// the page content must contain the digit CID.
+	if !bytes.Contains(body, []byte{0x00, '2'}) {
+		t.Fatal("expected page content to contain the identity CID for digit 2")
+	}
+	// The digit CID must be a real glyph: present in ToUnicode...
+	if !bytes.Contains(body, []byte("<0032> <0032>")) {
+		t.Fatal("expected ToUnicode CMap to map CID 0x32 to U+0032")
+	}
+	// ...and mapped to a non-.notdef glyph in the subset font.
+	var utf8Font fontDefType
+	for _, font := range pdf.fonts {
+		if font.utf8File != nil {
+			utf8Font = font
+		}
+	}
+	if utf8Font.utf8File == nil {
+		t.Fatal("missing UTF-8 font definition")
+	}
+	if glyph := utf8Font.utf8File.codeSymbolDictionary[0x32]; glyph == 0 {
+		t.Fatalf("expected CID 0x32 to map to a real glyph, got glyph %d", glyph)
+	}
+}
+
 func TestUTF8FontSubsettingOutputIsDeterministic(t *testing.T) {
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {

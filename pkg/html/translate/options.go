@@ -1,11 +1,17 @@
 package translate
 
 import (
+	"net/http"
+
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 )
 
 // Option configures translator behaviour.
 type Option func(*translator)
+
+// URLPolicy vets a URL before any remote fetch. Returning a non-nil error
+// blocks the fetch; the error is wrapped in ErrURLPolicyDenied.
+type URLPolicy func(rawURL string) error
 
 // WithGridSize overrides the default 12-column grid size used for flex quantization.
 func WithGridSize(n int) Option {
@@ -65,6 +71,50 @@ func WithUnsupportedHandler(fn func(thing, value string)) Option {
 func WithOutlineFromHeadings() Option {
 	return func(tr *translator) {
 		tr.outlineFromHeadings = true
+	}
+}
+
+// WithStrictAssets makes asset load failures (stylesheet links, @font-face
+// sources, images, background images) surface as errors from Translate.
+// The partially-translated rows are still returned alongside the joined
+// asset errors. Without this option failures warn-and-continue.
+func WithStrictAssets() Option {
+	return func(tr *translator) {
+		tr.strictAssets = true
+	}
+}
+
+// WithRemoteAssets enables http(s) fetching for document-referenced assets
+// (stylesheet links and the fallback font). Off by default: remote URLs are
+// refused so untrusted HTML cannot trigger network access.
+func WithRemoteAssets() Option {
+	return func(tr *translator) {
+		tr.remoteAssets = true
+	}
+}
+
+// WithURLPolicy registers a callback that can veto individual URLs before any
+// remote fetch. Only consulted when remote fetching is enabled.
+func WithURLPolicy(policy URLPolicy) Option {
+	return func(tr *translator) {
+		tr.urlPolicy = policy
+	}
+}
+
+// WithHTTPClient overrides http.DefaultClient for remote asset fetches.
+func WithHTTPClient(client *http.Client) Option {
+	return func(tr *translator) {
+		tr.httpClient = client
+	}
+}
+
+// WithFallbackFontPath registers a font (local path, data: URI, or http(s)
+// URL with WithRemoteAssets) that is loaded on demand when the document
+// contains text outside the WinAnsi (cp1252) repertoire, so such text renders
+// instead of degrading.
+func WithFallbackFontPath(path string) Option {
+	return func(tr *translator) {
+		tr.fallbackFontPath = path
 	}
 }
 

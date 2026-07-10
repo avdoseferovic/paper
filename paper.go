@@ -141,5 +141,10 @@ func getProvider(cache cache.Cache, cfg *entity.Config) core.Provider {
 	provider.SetMetadata(cfg.Metadata)
 	provider.SetCompression(cfg.Compression)
 	provider.SetProtection(cfg.Protection)
+	if catalogProvider, ok := any(provider).(interface {
+		SetDocumentCatalog(cfg *entity.Config)
+	}); ok {
+		catalogProvider.SetDocumentCatalog(cfg)
+	}
 	return provider
 }
