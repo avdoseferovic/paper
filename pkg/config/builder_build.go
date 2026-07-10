@@ -36,7 +36,27 @@ func (b *CfgBuilder) Build() *entity.Config {
 		HTMLLimits:                     b.htmlLimits,
 		OutlineFromHeadings:            b.outlineFromHeadings,
 		Watermark:                      props.CloneWatermark(b.watermark),
+		AcroForm:                       entity.CloneAcroForm(b.acroForm),
+		Annotations:                    entity.CloneAnnotations(b.annotations),
+		PageGeometries:                 entity.ClonePageGeometries(b.pageGeometries),
+		PdfA:                           entity.ClonePdfAConfig(b.pdfA),
+		TaggedPDF:                      b.taggedPDF,
+		Language:                       b.language,
+		ViewerPreferences:              cloneViewerPreferences(b.viewerPreferences),
+		PageLabels:                     append([]entity.PageLabelRange(nil), b.pageLabels...),
+		Attachments:                    entity.CloneAttachments(b.attachments),
+		NamedDestinations:              append([]entity.NamedDestination(nil), b.namedDestinations...),
+		FileID:                         append([]byte(nil), b.fileID...),
+		Deterministic:                  b.deterministic,
 	}
+}
+
+func cloneViewerPreferences(prefs *entity.ViewerPreferences) *entity.ViewerPreferences {
+	if prefs == nil {
+		return nil
+	}
+	clone := *prefs
+	return &clone
 }
 
 func cloneDimensions(dimensions *entity.Dimensions) *entity.Dimensions {

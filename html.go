@@ -22,9 +22,16 @@ import (
 // the HTML configures the page; an explicit config argument disables @page
 // handling entirely (documented precedence rule, no field-level merging).
 func FromHTML(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*core.Pdf, error) {
+	return FromHTMLWithOptions(ctx, htmlStr, nil, cfgs...)
+}
+
+// FromHTMLWithOptions is FromHTML with additional html conversion options
+// (e.g. html.WithImageBaseDir, html.WithStrictAssets) appended to the
+// config-derived defaults.
+func FromHTMLWithOptions(ctx context.Context, htmlStr string, opts []html.Option, cfgs ...*entity.Config) (*core.Pdf, error) {
 	if len(cfgs) > 0 {
 		m := New(cfgs...)
-		err := m.AddHTML(ctx, htmlStr)
+		err := m.addHTMLWithOptions(ctx, htmlStr, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -35,13 +42,13 @@ func FromHTML(ctx context.Context, htmlStr string, cfgs ...*entity.Config) (*cor
 	// shape the document. When @page is present, the HTML is re-translated
 	// against the resulting page geometry (content width affects layout).
 	m := New()
-	doc, err := html.DocumentFromString(ctx, htmlStr, m.htmlOptions()...)
+	doc, err := html.DocumentFromString(ctx, htmlStr, append(m.htmlOptions(), opts...)...)
 	if err != nil {
 		return nil, err
 	}
 	if doc.Page != nil {
 		m = New(configFromPageOptions(doc.Page))
-		err = m.AddHTML(ctx, htmlStr)
+		err = m.addHTMLWithOptions(ctx, htmlStr, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +121,11 @@ func FromHTMLReader(ctx context.Context, r io.Reader, cfgs ...*entity.Config) (*
 // html.FromString directly and append the returned rows via m.AddRows(rows...).
 // Supported HTML subset is documented in docs/html-support.md.
 func (m *Paper) AddHTML(ctx context.Context, htmlStr string) error {
-	doc, err := html.DocumentFromString(ctx, htmlStr, m.htmlOptions()...)
+	return m.addHTMLWithOptions(ctx, htmlStr, nil)
+}
+
+func (m *Paper) addHTMLWithOptions(ctx context.Context, htmlStr string, opts []html.Option) error {
+	doc, err := html.DocumentFromString(ctx, htmlStr, append(m.htmlOptions(), opts...)...)
 	if err != nil {
 		return err
 	}

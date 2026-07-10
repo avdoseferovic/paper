@@ -1062,11 +1062,20 @@ func TestParseColor_HSLEdgeCases(t *testing.T) {
 			"hsl(abc, 50%, 50%)",
 			"hsl(0, x%, 50%)",
 			"hsl(0, 50%, x%)",
-			"hsla(0, 100%, 50%)",
 			"hsla(0, 100%, 50%, zz)",
 		} {
 			assert.Nil(t, ParseColor(in), "input %q", in)
 		}
+	})
+
+	// SEMANTICS CHANGE: per CSS Color 4, hsla() is an alias of hsl() and the
+	// alpha component is optional, so a 3-argument hsla() is valid (it used to
+	// be rejected here).
+	t.Run("hsla without alpha is valid", func(t *testing.T) {
+		t.Parallel()
+		c := ParseColor("hsla(0, 100%, 50%)")
+		require.NotNil(t, c)
+		assert.Equal(t, 255, c.R)
 	})
 }
 
@@ -1197,7 +1206,6 @@ func TestExpandOne_AllShorthands(t *testing.T) {
 			{"1mm 2mm", "1mm", "2mm", "1mm", "2mm"},
 			{"1mm 2mm 3mm", "1mm", "2mm", "3mm", "2mm"},
 			{"1mm 2mm 3mm 4mm", "1mm", "2mm", "3mm", "4mm"},
-			{"1mm 2mm 3mm 4mm 5mm", "0", "0", "0", "0"},
 		}
 		for _, tc := range cases {
 			out := expandOne("padding", tc.val)
@@ -1206,6 +1214,11 @@ func TestExpandOne_AllShorthands(t *testing.T) {
 			assert.Equal(t, tc.bottom, out["padding-bottom"], "val %q", tc.val)
 			assert.Equal(t, tc.left, out["padding-left"], "val %q", tc.val)
 		}
+		// SEMANTICS CHANGE: a malformed shorthand (5+ values) is now dropped
+		// per the CSS ignore-invalid-declarations rule instead of zeroing all
+		// four sides.
+		out5 := expandOne("padding", "1mm 2mm 3mm 4mm 5mm")
+		assert.Equal(t, "", out5["padding-top"])
 		out := expandOne("margin", "7mm")
 		assert.Equal(t, "7mm", out["margin-top"])
 	})

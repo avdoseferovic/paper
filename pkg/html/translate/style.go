@@ -2,6 +2,7 @@ package translate
 
 import (
 	"maps"
+	"strconv"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -63,30 +64,32 @@ func computeNodeStyleCtx(sheet *stylesheet, n *dom.Node, parent *css.ComputedSty
 			maps.Copy(s.Vars, parent.Vars)
 		}
 	}
-	if sheet != nil && n.RawNode() != nil {
-		sheet.applyToNodeCtx(n.RawNode(), s, parent, ctxWidth)
-	}
-	inline := n.InlineStyle()
-	if inline != "" {
-		for prop, val := range parseInlineStyle(inline) {
-			s.ApplyCtx(prop, val, parent, ctxWidth)
-		}
-	}
+	applyCascade(sheet, n, s, parent, ctxWidth)
 	return s
 }
 
 func computeInlineNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
 	s := inheritInlineStyle(parent)
-	if sheet != nil && n.RawNode() != nil {
-		sheet.applyToNodeCtx(n.RawNode(), s, parent, 0)
-	}
-	inline := n.InlineStyle()
-	if inline != "" {
-		for prop, val := range parseInlineStyle(inline) {
-			s.Apply(prop, val, parent)
-		}
-	}
+	applyCascade(sheet, n, s, parent, 0)
 	return s
+}
+
+// applyCascade layers stylesheet and inline declarations in CSS cascade order:
+// stylesheet normal → inline normal → stylesheet !important → inline !important.
+func applyCascade(sheet *stylesheet, n *dom.Node, s, parent *css.ComputedStyle, ctxWidth float64) {
+	if sheet != nil && n.RawNode() != nil {
+		sheet.applyToNodeCtx(n.RawNode(), s, parent, ctxWidth, false)
+	}
+	normal, important := parseInlineStyleImportance(n.InlineStyle())
+	for prop, val := range normal {
+		s.ApplyCtx(prop, val, parent, ctxWidth)
+	}
+	if sheet != nil && n.RawNode() != nil {
+		sheet.applyToNodeCtx(n.RawNode(), s, parent, ctxWidth, true)
+	}
+	for prop, val := range important {
+		s.ApplyCtx(prop, val, parent, ctxWidth)
+	}
 }
 
 func computePseudoNodeStyle(sheet *stylesheet, n *dom.Node, parent *css.ComputedStyle, pseudo string) *css.ComputedStyle {
@@ -1080,22 +1083,13 @@ func readCSSContentString(value string) (string, string, bool) {
 	}
 	quote := value[0]
 	var out strings.Builder
-	escaped := false
 	for i := 1; i < len(value); i++ {
 		ch := value[i]
-		if escaped {
-			switch ch {
-			case 'a', 'A':
-				out.WriteByte('\n')
-			default:
-				out.WriteByte(ch)
-			}
-			escaped = false
-			continue
-		}
 		switch ch {
 		case '\\':
-			escaped = true
+			text, next := decodeCSSEscape(value, i+1)
+			out.WriteString(text)
+			i = next - 1
 		case quote:
 			return out.String(), value[i+1:], true
 		default:
@@ -1103,6 +1097,41 @@ func readCSSContentString(value string) (string, string, bool) {
 		}
 	}
 	return "", "", false
+}
+
+// decodeCSSEscape decodes the escape sequence starting after a backslash at
+// value[start] per CSS Syntax §4.3.7: one to six hex digits followed by an
+// optional whitespace terminator, or a single literal character. It returns
+// the decoded text and the index of the first unconsumed byte.
+func decodeCSSEscape(value string, start int) (string, int) {
+	if start >= len(value) {
+		return "", start
+	}
+	end := start
+	for end < len(value) && end-start < 6 && isHexDigit(value[end]) {
+		end++
+	}
+	if end == start {
+		return string(value[start]), start + 1
+	}
+	code, err := strconv.ParseUint(value[start:end], 16, 32)
+	if err != nil || code == 0 || code > 0x10FFFF {
+		return string(value[start]), start + 1
+	}
+	// A single whitespace after the hex digits terminates the escape.
+	if end < len(value) && (value[end] == ' ' || value[end] == '\t' || value[end] == '\n') {
+		end++
+	}
+	return string(rune(code)), end
+}
+
+func isHexDigit(c byte) bool {
+	switch {
+	case c >= '0' && c <= '9', c >= 'a' && c <= 'f', c >= 'A' && c <= 'F':
+		return true
+	default:
+		return false
+	}
 }
 
 // cssShadowToProps converts a single css.Shadow to a *props.Shadow.
@@ -1135,8 +1164,20 @@ func isDisplayNone(n *dom.Node) bool {
 
 // parseInlineStyle parses a CSS declaration block (e.g. "color:red; font-size:12pt")
 // into a property→value map. Shorthands are expanded via css.ExpandShorthands.
+// !important suffixes are stripped; importance is ignored (see
+// parseInlineStyleImportance for cascade-aware parsing).
 func parseInlineStyle(decl string) map[string]string {
-	raw := make(map[string]string)
+	normal, important := parseInlineStyleImportance(decl)
+	maps.Copy(normal, important)
+	return normal
+}
+
+// parseInlineStyleImportance parses a CSS declaration block into two
+// property→value maps: normal declarations and !important ones. Shorthands
+// are expanded via css.ExpandShorthands.
+func parseInlineStyleImportance(decl string) (map[string]string, map[string]string) {
+	rawNormal := make(map[string]string)
+	rawImportant := make(map[string]string)
 	for _, part := range splitStyleDeclarations(decl) {
 		part = strings.TrimSpace(part)
 		if part == "" {
@@ -1147,13 +1188,21 @@ func parseInlineStyle(decl string) map[string]string {
 			continue
 		}
 		prop = strings.TrimSpace(prop)
-		val = strings.TrimSpace(val)
+		val, important := stripImportantSuffix(strings.TrimSpace(val))
 		if prop == "" || val == "" {
 			continue
 		}
-		raw[prop] = val
+		// Expand each declaration individually, in source order, so a longhand
+		// after a shorthand ("margin: 0; margin-top: 10px") deterministically
+		// overrides it. Expanding the whole map at once would iterate in
+		// random map order.
+		target := rawNormal
+		if important {
+			target = rawImportant
+		}
+		maps.Copy(target, css.ExpandShorthands(map[string]string{prop: val}))
 	}
-	return css.ExpandShorthands(raw)
+	return rawNormal, rawImportant
 }
 
 func splitStyleDeclarations(decl string) []string {

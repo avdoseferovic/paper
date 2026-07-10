@@ -26,10 +26,13 @@ const (
 )
 
 // cssDeclaration is a single `property: value` pair. value has any trailing
-// `!important` stripped, matching douceur's Declaration.Value semantics.
+// `!important` stripped (matching douceur's Declaration.Value semantics);
+// important records whether the suffix was present so the cascade can rank
+// the declaration above normal ones.
 type cssDeclaration struct {
-	property string
-	value    string
+	property  string
+	value     string
+	important bool
 }
 
 // cssRule mirrors the minimal subset of douceur's css.Rule that the translator
@@ -178,9 +181,11 @@ func (s *cssParseState) declaration(data string, values []tcss.Token) error {
 	if err != nil {
 		return err
 	}
+	value, important := declValue(values)
 	target.declarations = append(target.declarations, cssDeclaration{
-		property: data,
-		value:    declValue(values),
+		property:  data,
+		value:     value,
+		important: important,
 	})
 	return nil
 }
@@ -204,15 +209,21 @@ func concatTokens(tokens []tcss.Token) string {
 	return strings.TrimSpace(b.String())
 }
 
-// declValue reconstructs a declaration value and strips a trailing !important,
-// matching douceur's Declaration.Value (which excluded it).
-func declValue(tokens []tcss.Token) string {
-	v := concatTokens(tokens)
+// declValue reconstructs a declaration value and strips a trailing !important
+// (matching douceur's Declaration.Value, which excluded it), reporting whether
+// the suffix was present.
+func declValue(tokens []tcss.Token) (string, bool) {
+	return stripImportantSuffix(concatTokens(tokens))
+}
+
+// stripImportantSuffix removes a trailing "!important" (case-insensitive) and
+// reports whether it was present.
+func stripImportantSuffix(v string) (string, bool) {
 	if i := strings.LastIndex(strings.ToLower(v), "!important"); i >= 0 &&
 		strings.TrimSpace(v[i+len("!important"):]) == "" {
-		v = strings.TrimSpace(v[:i])
+		return strings.TrimSpace(v[:i]), true
 	}
-	return v
+	return v, false
 }
 
 // splitSelectors reconstructs the selector group and splits it on top-level

@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"context"
+
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -30,7 +32,27 @@ func (tr *translator) inlineRuns(n *dom.Node) []props.RichRun {
 }
 
 func (tr *translator) inlineRunsStyled(n *dom.Node, style *css.ComputedStyle) []props.RichRun {
-	return inlineRunsWithContext(n, tr.styledRunContext(style))
+	return tr.applyFallbackFontRuns(inlineRunsWithContext(n, tr.styledRunContext(style)))
+}
+
+// applyFallbackFontRuns splits runs whose text needs the registered fallback
+// font (see fallbackRunsFromRun). A no-op until the fallback font is loaded.
+func (tr *translator) applyFallbackFontRuns(runs []props.RichRun) []props.RichRun {
+	if tr == nil || !tr.fallbackFontReady {
+		return runs
+	}
+	out := make([]props.RichRun, 0, len(runs))
+	for _, run := range runs {
+		out = append(out, fallbackRunsFromRun(run, true)...)
+	}
+	return out
+}
+
+// styledRunContextContext is styledRunContext for context-aware call paths.
+// The runContext walk itself is synchronous and non-blocking, so ctx is not
+// consulted beyond the caller's own cancellation checks.
+func (tr *translator) styledRunContextContext(_ context.Context, style *css.ComputedStyle) runContext {
+	return tr.styledRunContext(style)
 }
 
 func (tr *translator) styledRunContext(style *css.ComputedStyle) runContext {
@@ -155,6 +177,10 @@ func walkInline(n *dom.Node, ctx runContext, runs *[]props.RichRun) {
 	}
 	counterScope := next.counters.enter(next.style)
 	defer next.counters.exit(counterScope)
+	if controlRuns, handled := formControlRuns(n, next); handled {
+		*runs = append(*runs, controlRuns...)
+		return
+	}
 	if tag == tagPicture && ctx.inlinePicture != nil {
 		if img, ok := ctx.inlinePicture(n); ok {
 			run := richRunFromContext("", next)

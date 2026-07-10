@@ -37,6 +37,18 @@ func NormalizeConfig(cfg *entity.Config) *entity.Config {
 		HTMLLimits:                     cfg.HTMLLimits,
 		OutlineFromHeadings:            cfg.OutlineFromHeadings,
 		Watermark:                      props.CloneWatermark(cfg.Watermark),
+		AcroForm:                       entity.CloneAcroForm(cfg.AcroForm),
+		Annotations:                    entity.CloneAnnotations(cfg.Annotations),
+		PageGeometries:                 entity.ClonePageGeometries(cfg.PageGeometries),
+		PdfA:                           entity.ClonePdfAConfig(cfg.PdfA),
+		TaggedPDF:                      cfg.TaggedPDF,
+		Language:                       cfg.Language,
+		ViewerPreferences:              cloneViewerPreferences(cfg.ViewerPreferences),
+		PageLabels:                     append([]entity.PageLabelRange(nil), cfg.PageLabels...),
+		Attachments:                    entity.CloneAttachments(cfg.Attachments),
+		NamedDestinations:              append([]entity.NamedDestination(nil), cfg.NamedDestinations...),
+		FileID:                         append([]byte(nil), cfg.FileID...),
+		Deterministic:                  cfg.Deterministic,
 	}
 
 	if normalized.ProviderType == "" {

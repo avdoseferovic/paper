@@ -35,14 +35,15 @@ func (t *Table) Render(provider core.Provider, cell *entity.Cell) {
 				continue
 			}
 			w := t.columnSpanWidth(tableCell.Width, c, declCell.Colspan)
+			cellStyle := t.collapsedCellStyle(declCell, r, c)
 			outerCell := explicitCellBox(x, y, w, rowH, declCell)
-			innerCell := paddedTableCell(outerCell.X, outerCell.Y, outerCell.Width, outerCell.Height, declCell.Style)
-			if declCell.Style != nil {
-				paintCell := layout.ApplyCellMargins(outerCell, declCell.Style)
+			innerCell := paddedTableCell(outerCell.X, outerCell.Y, outerCell.Width, outerCell.Height, cellStyle)
+			if cellStyle != nil {
+				paintCell := layout.ApplyCellMargins(outerCell, cellStyle)
 				if pp, ok := provider.(core.PositionProvider); ok {
 					pp.SetCursor(paintCell.X, paintCell.Y)
 				}
-				provider.CreateCol(paintCell.Width, paintCell.Height, t.config, declCell.Style)
+				provider.CreateCol(paintCell.Width, paintCell.Height, t.config, cellStyle)
 			}
 			if declCell.Content != nil {
 				declCell.Content.Render(provider, &innerCell)

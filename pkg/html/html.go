@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -26,6 +27,57 @@ type config struct {
 	limits              Limits
 	limitsSet           bool
 	outlineFromHeadings bool
+	strictAssets        bool
+	remoteAssets        bool
+	urlPolicy           URLPolicy
+	httpClient          *http.Client
+	fallbackFontPath    string
+}
+
+// URLPolicy vets a URL before any remote asset fetch. Returning a non-nil
+// error blocks the fetch.
+type URLPolicy = translate.URLPolicy
+
+// WithStrictAssets makes asset load failures (stylesheet links, @font-face
+// sources, images, background images) surface as an error from FromString /
+// FromReader. The partially-converted rows are still returned alongside the
+// joined *AssetError values. Without this option failures warn-and-continue.
+func WithStrictAssets() Option {
+	return func(c *config) {
+		c.strictAssets = true
+	}
+}
+
+// WithRemoteAssets enables http(s) fetching for document-referenced assets.
+// Off by default so untrusted HTML cannot trigger network access.
+func WithRemoteAssets() Option {
+	return func(c *config) {
+		c.remoteAssets = true
+	}
+}
+
+// WithURLPolicy registers a callback that can veto individual URLs before any
+// remote fetch. Only consulted when WithRemoteAssets is enabled.
+func WithURLPolicy(policy URLPolicy) Option {
+	return func(c *config) {
+		c.urlPolicy = policy
+	}
+}
+
+// WithHTTPClient overrides http.DefaultClient for remote asset fetches.
+func WithHTTPClient(client *http.Client) Option {
+	return func(c *config) {
+		c.httpClient = client
+	}
+}
+
+// WithFallbackFontPath registers a font (local path, data: URI, or http(s)
+// URL with WithRemoteAssets) loaded on demand when the document contains text
+// outside the WinAnsi (cp1252) repertoire.
+func WithFallbackFontPath(path string) Option {
+	return func(c *config) {
+		c.fallbackFontPath = path
+	}
 }
 
 // WithOutlineFromHeadings adds h1-h6 headings to the PDF document outline:
@@ -97,7 +149,7 @@ func FromString(ctx context.Context, htmlStr string, opts ...Option) ([]core.Row
 	}
 	doc, err := dom.Parse(htmlStr)
 	if err != nil {
-		return nil, err
+		return nil, &translate.ParseError{Err: err}
 	}
 	err = conversionCanceled(ctx)
 	if err != nil {

@@ -36,7 +36,7 @@ func DocumentFromString(ctx context.Context, htmlStr string, opts ...Option) (*D
 	}
 	doc, err := dom.Parse(htmlStr)
 	if err != nil {
-		return nil, err
+		return nil, &translate.ParseError{Err: err}
 	}
 	err = conversionCanceled(ctx)
 	if err != nil {
@@ -89,6 +89,21 @@ func (c *config) translateOptions() []translate.Option {
 	}
 	if c.outlineFromHeadings {
 		tOpts = append(tOpts, translate.WithOutlineFromHeadings())
+	}
+	if c.strictAssets {
+		tOpts = append(tOpts, translate.WithStrictAssets())
+	}
+	if c.remoteAssets {
+		tOpts = append(tOpts, translate.WithRemoteAssets())
+	}
+	if c.urlPolicy != nil {
+		tOpts = append(tOpts, translate.WithURLPolicy(c.urlPolicy))
+	}
+	if c.httpClient != nil {
+		tOpts = append(tOpts, translate.WithHTTPClient(c.httpClient))
+	}
+	if c.fallbackFontPath != "" {
+		tOpts = append(tOpts, translate.WithFallbackFontPath(c.fallbackFontPath))
 	}
 	return tOpts
 }

@@ -29,6 +29,39 @@ type Config struct {
 	HTMLLimits                     HTMLLimits
 	OutlineFromHeadings            bool
 	Watermark                      *props.Watermark
+	Annotations                    []PageAnnotation
+	PageGeometries                 []PageGeometry
+	AcroForm                       *AcroForm
+	PdfA                           *PdfAConfig
+	TaggedPDF                      bool
+	Language                       string
+	ViewerPreferences              *ViewerPreferences
+	PageLabels                     []PageLabelRange
+	Attachments                    []FileAttachment
+	NamedDestinations              []NamedDestination
+	FileID                         []byte
+	Deterministic                  bool
+}
+
+// HasDocumentCatalog reports whether any document-catalog feature is
+// configured. These features are written once per document, so generation
+// falls back to sequential mode when any of them is present.
+func (c *Config) HasDocumentCatalog() bool {
+	if c == nil {
+		return false
+	}
+	return c.AcroForm != nil ||
+		len(c.Annotations) > 0 ||
+		len(c.PageGeometries) > 0 ||
+		c.PdfA != nil ||
+		c.TaggedPDF ||
+		c.Language != "" ||
+		c.ViewerPreferences != nil ||
+		len(c.PageLabels) > 0 ||
+		len(c.Attachments) > 0 ||
+		len(c.NamedDestinations) > 0 ||
+		len(c.FileID) > 0 ||
+		c.Deterministic
 }
 
 // ToMap converts Config to a map[string]any .
@@ -125,6 +158,37 @@ func (c *Config) ToMap() map[string]any {
 		m["config_html_max_dom_nodes"] = c.HTMLLimits.MaxDOMNodes
 		m["config_html_max_svg_pixels"] = c.HTMLLimits.MaxSVGPixels
 		m["config_html_max_style_rules"] = c.HTMLLimits.MaxStyleRules
+	}
+
+	return c.appendCatalogMap(m)
+}
+
+// appendCatalogMap adds the document-catalog feature entries to a config map.
+func (c *Config) appendCatalogMap(m map[string]any) map[string]any {
+	m = appendAcroFormMap(c.AcroForm, m)
+	m = appendAnnotationsMap(c.Annotations, m)
+	m = appendPageGeometriesMap(c.PageGeometries, m)
+	if c.PdfA != nil {
+		m["config_pdfa_level"] = c.PdfA.Level
+		if c.PdfA.OutputCondition != "" {
+			m["config_pdfa_output_condition"] = c.PdfA.OutputCondition
+		}
+	}
+	if c.TaggedPDF {
+		m["config_tagged_pdf"] = c.TaggedPDF
+	}
+	if c.Language != "" {
+		m["config_language"] = c.Language
+	}
+	m = c.ViewerPreferences.AppendMap(m)
+	m = appendPageLabelsMap(c.PageLabels, m)
+	m = appendFileAttachmentsMap(c.Attachments, m)
+	m = appendNamedDestinationsMap(c.NamedDestinations, m)
+	if len(c.FileID) > 0 {
+		m["config_file_id_bytes"] = len(c.FileID)
+	}
+	if c.Deterministic {
+		m["config_deterministic"] = c.Deterministic
 	}
 
 	return m

@@ -16,6 +16,7 @@ import (
 // at render time.
 type loadedFont struct {
 	family string
+	style  fontstyle.Type
 	bytes  []byte
 }
 
@@ -45,7 +46,11 @@ func (f *fontRegistration) Render(provider core.Provider, _ *entity.Cell) {
 		return
 	}
 	if lfp, ok := provider.(core.LateFontProvider); ok {
-		lfp.RegisterFont(f.font.family, fontstyle.Normal, f.font.bytes)
+		style := f.font.style
+		if style == "" {
+			style = fontstyle.Normal
+		}
+		lfp.RegisterFont(f.font.family, style, f.font.bytes)
 		f.done = true
 	}
 }
@@ -62,15 +67,17 @@ func (tr *translator) registerFontFaces(resolver StylesheetResolver) {
 		resolver = safeDefaultStylesheetResolver
 	}
 	for _, face := range tr.sheet.fontFaces {
-		data, ok := safeLoadStylesheet(resolver, face.srcURL)
-		if !ok {
+		data, err := safeLoadStylesheetErr(resolver, face.srcURL)
+		if err != nil {
 			if tr.unsupportedHandler != nil {
 				tr.unsupportedHandler("font-face.skipped", face.srcURL)
 			}
+			tr.reportAssetError("@font-face", face.srcURL, err)
 			continue
 		}
 		tr.loadedFonts = append(tr.loadedFonts, loadedFont{
 			family: face.family,
+			style:  fontstyle.Normal,
 			bytes:  data,
 		})
 	}

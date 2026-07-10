@@ -26,6 +26,10 @@ func (s *ComputedStyle) applyEffectsProperty(ctx computedPropertyContext) bool {
 		} else if s.unsupportedHandler != nil {
 			s.unsupportedHandler(ctx.prop, ctx.val)
 		}
+	case "text-decoration-color":
+		if c := ParseColor(ctx.val); c != nil {
+			s.TextDecorationColor = c
+		}
 	case "background-image":
 		s.applyBackgroundImage(ctx)
 	case "background-size":

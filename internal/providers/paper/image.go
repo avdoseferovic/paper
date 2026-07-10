@@ -5,13 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	"github.com/avdoseferovic/paper/internal/imagecodec"
 	gofpdf "github.com/avdoseferovic/paper/internal/pdf"
-	svgraster "github.com/avdoseferovic/paper/internal/svg"
 
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -120,18 +119,19 @@ func (s *Image) registerImage(img *entity.Image, extension extension.Type) (regi
 	return registered, true
 }
 
-func normalizeImageForRegistration(bytes []byte, ext extension.Type) ([]byte, extension.Type, *entity.Dimensions, error) {
-	if ext != extension.Svg {
-		return bytes, ext, nil, nil
-	}
-	pngBytes, width, height, err := svgraster.Rasterize(bytes, 0, 0)
+func normalizeImageForRegistration(imageBytes []byte, ext extension.Type) ([]byte, extension.Type, *entity.Dimensions, error) {
+	normalized, err := imagecodec.NormalizeForPDF(imageBytes, ext)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("svg rasterize: %w", err)
+		return nil, "", nil, err
 	}
-	return pngBytes, extension.Png, &entity.Dimensions{
-		Width:  float64(width),
-		Height: float64(height),
-	}, nil
+	var dimensions *entity.Dimensions
+	if normalized.HasDimensions() {
+		dimensions = &entity.Dimensions{
+			Width:  float64(normalized.Width),
+			Height: float64(normalized.Height),
+		}
+	}
+	return normalized.Bytes, normalized.Extension, dimensions, nil
 }
 
 func (s *Image) addImageToPdf(imageLabel string, info *gofpdf.ImageInfoType, cell *entity.Cell, margins *entity.Margins,

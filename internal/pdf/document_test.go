@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -74,6 +75,58 @@ func TestXmpMetadataEmitsStream(t *testing.T) {
 	out := mustOutput(t, f)
 	if !bytes.Contains(out, []byte("Metadata")) {
 		t.Error("expected Metadata object for XMP")
+	}
+}
+
+func TestInfoDatesIncludeTimezoneOffset(t *testing.T) {
+	f := readyPDF(t)
+	f.SetCreationDate(time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC))
+	f.SetModificationDate(time.Date(2021, 2, 3, 4, 5, 6, 0, time.FixedZone("IST", 5*3600+30*60)))
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, []byte("/CreationDate (D:20200102030405Z)")) {
+		t.Errorf("expected UTC creation date with Z suffix, got %s",
+			regexp.MustCompile(`/CreationDate [^\n]*`).Find(out))
+	}
+	if !bytes.Contains(out, []byte("/ModDate (D:20210203040506+05'30')")) {
+		t.Errorf("expected mod date with +05'30' offset, got %s",
+			regexp.MustCompile(`/ModDate [^\n]*`).Find(out))
+	}
+}
+
+func TestInfoDatesNegativeOffset(t *testing.T) {
+	f := readyPDF(t)
+	f.SetCreationDate(time.Date(2020, 1, 2, 3, 4, 5, 0, time.FixedZone("EST", -5*3600)))
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, []byte("/CreationDate (D:20200102030405-05'00')")) {
+		t.Errorf("expected creation date with -05'00' offset, got %s",
+			regexp.MustCompile(`/CreationDate [^\n]*`).Find(out))
+	}
+}
+
+func TestXmpMetadataReferencedFromCatalog(t *testing.T) {
+	f := readyPDF(t)
+	f.SetXmpMetadata([]byte(`<x:xmpmeta xmlns:x="adobe:ns:meta/"></x:xmpmeta>`))
+	out := mustOutput(t, f)
+
+	m := regexp.MustCompile(`(\d+) 0 obj\n<< /Type /Metadata`).FindSubmatch(out)
+	if m == nil {
+		t.Fatal("missing metadata stream object")
+	}
+	ref := []byte("/Metadata " + string(m[1]) + " 0 R")
+	if !bytes.Contains(out, ref) {
+		t.Fatalf("catalog does not reference metadata object: want %q", ref)
+	}
+	if n := len(regexp.MustCompile(`/Metadata \d+ 0 R`).FindAll(out, -1)); n != 1 {
+		t.Fatalf("expected exactly one catalog /Metadata reference, found %d", n)
+	}
+}
+
+func TestSetLanguageEmitsLangInCatalog(t *testing.T) {
+	f := readyPDF(t)
+	f.SetLanguage("en-US")
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, []byte("/Lang (en-US)")) {
+		t.Fatal("expected /Lang entry in catalog")
 	}
 }
 

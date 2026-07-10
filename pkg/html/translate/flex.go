@@ -412,6 +412,19 @@ func rowFromCols(cols []core.Col) core.Row {
 	return r
 }
 
+// rowFromColsWithHeight is rowFromCols with an explicit row height in mm.
+// A non-positive height keeps the default auto-height behaviour.
+func rowFromColsWithHeight(cols []core.Col, heightMM float64) core.Row {
+	if heightMM <= 0 {
+		return rowFromCols(cols)
+	}
+	r := row.New(heightMM)
+	for _, c := range cols {
+		r = r.Add(c)
+	}
+	return r
+}
+
 // gapCols converts a CSS gap (in mm) to integer spacer cols, clamped to half the grid.
 // Uses the translator's contentWidthMM, defaulting to 170mm (A4 with 20mm L+R margins).
 func (tr *translator) gapCols(gapMM float64, gridSize, itemCount int) int {

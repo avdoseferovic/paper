@@ -252,29 +252,40 @@ func isPreformatted(n *html.Node) bool {
 	return false
 }
 
+// collapseWhitespace folds runs of collapsible (ASCII) whitespace into a
+// single space. Non-breaking spaces (U+00A0) are NOT collapsible per the CSS
+// white-space rules and pass through unchanged.
 func collapseWhitespace(s string) string {
 	if s == "" {
 		return ""
 	}
-	leading := isASCIISpace(s[0])
-	trailing := isASCIISpace(s[len(s)-1])
-	fields := strings.Fields(s)
-	if len(fields) == 0 {
-		if leading || trailing {
-			return " "
+	var b strings.Builder
+	b.Grow(len(s))
+	inSpace := false
+	for _, r := range s {
+		if isCollapsibleSpace(r) {
+			inSpace = true
+			continue
 		}
-		return ""
+		if inSpace {
+			b.WriteByte(' ')
+			inSpace = false
+		}
+		b.WriteRune(r)
 	}
-	result := strings.Join(fields, " ")
-	if leading {
-		result = " " + result
+	if inSpace {
+		b.WriteByte(' ')
 	}
-	if trailing {
-		result += " "
-	}
-	return result
+	return b.String()
 }
 
-func isASCIISpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
+// isCollapsibleSpace reports whether r is ASCII whitespace that collapses
+// under the CSS white-space rules. U+00A0 (nbsp) is intentionally excluded.
+func isCollapsibleSpace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r', '\f', '\v':
+		return true
+	default:
+		return false
+	}
 }

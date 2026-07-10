@@ -44,6 +44,7 @@ type Table struct {
 	align          string
 	borderSpacingX float64
 	borderSpacingY float64
+	borderCollapse bool
 }
 
 // New validates spans, normalises the grid, and builds the Table component.

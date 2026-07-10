@@ -103,7 +103,9 @@ func TestAddFontFromBytesEmbeddedTrueType(t *testing.T) {
 
 func TestAddFontFromReaderType1LoadsFontFileFromDisk(t *testing.T) {
 	dir := t.TempDir()
-	fontFile := make([]byte, 40)
+	// PFB layout: 6-byte header + length1 (10) bytes + 6-byte header +
+	// length2 (30) bytes = 52 bytes minimum.
+	fontFile := make([]byte, 52)
 	for i := range fontFile {
 		fontFile[i] = byte(i)
 	}
@@ -300,6 +302,51 @@ func TestAddFontFromReaderDeduplicatesAndRegistersDiff(t *testing.T) {
 	f.AddFontFromReader("DiffTT3", "", bytes.NewReader(jsonBytes))
 	if _, ok := f.fonts["difftt3"]; ok {
 		t.Fatal("expected no font registration after an error is set")
+	}
+}
+
+func TestPutFontFileObjectType1SegmentBounds(t *testing.T) {
+	// A Type1 PFB layout: 6-byte segment header, length1 bytes of clear text,
+	// another 6-byte header, length2 bytes of binary data, then a trailer.
+	const length1, length2 = 10, 4
+	font := make([]byte, 0, 6+length1+6+length2+5)
+	font = append(font, []byte("HDR1HD")...)
+	font = append(font, bytes.Repeat([]byte{'A'}, length1)...)
+	font = append(font, []byte("HDR2HD")...)
+	font = append(font, bytes.Repeat([]byte{'B'}, length2)...)
+	font = append(font, []byte("TRAIL")...)
+
+	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
+	f.fontFiles["synth.pfb"] = fontFileType{}
+	f.putFontFileObject("synth.pfb", fontFileType{
+		embedded: true,
+		content:  font,
+		length1:  length1,
+		length2:  length2,
+	})
+	if f.Err() {
+		t.Fatalf("putFontFileObject errored: %v", f.Error())
+	}
+	want := append(bytes.Repeat([]byte{'A'}, length1), bytes.Repeat([]byte{'B'}, length2)...)
+	if !bytes.Contains(f.buffer.Bytes(), want) {
+		t.Fatal("expected embedded stream to contain both Type1 segments")
+	}
+	if bytes.Contains(f.buffer.Bytes(), []byte("HDR2")) {
+		t.Fatal("expected PFB segment headers to be stripped from the stream")
+	}
+}
+
+func TestPutFontFileObjectType1MalformedLengthsSetError(t *testing.T) {
+	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
+	f.fontFiles["bad.pfb"] = fontFileType{}
+	f.putFontFileObject("bad.pfb", fontFileType{
+		embedded: true,
+		content:  make([]byte, 20),
+		length1:  10,
+		length2:  5, // 6+10+6+5 = 27 > 20: previously paniced via font[22:5]
+	})
+	if !f.Err() {
+		t.Fatal("expected error for Type1 lengths exceeding the font file size")
 	}
 }
 

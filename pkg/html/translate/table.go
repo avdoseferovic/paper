@@ -35,7 +35,7 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 			opts = append(opts, table.WithWidth(preferredWidth))
 		}
 	}
-	if tableStyle.TextAlign == "center" || tableStyle.TextAlign == "right" {
+	if tableStyle.TextAlign == flexAlignCenter || tableStyle.TextAlign == cssValueRight {
 		opts = append(opts, table.WithAlign(tableStyle.TextAlign))
 	}
 	if len(widths) > 0 {
@@ -91,13 +91,13 @@ func (tr *translator) tableColumnWidths(n *dom.Node, tableStyle *css.ComputedSty
 			if width <= 0 {
 				width = groupWidth
 			}
-			span := atoiOr(child.Attr("span"), 1)
+			span := atoiOrOne(child.Attr("span"))
 			for range span {
 				widths = append(widths, width)
 			}
 		}
 		if !groupHasCol {
-			span := atoiOr(group.Attr("span"), 1)
+			span := atoiOrOne(group.Attr("span"))
 			for range span {
 				widths = append(widths, groupWidth)
 			}
@@ -139,18 +139,30 @@ func (tr *translator) captionRow(n *dom.Node) core.Row {
 	return row.New().Add(col.New().Add(rt))
 }
 
+// buildTableMatrix assembles table rows in rendering order: header rows
+// first, then body rows (from <tbody> or direct <tr> children), then footer
+// rows — regardless of the source order of the row groups (HTML permits
+// <tfoot> before <tbody>).
 func (tr *translator) buildTableMatrix(n *dom.Node, tableStyle *css.ComputedStyle) [][]table.Cell {
-	var matrix [][]table.Cell
+	var head, body, foot [][]table.Cell
 	for _, child := range n.Children() {
 		switch child.Tag() {
-		case "thead", "tbody", "tfoot":
-			matrix = append(matrix, tr.collectRows(child, tableStyle)...)
+		case "thead":
+			head = append(head, tr.collectRows(child, tableStyle)...)
+		case "tfoot":
+			foot = append(foot, tr.collectRows(child, tableStyle)...)
+		case "tbody":
+			body = append(body, tr.collectRows(child, tableStyle)...)
 		case "tr":
 			if rowCells := tr.buildRow(child, tableStyle); rowCells != nil {
-				matrix = append(matrix, rowCells)
+				body = append(body, rowCells)
 			}
 		}
 	}
+	matrix := make([][]table.Cell, 0, len(head)+len(body)+len(foot))
+	matrix = append(matrix, head...)
+	matrix = append(matrix, body...)
+	matrix = append(matrix, foot...)
 	return matrix
 }
 
@@ -183,8 +195,8 @@ func (tr *translator) buildRow(trNode *dom.Node, parentStyle *css.ComputedStyle)
 
 // buildCell builds a single table.Cell, using rowStyle as a background/color fallback.
 func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table.Cell {
-	colspan := atoiOr(td.Attr("colspan"), 1)
-	rowspan := atoiOr(td.Attr("rowspan"), 1)
+	colspan := atoiOrOne(td.Attr("colspan"))
+	rowspan := atoiOrOne(td.Attr("rowspan"))
 
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
@@ -292,7 +304,8 @@ func isEmptyTableCellStyle(cell *props.Cell) bool {
 			cell.BorderRadiusBottomRight == 0)
 }
 
-func atoiOr(s string, def int) int {
+func atoiOrOne(s string) int {
+	const def = 1
 	if s == "" {
 		return def
 	}

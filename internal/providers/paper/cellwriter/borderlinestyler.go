@@ -31,7 +31,13 @@ func (b *BorderLineStyler) Apply(width, height float64, config *entity.Config, p
 	}
 
 	fpdf := asPDF[dashPatternPDF](b.fpdf)
-	fpdf.SetDashPattern([]float64{1, 1}, 0)
+	// Dotted uses {0.4,0.4} and dashed {1,1}, matching line.go,
+	// persideborder.go and outlinestyler.go.
+	if prop.LineStyle == consts.LineStyleDotted {
+		fpdf.SetDashPattern([]float64{0.4, 0.4}, 0)
+	} else {
+		fpdf.SetDashPattern([]float64{1, 1}, 0)
+	}
 	b.GoToNext(width, height, config, prop)
 	fpdf.SetDashPattern([]float64{1, 0}, 0)
 }

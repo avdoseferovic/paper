@@ -1,6 +1,7 @@
 package pdf
 
 import (
+	"bytes"
 	"regexp"
 	"strings"
 	"testing"
@@ -31,6 +32,40 @@ func TestAlphaSetAndGet(t *testing.T) {
 	a, mode := f.GetAlpha()
 	if a != 0.5 || mode != "Multiply" {
 		t.Fatalf("GetAlpha = %v, %q", a, mode)
+	}
+}
+
+func TestSetAlphaEmptyBlendModeNormalizesToNormal(t *testing.T) {
+	f := readyPDF(t)
+	f.SetAlpha(0.5, "")
+	if f.Err() {
+		t.Fatalf("SetAlpha errored: %v", f.Error())
+	}
+	if _, mode := f.GetAlpha(); mode != "Normal" {
+		t.Fatalf("GetAlpha mode = %q, want Normal", mode)
+	}
+	out := mustOutput(t, f)
+	if !bytes.Contains(out, []byte("/BM /Normal>>")) {
+		t.Fatal("expected ExtGState to contain /BM /Normal")
+	}
+	if bytes.Contains(out, []byte("/BM />>")) {
+		t.Fatal("ExtGState contains empty /BM name")
+	}
+}
+
+func TestClipTextUTF8FontWritesCIDs(t *testing.T) {
+	f := readyPDF(t)
+	f.SetCompression(false)
+	f.isCurrentUTF8 = true
+	f.currentFont.usedRunes = map[int]int{}
+	f.currentFont.runeToCID = map[int]int{}
+
+	f.ClipText(10, 20, "AB", false)
+	f.ClipEnd()
+
+	content := f.pages[f.page].Bytes()
+	if !bytes.Contains(content, []byte("(\x00A\x00B) Tj")) {
+		t.Fatalf("expected UTF-8 clip text to be CID encoded, content: %q", content)
 	}
 }
 

@@ -474,9 +474,13 @@ func (f *PDF) putpages() {
 		for t, pb := range f.pageBoxes[n] {
 			f.outf("/%s [%.2f %.2f %.2f %.2f]", t, pb.X, pb.Y, pb.Wd, pb.Ht)
 		}
+		f.putPageGeometry(n)
 		f.out("/Resources 2 0 R")
 
 		f.putPageAnnotations(n, hPt)
+		if f.taggedPDF {
+			f.outf("/StructParents %d", n-1)
+		}
 		if f.pdfVersion > "1.3" {
 			f.out("/Group <</Type /Group /S /Transparency /CS /DeviceRGB>>")
 		}
@@ -484,8 +488,9 @@ func (f *PDF) putpages() {
 		f.out("endobj")
 
 		f.newobj()
+		pageContent := f.taggedPageContent(n, f.pages[n].Bytes())
 		if f.compress {
-			data := sliceCompress(f.pages[n].Bytes())
+			data := sliceCompress(pageContent)
 			stream := f.encryptedStream(data)
 			if f.err != nil {
 				return
@@ -493,7 +498,7 @@ func (f *PDF) putpages() {
 			f.outf("<</Filter /FlateDecode /Length %d>>", len(stream))
 			f.putstream(stream)
 		} else {
-			stream := f.encryptedStream(f.pages[n].Bytes())
+			stream := f.encryptedStream(pageContent)
 			if f.err != nil {
 				return
 			}
@@ -520,7 +525,12 @@ func (f *PDF) putpages() {
 }
 
 func (f *PDF) putPageAnnotations(pageNum int, defaultHeight float64) {
-	if len(f.pageLinks[pageNum]) == 0 {
+	var widgetRefs []int
+	if f.acroForm != nil {
+		widgetRefs = f.acroForm.pageWidgets[pageNum-1]
+	}
+	custom := f.customAnnotationsForPage(pageNum)
+	if len(f.pageLinks[pageNum]) == 0 && len(widgetRefs) == 0 && len(custom) == 0 {
 		return
 	}
 	var annots fmtBuffer
@@ -528,8 +538,27 @@ func (f *PDF) putPageAnnotations(pageNum int, defaultHeight float64) {
 	for _, pl := range f.pageLinks[pageNum] {
 		f.putPageLinkAnnotation(&annots, pl, defaultHeight)
 	}
+	for _, annotation := range custom {
+		annots.printf("%s ", annotation)
+	}
+	for _, ref := range widgetRefs {
+		annots.printf("%d 0 R ", ref)
+	}
 	annots.printf("]")
 	f.out(annots.String())
+}
+
+// pageHeightPt returns the height in points of the given 1-based page number.
+// Only pages that differ from the default page size are recorded in
+// f.pageSizes; all other pages use the default page size.
+func (f *PDF) pageHeightPt(pageNum int) float64 {
+	if sz, ok := f.pageSizes[pageNum]; ok {
+		return sz.Ht
+	}
+	if f.defOrientation == "P" {
+		return f.defPageSize.Ht * f.k
+	}
+	return f.defPageSize.Wd * f.k
 }
 
 func (f *PDF) putPageLinkAnnotation(annots *fmtBuffer, pl linkType, defaultHeight float64) {

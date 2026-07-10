@@ -43,11 +43,11 @@ func expandOne(prop, val string) map[string]string {
 	case "border-top":
 		return expandBorderSide("top", val)
 	case "border-right":
-		return expandBorderSide("right", val)
+		return expandBorderSide(cssValueRight, val)
 	case "border-bottom":
 		return expandBorderSide("bottom", val)
 	case "border-left":
-		return expandBorderSide("left", val)
+		return expandBorderSide(cssValueLeft, val)
 	case "border-radius":
 		return expandBorderRadius(val)
 	case "padding":
@@ -222,7 +222,7 @@ func hasTopLevelComma(value string) bool {
 func expandBorderAll(val string) map[string]string {
 	width, style, color := parseBorderTriple(val)
 	out := make(map[string]string, 12)
-	for _, side := range []string{"top", "right", "bottom", "left"} {
+	for _, side := range []string{"top", cssValueRight, "bottom", cssValueLeft} {
 		out["border-"+side+"-width"] = width
 		out["border-"+side+"-style"] = style
 		out["border-"+side+"-color"] = color
@@ -241,27 +241,31 @@ func expandBorderSide(side, val string) map[string]string {
 }
 
 // parseBorderTriple splits a "1px solid red" border shorthand into its three parts.
-// Parts may be in any order (width=has unit, style=keyword, color=otherwise).
+// Parts may be in any order (width=has unit or width keyword, style=keyword,
+// color=otherwise). Function colors like rgb(255, 0, 0) are kept as single
+// tokens via paren-aware splitting.
 func parseBorderTriple(val string) (string, string, string) {
-	parts := strings.Fields(val)
+	parts := splitTopLevelWhitespace(val)
 	borderStyles := map[string]bool{
 		cssValueNone: true, "hidden": true, "dotted": true, "dashed": true,
 		"solid": true, "double": true, "groove": true, "ridge": true,
 		"inset": true, "outset": true,
 	}
+	borderWidthKeywords := map[string]bool{"thin": true, cssValueMedium: true, "thick": true}
 	width, style, colorVal := "", "", ""
 	for _, p := range parts {
+		lower := strings.ToLower(p)
 		switch {
-		case borderStyles[p]:
-			style = p
-		case isLengthValue(p):
+		case borderStyles[lower]:
+			style = lower
+		case isLengthValue(p) || borderWidthKeywords[lower]:
 			width = p
 		default:
 			colorVal = p
 		}
 	}
 	if width == "" {
-		width = "medium"
+		width = cssValueMedium
 	}
 	if style == "" {
 		style = cssValueNone
@@ -306,6 +310,8 @@ func expandBorderRadius(val string) map[string]string {
 }
 
 // expandBox expands a box shorthand (padding/margin) into 4 longhands.
+// Invalid declarations (0 or 5+ values) are dropped entirely, matching the
+// CSS rule that malformed declarations are ignored rather than zeroed.
 func expandBox(prefix, val string) map[string]string {
 	parts := strings.Fields(val)
 	var top, right, bottom, left string
@@ -319,7 +325,7 @@ func expandBox(prefix, val string) map[string]string {
 	case 4:
 		top, right, bottom, left = parts[0], parts[1], parts[2], parts[3]
 	default:
-		top, right, bottom, left = "0", "0", "0", "0"
+		return map[string]string{}
 	}
 	return map[string]string{
 		prefix + "-top":    top,
@@ -329,19 +335,40 @@ func expandBox(prefix, val string) map[string]string {
 	}
 }
 
-// expandFont handles the simplified "font: <size> <family>" shorthand.
+// expandFont handles the "font: [style] [weight] <size>[/<line-height>]
+// <family>" shorthand.
 func expandFont(val string) map[string]string {
 	parts := strings.Fields(val)
 	out := map[string]string{"font": val}
+	fontStyles := map[string]bool{"italic": true, "oblique": true}
+	fontWeights := map[string]bool{
+		"bold": true, "bolder": true, "lighter": true,
+		"100": true, "200": true, "300": true, "400": true, "500": true,
+		"600": true, "700": true, "800": true, "900": true,
+	}
 	for i, p := range parts {
-		if isLengthValue(p) {
-			out["font-size"] = p
-			if i+1 < len(parts) {
-				out["font-family"] = strings.Join(parts[i+1:], " ")
-			}
-			delete(out, "font")
-			return out
+		sizePart, lineHeight, hasLineHeight := strings.Cut(p, "/")
+		if !isLengthValue(sizePart) {
+			continue
 		}
+		out["font-size"] = sizePart
+		if hasLineHeight && lineHeight != "" {
+			out["line-height"] = lineHeight
+		}
+		if i+1 < len(parts) {
+			out["font-family"] = strings.Join(parts[i+1:], " ")
+		}
+		for _, prefix := range parts[:i] {
+			lower := strings.ToLower(prefix)
+			switch {
+			case fontStyles[lower]:
+				out["font-style"] = lower
+			case fontWeights[lower]:
+				out["font-weight"] = lower
+			}
+		}
+		delete(out, "font")
+		return out
 	}
 	return out
 }

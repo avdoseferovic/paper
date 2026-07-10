@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // GetStringWidth returns the length of a string in user units. A font must be
@@ -1174,10 +1175,24 @@ func (f *PDF) Bookmark(txtStr string, level int, y float64) {
 	if y == -1 {
 		y = f.y
 	}
-	if f.isCurrentUTF8 {
+	if f.isCurrentUTF8 || bookmarkTitleNeedsUTF16(txtStr) {
 		txtStr = utf8toutf16(txtStr)
 	}
 	f.outlines = append(f.outlines, outlineType{text: txtStr, level: level, y: y, p: f.PageNo(), prev: -1, last: -1, next: -1, first: -1})
+}
+
+// bookmarkTitleNeedsUTF16 reports whether a bookmark title must be encoded as
+// UTF-16BE with BOM. Titles are PDF text strings, not font-encoded strings:
+// raw UTF-8 would be misread as PDFDocEncoding by viewers. Pure ASCII stays a
+// plain string for byte-stability, and byte sequences that are not valid
+// UTF-8 (e.g. legacy ISO-8859-1 input) are kept as-is.
+func bookmarkTitleNeedsUTF16(s string) bool {
+	for i := range len(s) {
+		if s[i] >= 0x80 {
+			return utf8.ValidString(s)
+		}
+	}
+	return false
 }
 
 func (f *PDF) putbookmarks() {
@@ -1231,7 +1246,7 @@ func (f *PDF) putBookmarkObjects(n int) {
 		f.outf("<</Title %s", f.textstring(o.text))
 		f.outf("/Parent %d 0 R", n+o.parent)
 		f.putBookmarkObjectLinks(n, o)
-		f.outf("/Dest [%d 0 R /XYZ 0 %.2f null]", 1+2*o.p, (f.h-o.y)*f.k)
+		f.outf("/Dest [%d 0 R /XYZ 0 %.2f null]", 1+2*o.p, f.pageHeightPt(o.p)-o.y*f.k)
 		f.out("/Count 0>>")
 		f.out("endobj")
 	}

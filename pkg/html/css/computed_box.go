@@ -39,15 +39,15 @@ func (s *ComputedStyle) applyBoxProperty(ctx computedPropertyContext) bool {
 			s.WidthAuto = false
 		}
 	case "height":
-		s.Height = ParseLength(ctx.val, 0)
+		s.Height = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "min-width":
 		s.MinWidth = ParseLengthCtx(ctx.val, ctx.parentFontSize, ctx.ctxWidth)
 	case "max-width":
 		s.MaxWidth = ParseLengthCtx(ctx.val, ctx.parentFontSize, ctx.ctxWidth)
 	case "min-height":
-		s.MinHeight = ParseLength(ctx.val, 0)
+		s.MinHeight = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "max-height":
-		s.MaxHeight = ParseLength(ctx.val, 0)
+		s.MaxHeight = ParseLength(ctx.val, s.borderFontSize(ctx))
 	case "border-spacing":
 		s.applyBorderSpacing(ctx.val, ctx.parentFontSize)
 	case "object-fit":

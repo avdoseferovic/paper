@@ -4,7 +4,7 @@ package translate
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net/http"
 
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -36,16 +36,36 @@ type translator struct {
 	// outlineFromHeadings, when true, marks h1-h6 paragraphs with a
 	// props.Outline so they appear in the PDF document outline.
 	outlineFromHeadings bool
+
+	// fallbackFontPath is the WithFallbackFontPath source loaded on demand when
+	// the document contains text outside the WinAnsi (cp1252) repertoire.
+	// fallbackFontReady flips once the font bytes registered successfully.
+	fallbackFontPath  string
+	fallbackFontReady bool
+
+	// remoteAssets enables http(s) fetching for stylesheets and fonts.
+	// urlPolicy, when set, may veto individual URLs before any fetch.
+	// httpClient overrides http.DefaultClient for remote fetches.
+	remoteAssets bool
+	urlPolicy    URLPolicy
+	httpClient   *http.Client
+
+	// strictAssets records document-referenced asset load failures in assetErrs
+	// so Translate can surface them (joined) alongside the partial output.
+	strictAssets bool
+	assetErrs    []error
 }
 
 // Translate walks the styled DOM and emits Paper rows. It observes ctx at
-// cheap phase and recursive traversal boundaries.
+// cheap phase and recursive traversal boundaries. With WithStrictAssets the
+// partially-translated rows are returned together with the joined asset
+// errors, so callers can decide whether to use the degraded output.
 func Translate(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.Row, error) {
 	document, err := translateDocument(ctx, doc, false, opts...)
-	if err != nil || document == nil {
+	if document == nil {
 		return nil, err
 	}
-	return document.Rows, nil
+	return document.Rows, err
 }
 
 // TranslateDocument walks the styled DOM and returns the full Document
@@ -74,31 +94,29 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 	}
 	err = doc.ValidateLimits(tr.limits)
 	if err != nil {
-		return nil, err
+		return nil, limitErrorFrom(err, tr.limits)
 	}
 	err = translationCanceled(ctx)
 	if err != nil {
 		return nil, err
 	}
 	// External stylesheets load BEFORE inline <style> so browser-style
-	// cascade order applies. defer/recover is inside safeLoadStylesheet so
+	// cascade order applies. defer/recover is inside safeLoadStylesheetErr so
 	// resolver bugs cannot crash Translate.
 	inlineCSS, hrefs := doc.StyleSources()
-	resolver := tr.stylesheetResolver
-	if resolver == nil {
-		resolver = safeDefaultStylesheetResolver
-	}
+	resolver := tr.effectiveStylesheetResolver(ctx)
 	var combined []byte
 	for _, href := range hrefs {
 		err = translationCanceled(ctx)
 		if err != nil {
 			return nil, err
 		}
-		data, ok := safeLoadStylesheet(resolver, href)
-		if !ok {
+		data, loadErr := safeLoadStylesheetErr(resolver, href)
+		if loadErr != nil {
 			if tr.unsupportedHandler != nil {
 				tr.unsupportedHandler("link.skipped", href)
 			}
+			tr.reportAssetError("stylesheet", href, loadErr)
 			continue
 		}
 		combined = append(combined, data...)
@@ -111,7 +129,7 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 	}
 	sheet, err := parseStylesheetWithLimits(string(combined), tr.availableContentWidth(), tr.limits)
 	if err != nil {
-		return nil, err
+		return nil, limitErrorFrom(err, tr.limits)
 	}
 	tr.sheet = sheet
 	if tr.unsupportedHandler != nil {
@@ -135,8 +153,12 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 	}
 	body := findBody(doc)
 	if body == nil {
-		return &Document{Page: tr.pageOptions()}, nil
+		return &Document{Page: tr.pageOptions()}, tr.strictAssetError()
 	}
+	// Load the fallback font (if configured and needed) BEFORE the font
+	// registration rows are emitted so its registrations are included.
+	tr.loadFallbackFontIfNeeded(ctx, body, resolver)
+	tr.installRemoteImageResolver(ctx)
 	// Pre-pass: collect all id values so forward references (link before
 	// target) resolve correctly at render time via the shared anchor registry.
 	tr.anchorIDs = collectAnchorIDs(body)
@@ -160,7 +182,7 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 		return nil, tr.err
 	}
 	document.Page = tr.pageOptions()
-	return document, nil
+	return document, tr.strictAssetError()
 }
 
 // walkBody converts the body's children into rows. When extractBands is set,
@@ -169,11 +191,29 @@ func translateDocument(ctx context.Context, doc *dom.Document, extractBands bool
 func (tr *translator) walkBody(ctx context.Context, body *dom.Node, rows []core.Row, extractBands bool) (*Document, error) {
 	var headerRows, footerRows []core.Row
 	headerTaken, footerTaken := false, false
+	// Consecutive inline-level body children share one anonymous paragraph
+	// row, exactly like containerChildRows does inside block containers, so
+	// body-level "Total: <strong>$5</strong> due" stays on one line.
+	var inlineGroup []*dom.Node
+	flushInline := func() {
+		if len(inlineGroup) == 0 {
+			return
+		}
+		if r, ok := tr.inlineGroupRow(inlineGroup, tr.rootStyle); ok {
+			rows = append(rows, r)
+		}
+		inlineGroup = nil
+	}
 	for _, child := range body.Children() {
 		err := translationCanceled(ctx)
 		if err != nil {
 			return nil, err
 		}
+		if isBodyInlineGroupable(child) {
+			inlineGroup = append(inlineGroup, child)
+			continue
+		}
+		flushInline()
 		childRows := tr.blockRowsWithParent(ctx, child, tr.rootStyle)
 		if tr.err != nil {
 			return nil, tr.err
@@ -189,6 +229,7 @@ func (tr *translator) walkBody(ctx context.Context, body *dom.Node, rows []core.
 			rows = append(rows, childRows...)
 		}
 	}
+	flushInline()
 	return &Document{Rows: rows, HeaderRows: headerRows, FooterRows: footerRows}, nil
 }
 
@@ -263,7 +304,30 @@ func (tr *translator) blockRowsWithParent(ctx context.Context, n *dom.Node, pare
 	} else {
 		rows = tr.decorateBlockRows(n, style, rows, control, hasControl)
 	}
+	rows = applyPositionedBlockStyle(style, rows)
 	return withPageBreakRows(style, rows)
+}
+
+// applyPositionedBlockStyle wraps a block's rows for CSS transform and
+// position. Absolutely/fixed positioned blocks leave the flow entirely (the
+// wrapper row reports zero height and renders out-of-band); relatively
+// positioned blocks keep their flow slot and render offset.
+func applyPositionedBlockStyle(style *css.ComputedStyle, rows []core.Row) []core.Row {
+	if style == nil || len(rows) == 0 {
+		return rows
+	}
+	rows = applyTransform(style, rows)
+	switch style.Position {
+	case positionAbsolute, positionFixed:
+		if r := newAbsolutePositionRow(style, rows); r != nil {
+			return []core.Row{r}
+		}
+		return rows
+	case positionRelative:
+		return applyRelativePosition(style, rows)
+	default:
+		return rows
+	}
 }
 
 func (tr *translator) decorateBlockRows(
@@ -285,176 +349,6 @@ func (tr *translator) decorateBlockRows(
 	return rows
 }
 
-func applyBlockMargins(n *dom.Node, style *css.ComputedStyle, rows []core.Row) []core.Row {
-	if style == nil || n.Tag() == "" || len(rows) == 0 || selfHandlesMargin(n.Tag()) {
-		return rows
-	}
-	// Honor block-level margins outside the element's content box. Horizontal
-	// margins narrow/offset each produced content row; vertical margins remain
-	// flow spacers so they can collapse with adjacent block margins.
-	if style.MarginLeft != 0 || style.MarginRight != 0 {
-		rows = wrapRowsWithHorizontalMargins(rows, style.MarginLeft, style.MarginRight)
-	}
-	if style.MarginTop > 0 {
-		rows = append([]core.Row{newMarginSpacer(style.MarginTop)}, rows...)
-	}
-	if style.MarginBottom > 0 {
-		rows = append(rows, newMarginSpacer(style.MarginBottom))
-	}
-	// CSS margins collapse: adjacent/last-child margins reduce to the larger,
-	// they do not sum. Merge touching margin spacers so stacked block margins
-	// don't accumulate. (Containers with padding/border are opaque rows, so
-	// margins never collapse through them — matching CSS.)
-	return collapseMarginSpacers(rows)
-}
-
-func withPageBreakRows(style *css.ComputedStyle, rows []core.Row) []core.Row {
-	if style != nil {
-		if style.PageBreakBefore == "always" {
-			rows = append([]core.Row{NewPageBreakRow()}, rows...)
-		}
-		if style.PageBreakAfter == "always" {
-			rows = append(rows, NewPageBreakRow())
-		}
-	}
-	return rows
-}
-
-func wrapRowsWithHorizontalMargins(rows []core.Row, marginLeft, marginRight float64) []core.Row {
-	out := make([]core.Row, 0, len(rows))
-	for _, r := range rows {
-		if _, ok := r.(marginSpacerRow); ok {
-			out = append(out, r)
-			continue
-		}
-		out = append(out, &horizontalMarginRow{
-			child:       r,
-			marginLeft:  marginLeft,
-			marginRight: marginRight,
-		})
-	}
-	return out
-}
-
-func pageControlFromStyle(style, parent *css.ComputedStyle) (core.PageControl, bool) {
-	if style == nil || len(style.Vars) == 0 {
-		return core.PageControl{}, false
-	}
-	pageNumberCount := cssVarDeclaredEquals(style, parent, "--paper-page-number", "count")
-	control := core.PageControl{
-		Blank:                     cssVarDeclaredEquals(style, parent, "--paper-page", "blank"),
-		SuppressFooter:            cssVarDeclaredEquals(style, parent, "--paper-page-footer", "none"),
-		SuppressPageNumber:        cssVarDeclaredEquals(style, parent, "--paper-page-number", "none") || pageNumberCount,
-		CountPageNumber:           pageNumberCount,
-		DecorFirstPageOnly:        cssVarDeclaredEquals(style, parent, "--paper-page-decor-scope", "first-page"),
-		TopMarginFirstPageOnly:    cssVarDeclaredEquals(style, parent, "--paper-page-top-margin-scope", "first-page"),
-		RenderOffsetFirstPageOnly: cssVarDeclaredEquals(style, parent, "--paper-page-render-offset-scope", "first-page"),
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-top-margin"); ok {
-		top := css.ParseLength(value, style.FontSize)
-		control.TopMargin = &top
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-top-margin-continuation"); ok {
-		top := css.ParseLength(value, style.FontSize)
-		control.ContinuationTopMargin = &top
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-render-offset-x"); ok {
-		x := css.ParseLength(value, style.FontSize)
-		control.RenderOffsetX = &x
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-render-offset-y"); ok {
-		y := css.ParseLength(value, style.FontSize)
-		control.RenderOffsetY = &y
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-render-offset-x-continuation"); ok {
-		x := css.ParseLength(value, style.FontSize)
-		control.ContinuationRenderOffsetX = &x
-	}
-	if value, ok := cssVarDeclaredValue(style, parent, "--paper-page-render-offset-y-continuation"); ok {
-		y := css.ParseLength(value, style.FontSize)
-		control.ContinuationRenderOffsetY = &y
-	}
-	return control, pageControlHasEffect(control)
-}
-
-func pageControlHasEffect(control core.PageControl) bool {
-	return control.Blank ||
-		control.SuppressFooter ||
-		control.SuppressPageNumber ||
-		control.CountPageNumber ||
-		control.DecorFirstPageOnly ||
-		control.TopMargin != nil ||
-		control.TopMarginFirstPageOnly ||
-		control.ContinuationTopMargin != nil ||
-		control.RenderOffsetX != nil ||
-		control.RenderOffsetY != nil ||
-		control.RenderOffsetFirstPageOnly ||
-		control.ContinuationRenderOffsetX != nil ||
-		control.ContinuationRenderOffsetY != nil
-}
-
-func cssVarDeclaredEquals(style, parent *css.ComputedStyle, name, want string) bool {
-	value, ok := cssVarDeclaredValue(style, parent, name)
-	return ok && strings.EqualFold(strings.TrimSpace(value), want)
-}
-
-func cssVarDeclaredValue(style, parent *css.ComputedStyle, name string) (string, bool) {
-	value, ok := style.Vars[name]
-	if !ok {
-		return "", false
-	}
-	if parent == nil || len(parent.Vars) == 0 {
-		return value, true
-	}
-	parentValue, inherited := parent.Vars[name]
-	return value, !inherited || parentValue != value
-}
-
-// marginSpacerRow is an empty flow spacer emitted for a block's vertical margin.
-// It is a distinct type so collapseMarginSpacers can recognise and merge
-// adjacent ones (CSS margin collapsing).
-type marginSpacerRow struct {
-	core.Row
-	height float64
-}
-
-func newMarginSpacer(h float64) marginSpacerRow {
-	return marginSpacerRow{Row: spacerRow(h), height: h}
-}
-
-// collapseMarginSpacers merges each run of adjacent margin spacers into a single
-// spacer of the largest height, approximating CSS adjacent and parent/last-child
-// margin collapsing so stacked block margins reduce to the larger rather than
-// summing. Non-margin rows (content, page breaks, flex gaps) are untouched.
-func collapseMarginSpacers(rows []core.Row) []core.Row {
-	out := make([]core.Row, 0, len(rows))
-	for _, r := range rows {
-		if ms, ok := r.(marginSpacerRow); ok && len(out) > 0 {
-			if prev, prevOK := out[len(out)-1].(marginSpacerRow); prevOK {
-				if ms.height > prev.height {
-					out[len(out)-1] = ms
-				}
-				continue
-			}
-		}
-		out = append(out, r)
-	}
-	return out
-}
-
-// selfHandlesMargin reports whether a tag's dedicated translation already
-// applies its own CSS margins (via marginBox), so blockRowsWithParent must not
-// add margin spacers on top (which would double them). Lists wrap their content
-// in a marginBox that also carries horizontal indent.
-func selfHandlesMargin(tag string) bool {
-	switch tag {
-	case "ul", "ol", "dl":
-		return true
-	default:
-		return false
-	}
-}
-
 // dispatchBlockRows is the original blockRows tag switch (split out so the
 // outer blockRows can handle anchor wrapping uniformly).
 func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
@@ -470,7 +364,7 @@ func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Nod
 		// Text node at block level — wrap into a paragraph-like row.
 		return wrapTextRowStyled(n.TextContent(), style)
 	case "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre":
-		return []core.Row{tr.paragraphRowStyled(n, style)}
+		return tr.paragraphBlockRows(n, style)
 	case "hr":
 		return []core.Row{tr.styledHrRowWithStyle(n, style)}
 	case tagTable:
@@ -487,6 +381,10 @@ func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Nod
 		return tr.pictureRowWithStyle(n, style)
 	case tagSVG:
 		return tr.svgBlockRowsWithStyle(n, style)
+	case tagFieldset:
+		return tr.fieldsetRows(ctx, n, style)
+	case tagInput, tagButton, tagSelect, tagTextArea:
+		return tr.formControlRowsContext(ctx, n, style)
 	case "br":
 		return nil // top-level <br> is a no-op
 	default:
@@ -531,6 +429,12 @@ func (tr *translator) containerRows(ctx context.Context, n *dom.Node, style *css
 	}
 	if style.Display == displayFlex {
 		return tr.containerFlexRows(ctx, n, style)
+	}
+	if style.Display == displayGrid {
+		return tr.gridRows(ctx, n, style)
+	}
+	if columnCount := tr.resolvedColumnCount(style); columnCount > 1 {
+		return tr.multiColumnRows(ctx, n, style, columnCount)
 	}
 	rows := tr.containerChildRows(ctx, n, style)
 	if shouldUseContainer(style) && len(rows) > 0 {
@@ -598,6 +502,18 @@ func isInlineGroupableChild(n *dom.Node) bool {
 		return false
 	}
 	return !dom.IsBlockTag(tag)
+}
+
+// isBodyInlineGroupable is the walkBody variant of isInlineGroupableChild:
+// direct body-level form controls render as their own visual rows (matching
+// the forms feature), while text and inline formatting elements still share
+// an anonymous paragraph.
+func isBodyInlineGroupable(n *dom.Node) bool {
+	switch n.Tag() {
+	case tagInput, tagButton, tagSelect, tagTextArea:
+		return false
+	}
+	return isInlineGroupableChild(n)
 }
 
 func translationCanceled(ctx context.Context) error {

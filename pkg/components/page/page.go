@@ -2,6 +2,8 @@
 package page
 
 import (
+	"sort"
+
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper/pkg/core"
@@ -10,13 +12,15 @@ import (
 )
 
 type Page struct {
-	number  int
-	total   int
-	index   int
-	rows    []core.Row
-	config  *entity.Config
-	prop    props.PageNumber
-	control core.PageControl
+	number         int
+	total          int
+	index          int
+	pageTotal      int
+	runningStrings map[string]string
+	rows           []core.Row
+	config         *entity.Config
+	prop           props.PageNumber
+	control        core.PageControl
 }
 
 // New is responsible to create a core.Page.
@@ -63,9 +67,12 @@ func (p *Page) Render(provider core.Provider, cell entity.Cell) {
 		}
 	}
 
-	for _, row := range p.rows {
-		row.Render(provider, innerCell)
-		innerCell.Y += row.GetHeight(provider, &innerCell)
+	if pcp, ok := provider.(core.PageContextProvider); ok {
+		pcp.WithPageContextStrings(p.index, p.pageTotal, p.runningStrings, func() {
+			p.renderRows(provider, innerCell)
+		})
+	} else {
+		p.renderRows(provider, innerCell)
 	}
 
 	if p.isFirstPage() {
@@ -161,6 +168,18 @@ func (p *Page) SetPageIndex(index int) {
 	p.index = index
 }
 
+// SetPageTotal records the physical page total exposed via the provider's
+// page context while this page renders.
+func (p *Page) SetPageTotal(total int) {
+	p.pageTotal = total
+}
+
+// SetRunningStrings records named running strings (e.g. the active chapter
+// title) exposed via the provider's page context while this page renders.
+func (p *Page) SetRunningStrings(runningStrings map[string]string) {
+	p.runningStrings = runningStrings
+}
+
 func (p *Page) SetPageControl(control core.PageControl) {
 	p.control = control
 }
@@ -217,4 +236,32 @@ func (p *Page) contentCell(cell entity.Cell) entity.Cell {
 
 func (p *Page) isFirstPage() bool {
 	return p.index == 1 || (p.index == 0 && p.number == 1)
+}
+
+// renderRows renders the page's rows in paint-layer order: rows whose
+// RenderLayer is negative paint first (behind the flow), flow rows (no layer
+// or layer 0) next, and positive layers last (in front). Every row keeps the
+// Y position it would have in plain flow order — layered rows typically
+// report zero height, so they don't consume flow space.
+func (p *Page) renderRows(provider core.Provider, innerCell entity.Cell) {
+	type placedRow struct {
+		row   core.Row
+		cell  entity.Cell
+		layer int
+	}
+	placed := make([]placedRow, 0, len(p.rows))
+	for _, row := range p.rows {
+		pr := placedRow{row: row, cell: innerCell}
+		if lr, ok := row.(core.LayeredRow); ok {
+			pr.layer = lr.RenderLayer()
+		}
+		placed = append(placed, pr)
+		innerCell.Y += row.GetHeight(provider, &innerCell)
+	}
+	sort.SliceStable(placed, func(i, j int) bool {
+		return placed[i].layer < placed[j].layer
+	})
+	for _, pr := range placed {
+		pr.row.Render(provider, pr.cell)
+	}
 }
