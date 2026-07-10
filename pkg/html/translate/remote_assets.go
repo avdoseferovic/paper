@@ -67,7 +67,7 @@ func httpGetBytes(ctx context.Context, client *http.Client, rawURL string, maxBy
 	}
 	// Remote asset fetching is explicit opt-in (WithRemoteAssets); URLPolicy
 	// lets callers gate the reachable targets.
-	resp, err := client.Do(req) //nolint:gosec // G704: see opt-in note above.
+	resp, err := client.Do(req) //nolint:gosec,nolintlint // G704 fires only on some gosec versions; see opt-in note above.
 	if err != nil {
 		return nil, fmt.Errorf("html: fetch %s: %w", rawURL, err)
 	}
