@@ -74,7 +74,7 @@ rows, err := html.FromString(ctx, htmlString)
 
 **Anchors:** `id="…"` on any element registers a PDF named destination; `<a href="#id">` produces an internal PDF link that jumps to it. Forward references (link before target) are supported via a pre-pass.
 
-**Images:** `img`, `picture`, `source`, `svg` — block-level and inline `<img src="…" srcset="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. `<picture><source media="…" type="…" srcset="…"><img …></picture>` uses the first print/all-compatible supported source candidate and falls back to the nested `<img>`. Inline `<svg>...</svg>` elements are rasterised via oksvg+rasterx. See [Images](#images) below.
+**Images:** `img`, `picture`, `source`, `svg` — block-level and inline `<img src="…" srcset="…" width="…" height="…" alt="…">` render PNG, JPG, and SVG. `<picture><source media="…" type="…" srcset="…"><img …></picture>` uses the first print/all-compatible supported source candidate and falls back to the nested `<img>`. Inline `<svg>...</svg>` elements are rasterised by Paper's SVG renderer. See [Images](#images) below.
 
 **Hidden content:** The HTML `hidden` attribute and CSS `display:none` suppress block and inline content before PDF rows/runs are created. CSS `visibility:hidden` / `visibility:collapse` preserves layout space but skips painting text, inline images, block images, SVGs, borders, backgrounds, shadows, outlines, and links; descendants can opt back in with `visibility:visible`.
 
@@ -110,7 +110,7 @@ rows, err := html.FromString(ctx, htmlString)
 
 **Colour formats:** named colours (full CSS Color Level 4, ~147 entries), `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Alpha is tracked through to the internal PDF backend.
 
-**Selectors:** Cascadia provides full CSS selector support: tag, class, id, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`. `::before` and `::after` generate inline content when `content` uses quoted strings, `attr(name)`, `url(...)`, `open-quote`, `close-quote`, `no-open-quote`, `no-close-quote`, `counter(name[, style])`, and `counters(name, "separator"[, style])`, inheriting normal inline text styles. Generated `url(...)` content supports PNG, JPG, and SVG through the same resolver and rasterisation path as inline `<img>`. Supported counter styles are `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-roman`, and `upper-roman`. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
+**Selectors:** Paper's selector engine supports tag, class, ID, attribute (`[attr]`, `[attr=val]`, `[attr^=val]`, `[attr$=val]`, `[attr*=val]`, `[attr~=val]`, `[attr|=val]`), descendant/child/adjacent/general-sibling combinators, and structural pseudo-classes including `:nth-child(n)`, `:first-child`, `:last-child`, `:nth-of-type`, `:first-of-type`, `:last-of-type`, `:not(...)`, `:is(...)`, and `:where(...)`. `::before` and `::after` generate inline content when `content` uses quoted strings, `attr(name)`, `url(...)`, `open-quote`, `close-quote`, `no-open-quote`, `no-close-quote`, `counter(name[, style])`, and `counters(name, "separator"[, style])`, inheriting normal inline text styles. Generated `url(...)` content supports PNG, JPG, and SVG through the same resolver and rasterisation path as inline `<img>`. Supported counter styles are `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-roman`, and `upper-roman`. State-dependent pseudo-classes (`:hover`, `:focus`, `:active`, `:visited`) silently never match in static PDF output.
 
 **Media rules:** `@media print` and `@media all` rules are applied to PDF output, including nested pseudo-element selectors. Simple `min-width`, `max-width`, and `width` conditions are evaluated against the configured PDF content width. Screen-only media rules are skipped.
 
@@ -348,7 +348,7 @@ rows, _ := html.FromString(ctx, input, html.WithGridSize(20), html.WithContentWi
 HTML string
    ↓ golang.org/x/net/html
 DOM tree + extracted <style> blocks
-   ↓ pkg/html/css (douceur + cascadia)
+   ↓ Paper's CSS parser and selector engine
 ComputedStyle per element (cascade + specificity + em tree-walk)
    ↓ pkg/html/translate
 []core.Row (uses RichText, Table, HTMLList components)
@@ -360,7 +360,7 @@ The conversion is purely additive — your existing Paper code continues to work
 
 ## Images
 
-Block-level `<img src="…" srcset="…" width="…" height="…" alt="…">`, `<picture>...</picture>`, and `<svg>...</svg>` produce a row containing the image. Inline `<img>`, `<picture>`, and `<svg>` participate as atomic RichText runs inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources and elements are rasterised to PNG at 150 DPI via `github.com/srwiley/oksvg` + `rasterx` (both pure-Go, no CGO).
+Block-level `<img src="…" srcset="…" width="…" height="…" alt="…">`, `<picture>...</picture>`, and `<svg>...</svg>` produce a row containing the image. Inline `<img>`, `<picture>`, and `<svg>` participate as atomic RichText runs inside the surrounding paragraph. PNG and JPG are passed through directly; SVG sources and elements are rasterised to PNG at 150 DPI by Paper's built-in SVG renderer.
 
 ```html
 <img src="logo.svg" width="20mm" height="20mm" alt="company logo">

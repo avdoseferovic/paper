@@ -176,6 +176,29 @@ func TestCode_GenQr(t *testing.T) {
 	})
 }
 
+func TestMatrixCodeCurrentDimensions(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		gen   func(*code.Code, string) (*entity.Image, error)
+		sizes map[string]float64
+	}{
+		{name: "QR", gen: (*code.Code).GenQr, sizes: map[string]float64{"HELLO WORLD": 21, strings.Repeat("a", 50): 33}},
+		{name: "DataMatrix", gen: (*code.Code).GenDataMatrix, sizes: map[string]float64{"HELLO WORLD": 16, strings.Repeat("a", 50): 32}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			for input, size := range tt.sizes {
+				image, err := tt.gen(code.New(), input)
+				if err != nil {
+					t.Fatalf("generate %s: %v", tt.name, err)
+				}
+				if image.Dimensions.Width != size || image.Dimensions.Height != size {
+					t.Fatalf("%s dimensions = %.0fx%.0f, want %.0fx%.0f", tt.name, image.Dimensions.Width, image.Dimensions.Height, size, size)
+				}
+			}
+		})
+	}
+}
+
 func genStringWithLength(length int) string {
 	var builder strings.Builder
 	for range length {

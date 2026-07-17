@@ -9,12 +9,6 @@ import (
 	"image/draw"
 	"image/png"
 
-	libBarcode "github.com/boombuler/barcode"
-	"github.com/boombuler/barcode/code128"
-	"github.com/boombuler/barcode/datamatrix"
-	"github.com/boombuler/barcode/ean"
-	"github.com/boombuler/barcode/qr"
-
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -22,10 +16,12 @@ import (
 )
 
 var (
-	ErrCannotEncodePNG        = errors.New("cannot encode png")
-	ErrCannotScaleBarcode     = errors.New("cannot scale barcode")
-	ErrCannotEncodeQRcode     = errors.New("cannot encode qr code")
-	ErrCannotEncodeDataMatrix = errors.New("cannot encode data matrix")
+	ErrCannotEncodePNG          = errors.New("cannot encode png")
+	ErrCannotScaleBarcode       = errors.New("cannot scale barcode")
+	ErrCannotEncodeQRcode       = errors.New("cannot encode qr code")
+	ErrCannotEncodeDataMatrix   = errors.New("cannot encode data matrix")
+	errInvalidBarcodeDimensions = errors.New("target dimensions must be positive")
+	errBarcodeScaleWouldDiscard = errors.New("target dimensions cannot discard barcode modules")
 )
 
 type Code struct{}
@@ -37,7 +33,7 @@ func New() *Code {
 
 // GenDataMatrix is responsible to generate a data matrix byte array.
 func (c *Code) GenDataMatrix(code string) (*entity.Image, error) {
-	dataMatrix, err := datamatrix.Encode(code)
+	dataMatrix, err := encodeDataMatrix(code)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotEncodeDataMatrix, err)
 	}
@@ -47,7 +43,7 @@ func (c *Code) GenDataMatrix(code string) (*entity.Image, error) {
 
 // GenQr is responsible to generate a qr code byte array.
 func (c *Code) GenQr(code string) (*entity.Image, error) {
-	qrCode, err := qr.Encode(code, qr.M, qr.Auto)
+	qrCode, err := encodeQR(code)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotEncodeQRcode, err)
 	}
@@ -68,7 +64,7 @@ func (c *Code) GenBar(code string, _ *entity.Cell, prop *props.Barcode) (*entity
 	heightPercentFromWidth := prop.Proportion.Height / prop.Proportion.Width
 	height := int(width * heightPercentFromWidth)
 
-	scaledBarCode, err := libBarcode.Scale(barCode, int(width), height)
+	scaledBarCode, err := scaleBarcode(barCode, int(width), height)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotScaleBarcode, err)
 	}
@@ -78,16 +74,35 @@ func (c *Code) GenBar(code string, _ *entity.Cell, prop *props.Barcode) (*entity
 
 func getBarcodeClosure(
 	barcodeType consts.BarcodeType,
-) func(code string) (libBarcode.BarcodeIntCS, error) {
+) func(code string) (image.Image, error) {
 	switch barcodeType {
 	case consts.BarcodeEAN:
-		return ean.Encode
+		return encodeEAN
 	case consts.BarcodeCode128:
-		return code128.Encode
+		return encodeCode128
 	default:
-
-		return code128.Encode
+		return encodeCode128
 	}
+}
+
+func scaleBarcode(source image.Image, width, height int) (image.Image, error) {
+	bounds := source.Bounds()
+	if width <= 0 || height <= 0 || bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return nil, errInvalidBarcodeDimensions
+	}
+	if width < bounds.Dx() || height < bounds.Dy() {
+		return nil, errBarcodeScaleWouldDiscard
+	}
+
+	scaled := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := range height {
+		sourceY := bounds.Min.Y + y*bounds.Dy()/height
+		for x := range width {
+			sourceX := bounds.Min.X + x*bounds.Dx()/width
+			scaled.Set(x, y, source.At(sourceX, sourceY))
+		}
+	}
+	return scaled, nil
 }
 
 func (c *Code) getImage(img image.Image) (*entity.Image, error) {
