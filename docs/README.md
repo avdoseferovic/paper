@@ -3,9 +3,6 @@
 [![GoDoc](https://godoc.org/github.com/avdoseferovic/paper?status.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#template-engines)
 [![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
-[![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
-[![Lint](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/avdoseferovic/paper)](https://codecov.io/gh/avdoseferovic/paper)
 [![Visits Badge](https://badges.pufler.dev/visits/avdoseferovic/paper)](https://badges.pufler.dev)
 [![Stars Badge](https://img.shields.io/github/stars/avdoseferovic/paper.svg?style=social&label=Stars)](https://github.com/avdoseferovic/paper/stargazers)
 

@@ -26,9 +26,6 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run --config=.golangci.yml ./...
-	cd examples && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./...
-	cd docs && golangci-lint run --config=../.golangci.yml --disable=gomoddirectives ./assets/examples/...
 	make mock-lint
 
 .PHONY: mock-lint

@@ -20,4 +20,4 @@
 - [ ] Updated ```example_test.go```. <!-- If applied -->
 - [ ] Updated README.md <!-- If applied -->
 - [ ] New public methods/structs/interfaces has comments upside them explaining they responsibilities <!-- If applied -->
-- [ ] Executed `make dod` with none issues pointed out by `golangci-lint`
+- [ ] Executed `make dod` with no issues
