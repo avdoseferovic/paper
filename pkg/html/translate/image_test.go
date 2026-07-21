@@ -467,8 +467,7 @@ func TestSVGElement_BlockRendersAsImageRow(t *testing.T) {
 
 func TestImageRow_UnsupportedSVGFallsBackToAlt(t *testing.T) {
 	t.Parallel()
-	// oksvg's IgnoreErrorMode lets junk parse-but-render-nothing; we still
-	// exercise the err path via an obviously broken payload.
+	// The SVG renderer must reject malformed payloads and retain the alt-text path.
 	resolver := func(_ string) ([]byte, string, error) {
 		return []byte("<<<not svg>>>"), "svg", nil
 	}

@@ -9,14 +9,11 @@ version.
 
 ## 1. Pre-tag verification
 
-- [ ] `CHANGELOG.md` updated: move `[Unreleased]` entries under `[vX.Y.Z] - YYYY-MM-DD`,
-      with breaking changes called out explicitly
 - [ ] `make dod` passes locally (build, test, fmt, lint)
 - [ ] `go run golang.org/x/tools/cmd/deadcode@latest -test ./...` reports nothing
 - [ ] Benchmarks compared against the previous release
       (`go test -run='^$' -bench=. -count=6 . | tee new.txt` then
       `benchstat old.txt new.txt`) — no unexplained regressions
-- [ ] CI is green on the release commit
 
 ## 2. Tag the root module
 
@@ -53,6 +50,7 @@ standalone check.
 
 ## 5. Publish
 
-- [ ] GitHub release is created automatically by `.github/workflows/release.yml`
-      on the `vX.Y.Z` tag — review the generated notes and paste in the
-      CHANGELOG excerpt
+- [ ] Create the GitHub release for the `vX.Y.Z` tag with auto-generated notes:
+      ```bash
+      gh release create vX.Y.Z --generate-notes
+      ```

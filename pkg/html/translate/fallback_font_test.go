@@ -125,3 +125,23 @@ func TestFallbackFontDoesNotOverrideAuthorFontFamily(t *testing.T) {
 	assert.Equal(t, "中", runs[0].Text)
 	assert.Equal(t, "Custom", runs[0].Family)
 }
+
+func TestCanEncodeWinAnsiRune(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		rune rune
+		want bool
+	}{
+		{rune: 'A', want: true},
+		{rune: 'é', want: true},
+		{rune: '€', want: true},
+		{rune: 'Œ', want: true},
+		{rune: '中', want: false},
+		{rune: '😀', want: false},
+	} {
+		if got := canEncodeWinAnsiRune(tt.rune); got != tt.want {
+			t.Errorf("canEncodeWinAnsiRune(%q) = %t, want %t", tt.rune, got, tt.want)
+		}
+	}
+}

@@ -1,13 +1,13 @@
 # Development
 
 Contributor guide for the Paper repository. For contribution policy
-(versioning, changelog rules) see [CONTRIBUTING.md](CONTRIBUTING.md); for
-cutting a release see [RELEASING.md](RELEASING.md).
+(versioning) see [CONTRIBUTING.md](CONTRIBUTING.md); for cutting a release see
+[RELEASING.md](RELEASING.md).
 
 ## Prerequisites
 
 - **Go 1.26.4+**
-- **golangci-lint v2.11.3** and **mockery v2.53.6** — install everything with:
+- **mockery v2.53.6** — install everything with:
 
   ```bash
   make install
@@ -29,7 +29,7 @@ The repository is a Go workspace (`go.work`, committed) with three modules:
 
 `examples` and `docs` are nested modules so their dependencies never leak into
 consumers of the library. Their `go.mod` files pin a released version of the
-root module; the committed `go.work` makes local builds and CI resolve the
+root module; the committed `go.work` makes local builds resolve the
 root module from source instead. The pins only matter at release time — see
 RELEASING.md for the `GOWORK=off` verification step.
 
@@ -51,7 +51,7 @@ make dod        # definition of done: build + test + fmt + lint
 make build      # compile root + examples
 make test       # root, examples, and docs-example tests
 make fmt        # gofmt + gofumpt + goimports
-make lint       # golangci-lint across all modules + mock pattern check
+make lint       # mock pattern check
 ```
 
 ## Tests
@@ -61,8 +61,8 @@ make lint       # golangci-lint across all modules + mock pattern check
   (via `internal/test`, or `pkg/test` for consumers). When you intentionally
   change document structure, update the matching JSON fixture and inspect the
   diff carefully — fixtures are the API contract for layout.
-- **Benchmarks:** `benchmark_test.go`; PRs get an informational
-  benchstat comparison via `.github/workflows/benchmark.yml`.
+- **Benchmarks:** `benchmark_test.go`; compare locally with `benchstat`
+  (`go test -run='^$' -bench=. -count=6 .`).
 
 ## Mocks
 

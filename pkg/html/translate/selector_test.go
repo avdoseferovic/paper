@@ -121,3 +121,47 @@ a:hover { background-color: red }
 <body><a href="#">link</a></body></html>`
 	assert.Equal(t, "", styleNthChild(t, html, "a", 1))
 }
+
+func TestSelectorMatcher_CombinatorsAttributesAndRoot(t *testing.T) {
+	t.Parallel()
+
+	doc, err := dom.Parse(`<html><body><div id="root"><p class="lead">one</p><span data-kind="notice-primary">two</span><span data-kind="notice">three</span></div></body></html>`)
+	require.NoError(t, err)
+
+	var nodes []*dom.Node
+	doc.Walk(func(node *dom.Node) bool {
+		if node.Tag() == "span" {
+			nodes = append(nodes, node)
+		}
+		return true
+	})
+	require.Len(t, nodes, 2)
+
+	matcher, err := compileSelector(`div#root > p.lead + span[data-kind|="notice"]`)
+	require.NoError(t, err)
+	assert.True(t, matcher.Match(nodes[0].RawNode()))
+	assert.False(t, matcher.Match(nodes[1].RawNode()))
+
+	root, err := compileSelector(":root")
+	require.NoError(t, err)
+	assert.True(t, root.Match(doc.HTMLElement().RawNode()))
+}
+
+func FuzzCompileSelector(f *testing.F) {
+	for _, seed := range []string{
+		"p", "#id > .class", `a[href^="https://"]`, ":not(.hidden)", "li:nth-child(2n+1)",
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, value string) {
+		matcher, err := compileSelector(value)
+		if err != nil {
+			return
+		}
+		doc, parseErr := dom.Parse(`<html><body><p id="id" class="class">x</p></body></html>`)
+		if parseErr != nil {
+			t.Fatal(parseErr)
+		}
+		_ = matcher.Match(doc.HTMLElement().RawNode())
+	})
+}

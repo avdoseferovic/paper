@@ -6,7 +6,6 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
-	"github.com/srwiley/oksvg"
 )
 
 func TestMMFromPx_RoundTripsPxFromMM(t *testing.T) {
@@ -28,13 +27,11 @@ func TestPxFromMM_ClampsToOnePixel(t *testing.T) {
 func TestTargetPixels(t *testing.T) {
 	t.Parallel()
 
-	withViewBox := &oksvg.SvgIcon{}
-	withViewBox.ViewBox.W = 100
-	withViewBox.ViewBox.H = 50
-	noViewBox := &oksvg.SvgIcon{}
+	withViewBox := svgViewBox{w: 100, h: 50}
+	noViewBox := svgViewBox{}
 
 	for name, tc := range map[string]struct {
-		icon         *oksvg.SvgIcon
+		viewBox      svgViewBox
 		wMM, hMM     float64
 		wantW, wantH int
 	}{
@@ -49,7 +46,7 @@ func TestTargetPixels(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			w, h := targetPixels(tc.icon, tc.wMM, tc.hMM)
+			w, h := targetPixels(tc.viewBox, tc.wMM, tc.hMM)
 
 			assert.Equal(t, tc.wantW, w)
 			assert.Equal(t, tc.wantH, h)
@@ -60,11 +57,9 @@ func TestTargetPixels(t *testing.T) {
 func TestSvgScale(t *testing.T) {
 	t.Parallel()
 
-	icon := &oksvg.SvgIcon{}
-	icon.ViewBox.W = 100
-	icon.ViewBox.H = 50
+	viewBox := svgViewBox{w: 100, h: 50}
 
-	sx, sy := svgScale(icon, 200, 200)
+	sx, sy := svgScale(viewBox, 200, 200)
 
 	assert.InDelta(t, 2.0, sx, 0.0001)
 	assert.InDelta(t, 4.0, sy, 0.0001)
@@ -73,7 +68,7 @@ func TestSvgScale(t *testing.T) {
 func TestSvgScale_FallsBackToPixelSizeWithoutViewBox(t *testing.T) {
 	t.Parallel()
 
-	sx, sy := svgScale(&oksvg.SvgIcon{}, 64, 32)
+	sx, sy := svgScale(svgViewBox{}, 64, 32)
 
 	assert.InDelta(t, 1.0, sx, 0.0001)
 	assert.InDelta(t, 1.0, sy, 0.0001)

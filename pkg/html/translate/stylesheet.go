@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/andybalholm/cascadia"
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"golang.org/x/net/html"
@@ -28,7 +27,7 @@ type stylesheet struct {
 }
 
 type compiledRule struct {
-	matcher      cascadia.Sel
+	matcher      selectorMatcher
 	declarations []cssDeclaration
 	order        int // source order (lower = earlier in stylesheet text)
 }
@@ -127,7 +126,7 @@ func (s *stylesheet) addParsedRule(rule *cssRule, order *int, contentWidthMM flo
 
 func (s *stylesheet) addCompiledSelector(sel string, decls []cssDeclaration, order *int) {
 	baseSelector, pseudo := splitPseudoElementSelector(sel)
-	m, err := cascadia.Parse(baseSelector)
+	m, err := compileSelector(baseSelector)
 	if err != nil {
 		return
 	}

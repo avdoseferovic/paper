@@ -2,9 +2,6 @@
 
 [![pkg.go.dev](https://pkg.go.dev/badge/github.com/avdoseferovic/paper.svg)](https://pkg.go.dev/github.com/avdoseferovic/paper)
 [![Go Report Card](https://goreportcard.com/badge/github.com/avdoseferovic/paper)](https://goreportcard.com/report/github.com/avdoseferovic/paper)
-[![CI](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/goci.yml)
-[![Lint](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/avdoseferovic/paper/actions/workflows/golangci-lint.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/avdoseferovic/paper)](https://codecov.io/gh/avdoseferovic/paper)
 [![License](https://img.shields.io/github/license/avdoseferovic/paper)](LICENSE)
 
 Paper is a Go library for creating PDF documents from HTML and structured
