@@ -66,8 +66,18 @@ func sliceCompress(data []byte) []byte {
 	return buf.Bytes()
 }
 
-// sliceUncompress returns an uncompressed copy of the specified zlib-compressed byte array
-func sliceUncompress(data []byte) ([]byte, error) {
+// maxDeflateExpansion is deflate's theoretical maximum expansion ratio (1032:1)
+// with slack. Any stream that claims to decode to more than this times its
+// compressed size is malformed, so the ratio bounds how much memory untrusted
+// compressed data can ask for.
+const maxDeflateExpansion = 1100
+
+// sliceUncompress returns an uncompressed copy of the specified zlib-compressed
+// byte array, reading at most limit bytes. A limit of zero or less reads to the
+// end of the stream and must only be used on data this library produced itself:
+// zlib packs ~1000:1, so an unbounded read turns a small hostile stream into
+// gigabytes of allocation.
+func sliceUncompress(data []byte, limit int64) ([]byte, error) {
 	inBuf := bytes.NewReader(data)
 	r, err := zlib.NewReader(inBuf)
 	if err != nil {
@@ -77,8 +87,12 @@ func sliceUncompress(data []byte) ([]byte, error) {
 		_ = r.Close()
 	}()
 
+	var source io.Reader = r
+	if limit > 0 {
+		source = io.LimitReader(r, limit)
+	}
 	var outBuf bytes.Buffer
-	_, err = outBuf.ReadFrom(r)
+	_, err = outBuf.ReadFrom(source)
 	if err != nil {
 		return nil, fmt.Errorf("read zlib data: %w", err)
 	}

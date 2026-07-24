@@ -7,13 +7,14 @@ import (
 	goimage "image"
 	_ "image/gif"
 	_ "image/jpeg"
-	"image/png"
 	"strings"
 
 	svgraster "github.com/avdoseferovic/paper/internal/svg"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	_ "golang.org/x/image/tiff"
 	_ "golang.org/x/image/webp"
+
+	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
 var errInvalidImageDimensions = errors.New("image decode produced invalid dimensions")
@@ -75,7 +76,7 @@ func rasterToPNG(data []byte, ext extension.Type) (Normalized, error) {
 	}
 
 	var buf bytes.Buffer
-	err = png.Encode(&buf, img)
+	err = pngcodec.EncodeUncompressed(&buf, img)
 	if err != nil {
 		return Normalized{}, fmt.Errorf("%s png encode: %w", ext, err)
 	}

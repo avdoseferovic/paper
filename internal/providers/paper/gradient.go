@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"strings"
 	"sync"
@@ -16,6 +15,8 @@ import (
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
+
+	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
 const gradientDPI = 75.0
@@ -59,8 +60,7 @@ func (gr *GradientRenderer) DrawGradient(cell *entity.Cell, g *props.Gradient, w
 		// re-compresses with FlateDecode. Compressing here is pure waste, so we
 		// skip it — NoCompression avoids the LZ77 pass and the ~128KB deflate
 		// table allocation. The embedded PDF stream is byte-identical.
-		enc := png.Encoder{CompressionLevel: png.NoCompression}
-		err := enc.Encode(&buf, img)
+		err := pngcodec.EncodeUncompressed(&buf, img)
 		if err != nil {
 			return
 		}

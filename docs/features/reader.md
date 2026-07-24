@@ -79,6 +79,19 @@ ssn := regexp.MustCompile(`\d{3}-\d{2}-\d{4}`)
 redacted, err := reader.RedactPattern(r, ssn, nil)
 ```
 
+`RedactOptions.StripMetadata` additionally empties the document information
+dictionary and any uncompressed XMP `/Metadata` stream, in place and without
+changing the file length:
+
+```go
+redacted, err := reader.RedactText(r, targets, &reader.RedactOptions{StripMetadata: true})
+```
+
+A compressed `/Metadata` stream cannot be rewritten byte-preservingly, so it is
+reported as an error rather than left in the output. The remaining
+`RedactOptions` fields describe visual overlays, which this foundation does not
+draw.
+
 Current scope:
 
 - `Load`, `Parse`, and `ParseWithOptions`

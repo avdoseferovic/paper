@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,6 +85,12 @@ func parseStylesheetWithLimits(text string, contentWidthMM float64, limits htmll
 	for _, rule := range rules {
 		ss.addParsedRule(rule, &order, contentWidthMM)
 	}
+	// Cascade order depends only on (specificity, source order), both intrinsic
+	// to a rule, so it is settled here once. Walking the rules in that order
+	// then yields every node's matches already cascaded: applyToNodeCtx needs no
+	// per-node buffer and no per-node sort. Any rule added after this point must
+	// re-sort.
+	sortRulesByCascade(ss.rules)
 	return ss, nil
 }
 
@@ -315,14 +322,11 @@ func (s *stylesheet) applyToNodeCtx(
 	if s == nil || len(s.rules) == 0 {
 		return
 	}
-	matching := make([]compiledRule, 0, len(s.rules))
+	// s.rules is pre-sorted into cascade order (see parseStylesheetWithLimits).
 	for _, rule := range s.rules {
-		if rule.matcher.Match(n) {
-			matching = append(matching, rule)
+		if !rule.hasImportance(important) || !rule.matcher.Match(n) {
+			continue
 		}
-	}
-	sortRulesByCascade(matching)
-	for _, rule := range matching {
 		for _, declaration := range rule.declarations {
 			if declaration.important != important {
 				continue
@@ -332,17 +336,27 @@ func (s *stylesheet) applyToNodeCtx(
 	}
 }
 
-func sortRulesByCascade(matching []compiledRule) {
-	sort.SliceStable(matching, func(i, j int) bool {
-		si := matching[i].matcher.Specificity()
-		sj := matching[j].matcher.Specificity()
-		if si.Less(sj) {
+// hasImportance reports whether the rule carries any declaration for the phase
+// being applied, so the matcher can be skipped for rules that cannot contribute.
+func (r compiledRule) hasImportance(important bool) bool {
+	for _, declaration := range r.declarations {
+		if declaration.important == important {
 			return true
 		}
-		if sj.Less(si) {
-			return false
+	}
+	return false
+}
+
+func sortRulesByCascade(matching []compiledRule) {
+	slices.SortStableFunc(matching, func(a, b compiledRule) int {
+		switch specificityA, specificityB := a.matcher.Specificity(), b.matcher.Specificity(); {
+		case specificityA.Less(specificityB):
+			return -1
+		case specificityB.Less(specificityA):
+			return 1
+		default:
+			return a.order - b.order
 		}
-		return matching[i].order < matching[j].order
 	})
 }
 

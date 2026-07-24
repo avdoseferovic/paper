@@ -1,14 +1,12 @@
 package sign
 
 import (
-	"bytes"
-	"context"
 	"crypto"
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"time"
 )
 
 var (
@@ -28,6 +26,10 @@ var (
 type TSAClient struct {
 	URL        string
 	HTTPClient *http.Client
+
+	// Timeout bounds one timestamp round trip. Zero uses a 30s default so a
+	// stalled authority cannot hang signing forever.
+	Timeout time.Duration
 }
 
 // NewTSAClient creates a TSA client for url.
@@ -44,32 +46,13 @@ func (c *TSAClient) Timestamp(digest []byte, hashFunc crypto.Hash) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("sign: build TSA request: %w", err)
 	}
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		c.URL,
-		bytes.NewReader(reqDER),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("sign: build TSA HTTP request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/timestamp-query")
 
-	client := c.HTTPClient
-	if client == nil {
-		client = http.DefaultClient
-	}
-	resp, err := client.Do(req) // #nosec G704 -- TSA endpoint is caller configuration, not PDF input.
+	body, status, err := postDER(c.HTTPClient, c.URL, "application/timestamp-query", reqDER, c.Timeout)
 	if err != nil {
-		return nil, fmt.Errorf("sign: TSA request: %w", err)
+		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d", errTSAStatus, resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("sign: read TSA response: %w", err)
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("%w: %d", errTSAStatus, status)
 	}
 	return parseTimestampResp(body)
 }

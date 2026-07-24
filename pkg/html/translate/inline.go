@@ -426,11 +426,18 @@ func mutateContext(tag string, n *dom.Node, ctx runContext) runContext {
 		next.sizeScale = scaledRunSize(next.sizeScale, 0.75)
 	case "a":
 		if href := n.Attr("href"); href != "" {
-			if len(href) > 0 && href[0] == '#' {
+			switch link, ok := sanitizedHyperlink(href); {
+			case href[0] == '#':
 				next.localAnchor = href[1:]
 				next.hyperlink = nil
-			} else {
-				next.hyperlink = &href
+			case ok:
+				next.hyperlink = &link
+			default:
+				// Refused schemes render as plain text rather than as a link.
+				next.hyperlink = nil
+				if ctx.handler != nil {
+					ctx.handler("a.href", href)
+				}
 			}
 		}
 	case "mark":

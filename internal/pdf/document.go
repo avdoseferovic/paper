@@ -351,7 +351,10 @@ func (f *PDF) SetProtection(actionFlag byte, userPassStr, ownerPassStr string) {
 	if f.err != nil {
 		return
 	}
-	f.protect.setProtection(actionFlag, userPassStr, ownerPassStr)
+	err := f.protect.setProtection(actionFlag, userPassStr, ownerPassStr)
+	if err != nil {
+		f.SetError(err)
+	}
 }
 
 // SetProtectionAlgorithm selects the encryption algorithm for protected PDFs.

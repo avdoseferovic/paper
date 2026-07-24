@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	paper "github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/html"
@@ -187,4 +188,38 @@ func writePNGChunk(buf *bytes.Buffer, name string, data []byte) {
 	_, _ = crc.Write([]byte(name))
 	_, _ = crc.Write(data)
 	_ = binary.Write(buf, binary.BigEndian, crc.Sum32())
+}
+
+// TestFromHTML_DropsUnsafeLinkSchemes proves a hostile href never reaches the
+// generated document as a /URI action. A PDF viewer hands those URIs to the
+// operating system, so javascript: and file: links are script execution and
+// local file access dressed up as text.
+func TestFromHTML_DropsUnsafeLinkSchemes(t *testing.T) {
+	t.Parallel()
+
+	for name, tc := range map[string]struct {
+		href      string
+		wantInPDF bool
+	}{
+		"javascript": {"javascript:app.alert(1)", false},
+		"file":       {"file:///etc/passwd", false},
+		"smb":        {"smb://attacker.example/share", false},
+		"https":      {"https://example.com/ok", true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			rows, err := html.FromString(context.Background(), `<p><a href="`+tc.href+`">click</a></p>`)
+			require.NoError(t, err)
+			require.NotEmpty(t, rows)
+
+			doc := paper.New()
+			doc.AddRows(rows...)
+			generated, err := doc.Generate(context.Background())
+			require.NoError(t, err)
+
+			found := bytes.Contains(generated.GetBytes(), []byte(tc.href))
+			assert.Equal(t, tc.wantInPDF, found)
+		})
+	}
 }

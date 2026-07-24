@@ -11,7 +11,7 @@ import (
 func TestSliceUncompressInvalidDataReturnsError(t *testing.T) {
 	t.Parallel()
 
-	out, err := sliceUncompress([]byte("not zlib data"))
+	out, err := sliceUncompress([]byte("not zlib data"), 0)
 	if err == nil {
 		t.Fatal("expected invalid zlib data to return an error")
 	}
@@ -199,7 +199,7 @@ func TestSliceCompressRoundTrip(t *testing.T) {
 	if len(compressed) == 0 {
 		t.Fatal("compressed output empty")
 	}
-	restored, err := sliceUncompress(compressed)
+	restored, err := sliceUncompress(compressed, 0)
 	if err != nil {
 		t.Fatalf("sliceUncompress: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestSliceCompressRoundTrip(t *testing.T) {
 }
 
 func TestSliceUncompressRejectsGarbage(t *testing.T) {
-	if _, err := sliceUncompress([]byte("not zlib data")); err == nil {
+	if _, err := sliceUncompress([]byte("not zlib data"), 0); err == nil {
 		t.Fatal("expected error decompressing garbage")
 	}
 }

@@ -8,14 +8,19 @@ import (
 
 // RedactOptions configures redaction behavior.
 //
-// This foundation currently performs byte-preserving text removal only. Visual
-// overlay fields are kept for API compatibility with richer redaction flows.
+// This foundation performs byte-preserving text removal and, with
+// StripMetadata, byte-preserving metadata removal. The visual overlay fields are
+// kept for API compatibility with richer redaction flows and are not drawn.
 type RedactOptions struct {
 	FillColor       [3]float64
 	OverlayText     string
 	OverlayFontSize float64
 	OverlayColor    [3]float64
-	StripMetadata   bool
+
+	// StripMetadata empties the document information dictionary and any
+	// uncompressed XMP /Metadata stream. A compressed metadata stream is
+	// reported as an error instead of being left in the output.
+	StripMetadata bool
 }
 
 // RedactText permanently removes literal text targets from uncompressed page
@@ -29,7 +34,13 @@ func RedactText(r *PdfReader, targets []string, opts *RedactOptions) (*Modifier,
 		if target == "" {
 			continue
 		}
-		patterns = append(patterns, regexp.MustCompile(`(?i)`+regexp.QuoteMeta(target)))
+		// Compile rather than MustCompile: the target is caller data, and an
+		// oversized literal makes the compiler fail rather than panic a library.
+		pattern, err := regexp.Compile(`(?i)` + regexp.QuoteMeta(target))
+		if err != nil {
+			return nil, fmt.Errorf("%w: redaction target %q: %w", ErrUnsupportedPDF, target, err)
+		}
+		patterns = append(patterns, pattern)
 	}
 	return redactPatterns(r, patterns, opts)
 }
@@ -43,13 +54,19 @@ func RedactPattern(r *PdfReader, pattern *regexp.Regexp, opts *RedactOptions) (*
 	return redactPatterns(r, []*regexp.Regexp{pattern}, opts)
 }
 
-func redactPatterns(r *PdfReader, patterns []*regexp.Regexp, _ *RedactOptions) (*Modifier, error) {
+func redactPatterns(r *PdfReader, patterns []*regexp.Regexp, opts *RedactOptions) (*Modifier, error) {
 	if r == nil {
 		return nil, fmt.Errorf("%w: nil reader", ErrUnsupportedPDF)
 	}
 	out := r.RawBytes()
 	for _, page := range r.pages {
 		err := redactPageStreams(out, r, page, patterns)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if opts != nil && opts.StripMetadata {
+		err := stripDocumentMetadata(out, r)
 		if err != nil {
 			return nil, err
 		}
