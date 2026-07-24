@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/avdoseferovic/paper/pkg/reader"
 )
@@ -65,6 +66,14 @@ var (
 	formIDRe     = regexp.MustCompile(`(?s)/ID\s*(\[[^\]]+\])`)
 	formAPNRe    = regexp.MustCompile(`(?s)/AP\s*<<\s*/N\s*<<(.*?)>>`)
 	formNameRe   = regexp.MustCompile(`/([A-Za-z0-9_.#-]+)`)
+
+	// These were compiled inside their callers, which runs per object while
+	// scanning a document's page and field dictionaries.
+	formPageTypeRe    = regexp.MustCompile(`/Type\s*/Page\b`)
+	formHeaderRe      = regexp.MustCompile(`%PDF-(\d+\.\d+)`)
+	formIndirectRefRe = regexp.MustCompile(`(\d+)\s+\d+\s+R`)
+
+	formKeyedPatterns sync.Map
 )
 
 const (
@@ -420,8 +429,22 @@ func parseFormPageObjects(objects map[int]formObject) map[int]formPageObject {
 	return pages
 }
 
+// formKeyedPattern returns the compiled form of format with key substituted,
+// caching the result: dictionary lookups run per object.
+func formKeyedPattern(format, key string) *regexp.Regexp {
+	cacheKey := format + "\x00" + key
+	cached, ok := formKeyedPatterns.Load(cacheKey)
+	if ok {
+		compiled, _ := cached.(*regexp.Regexp)
+		return compiled
+	}
+	compiled := regexp.MustCompile(fmt.Sprintf(format, regexp.QuoteMeta(key)))
+	formKeyedPatterns.Store(cacheKey, compiled)
+	return compiled
+}
+
 func isFormPageObject(content []byte) bool {
-	return regexp.MustCompile(`/Type\s*/Page\b`).Match(content)
+	return formPageTypeRe.Match(content)
 }
 
 func flattenFieldContent(field formFieldObject, rect [4]float64) (string, bool) {
@@ -570,7 +593,10 @@ func appendFormPageContent(pageContent []byte, streamObjNum int) ([]byte, error)
 	var value string
 	switch pageContent[valueStart] {
 	case '[':
-		valueEnd := formSkipArray(pageContent, valueStart)
+		valueEnd, closed := formSkipArray(pageContent, valueStart)
+		if !closed {
+			return nil, errFormBadDictionary
+		}
 		existing := strings.TrimSpace(string(pageContent[valueStart+1 : valueEnd-1]))
 		if existing == "" {
 			value = "[" + ref + "]"
@@ -597,7 +623,7 @@ func removeFormPageWidgetAnnots(pageContent []byte, omit map[int]bool) ([]byte, 
 	if valueStart >= len(pageContent) || pageContent[valueStart] != '[' {
 		return pageContent, nil
 	}
-	valueEnd := formSkipArray(pageContent, valueStart)
+	valueEnd, _ := formSkipArray(pageContent, valueStart)
 	refs := formRefsInBytes(pageContent[valueStart:valueEnd])
 	kept := make([]string, 0, len(refs))
 	for _, ref := range refs {
@@ -691,7 +717,7 @@ func writeFormFullRewrite(info formPDFInfo, objects map[int]formObject, omit map
 }
 
 func parseFormPDFVersion(data []byte) string {
-	match := regexp.MustCompile(`%PDF-(\d+\.\d+)`).FindSubmatch(data)
+	match := formHeaderRe.FindSubmatch(data)
 	if len(match) != 2 {
 		return "1.3"
 	}
@@ -879,7 +905,10 @@ func formRectForKey(content []byte, key string) ([4]float64, bool) {
 	if start >= len(content) || content[start] != '[' {
 		return [4]float64{}, false
 	}
-	end := formSkipArray(content, start)
+	end, closed := formSkipArray(content, start)
+	if !closed {
+		return [4]float64{}, false
+	}
 	fields := strings.Fields(string(content[start+1 : end-1]))
 	if len(fields) < 4 {
 		return [4]float64{}, false
@@ -904,7 +933,7 @@ func formRectForKey(content []byte, key string) ([4]float64, bool) {
 }
 
 func formNameForKey(content []byte, key string) string {
-	re := regexp.MustCompile(`/` + regexp.QuoteMeta(key) + `\s*/([A-Za-z0-9_.#-]+)`)
+	re := formKeyedPattern(`/%s\s*/([A-Za-z0-9_.#-]+)`, key)
 	match := re.FindSubmatch(content)
 	if len(match) != 2 {
 		return ""
@@ -961,7 +990,7 @@ func formRefsForDictionaryKey(content []byte, key string) []int {
 }
 
 func formRefsInBytes(content []byte) []int {
-	re := regexp.MustCompile(`(\d+)\s+\d+\s+R`)
+	re := formIndirectRefRe
 	matches := re.FindAllSubmatch(content, -1)
 	refs := make([]int, 0, len(matches))
 	for _, match := range matches {
@@ -1028,7 +1057,8 @@ func formSkipPDFValue(data []byte, start int) int {
 	}
 	switch data[start] {
 	case '[':
-		return formSkipArray(data, start)
+		end, _ := formSkipArray(data, start)
+		return end
 	case '(':
 		_, end := parseFormLiteral(data, start)
 		return end
@@ -1084,7 +1114,11 @@ func formSkipBalanced(data []byte, start int, open, closing []byte) int {
 	return len(data)
 }
 
-func formSkipArray(data []byte, start int) int {
+// formSkipArray returns the index just past the array starting at start and
+// reports whether the closing bracket was found. Callers that slice the array's
+// interior must check: an unterminated array ends at len(data), and the interior
+// bounds [start+1 : end-1] are then invalid for a trailing "[".
+func formSkipArray(data []byte, start int) (int, bool) {
 	depth := 0
 	for i := start; i < len(data); i++ {
 		switch data[i] {
@@ -1093,14 +1127,14 @@ func formSkipArray(data []byte, start int) int {
 		case ']':
 			depth--
 			if depth == 0 {
-				return i + 1
+				return i + 1, true
 			}
 		case '(':
 			_, i = parseFormLiteral(data, i)
 			i--
 		}
 	}
-	return len(data)
+	return len(data), false
 }
 
 func parseFormLiteral(data []byte, start int) (string, int) {

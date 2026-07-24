@@ -112,7 +112,7 @@ func FuzzSVGPath(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, data string) {
 		dst := image.NewRGBA(image.Rect(0, 0, 32, 32))
-		path := newSVGPath(svgRenderer{dst: dst, viewBox: svgViewBox{w: 32, h: 32}, scaleX: 1, scaleY: 1}, identity())
+		path := newSVGPath(&svgRenderer{dst: dst, viewBox: svgViewBox{w: 32, h: 32}, scaleX: 1, scaleY: 1}, identity())
 		_ = path.parse(data)
 	})
 }

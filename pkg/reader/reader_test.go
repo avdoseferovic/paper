@@ -360,3 +360,21 @@ func generatedMultiPageReaderPDF(t *testing.T) []byte {
 	}
 	return pdf.GetBytes()
 }
+
+func generatedReaderPDFWithMetadata(t *testing.T, value, author, title string) []byte {
+	t.Helper()
+
+	cfg := config.NewBuilder().
+		WithPageSize(pagesize.Letter).
+		WithCompression(false).
+		WithAuthor(author, false).
+		WithTitle(title, false).
+		Build()
+	doc := paper.New(cfg)
+	doc.AddAutoRow(col.New(12).Add(text.New(value)))
+	pdf, err := doc.Generate(context.Background())
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	return pdf.GetBytes()
+}

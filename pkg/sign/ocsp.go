@@ -1,20 +1,23 @@
 package sign
 
 import (
-	"bytes"
-	"context"
 	"crypto"
 	"crypto/x509"
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"time"
 )
 
 // OCSPClient fetches OCSP responses for certificate revocation checking.
 type OCSPClient struct {
 	HTTPClient *http.Client
+
+	// Timeout bounds one responder round trip. Zero uses a 30s default: the
+	// responder URL comes from the certificate being validated, so it is not
+	// necessarily a cooperative endpoint.
+	Timeout time.Duration
 }
 
 var (
@@ -40,32 +43,17 @@ func (c *OCSPClient) FetchResponse(cert, issuer *x509.Certificate) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("sign: build OCSP request: %w", err)
 	}
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		cert.OCSPServer[0],
-		bytes.NewReader(reqDER),
-	)
+	var client *http.Client
+	var timeout time.Duration
+	if c != nil {
+		client, timeout = c.HTTPClient, c.Timeout
+	}
+	body, status, err := postDER(client, cert.OCSPServer[0], "application/ocsp-request", reqDER, timeout)
 	if err != nil {
-		return nil, fmt.Errorf("sign: build OCSP HTTP request: %w", err)
+		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/ocsp-request")
-
-	client := http.DefaultClient
-	if c != nil && c.HTTPClient != nil {
-		client = c.HTTPClient
-	}
-	resp, err := client.Do(req) // #nosec G704 -- OCSP responder URL comes from the certificate being validated.
-	if err != nil {
-		return nil, fmt.Errorf("sign: OCSP request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d", errOCSPStatus, resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("sign: read OCSP response: %w", err)
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("%w: %d", errOCSPStatus, status)
 	}
 	err = validateOCSPResponse(body)
 	if err != nil {

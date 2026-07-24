@@ -7,12 +7,13 @@ import (
 	"image"
 	"image/color/palette"
 	"image/draw"
-	"image/png"
 
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
+
+	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
 var (
@@ -112,7 +113,7 @@ func (c *Code) getImage(img image.Image) (*entity.Image, error) {
 	drawer := draw.Drawer(draw.Src)
 	drawer.Draw(dst, dst.Bounds(), img, img.Bounds().Min)
 
-	err := png.Encode(&buf, dst)
+	err := pngcodec.Encode(&buf, dst)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCannotEncodePNG, err)
 	}

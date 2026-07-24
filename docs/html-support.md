@@ -410,6 +410,15 @@ Default limits:
 | `MaxSVGPixels` | 50,000,000 | `html.ErrSVGTooLarge` |
 | `MaxStyleRules` | 50,000 | `html.ErrStyleRulesTooLarge` |
 
+### Link schemes
+
+A PDF viewer hands a link annotation's URI to the operating system, so `<a href>`
+only becomes a clickable link when it is a relative reference or uses `http`,
+`https`, `mailto`, or `tel`. Any other scheme — `javascript:`, `file:`, `data:`,
+`smb:` and friends — renders as plain text and is reported through
+`html.WithUnsupportedHandler` as `a.href`. Hrefs carrying control characters
+(`java&#9;script:…`) are refused for the same reason.
+
 `paper.AddHTML` and `paper.FromHTML` use the same defaults. To configure those paths, set limits on the document config:
 
 ```go

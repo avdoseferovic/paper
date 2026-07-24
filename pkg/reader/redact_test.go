@@ -78,3 +78,60 @@ func TestRedactTextRejectsCompressedContent(t *testing.T) {
 		t.Fatalf("RedactText() error = %v, want compressed", err)
 	}
 }
+
+// TestRedactTextStripsMetadata covers RedactOptions.StripMetadata, which used to
+// be accepted and silently ignored: a caller asking for a metadata strip got a
+// document with /Info intact.
+func TestRedactTextStripsMetadata(t *testing.T) {
+	t.Parallel()
+
+	source := generatedReaderPDFWithMetadata(t, "John Doe owes 100 EUR", "Secret Author", "Secret Title")
+	if !bytes.Contains(source, []byte("Secret Author")) {
+		t.Fatal("fixture PDF does not carry the author metadata")
+	}
+	r, err := reader.Parse(source)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+
+	redacted, err := reader.RedactText(r, []string{"John Doe"}, &reader.RedactOptions{StripMetadata: true})
+	if err != nil {
+		t.Fatalf("RedactText() error = %v", err)
+	}
+
+	out := redacted.Bytes()
+	for _, secret := range []string{"John Doe", "Secret Author", "Secret Title"} {
+		if bytes.Contains(out, []byte(secret)) {
+			t.Fatalf("redacted PDF still contains %q", secret)
+		}
+	}
+	if len(out) != len(source) {
+		t.Fatalf("redaction changed length: got %d, want %d (redaction must preserve xref offsets)", len(out), len(source))
+	}
+	parsed, err := reader.Parse(out)
+	if err != nil {
+		t.Fatalf("Parse(redacted) error = %v", err)
+	}
+	if parsed.PageCount() != r.PageCount() {
+		t.Fatalf("PageCount() = %d, want %d", parsed.PageCount(), r.PageCount())
+	}
+}
+
+func TestRedactTextWithoutStripMetadataKeepsMetadata(t *testing.T) {
+	t.Parallel()
+
+	source := generatedReaderPDFWithMetadata(t, "John Doe owes 100 EUR", "Kept Author", "Kept Title")
+	r, err := reader.Parse(source)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+
+	redacted, err := reader.RedactText(r, []string{"John Doe"}, nil)
+	if err != nil {
+		t.Fatalf("RedactText() error = %v", err)
+	}
+
+	if !bytes.Contains(redacted.Bytes(), []byte("Kept Author")) {
+		t.Fatal("metadata was stripped without StripMetadata being requested")
+	}
+}

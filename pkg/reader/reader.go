@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/avdoseferovic/paper/pkg/merge"
 )
@@ -118,7 +119,26 @@ var (
 	pagesTypeRe   = regexp.MustCompile(`/Type\s*/Pages\b`)
 	contentsRe    = regexp.MustCompile(`(?s)/Contents\s*(\[(.*?)\]|(\d+)\s+\d+\s+R)`)
 	filterRe      = regexp.MustCompile(`(?s)/Filter\s*(/\w+|\[.*?\])`)
+
+	// keyedPatterns caches the dictionary-key expressions built at call time.
+	// Parsing one page compiles six of them, so a large document recompiled the
+	// same handful of expressions thousands of times.
+	keyedPatterns sync.Map
 )
+
+// keyedPattern returns the compiled form of format with key substituted. Keys
+// are library-internal literals, quoted defensively.
+func keyedPattern(format, key string) *regexp.Regexp {
+	cacheKey := format + "\x00" + key
+	cached, ok := keyedPatterns.Load(cacheKey)
+	if ok {
+		compiled, _ := cached.(*regexp.Regexp)
+		return compiled
+	}
+	compiled := regexp.MustCompile(fmt.Sprintf(format, regexp.QuoteMeta(key)))
+	keyedPatterns.Store(cacheKey, compiled)
+	return compiled
+}
 
 // Load reads and parses a PDF file from disk.
 func Load(path string) (*PdfReader, error) {
@@ -422,7 +442,7 @@ func parseRootID(data []byte, objects map[int]pdfObject) (int, error) {
 }
 
 func parseReferenceForKey(content []byte, key string) (int, error) {
-	re := regexp.MustCompile(`/` + regexp.QuoteMeta(key) + `\s+(\d+)\s+\d+\s+R`)
+	re := keyedPattern(`/%s\s+(\d+)\s+\d+\s+R`, key)
 	match := re.FindSubmatch(content)
 	if len(match) != 2 {
 		return 0, fmt.Errorf("%w: /%s reference not found", ErrUnsupportedPDF, key)
@@ -545,7 +565,7 @@ func parseKids(content []byte) []int {
 }
 
 func parseBox(content []byte, key string) (Box, bool) {
-	re := regexp.MustCompile(`/` + regexp.QuoteMeta(key) + `\s*\[([^\]]+)\]`)
+	re := keyedPattern(`/%s\s*\[([^\]]+)\]`, key)
 	match := re.FindSubmatch(content)
 	if len(match) != 2 {
 		return Box{}, false
@@ -566,7 +586,7 @@ func parseBox(content []byte, key string) (Box, bool) {
 }
 
 func parseIntegerForKey(content []byte, key string) (int, bool) {
-	re := regexp.MustCompile(`/` + regexp.QuoteMeta(key) + `\s+(-?\d+)`)
+	re := keyedPattern(`/%s\s+(-?\d+)`, key)
 	match := re.FindSubmatch(content)
 	if len(match) != 2 {
 		return 0, false
@@ -647,15 +667,41 @@ func parseFilter(dictionary []byte) string {
 	return string(match[1])
 }
 
+const (
+	// maxDeflateExpansion is deflate's theoretical maximum expansion ratio
+	// (1032:1) with slack. Bounding a decoded stream by this multiple of its
+	// compressed size keeps memory use proportional to the PDF the caller handed
+	// over, rather than to whatever a crafted stream expands into.
+	maxDeflateExpansion = 1100
+
+	// maxDecodedStreamBytes is the ceiling for a single decoded content stream.
+	// Even a PDF that is mostly compressed payload cannot make one page's
+	// operators exceed this.
+	maxDecodedStreamBytes = 512 << 20
+)
+
 func flateDecode(data []byte) ([]byte, error) {
+	return flateDecodeLimit(data, min(maxDeflateExpansion*int64(len(data)), maxDecodedStreamBytes))
+}
+
+// flateDecodeLimit inflates data, refusing streams that decode to more than
+// limit bytes instead of allocating whatever they expand to.
+func flateDecodeLimit(data []byte, limit int64) ([]byte, error) {
 	zr, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("%w: flate decode: %w", ErrUnsupportedPDF, err)
 	}
-	defer zr.Close()
-	decoded, err := io.ReadAll(zr)
+	defer func() { _ = zr.Close() }()
+	decoded, err := io.ReadAll(io.LimitReader(zr, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("%w: flate read: %w", ErrUnsupportedPDF, err)
+	}
+	if int64(len(decoded)) > limit {
+		return nil, fmt.Errorf(
+			"%w: flate stream expands past the %d byte stream limit",
+			ErrUnsupportedPDF,
+			limit,
+		)
 	}
 	return decoded, nil
 }

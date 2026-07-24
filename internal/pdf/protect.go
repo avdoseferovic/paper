@@ -181,15 +181,31 @@ func paddedProtectionPassword(pass, padding []byte) []byte {
 	return padded
 }
 
-func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr string) {
+func (p *protectType) setProtection(privFlag byte, userPassStr, ownerPassStr string) error {
 	if p.algorithm == ProtectionAES128 {
-		p.setProtectionAES128(privFlag, userPassStr, ownerPassStr)
-		return
+		return p.setProtectionAES128(privFlag, userPassStr, ownerPassStr)
 	}
-	p.setProtectionRC4(privFlag, userPassStr, ownerPassStr)
+	return p.setProtectionRC4(privFlag, userPassStr, ownerPassStr)
 }
 
-func (p *protectType) setProtectionRC4(privFlag byte, userPassStr, ownerPassStr string) {
+// ownerPassword returns the owner password bytes, generating a random one when
+// the caller supplies none. A random-source failure is reported instead of
+// falling back to a constant: the padding string is published in the PDF spec,
+// so a constant owner password would leave the document openly accessible while
+// still looking encrypted.
+func (p *protectType) ownerPassword(ownerPassStr string) ([]byte, error) {
+	if ownerPassStr != "" {
+		return []byte(ownerPassStr), nil
+	}
+	generated := make([]byte, 8)
+	err := p.readRandom(generated)
+	if err != nil {
+		return nil, err
+	}
+	return generated, nil
+}
+
+func (p *protectType) setProtectionRC4(privFlag byte, userPassStr, ownerPassStr string) error {
 	privFlag = 192 | (privFlag & (CnProtectCopy | CnProtectModify | CnProtectPrint | CnProtectAnnotForms))
 	p.padding = []byte{
 		0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41,
@@ -197,18 +213,11 @@ func (p *protectType) setProtectionRC4(privFlag byte, userPassStr, ownerPassStr 
 		0x2E, 0x2E, 0x00, 0xB6, 0xD0, 0x68, 0x3E, 0x80,
 		0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A,
 	}
-	userPass := []byte(userPassStr)
-	var ownerPass []byte
-	if ownerPassStr == "" {
-		ownerPass = make([]byte, 8)
-		err := p.readRandom(ownerPass)
-		if err != nil {
-			copy(ownerPass, p.padding[:8])
-		}
-	} else {
-		ownerPass = []byte(ownerPassStr)
+	ownerPass, err := p.ownerPassword(ownerPassStr)
+	if err != nil {
+		return err
 	}
-	userPass = paddedProtectionPassword(userPass, p.padding)
+	userPass := paddedProtectionPassword([]byte(userPassStr), p.padding)
 	ownerPass = paddedProtectionPassword(ownerPass, p.padding)
 	p.encrypted = true
 	p.oValue = oValueGen(userPass, ownerPass)
@@ -220,9 +229,10 @@ func (p *protectType) setProtectionRC4(privFlag byte, userPassStr, ownerPassStr 
 	p.encryptionKey = sum[0:5]
 	p.uValue = p.uValueGen()
 	p.pValue = -(int(privFlag^255) + 1)
+	return nil
 }
 
-func (p *protectType) setProtectionAES128(privFlag byte, userPassStr, ownerPassStr string) {
+func (p *protectType) setProtectionAES128(privFlag byte, userPassStr, ownerPassStr string) error {
 	const keyLen = 16
 
 	privFlag = 192 | (privFlag & (CnProtectCopy | CnProtectModify | CnProtectPrint | CnProtectAnnotForms))
@@ -232,27 +242,28 @@ func (p *protectType) setProtectionAES128(privFlag byte, userPassStr, ownerPassS
 		0x2E, 0x2E, 0x00, 0xB6, 0xD0, 0x68, 0x3E, 0x80,
 		0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A,
 	}
-	userPass := paddedProtectionPassword([]byte(userPassStr), p.padding)
-	ownerPass := []byte(ownerPassStr)
-	if ownerPassStr == "" {
-		ownerPass = make([]byte, 8)
-		err := p.readRandom(ownerPass)
-		if err != nil {
-			copy(ownerPass, p.padding[:8])
-		}
+	ownerPass, err := p.ownerPassword(ownerPassStr)
+	if err != nil {
+		return err
 	}
+	userPass := paddedProtectionPassword([]byte(userPassStr), p.padding)
 	ownerPass = paddedProtectionPassword(ownerPass, p.padding)
 
-	p.encrypted = true
-	p.fileID = make([]byte, 16)
-	err := p.readRandom(p.fileID)
+	// The file ID feeds key derivation, so a constant fallback would hand an
+	// attacker the missing input for a document with no user password.
+	fileID := make([]byte, 16)
+	err = p.readRandom(fileID)
 	if err != nil {
-		copy(p.fileID, p.padding[:16])
+		return err
 	}
+
+	p.encrypted = true
+	p.fileID = fileID
 	p.oValue = oValueGenRevision3(userPass, ownerPass, keyLen)
 	p.pValue = -(int(privFlag^255) + 1)
 	p.encryptionKey = encryptionKeyRevision3(userPass, p.oValue, privFlag, p.fileID, keyLen)
 	p.uValue = p.uValueGenRevision3()
+	return nil
 }
 
 func encryptionKeyRevision3(userPass, ownerValue []byte, privFlag byte, fileID []byte, keyLen int) []byte {

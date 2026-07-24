@@ -223,7 +223,10 @@ func unpackWOFF1Font(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%w: WOFF table %d decompression failed: %w", errUTF8Font, i, err)
 			}
-			tableBytes, err = io.ReadAll(reader)
+			// The table declares its decoded length, so read exactly one byte
+			// past it: a longer stream is a decompression bomb and the length
+			// check below rejects it either way.
+			tableBytes, err = io.ReadAll(io.LimitReader(reader, int64(origLength)+1))
 			closeErr := reader.Close()
 			if err != nil {
 				return nil, fmt.Errorf("%w: WOFF table %d decompression failed: %w", errUTF8Font, i, err)

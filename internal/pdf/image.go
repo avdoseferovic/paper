@@ -9,11 +9,13 @@ import (
 	"image/color"
 	"image/gif"
 	"image/jpeg"
-	"image/png"
 	"io"
+	"math"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
 // ImageTypeFromMime returns the image type used in various image-related
@@ -362,7 +364,7 @@ func (f *PDF) parsegif(r io.Reader) *ImageInfoType {
 		return nil
 	}
 	pngBuf := new(bytes.Buffer)
-	err = png.Encode(pngBuf, img)
+	err = pngcodec.EncodeUncompressed(pngBuf, img)
 	if err != nil {
 		f.err = err
 		return nil
@@ -516,6 +518,13 @@ func (f *PDF) parsepngstream(buf *bytes.Buffer, readdpi bool) *ImageInfoType {
 	}
 	w := f.readBeInt32(buf)
 	h := f.readBeInt32(buf)
+	// Dimensions above 2^31-1 read back negative, and zero-sized images have no
+	// pixel data to slice; both must be refused before anything derives a buffer
+	// size from them.
+	if w <= 0 || h <= 0 {
+		f.SetErrorf("invalid dimensions %dx%d in PNG buffer", w, h)
+		return info
+	}
 	bpc := f.readByte(buf)
 	if bpc > 8 {
 		f.SetErrorf("16-bit depth not supported in PNG file")
@@ -663,7 +672,16 @@ func (f *PDF) applyPNGPhysicalDimensions(chunkData []byte, readDPI bool, info *I
 }
 
 func (f *PDF) splitPNGAlpha(data []byte, colorType byte, width, height int, info *ImageInfoType) []byte {
-	data, err := sliceUncompress(data)
+	expected, ok := pngAlphaRowBytes(colorType, width, height)
+	if !ok || expected > maxDeflateExpansion*int64(len(data)) {
+		// The declared dimensions cannot be produced by this much compressed
+		// data, so the header is lying and decoding it would only serve to
+		// allocate whatever the stream expands to.
+		f.SetErrorf("PNG alpha data does not match declared %dx%d dimensions", width, height)
+		return data
+	}
+
+	data, err := sliceUncompress(data, expected)
 	if err != nil {
 		f.SetError(err)
 		return data
@@ -688,11 +706,31 @@ func splitPNGAlphaBytes(data []byte, colorType byte, width, height int) ([]byte,
 	return splitPNGRGBABytes(data, width, height)
 }
 
+// pngAlphaRowBytes returns the exact number of decoded bytes an alpha-carrying
+// PNG of these dimensions holds: one filter byte plus the samples of each row.
+// It reports false when the size overflows, which only declared (never real)
+// dimensions can do.
+func pngAlphaRowBytes(colorType byte, width, height int) (int64, bool) {
+	samples := int64(4)
+	if colorType == 4 {
+		samples = 2
+	}
+	if width <= 0 || height <= 0 {
+		return 0, false
+	}
+	rowLen := 1 + samples*int64(width)
+	if rowLen > math.MaxInt64/int64(height) {
+		return 0, false
+	}
+	return rowLen * int64(height), true
+}
+
 func splitPNGGrayAlphaBytes(data []byte, width, height int) ([]byte, []byte, bool) {
-	length := 2 * width
-	if len(data) < height*(1+length) {
+	expected, ok := pngAlphaRowBytes(4, width, height)
+	if !ok || int64(len(data)) < expected {
 		return nil, nil, false
 	}
+	length := 2 * width
 	var color, alpha bytes.Buffer
 	for i := range height {
 		pos := (1 + length) * i
@@ -709,10 +747,11 @@ func splitPNGGrayAlphaBytes(data []byte, width, height int) ([]byte, []byte, boo
 }
 
 func splitPNGRGBABytes(data []byte, width, height int) ([]byte, []byte, bool) {
-	length := 4 * width
-	if len(data) < height*(1+length) {
+	expected, ok := pngAlphaRowBytes(6, width, height)
+	if !ok || int64(len(data)) < expected {
 		return nil, nil, false
 	}
+	length := 4 * width
 	var color, alpha bytes.Buffer
 	for i := range height {
 		pos := (1 + length) * i

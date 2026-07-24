@@ -79,7 +79,9 @@ func TestProtectionAES128EncryptsWithIVAndPKCS7Padding(t *testing.T) {
 		algorithm: ProtectionAES128,
 		random:    random,
 	}
-	p.setProtection(CnProtectCopy, "user", "owner")
+	if err := p.setProtection(CnProtectCopy, "user", "owner"); err != nil {
+		t.Fatalf("setProtection: %v", err)
+	}
 
 	plain := []byte("hello")
 	encrypted, err := p.encryptBytes(7, plain)
@@ -112,7 +114,9 @@ func TestProtectionRC4EncryptsEachStringIndependently(t *testing.T) {
 	t.Parallel()
 
 	var p protectType
-	p.setProtection(CnProtectCopy, "user", "owner")
+	if err := p.setProtection(CnProtectCopy, "user", "owner"); err != nil {
+		t.Fatalf("setProtection: %v", err)
+	}
 
 	const objNum = 7
 	first, err := p.encryptBytes(objNum, []byte("first string"))
@@ -245,4 +249,52 @@ func stripPKCS7(data []byte) ([]byte, bool) {
 		}
 	}
 	return data[:len(data)-padLen], true
+}
+
+// TestSetProtectionFailsWhenRandomSourceFails covers a random source that cannot
+// supply the generated owner password or file ID. Both used to fall back to the
+// PDF spec's published padding string, producing a document that looked
+// encrypted while an attacker knew every generated input to key derivation.
+func TestSetProtectionFailsWhenRandomSourceFails(t *testing.T) {
+	t.Parallel()
+
+	for name, algorithm := range map[string]ProtectionAlgorithm{
+		"rc4":     ProtectionRC4,
+		"aes-128": ProtectionAES128,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			f := newProtectionTestPDF()
+			f.SetProtectionAlgorithm(algorithm)
+			f.protect.random = bytes.NewReader(nil)
+
+			f.SetProtection(CnProtectCopy, "", "")
+
+			if f.Error() == nil {
+				t.Fatal("SetProtection() error = nil, want a random source failure")
+			}
+			if f.protect.encrypted {
+				t.Fatal("document is marked encrypted after a failed key setup")
+			}
+		})
+	}
+}
+
+// TestSetProtectionWithOwnerPasswordNeedsNoRandomness documents that only the
+// generated owner password and file ID need the random source.
+func TestSetProtectionWithOwnerPasswordNeedsNoRandomness(t *testing.T) {
+	t.Parallel()
+
+	f := newProtectionTestPDF()
+	f.protect.random = bytes.NewReader(nil)
+
+	f.SetProtection(CnProtectCopy, "user", "owner")
+
+	if f.Error() != nil {
+		t.Fatalf("SetProtection() error = %v, want nil for RC4 with an explicit owner password", f.Error())
+	}
+	if !f.protect.encrypted {
+		t.Fatal("document is not marked encrypted")
+	}
 }
