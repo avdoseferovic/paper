@@ -60,18 +60,10 @@ summary { padding: 1mm 0 }
 caption { padding: 1mm 0; text-align: center }
 `
 
-// parseStylesheet parses CSS text from <style> blocks into compiled rules.
-// Invalid selectors are skipped silently. The built-in Paper stylesheet is
-// always prepended so its rules are applied first (and overridable by user CSS).
-func parseStylesheet(text string) *stylesheet {
-	return parseStylesheetWithContentWidth(text, defaultContentWidthMM)
-}
-
-func parseStylesheetWithContentWidth(text string, contentWidthMM float64) *stylesheet {
-	ss, _ := parseStylesheetWithLimits(text, contentWidthMM, htmllimits.NoLimits())
-	return ss
-}
-
+// parseStylesheetWithLimits parses CSS text from <style> blocks into compiled
+// rules. Invalid selectors are skipped silently. The built-in Paper stylesheet
+// is always prepended so its rules are applied first (and overridable by user
+// CSS). Parsing stops with an error once limits.MaxStyleRules is exceeded.
 func parseStylesheetWithLimits(text string, contentWidthMM float64, limits htmllimits.Limits) (*stylesheet, error) {
 	ss := &stylesheet{}
 	order := 0
@@ -90,7 +82,9 @@ func parseStylesheetWithLimits(text string, contentWidthMM float64, limits htmll
 	// then yields every node's matches already cascaded: applyToNodeCtx needs no
 	// per-node buffer and no per-node sort. Any rule added after this point must
 	// re-sort.
-	sortRulesByCascade(ss.rules)
+	sortByCascade(ss.rules, func(r compiledRule) (selectorSpecificity, int) {
+		return r.matcher.Specificity(), r.order
+	})
 	return ss, nil
 }
 
@@ -347,15 +341,21 @@ func (r compiledRule) hasImportance(important bool) bool {
 	return false
 }
 
-func sortRulesByCascade(matching []compiledRule) {
-	slices.SortStableFunc(matching, func(a, b compiledRule) int {
-		switch specificityA, specificityB := a.matcher.Specificity(), b.matcher.Specificity(); {
+// sortByCascade orders rules by ascending specificity, falling back to source
+// order so that later rules win ties (CSS cascade, PDF-irrelevant origins
+// aside). key reports the specificity and source order of one rule, so both the
+// plain and the pseudo-element rule lists share this comparator.
+func sortByCascade[T any](rules []T, key func(T) (selectorSpecificity, int)) {
+	slices.SortStableFunc(rules, func(a, b T) int {
+		specificityA, orderA := key(a)
+		specificityB, orderB := key(b)
+		switch {
 		case specificityA.Less(specificityB):
 			return -1
 		case specificityB.Less(specificityA):
 			return 1
 		default:
-			return a.order - b.order
+			return orderA - orderB
 		}
 	})
 }
@@ -390,16 +390,8 @@ func (s *stylesheet) applyPseudoToNodeCtx(
 			matching = append(matching, rule)
 		}
 	}
-	sort.SliceStable(matching, func(i, j int) bool {
-		si := matching[i].matcher.Specificity()
-		sj := matching[j].matcher.Specificity()
-		if si.Less(sj) {
-			return true
-		}
-		if sj.Less(si) {
-			return false
-		}
-		return matching[i].order < matching[j].order
+	sortByCascade(matching, func(r compiledPseudoRule) (selectorSpecificity, int) {
+		return r.matcher.Specificity(), r.order
 	})
 	for _, rule := range matching {
 		for _, declaration := range rule.declarations {

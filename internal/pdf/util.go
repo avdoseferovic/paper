@@ -310,15 +310,6 @@ func (s *SizeType) ScaleToHeight(height float64) SizeType {
 	return SizeType{width, height}
 }
 
-func removeInt(arr []int, key int) []int {
-	for i, mKey := range arr {
-		if mKey == key {
-			return append(arr[:i], arr[i+1:]...)
-		}
-	}
-	return arr
-}
-
 func isChinese(rune2 rune) bool {
 	// chinese unicode: 4e00-9fa5
 	if rune2 >= rune(0x4e00) && rune2 <= rune(0x9fa5) {

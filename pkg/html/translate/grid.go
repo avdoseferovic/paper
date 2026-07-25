@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -322,7 +321,7 @@ func gridRowTrackHeight(rowIdx int, templateRows, autoRows []gridTrack) float64 
 func parseGridTracks(value string, fontSize, contentWidth float64) []gridTrack {
 	value = expandGridRepeat(strings.ToLower(strings.TrimSpace(value)))
 	var tracks []gridTrack
-	for _, token := range splitGridTemplate(value) {
+	for _, token := range splitTopLevelFields(value) {
 		switch {
 		case token == "", token == cssValueNone:
 			continue
@@ -391,12 +390,12 @@ func expandGridRepeat(value string) string {
 		if idx < 0 {
 			return value
 		}
-		closeIdx := matchingGridCloseParen(value, idx+len("repeat"))
+		closeIdx := matchingCloseParen(value, idx+len("repeat"))
 		if closeIdx < 0 {
 			return value
 		}
 		inner := value[idx+len("repeat(") : closeIdx]
-		parts := splitGridRepeatArgs(inner)
+		parts := splitTopLevelCommas(inner)
 		if len(parts) != 2 {
 			return value
 		}
@@ -407,74 +406,4 @@ func expandGridRepeat(value string) string {
 		repeated := strings.TrimSpace(parts[1])
 		value = value[:idx] + strings.TrimSpace(strings.Repeat(repeated+" ", count)) + value[closeIdx+1:]
 	}
-}
-
-func splitGridRepeatArgs(value string) []string {
-	var out []string
-	depth := 0
-	start := 0
-	for i, r := range value {
-		switch r {
-		case '(':
-			depth++
-		case ')':
-			if depth > 0 {
-				depth--
-			}
-		case ',':
-			if depth == 0 {
-				out = append(out, strings.TrimSpace(value[start:i]))
-				start = i + len(string(r))
-			}
-		}
-	}
-	out = append(out, strings.TrimSpace(value[start:]))
-	return out
-}
-
-func splitGridTemplate(value string) []string {
-	var out []string
-	var b strings.Builder
-	depth := 0
-	flush := func() {
-		token := strings.TrimSpace(b.String())
-		if token != "" {
-			out = append(out, token)
-		}
-		b.Reset()
-	}
-	for _, r := range value {
-		switch {
-		case r == '(':
-			depth++
-			b.WriteRune(r)
-		case r == ')':
-			if depth > 0 {
-				depth--
-			}
-			b.WriteRune(r)
-		case depth == 0 && unicode.IsSpace(r):
-			flush()
-		default:
-			b.WriteRune(r)
-		}
-	}
-	flush()
-	return out
-}
-
-func matchingGridCloseParen(value string, open int) int {
-	depth := 0
-	for i := open; i < len(value); i++ {
-		switch value[i] {
-		case '(':
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				return i
-			}
-		}
-	}
-	return -1
 }

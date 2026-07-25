@@ -8,13 +8,10 @@ import (
 	"github.com/avdoseferovic/paper/internal/require"
 )
 
-func TestMMFromPx_RoundTripsPxFromMM(t *testing.T) {
+func TestPxFromMM_ConvertsOneInchToDPI(t *testing.T) {
 	t.Parallel()
 
-	px := pxFromMM(25.4)
-
-	assert.Equal(t, int(DPIForRaster), px)
-	assert.InDelta(t, 25.4, MMFromPx(px), 0.2)
+	assert.Equal(t, int(DPIForRaster), pxFromMM(25.4))
 }
 
 func TestPxFromMM_ClampsToOnePixel(t *testing.T) {

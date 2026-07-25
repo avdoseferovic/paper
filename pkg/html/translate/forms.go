@@ -41,8 +41,8 @@ const (
 	inputTypePassword = "password"
 )
 
-func (tr *translator) formControlRowsContext(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
-	runCtx := tr.styledRunContextContext(ctx, style)
+func (tr *translator) formControlRows(n *dom.Node, style *css.ComputedStyle) []core.Row {
+	runCtx := tr.styledRunContext(style)
 	runs, handled := formControlRuns(n, runCtx)
 	if !handled || len(runs) == 0 {
 		return nil
@@ -59,7 +59,7 @@ func (tr *translator) formControlRowsContext(ctx context.Context, n *dom.Node, s
 func (tr *translator) fieldsetRows(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
 	fieldsetStyle := fieldsetStyleWithDefaults(style)
 	rows := tr.fieldsetChildRows(ctx, n, fieldsetStyle)
-	return []core.Row{tr.buildContainerRowContext(ctx, fieldsetStyle, rows)}
+	return []core.Row{tr.buildContainerRow(fieldsetStyle, rows)}
 }
 
 func (tr *translator) fieldsetChildRows(ctx context.Context, n *dom.Node, style *css.ComputedStyle) []core.Row {
@@ -69,7 +69,7 @@ func (tr *translator) fieldsetChildRows(ctx context.Context, n *dom.Node, style 
 			continue
 		}
 		if child.Tag() == tagLegend {
-			rows = append(rows, tr.legendRows(ctx, child, style)...)
+			rows = append(rows, tr.legendRows(child, style)...)
 			continue
 		}
 		rows = append(rows, tr.blockRowsWithParent(ctx, child, style)...)
@@ -77,13 +77,13 @@ func (tr *translator) fieldsetChildRows(ctx context.Context, n *dom.Node, style 
 	return rows
 }
 
-func (tr *translator) legendRows(ctx context.Context, n *dom.Node, parentStyle *css.ComputedStyle) []core.Row {
+func (tr *translator) legendRows(n *dom.Node, parentStyle *css.ComputedStyle) []core.Row {
 	style := tr.computeBlockStyle(n, parentStyle)
 	if strings.TrimSpace(style.FontWeight) == "" {
 		style = cloneComputedStyle(style)
 		style.FontWeight = "bold"
 	}
-	return []core.Row{tr.paragraphRowStyledContext(ctx, n, style)}
+	return []core.Row{tr.paragraphRowStyled(n, style)}
 }
 
 func fieldsetStyleWithDefaults(style *css.ComputedStyle) *css.ComputedStyle {

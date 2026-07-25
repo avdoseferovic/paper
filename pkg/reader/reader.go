@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/avdoseferovic/paper/internal/pdfscan"
 	"github.com/avdoseferovic/paper/pkg/merge"
 )
 
@@ -772,7 +773,7 @@ func tokenizeContent(data []byte) []pdfToken {
 	for i := 0; i < len(data); {
 		c := data[i]
 		switch {
-		case isPDFSpace(c):
+		case pdfscan.IsSpace(c):
 			i++
 		case c == '%':
 			for i < len(data) && data[i] != '\n' && data[i] != '\r' {
@@ -799,7 +800,7 @@ func tokenizeContent(data []byte) []pdfToken {
 			i++
 		default:
 			start := i
-			for i < len(data) && !isPDFSpace(data[i]) && !isPDFDelimiter(data[i]) {
+			for i < len(data) && !pdfscan.IsSpace(data[i]) && !pdfscan.IsDelimiter(data[i]) {
 				i++
 			}
 			if start == i {
@@ -892,7 +893,7 @@ func parseHexString(data []byte, start int) (string, int) {
 			i++
 			break
 		}
-		if isPDFSpace(data[i]) {
+		if pdfscan.IsSpace(data[i]) {
 			continue
 		}
 		hexDigits.WriteByte(data[i])
@@ -906,19 +907,6 @@ func parseHexString(data []byte, start int) (string, int) {
 		return "", i
 	}
 	return string(decoded), i
-}
-
-func isPDFSpace(c byte) bool {
-	return c == 0 || c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == ' '
-}
-
-func isPDFDelimiter(c byte) bool {
-	switch c {
-	case '(', ')', '<', '>', '[', ']', '{', '}', '/', '%':
-		return true
-	default:
-		return false
-	}
 }
 
 func isOctalDigit(c byte) bool {

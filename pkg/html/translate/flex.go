@@ -538,20 +538,8 @@ func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *c
 		applyBlockStyling(n, runs)
 		rt := richtext.New(runs, richTextPropsFromStyle(style))
 		if shouldUseContainer(style) {
-			paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
 			r := row.New().Add(col.New().Add(rt))
-			return &blockContainer{
-				rows:          []core.Row{r},
-				style:         tr.blockCellStyle(style),
-				paddingTop:    paddingTop,
-				paddingRight:  paddingRight,
-				paddingBottom: paddingBottom,
-				paddingLeft:   paddingLeft,
-				height:        style.Height,
-				minHeight:     style.MinHeight,
-				maxHeight:     style.MaxHeight,
-				breakInside:   style.BreakInside == breakInsideAvoid,
-			}
+			return tr.newBlockContainer(style, []core.Row{r})
 		}
 		return rt
 	}
@@ -578,36 +566,13 @@ func (tr *translator) flexItemContent(ctx context.Context, n *dom.Node, style *c
 	// When this flex item has its own background/border/padding, wrap the
 	// children in a styled blockContainer so the styling spans them all.
 	if shouldUseContainer(style) {
-		paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
-		return &blockContainer{
-			rows:          subRows,
-			style:         tr.blockCellStyle(style),
-			paddingTop:    paddingTop,
-			paddingRight:  paddingRight,
-			paddingBottom: paddingBottom,
-			paddingLeft:   paddingLeft,
-			height:        style.Height,
-			minHeight:     style.MinHeight,
-			maxHeight:     style.MaxHeight,
-			breakInside:   style.BreakInside == breakInsideAvoid,
-		}
+		return tr.newBlockContainer(style, subRows)
 	}
 	return newFlexCellContent(subRows)
 }
 
 func (tr *translator) emptyFlexItemBox(style *css.ComputedStyle) core.Component {
-	paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
-	return &blockContainer{
-		style:         tr.blockCellStyle(style),
-		paddingTop:    paddingTop,
-		paddingRight:  paddingRight,
-		paddingBottom: paddingBottom,
-		paddingLeft:   paddingLeft,
-		height:        style.Height,
-		minHeight:     style.MinHeight,
-		maxHeight:     style.MaxHeight,
-		breakInside:   style.BreakInside == breakInsideAvoid,
-	}
+	return tr.newBlockContainer(style, nil)
 }
 
 // isLeafFlexItem returns true when a node has no block-level children.

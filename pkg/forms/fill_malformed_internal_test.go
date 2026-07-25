@@ -6,9 +6,9 @@ import (
 )
 
 // TestAppendFormPageContent_RejectsUnterminatedArray covers a page dictionary
-// whose /Contents array is never closed. formSkipArray then stops at the end of
-// the content, and slicing the array interior panicked with slice bounds out of
-// range while flattening a malformed PDF.
+// whose /Contents array is never closed. pdfscan.SkipArray then stops at the end
+// of the content, and slicing the array interior panicked with slice bounds out
+// of range while flattening a malformed PDF.
 func TestAppendFormPageContent_RejectsUnterminatedArray(t *testing.T) {
 	t.Parallel()
 
@@ -44,7 +44,6 @@ func TestAppendFormPageContent_AppendsToClosedArray(t *testing.T) {
 			t.Parallel()
 
 			out, err := appendFormPageContent([]byte(tc.content), 9)
-
 			if err != nil {
 				t.Fatalf("appendFormPageContent() error = %v", err)
 			}

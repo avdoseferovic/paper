@@ -44,12 +44,8 @@ var (
 	errBaseDirEmpty        = errors.New("html: base dir is empty; refusing all local reads")
 )
 
-// safeDefaultResolver only accepts data: URIs. It refuses any other src to
-// prevent path-traversal attacks on user-controlled HTML.
-func safeDefaultResolver(src string) ([]byte, string, error) {
-	return safeDefaultResolverWithLimits(src, htmllimits.Default())
-}
-
+// safeDefaultResolverWithLimits only accepts data: URIs. It refuses any other
+// src to prevent path-traversal attacks on user-controlled HTML.
 func safeDefaultResolverWithLimits(src string, limits htmllimits.Limits) ([]byte, string, error) {
 	if strings.HasPrefix(src, "data:") {
 		return decodeDataURIWithLimits(src, limits)
@@ -112,12 +108,8 @@ func decodeDataURIWithLimits(uri string, limits htmllimits.Limits) ([]byte, stri
 	return data, ext, nil
 }
 
-// baseDirResolver returns a resolver that only loads files inside dir,
-// rejecting any path that would escape via "../" or absolute prefix.
-func baseDirResolver(dir string) ImageResolver {
-	return baseDirResolverWithLimits(dir, htmllimits.Default())
-}
-
+// baseDirResolverWithLimits returns a resolver that only loads files inside
+// dir, rejecting any path that would escape via "../" or absolute prefix.
 func baseDirResolverWithLimits(dir string, limits htmllimits.Limits) ImageResolver {
 	return func(src string) ([]byte, string, error) {
 		if strings.HasPrefix(src, "data:") {
@@ -151,8 +143,8 @@ func extFromFilename(name string) string {
 	}
 }
 
-// imageRow builds a block-level row for <img>. Returns the row and ok=true on
-// success; ok=false signals the caller to fall back to alt text.
+// imageRowWithStyle builds a block-level row for <img>. Returns the row and
+// ok=true on success; ok=false signals the caller to fall back to alt text.
 func (tr *translator) imageRowWithStyle(n *dom.Node, style *css.ComputedStyle) (core.Row, bool) {
 	src := tr.selectedImageSource(n)
 	if src == "" {
@@ -190,31 +182,29 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	}
 
 	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 10)
+	return tr.imageRow(data, extType, widthMM, heightMM, style), true
+}
 
-	// Pick a small col that approximates the requested mm width. The image
-	// fills the col (Percent=100, Center=true). Using a small col instead of
-	// a full-width col + tiny Percent avoids the SVG getting visually squashed.
-	cellWidth := tr.contentWidthMM
-	if cellWidth <= 0 {
-		cellWidth = defaultContentWidthMM
-	}
-	gridSize := tr.gridSize
-	if gridSize <= 0 {
-		gridSize = defaultGridSize
-	}
-	imgCols := imageCols(widthMM, cellWidth, gridSize)
+// imageRow builds the block-level row for a decoded image. The col is sized to
+// approximate widthMM and the image fills it (Percent=100, Center=true); using a
+// small col instead of a full-width col with a tiny Percent avoids the image
+// getting visually squashed.
+func (tr *translator) imageRow(
+	data []byte,
+	extType extension.Type,
+	widthMM, heightMM float64,
+	style *css.ComputedStyle,
+) core.Row {
+	imgCols := imageCols(widthMM, tr.availableContentWidth(), tr.gridSize)
 	if isVisibilityHidden(style) {
-		return row.New(heightMM).Add(col.New(imgCols)), true
+		return row.New(heightMM).Add(col.New(imgCols))
 	}
-
 	rect := props.Rect{Percent: 100, Center: true}
 	if style != nil {
 		rect.ObjectFit = style.ObjectFit
 		rect.ObjectPosition = style.ObjectPosition
 	}
-	img := imagecomp.NewFromBytes(data, extType, rect)
-	c := col.New(imgCols).Add(img)
-	return row.New(heightMM).Add(c), true
+	return row.New(heightMM).Add(col.New(imgCols).Add(imagecomp.NewFromBytes(data, extType, rect)))
 }
 
 func (tr *translator) inlineImage(n *dom.Node) (*props.RichImage, bool) {
@@ -651,26 +641,7 @@ func (tr *translator) svgRowWithStyle(n *dom.Node, style *css.ComputedStyle) (co
 	}
 	intrinsicWidth, intrinsicHeight := svgIntrinsicSizeMM(widthPx, heightPx)
 	widthMM, heightMM := resolveImageDimensions(dimensions, intrinsicWidth, intrinsicHeight, 10)
-
-	cellWidth := tr.contentWidthMM
-	if cellWidth <= 0 {
-		cellWidth = defaultContentWidthMM
-	}
-	gridSize := tr.gridSize
-	if gridSize <= 0 {
-		gridSize = defaultGridSize
-	}
-	imgCols := imageCols(widthMM, cellWidth, gridSize)
-	if isVisibilityHidden(style) {
-		return row.New(heightMM).Add(col.New(imgCols)), true
-	}
-	rect := props.Rect{Percent: 100, Center: true}
-	if style != nil {
-		rect.ObjectFit = style.ObjectFit
-		rect.ObjectPosition = style.ObjectPosition
-	}
-	img := imagecomp.NewFromBytes(pngBytes, extension.Png, rect)
-	return row.New(heightMM).Add(col.New(imgCols).Add(img)), true
+	return tr.imageRow(pngBytes, extension.Png, widthMM, heightMM, style), true
 }
 
 func (tr *translator) inlineSVG(n *dom.Node) (*props.RichImage, bool) {

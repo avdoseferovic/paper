@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/avdoseferovic/paper/internal/pdfscan"
 	"github.com/avdoseferovic/paper/pkg/merge"
 )
 
@@ -203,7 +204,7 @@ func blankPagePDF(width, height float64) []byte {
 }
 
 func setReaderDictionaryEntry(content []byte, key, value string) ([]byte, error) {
-	cleaned := removeReaderDictionaryEntry(bytes.TrimSpace(content), key)
+	cleaned := pdfscan.RemoveDictEntry(bytes.TrimSpace(content), key)
 	end := bytes.LastIndex(cleaned, []byte(">>"))
 	if end < 0 {
 		return nil, fmt.Errorf("%w: page dictionary is malformed", ErrUnsupportedPDF)
@@ -215,190 +216,9 @@ func setReaderDictionaryEntry(content []byte, key, value string) ([]byte, error)
 	return out.Bytes(), nil
 }
 
-func removeReaderDictionaryEntry(dictionary []byte, key string) []byte {
-	idx := readerKeyIndex(dictionary, key)
-	if idx < 0 {
-		return dictionary
-	}
-	valueStart := readerSkipSpaces(dictionary, idx+len(key)+1)
-	valueEnd := readerSkipPDFValue(dictionary, valueStart)
-	if valueEnd <= valueStart {
-		return dictionary
-	}
-	out := make([]byte, 0, len(dictionary)-(valueEnd-idx))
-	out = append(out, bytes.TrimRight(dictionary[:idx], " \t\r\n")...)
-	out = append(out, ' ')
-	out = append(out, bytes.TrimLeft(dictionary[valueEnd:], " \t\r\n")...)
-	return out
-}
-
-func readerKeyIndex(content []byte, key string) int {
-	marker := []byte("/" + key)
-	searchFrom := 0
-	for searchFrom < len(content) {
-		idx := bytes.Index(content[searchFrom:], marker)
-		if idx < 0 {
-			return -1
-		}
-		idx += searchFrom
-		after := idx + len(marker)
-		if after >= len(content) || !isReaderNameChar(content[after]) {
-			return idx
-		}
-		searchFrom = after
-	}
-	return -1
-}
-
-func readerSkipPDFValue(data []byte, start int) int {
-	start = readerSkipSpaces(data, start)
-	if start >= len(data) {
-		return start
-	}
-	if bytes.HasPrefix(data[start:], []byte("<<")) {
-		return readerSkipBalanced(data, start, []byte("<<"), []byte(">>"))
-	}
-	if end, ok := readerSkipIndirectRef(data, start); ok {
-		return end
-	}
-	switch data[start] {
-	case '[':
-		return readerSkipArray(data, start)
-	case '(':
-		return readerSkipLiteral(data, start)
-	default:
-		return readerSkipToken(data, start)
-	}
-}
-
-func readerSkipBalanced(data []byte, start int, open, closing []byte) int {
-	depth := 0
-	for i := start; i < len(data); {
-		switch {
-		case bytes.HasPrefix(data[i:], open):
-			depth++
-			i += len(open)
-		case bytes.HasPrefix(data[i:], closing):
-			depth--
-			i += len(closing)
-			if depth == 0 {
-				return i
-			}
-		case data[i] == '(':
-			i = readerSkipLiteral(data, i)
-		default:
-			i++
-		}
-	}
-	return len(data)
-}
-
-func readerSkipArray(data []byte, start int) int {
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case '[':
-			depth++
-		case ']':
-			depth--
-			if depth == 0 {
-				return i + 1
-			}
-		case '(':
-			i = readerSkipLiteral(data, i)
-			i--
-		}
-	}
-	return len(data)
-}
-
-func readerSkipIndirectRef(data []byte, start int) (int, bool) {
-	start = readerSkipSpaces(data, start)
-	firstEnd := readerSkipToken(data, start)
-	if firstEnd <= start {
-		return start, false
-	}
-	_, err := strconv.Atoi(string(data[start:firstEnd]))
-	if err != nil {
-		return start, false
-	}
-	secondStart := readerSkipSpaces(data, firstEnd)
-	secondEnd := readerSkipToken(data, secondStart)
-	if secondEnd <= secondStart {
-		return start, false
-	}
-	_, err = strconv.Atoi(string(data[secondStart:secondEnd]))
-	if err != nil {
-		return start, false
-	}
-	refStart := readerSkipSpaces(data, secondEnd)
-	if refStart >= len(data) || data[refStart] != 'R' {
-		return start, false
-	}
-	return refStart + 1, true
-}
-
-func readerSkipLiteral(data []byte, start int) int {
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case '\\':
-			if i+1 < len(data) {
-				i++
-			}
-		case '(':
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				return i + 1
-			}
-		}
-	}
-	return len(data)
-}
-
-func readerSkipSpaces(data []byte, start int) int {
-	for start < len(data) && isReaderPDFSpace(data[start]) {
-		start++
-	}
-	return start
-}
-
-func readerSkipToken(data []byte, start int) int {
-	i := start
-	for i < len(data) && !isReaderPDFSpace(data[i]) && !isReaderPDFDelimiter(data[i]) {
-		i++
-	}
-	if i == start && i < len(data) {
-		return i + 1
-	}
-	return i
-}
-
 func formatReaderNumber(v float64) string {
 	if v == float64(int(v)) {
 		return strconv.Itoa(int(v))
 	}
 	return strconv.FormatFloat(v, 'f', 2, 64)
-}
-
-func isReaderNameChar(c byte) bool {
-	return (c >= 'A' && c <= 'Z') ||
-		(c >= 'a' && c <= 'z') ||
-		(c >= '0' && c <= '9') ||
-		c == '_' || c == '-' || c == '.' || c == '#'
-}
-
-func isReaderPDFSpace(c byte) bool {
-	return c == 0 || c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == ' '
-}
-
-func isReaderPDFDelimiter(c byte) bool {
-	switch c {
-	case '(', ')', '<', '>', '[', ']', '{', '}', '/', '%':
-		return true
-	default:
-		return false
-	}
 }

@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"maps"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -342,13 +341,13 @@ func blockContainerPadding(style *css.ComputedStyle) (float64, float64, float64,
 		style.PaddingLeft + visibleBorderWidth(style.BorderLeftWidth, style.BorderLeftStyle)
 }
 
-// buildContainerRow wraps the given child rows into a single splittableContainerRow.
-func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
-	cellStyle := tr.blockCellStyle(style)
+// newBlockContainer wraps rows in the box model derived from style: padding
+// (including visible border widths), height clamps and break-inside.
+func (tr *translator) newBlockContainer(style *css.ComputedStyle, rows []core.Row) *blockContainer {
 	paddingTop, paddingRight, paddingBottom, paddingLeft := blockContainerPadding(style)
-	container := &blockContainer{
-		rows:          childRows,
-		style:         cellStyle,
+	return &blockContainer{
+		rows:          rows,
+		style:         tr.blockCellStyle(style),
 		paddingTop:    paddingTop,
 		paddingRight:  paddingRight,
 		paddingBottom: paddingBottom,
@@ -358,14 +357,11 @@ func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []co
 		maxHeight:     style.MaxHeight,
 		breakInside:   style.BreakInside == breakInsideAvoid,
 	}
-	return newSplittableContainerRow(container)
 }
 
-// buildContainerRowContext is buildContainerRow for context-aware call paths.
-// Row assembly is synchronous, so ctx is not consulted beyond the caller's own
-// cancellation checks.
-func (tr *translator) buildContainerRowContext(_ context.Context, style *css.ComputedStyle, childRows []core.Row) core.Row {
-	return tr.buildContainerRow(style, childRows)
+// buildContainerRow wraps the given child rows into a single splittableContainerRow.
+func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []core.Row) core.Row {
+	return newSplittableContainerRow(tr.newBlockContainer(style, childRows))
 }
 
 // splittableContainerRow wraps a blockContainer in a real row.Row (so it

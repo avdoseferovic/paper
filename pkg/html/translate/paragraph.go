@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -80,13 +79,6 @@ func containsFormControl(n *dom.Node) bool {
 		}
 	}
 	return false
-}
-
-// paragraphRowStyledContext is paragraphRowStyled for context-aware call
-// paths. Run assembly is synchronous, so ctx is not consulted beyond the
-// caller's own cancellation checks.
-func (tr *translator) paragraphRowStyledContext(_ context.Context, n *dom.Node, style *css.ComputedStyle) core.Row {
-	return tr.paragraphRowStyled(n, style)
 }
 
 func richTextPropsFromStyle(style *css.ComputedStyle) props.RichText {

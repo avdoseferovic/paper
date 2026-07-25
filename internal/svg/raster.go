@@ -92,8 +92,6 @@ func RasterizeWithLimit(svgBytes []byte, widthMM, heightMM float64, maxPixels in
 	return encoded.Bytes(), pxW, pxH, nil
 }
 
-func MMFromPx(px int) float64 { return float64(px) / DPIForRaster * 25.4 }
-
 func pxFromMM(mm float64) int {
 	px := int(mm / 25.4 * DPIForRaster)
 	if px < 1 {

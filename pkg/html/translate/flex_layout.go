@@ -7,20 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/html/css"
 )
 
-// Hamilton distributes total integer units across items proportionally to
-// their weights using the largest-remainder method (Hamilton's method).
-// Returns []int{} for empty input; zero-weight inputs get equal split.
-func Hamilton(weights []float64, total int) []int {
-	return layout.Hamilton(weights, total)
-}
-
 const defaultFlexContentWidthMM = 170.0
-
-// computeFlexSizes allocates gridSize integer cells across flex items using the
-// default A4-ish content width. Tests use this wrapper to preserve the old hook.
-func computeFlexSizes(styles []*css.ComputedStyle, gridSize int) []int {
-	return computeFlexSizesForWidth(styles, gridSize, defaultFlexContentWidthMM)
-}
 
 // computeFlexSizesForWidth allocates gridSize integer cells across flex items.
 // Percentage and length-basis items get a fixed share first; remaining cells go
