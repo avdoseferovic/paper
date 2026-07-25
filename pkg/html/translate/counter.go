@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/avdoseferovic/paper/internal/listnum"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 )
 
@@ -163,52 +164,12 @@ func formatAlphaCounter(value int, upper bool) string {
 	if value <= 0 {
 		return strconv.Itoa(value)
 	}
-	var out []byte
-	for value > 0 {
-		value--
-		ch := byte('a' + value%26)
-		if upper {
-			ch = byte('A' + value%26)
-		}
-		out = append([]byte{ch}, out...)
-		value /= 26
-	}
-	return string(out)
+	return listnum.Alpha(value, upper)
 }
 
 func formatRomanCounter(value int, upper bool) string {
 	if value <= 0 || value > 3999 {
 		return strconv.Itoa(value)
 	}
-	pairs := []struct {
-		value int
-		upper string
-		lower string
-	}{
-		{1000, "M", "m"},
-		{900, "CM", "cm"},
-		{500, "D", "d"},
-		{400, "CD", "cd"},
-		{100, "C", "c"},
-		{90, "XC", "xc"},
-		{50, "L", "l"},
-		{40, "XL", "xl"},
-		{10, "X", "x"},
-		{9, "IX", "ix"},
-		{5, "V", "v"},
-		{4, "IV", "iv"},
-		{1, "I", "i"},
-	}
-	var out strings.Builder
-	for _, pair := range pairs {
-		for value >= pair.value {
-			if upper {
-				out.WriteString(pair.upper)
-			} else {
-				out.WriteString(pair.lower)
-			}
-			value -= pair.value
-		}
-	}
-	return out.String()
+	return listnum.Roman(value, upper)
 }

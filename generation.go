@@ -84,19 +84,28 @@ func (m *Paper) generateSequentially(ctx context.Context) (*core.Pdf, error) {
 	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(provider))), nil
 }
 
-func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
+// chunkedPageGroups splits the built pages into ChunkWorkers groups of equal
+// size (the last group takes the remainder), aborting on context cancellation.
+func (m *Paper) chunkedPageGroups(ctx context.Context) ([][]core.Page, error) {
 	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
 	if chunks == 0 {
 		chunks = 1
 	}
 	pageGroups := make([][]core.Page, 0)
 	for i := 0; i < len(m.pageBuilder.pages); i += chunks {
-		err := generationCanceled(ctx)
-		if err != nil {
+		if err := generationCanceled(ctx); err != nil {
 			return nil, err
 		}
 		end := min(i+chunks, len(m.pageBuilder.pages))
 		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
+	}
+	return pageGroups, nil
+}
+
+func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
+	pageGroups, err := m.chunkedPageGroups(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, m.processPages)
@@ -122,19 +131,9 @@ func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
 }
 
 func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
-	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
-	if chunks == 0 {
-		chunks = 1
-	}
-
-	pageGroups := make([][]core.Page, 0)
-	for i := 0; i < len(m.pageBuilder.pages); i += chunks {
-		err := generationCanceled(ctx)
-		if err != nil {
-			return nil, err
-		}
-		end := min(i+chunks, len(m.pageBuilder.pages))
-		pageGroups = append(pageGroups, m.pageBuilder.pages[i:end])
+	pageGroups, err := m.chunkedPageGroups(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var results []pageProcessResult
@@ -155,8 +154,7 @@ func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 	}
 
 	pdfResults, issues := splitPageProcessResults(results)
-	err := generationCanceled(ctx)
-	if err != nil {
+	if err := generationCanceled(ctx); err != nil {
 		return nil, err
 	}
 	mergedBytes, err := merge.Bytes(ctx, pdfResults...)

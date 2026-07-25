@@ -105,33 +105,42 @@ func (p *pageContextProviderStub) CreateCol(float64, float64, *entity.Config, *p
 func (p *pageContextProviderStub) AddLine(*entity.Cell, *props.Line) {}
 func (p *pageContextProviderStub) AddText(string, *entity.Cell, *props.Text) {
 }
+
 func (p *pageContextProviderStub) AddCheckbox(string, *entity.Cell, *props.Checkbox) {
 }
 func (p *pageContextProviderStub) GetFontHeight(*props.Font) float64 { return 1 }
 func (p *pageContextProviderStub) GetLinesQuantity(string, *props.Text, float64) int {
 	return 1
 }
+
 func (p *pageContextProviderStub) AddMatrixCode(string, *entity.Cell, *props.Rect) {
 }
 func (p *pageContextProviderStub) AddQrCode(string, *entity.Cell, *props.Rect) {}
 func (p *pageContextProviderStub) AddBarCode(string, *entity.Cell, *props.Barcode) {
 }
+
 func (p *pageContextProviderStub) GetDimensionsByMatrixCode(string) (*entity.Dimensions, error) {
 	return nil, nil
 }
+
 func (p *pageContextProviderStub) GetDimensionsByQrCode(string) (*entity.Dimensions, error) {
 	return nil, nil
 }
+
 func (p *pageContextProviderStub) GetDimensionsByImageByte([]byte, extension.Type) (*entity.Dimensions, error) {
 	return nil, nil
 }
+
 func (p *pageContextProviderStub) GetDimensionsByImage(string) (*entity.Dimensions, error) {
 	return nil, nil
 }
+
 func (p *pageContextProviderStub) AddImageFromFile(string, *entity.Cell, *props.Rect) {
 }
+
 func (p *pageContextProviderStub) AddImageFromBytes([]byte, *entity.Cell, *props.Rect, extension.Type) {
 }
+
 func (p *pageContextProviderStub) AddBackgroundImageFromBytes([]byte, *entity.Cell, *props.Rect, extension.Type) {
 }
 func (p *pageContextProviderStub) GenerateBytes() ([]byte, error)   { return nil, nil }
@@ -156,6 +165,7 @@ func (r *pageContextRecordingRow) GetColumns() []core.Col { return nil }
 func (r *pageContextRecordingRow) WithStyle(*props.Cell) core.Row {
 	return r
 }
+
 func (r *pageContextRecordingRow) Render(provider core.Provider, _ entity.Cell) {
 	ctx := provider.(*pageContextProviderStub)
 	entry := fmt.Sprintf("%d/%d", ctx.current, ctx.total)

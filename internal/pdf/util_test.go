@@ -20,17 +20,6 @@ func TestSliceUncompressInvalidDataReturnsError(t *testing.T) {
 	}
 }
 
-func TestRemoveIntPreservesSliceWhenValueIsMissing(t *testing.T) {
-	t.Parallel()
-
-	input := []int{10, 20, 30}
-	got := removeInt(input, 99)
-
-	if !reflect.DeepEqual(got, input) {
-		t.Fatalf("expected missing value removal to preserve slice; got %v", got)
-	}
-}
-
 func TestUTF8ToUTF16SupplementaryPlaneUsesSurrogatePair(t *testing.T) {
 	t.Parallel()
 
@@ -178,18 +167,6 @@ func TestIsChineseDetectsCJKRange(t *testing.T) {
 func TestFontFamilyEscapeReplacesSpaces(t *testing.T) {
 	if got := fontFamilyEscape("Times New Roman"); got != "Times#20New#20Roman" {
 		t.Errorf("fontFamilyEscape = %q", got)
-	}
-}
-
-func TestRemoveIntRemovesFirstMatch(t *testing.T) {
-	got := removeInt([]int{1, 2, 3, 2}, 2)
-	if len(got) != 3 || got[0] != 1 || got[1] != 3 || got[2] != 2 {
-		t.Errorf("removeInt = %v", got)
-	}
-	// Absent key returns slice unchanged.
-	got = removeInt([]int{4, 5}, 9)
-	if len(got) != 2 {
-		t.Errorf("removeInt missing key changed slice: %v", got)
 	}
 }
 

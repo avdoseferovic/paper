@@ -1,35 +1,11 @@
 package translate
 
 import (
-	"context"
-
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
-
-// inlineRuns walks the inline children of a block element and returns the run list.
-// <br> becomes "\n"; <img> becomes an image run when a translator resolver is available.
-func inlineRuns(n *dom.Node) []props.RichRun {
-	return inlineRunsWithHandler(n, nil)
-}
-
-// inlineRunsWithHandler is the same as inlineRuns but surfaces side-channel
-// information (e.g. <abbr title="…"> tooltip text, <time datetime="…">) via
-// the given unsupportedHandler. nil handler disables side-channel reporting.
-func inlineRunsWithHandler(n *dom.Node, h func(thing, value string)) []props.RichRun {
-	return inlineRunsWithContext(n, runContext{handler: h})
-}
-
-func (tr *translator) inlineRuns(n *dom.Node) []props.RichRun {
-	return inlineRunsWithContext(n, runContext{
-		handler:       tr.unsupportedHandler,
-		inlineImage:   tr.inlineImage,
-		inlinePicture: tr.inlinePicture,
-		inlineSVG:     tr.inlineSVG,
-	})
-}
 
 func (tr *translator) inlineRunsStyled(n *dom.Node, style *css.ComputedStyle) []props.RichRun {
 	return tr.applyFallbackFontRuns(inlineRunsWithContext(n, tr.styledRunContext(style)))
@@ -46,13 +22,6 @@ func (tr *translator) applyFallbackFontRuns(runs []props.RichRun) []props.RichRu
 		out = append(out, fallbackRunsFromRun(run, true)...)
 	}
 	return out
-}
-
-// styledRunContextContext is styledRunContext for context-aware call paths.
-// The runContext walk itself is synchronous and non-blocking, so ctx is not
-// consulted beyond the caller's own cancellation checks.
-func (tr *translator) styledRunContextContext(_ context.Context, style *css.ComputedStyle) runContext {
-	return tr.styledRunContext(style)
 }
 
 func (tr *translator) styledRunContext(style *css.ComputedStyle) runContext {

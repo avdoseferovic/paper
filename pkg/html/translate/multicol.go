@@ -3,6 +3,7 @@ package translate
 import (
 	"context"
 
+	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
@@ -92,7 +93,7 @@ func (tr *translator) multiColumnSegmentRow(
 	for i := range weights {
 		weights[i] = 1
 	}
-	sizes := bumpZerosWithoutOverflow(Hamilton(weights, available), available)
+	sizes := bumpZerosWithoutOverflow(layout.Hamilton(weights, available), available)
 	r := newBalancedMultiColumnRow(columnCount, gapCols, sizes, rows)
 	return newColumnRuleRow(
 		r,

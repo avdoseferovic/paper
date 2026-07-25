@@ -292,7 +292,7 @@ func appendSkewTransform(ops []props.TransformOp, name string, parts []string) [
 }
 
 func parseTransformOrigin(value string, width, height, fontSize float64) (float64, float64) {
-	parts := splitTransformFields(strings.ToLower(strings.TrimSpace(value)))
+	parts := splitTopLevelFields(strings.ToLower(strings.TrimSpace(value)))
 	if len(parts) == 0 {
 		return width / 2, height / 2
 	}
@@ -549,26 +549,10 @@ func transformFunction(value string) (string, string, bool) {
 	return strings.TrimSpace(value[:open]), value[open+1 : closeIdx], true
 }
 
-func matchingCloseParen(value string, open int) int {
-	depth := 0
-	for i := open; i < len(value); i++ {
-		switch value[i] {
-		case '(':
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				return i
-			}
-		}
-	}
-	return -1
-}
-
 func splitTransformArgs(value string) []string {
-	parts := splitTransformCommas(value)
+	parts := splitTopLevelCommas(value)
 	if len(parts) <= 1 {
-		parts = splitTransformFields(value)
+		parts = splitTopLevelFields(value)
 	}
 	out := parts[:0]
 	for _, part := range parts {
@@ -577,59 +561,5 @@ func splitTransformArgs(value string) []string {
 			out = append(out, part)
 		}
 	}
-	return out
-}
-
-func splitTransformCommas(value string) []string {
-	var out []string
-	depth := 0
-	start := 0
-	for i, r := range value {
-		switch r {
-		case '(':
-			depth++
-		case ')':
-			if depth > 0 {
-				depth--
-			}
-		case ',':
-			if depth == 0 {
-				out = append(out, strings.TrimSpace(value[start:i]))
-				start = i + len(string(r))
-			}
-		}
-	}
-	out = append(out, strings.TrimSpace(value[start:]))
-	return out
-}
-
-func splitTransformFields(value string) []string {
-	var out []string
-	var b strings.Builder
-	depth := 0
-	flush := func() {
-		token := strings.TrimSpace(b.String())
-		if token != "" {
-			out = append(out, token)
-		}
-		b.Reset()
-	}
-	for _, r := range value {
-		switch {
-		case r == '(':
-			depth++
-			b.WriteRune(r)
-		case r == ')':
-			if depth > 0 {
-				depth--
-			}
-			b.WriteRune(r)
-		case depth == 0 && unicode.IsSpace(r):
-			flush()
-		default:
-			b.WriteRune(r)
-		}
-	}
-	flush()
 	return out
 }

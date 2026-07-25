@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avdoseferovic/paper/internal/pdfscan"
 	"github.com/avdoseferovic/paper/pkg/reader"
 )
 
@@ -317,11 +318,11 @@ func acroFormContent(info parsedPDFInfo) []byte {
 	if idx < 0 {
 		return nil
 	}
-	valueStart := skipSpaces(root, idx+len("/AcroForm"))
+	valueStart := pdfscan.SkipSpaces(root, idx+len("/AcroForm"))
 	if !bytes.HasPrefix(root[valueStart:], []byte("<<")) {
 		return nil
 	}
-	valueEnd := skipBalanced(root, valueStart, []byte("<<"), []byte(">>"))
+	valueEnd := pdfscan.SkipBalanced(root, valueStart, []byte("<<"), []byte(">>"))
 	if valueEnd <= valueStart {
 		return nil
 	}
@@ -366,8 +367,8 @@ func removeDictionaryEntry(dictionary []byte, key string) []byte {
 	if idx < 0 {
 		return dictionary
 	}
-	valueStart := skipSpaces(dictionary, idx+len(marker))
-	valueEnd := skipPDFValue(dictionary, valueStart)
+	valueStart := pdfscan.SkipSpaces(dictionary, idx+len(marker))
+	valueEnd := pdfscan.SkipValue(dictionary, valueStart)
 	if valueEnd <= valueStart {
 		return dictionary
 	}
@@ -376,136 +377,6 @@ func removeDictionaryEntry(dictionary []byte, key string) []byte {
 	out = append(out, ' ')
 	out = append(out, bytes.TrimLeft(dictionary[valueEnd:], " \t\r\n")...)
 	return out
-}
-
-func skipPDFValue(data []byte, start int) int {
-	start = skipSpaces(data, start)
-	if start >= len(data) {
-		return start
-	}
-	if bytes.HasPrefix(data[start:], []byte("<<")) {
-		return skipBalanced(data, start, []byte("<<"), []byte(">>"))
-	}
-	switch data[start] {
-	case '[':
-		return skipBracketed(data, start, '[', ']')
-	case '(':
-		return skipLiteral(data, start)
-	}
-	if end, ok := skipIndirectReference(data, start); ok {
-		return end
-	}
-	return skipToken(data, start)
-}
-
-func skipIndirectReference(data []byte, start int) (int, bool) {
-	end := skipToken(data, start)
-	first := strings.TrimSpace(string(data[start:end]))
-	_, err := strconv.Atoi(first)
-	if err != nil {
-		return start, false
-	}
-	secondStart := skipSpaces(data, end)
-	secondEnd := skipToken(data, secondStart)
-	second := strings.TrimSpace(string(data[secondStart:secondEnd]))
-	_, err = strconv.Atoi(second)
-	if err != nil {
-		return start, false
-	}
-	refStart := skipSpaces(data, secondEnd)
-	if refStart < len(data) && data[refStart] == 'R' {
-		return refStart + 1, true
-	}
-	return start, false
-}
-
-func skipBalanced(data []byte, start int, open, closing []byte) int {
-	depth := 0
-	for i := start; i < len(data); {
-		switch {
-		case bytes.HasPrefix(data[i:], open):
-			depth++
-			i += len(open)
-		case bytes.HasPrefix(data[i:], closing):
-			depth--
-			i += len(closing)
-			if depth == 0 {
-				return i
-			}
-		case data[i] == '(':
-			i = skipLiteral(data, i)
-		default:
-			i++
-		}
-	}
-	return len(data)
-}
-
-func skipBracketed(data []byte, start int, open, closing byte) int {
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case open:
-			depth++
-		case closing:
-			depth--
-			if depth == 0 {
-				return i + 1
-			}
-		case '(':
-			i = skipLiteral(data, i) - 1
-		}
-	}
-	return len(data)
-}
-
-func skipLiteral(data []byte, start int) int {
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case '\\':
-			i++
-		case '(':
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				return i + 1
-			}
-		}
-	}
-	return len(data)
-}
-
-func skipToken(data []byte, start int) int {
-	i := start
-	for i < len(data) && !isPDFSpace(data[i]) && !isPDFDelimiter(data[i]) {
-		i++
-	}
-	if i == start && i < len(data) {
-		return i + 1
-	}
-	return i
-}
-
-func skipSpaces(data []byte, start int) int {
-	for start < len(data) && isPDFSpace(data[start]) {
-		start++
-	}
-	return start
-}
-
-func isPDFSpace(c byte) bool {
-	return c == 0 || c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == ' '
-}
-
-func isPDFDelimiter(c byte) bool {
-	switch c {
-	case '(', ')', '<', '>', '[', ']', '{', '}', '/', '%':
-		return true
-	default:
-		return false
-	}
 }
 
 func computeByteRangeDigest(pdf []byte, ph signaturePlaceholder, hashFunc crypto.Hash) ([]byte, error) {

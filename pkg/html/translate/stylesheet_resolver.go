@@ -53,14 +53,6 @@ func stylesheetBaseDirResolver(dir string) StylesheetResolver {
 	}
 }
 
-// safeLoadStylesheet wraps a resolver call in defer/recover so a malformed
-// URI or panicking resolver never crashes the caller. Returns the bytes
-// (nil on failure) and a flag indicating whether the load succeeded.
-func safeLoadStylesheet(resolver StylesheetResolver, href string) ([]byte, bool) {
-	data, err := safeLoadStylesheetErr(resolver, href)
-	return data, err == nil
-}
-
 // errStylesheetResolverPanic reports that a resolver panicked while loading;
 // the panic value is attached as context.
 var errStylesheetResolverPanic = errors.New("html: stylesheet resolver panicked")

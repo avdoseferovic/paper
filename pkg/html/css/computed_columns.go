@@ -181,14 +181,24 @@ func isZeroColumnRuleWidth(value string) bool {
 	return false
 }
 
+// splitTopLevelWhitespace splits value on whitespace that is outside
+// parentheses and quoted strings, dropping empty tokens.
 func splitTopLevelWhitespace(value string) []string {
+	return splitTopLevelTokens(value, false)
+}
+
+// splitTopLevelTokens splits value on top-level whitespace, where whitespace is
+// unicode.IsSpace rather than only the five ASCII characters CSS calls
+// whitespace, so values pasted with a non-breaking space still tokenize. When
+// slashIsToken is set, a top-level "/" also ends the current token and is
+// emitted on its own (the background shorthand's position/size separator).
+func splitTopLevelTokens(value string, slashIsToken bool) []string {
 	var tokens []string
 	var b strings.Builder
 	depth := 0
 	var quote rune
 	flush := func() {
-		token := strings.TrimSpace(b.String())
-		if token != "" {
+		if token := strings.TrimSpace(b.String()); token != "" {
 			tokens = append(tokens, token)
 		}
 		b.Reset()
@@ -214,6 +224,9 @@ func splitTopLevelWhitespace(value string) []string {
 			b.WriteRune(r)
 		case depth == 0 && unicode.IsSpace(r):
 			flush()
+		case depth == 0 && slashIsToken && r == '/':
+			flush()
+			tokens = append(tokens, "/")
 		default:
 			b.WriteRune(r)
 		}

@@ -26,7 +26,6 @@ import (
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
-	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/fontrepository"
@@ -40,27 +39,26 @@ const (
 )
 
 var (
-	ink        = rgb(58, 50, 43)
-	inkSoft    = rgb(94, 84, 74)
-	muted      = rgb(126, 115, 103)
-	faint      = rgb(178, 168, 154)
-	brand      = ink
-	teal       = rgb(190, 79, 54)
-	green      = rgb(72, 132, 93)
-	amber      = rgb(163, 91, 61)
-	red        = rgb(150, 56, 39)
-	blue       = rgb(78, 101, 158)
-	white      = rgb(255, 255, 255)
-	canvas     = rgb(250, 248, 244)
-	paperShade = rgb(246, 242, 236)
-	codeBg     = rgb(252, 250, 247)
-	deepInk    = rgb(41, 35, 30)
-	softBlue   = rgb(238, 241, 248)
-	softTeal   = rgb(251, 240, 236)
-	softGold   = rgb(248, 242, 231)
-	softRose   = rgb(249, 235, 231)
-	borderC    = rgb(226, 219, 209)
-	lineSoftC  = rgb(240, 235, 228)
+	ink       = rgb(58, 50, 43)
+	inkSoft   = rgb(94, 84, 74)
+	muted     = rgb(126, 115, 103)
+	faint     = rgb(178, 168, 154)
+	brand     = ink
+	teal      = rgb(190, 79, 54)
+	green     = rgb(72, 132, 93)
+	amber     = rgb(163, 91, 61)
+	red       = rgb(150, 56, 39)
+	blue      = rgb(78, 101, 158)
+	white     = rgb(255, 255, 255)
+	canvas    = rgb(250, 248, 244)
+	codeBg    = rgb(252, 250, 247)
+	deepInk   = rgb(41, 35, 30)
+	softBlue  = rgb(238, 241, 248)
+	softTeal  = rgb(251, 240, 236)
+	softGold  = rgb(248, 242, 231)
+	softRose  = rgb(249, 235, 231)
+	borderC   = rgb(226, 219, 209)
+	lineSoftC = rgb(240, 235, 228)
 )
 
 func main() {
@@ -242,106 +240,6 @@ _ = pdf.Save("invoice.pdf")`, teal, []string{"templates", "fragments", "CSS-awar
 	}
 }
 
-type svgDiagramSpec struct {
-	title    string
-	subtitle string
-	path     string
-	focus    string
-	route    string
-	inspect  string
-	accent   *props.Color
-}
-
-func svgDiagramRows() []core.Row {
-	specs := []svgDiagramSpec{
-		{
-			title:    "SVG Diagram: Component Model",
-			subtitle: "A vector overview of how Paper composes documents from pages, rows, columns, and components.",
-			path:     "docs/assets/images/showcase/paper-component-model.svg",
-			focus:    "Paper values compose top down: document, repeated pages, stacked rows, columns, then components.",
-			route:    "The SVG is loaded as a direct image component and rasterized before PDF registration.",
-			inspect:  "Look for measured rows, normalized column units, and the final component layer.",
-			accent:   blue,
-		},
-		{
-			title:    "SVG Diagram: Grid and Page Flow",
-			subtitle: "The grid diagram shows margins, repeated header/footer rows, fixed and auto rows, and overflow.",
-			path:     "docs/assets/images/showcase/paper-grid-flow.svg",
-			focus:    "Rows decide vertical flow. Columns only divide the useful width inside each row.",
-			route:    "The provider accepts extension.Svg, normalizes to PNG internally, then places it in the grid.",
-			inspect:  "The overflow arrow mirrors the page-break behavior used by the generated showcase itself.",
-			accent:   teal,
-		},
-		{
-			title:    "SVG Diagram: HTML Pipeline",
-			subtitle: "The HTML pipeline diagram connects markup, CSS, translator stages, and final PDF output.",
-			path:     "docs/assets/images/showcase/paper-html-pipeline.svg",
-			focus:    "HTML is not a screenshot path. It becomes the same Paper primitives as hand-built Go rows.",
-			route:    "HTML SVGs and direct SVG images now share the same pure-Go rasterization helper.",
-			inspect:  "The pipeline is the same path used by htmlcomponent.New elsewhere in this PDF.",
-			accent:   amber,
-		},
-	}
-
-	rows := make([]core.Row, 0, len(specs)*10)
-	for i, spec := range specs {
-		rows = append(rows, svgDiagramPage(spec)...)
-		if i < len(specs)-1 {
-			rows = append(rows, pageBreak())
-		}
-	}
-	return rows
-}
-
-func svgDiagramPage(spec svgDiagramSpec) []core.Row {
-	return []core.Row{
-		sectionTitle(spec.title, spec.subtitle),
-		spacer(4),
-		svgDiagramImage(spec),
-		spacer(5),
-		row.New().Add(col.New(12).Add(svgDiagramNotesTable(spec))),
-		spacer(5),
-		thinRule(),
-		spacer(4),
-		row.New(37).Add(
-			col.New(4).Add(text.New("Source", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: spec.accent}),
-				text.New("These are checked-in SVG assets under docs/assets/images/showcase.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Image pipeline", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
-				text.New("The page uses image.NewFromBytes with extension.Svg, then the provider rasterizes internally.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
-			col.New(4).Add(text.New("Why SVG", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: brand}),
-				text.New("The source stays crisp and editable while the PDF output remains provider-compatible.", props.Text{Top: 8, Right: 5, Size: 7.7, Color: ink, VerticalPadding: 1.1})),
-		),
-	}
-}
-
-func svgDiagramImage(spec svgDiagramSpec) core.Row {
-	data, err := os.ReadFile(examplepath.Repo(spec.path))
-	if err != nil {
-		panic(fmt.Errorf("read SVG diagram %s: %w", spec.path, err))
-	}
-	component := image.NewFromBytes(data, extension.Svg, props.Rect{Percent: 100, Center: true})
-	return row.New().Add(col.New(12).Add(component))
-}
-
-func svgDiagramNotesTable(spec svgDiagramSpec) core.Component {
-	t, err := table.New([][]table.Cell{
-		{
-			{Content: tableText("Focus", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("How it enters the PDF", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("What to inspect", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText(spec.focus, false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText(spec.route, false, ink), Style: tableCellStyle(softTeal)},
-			{Content: tableText(spec.inspect, false, ink), Style: tableCellStyle(nil)},
-		},
-	}, table.WithColumnWidths([]float64{1.55, 1.65, 1.45}))
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 func heroRow() core.Row {
 	return row.New(86).Add(
 		col.New(7).Add(
@@ -483,15 +381,6 @@ func outputChip(size int, command, label string) core.Col {
 		text.New(command, props.Text{Family: consts.FontFamilyCourier, Style: fontstyle.Bold, Size: 7, Top: 3, Align: consts.AlignCenter, Color: teal}),
 		text.New(label, props.Text{Family: showcaseFont, Size: 6.2, Top: 9, Align: consts.AlignCenter, Left: 2, Right: 2, Color: muted}),
 	).WithStyle(cardStyle(white, borderC))
-}
-
-func paperShadow() props.Shadow {
-	return props.Shadow{
-		OffsetY:    1.4,
-		BlurRadius: 3.5,
-		Spread:     0.1,
-		Color:      rgba(40, 30, 20, 0.12),
-	}
 }
 
 func codePanelStyle() *props.Cell {
@@ -637,271 +526,6 @@ func componentPlacementTable() core.Component {
 			{Content: tableText("Good for dense facts, ledgers, and compatibility matrices.", false, ink), Style: tableCellStyle(nil)},
 		},
 	}, table.WithColumnWidths([]float64{1.25, 2.15, 2.05}))
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-func textFlowRows() []core.Row {
-	return []core.Row{
-		sectionTitle("Text, Flow, and Spacing", "Use text and rich text as measured components, then compose them with rows."),
-		row.New(42).Add(
-			col.New(7).Add(
-				text.New("Narrative content", props.Text{
-					Family: showcaseFont,
-					Style:  fontstyle.Bold,
-					Size:   10,
-					Color:  brand,
-				}),
-				richtext.New([]props.RichRun{
-					{Text: "Paper can render regular text beside "},
-					{Text: "rich inline runs", Style: fontstyle.Bold, Color: blue},
-					{Text: ", links, emphasized labels, and measured wrapping without leaving the grid model."},
-				}, props.RichText{Top: 8, Right: 8, LineHeight: 1.18}),
-				text.New("Rows can be fixed height for predictable layouts or auto height when content determines vertical space.", props.Text{
-					Family:          showcaseFont,
-					Size:            8,
-					Top:             25,
-					Right:           8,
-					VerticalPadding: 1.1,
-					Color:           muted,
-				}),
-			),
-			col.New(5).Add(
-				text.New("Alignment samples", props.Text{
-					Family: showcaseFont,
-					Style:  fontstyle.Bold,
-					Size:   10,
-					Color:  brand,
-				}),
-				text.New("left aligned", props.Text{Top: 9, Size: 8, Color: ink}),
-				text.New("center aligned", props.Text{Top: 17, Size: 8, Align: consts.AlignCenter, Color: ink}),
-				text.New("right aligned", props.Text{Top: 25, Size: 8, Align: consts.AlignRight, Color: ink}),
-				text.New("Use text props for alignment, indentation, top offsets, and wrapping.", props.Text{Top: 34, Size: 7.2, Color: muted}),
-			),
-		),
-		thinRule(),
-		spacer(3),
-		row.New().Add(col.New(12).Add(textFlowTable())),
-		spacer(5),
-		row.New(34).Add(
-			col.New(6).Add(
-				text.New("Composition pattern", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: teal}),
-				text.New("Rows stack top to bottom. Columns provide horizontal regions. Components are measured before render so text wraps consistently.", props.Text{
-					Top:             9,
-					Right:           8,
-					Size:            8,
-					VerticalPadding: 1.1,
-					Color:           ink,
-				}),
-			),
-			col.New(6).Add(
-				text.New("Useful for", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: amber}),
-				text.New("Reports, letters, invoices, approvals, generated forms, and HTML fragments that need predictable PDF output.", props.Text{
-					Top:             9,
-					Right:           6,
-					Size:            8,
-					VerticalPadding: 1.1,
-					Color:           ink,
-				}),
-			),
-		),
-		thinRule(),
-		spacer(4),
-		row.New(40).Add(
-			col.New(5).Add(
-				text.New("Type scale", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
-				text.New("Section heading", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 13, Top: 8, Color: brand}),
-				text.New("Subheading", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Top: 18, Color: teal}),
-				text.New("Body copy with measured wrapping and steady line height.", props.Text{Family: showcaseFont, Size: 8, Top: 28, Right: 5, Color: ink}),
-			),
-			col.New(7).Add(
-				text.New("Measured text output", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
-				text.New("The same paragraph can sit beside narrow side content, wrap inside a table cell, or flow through a full-width narrative section without changing the component contract.", props.Text{
-					Top:             9,
-					Right:           4,
-					Size:            8,
-					Color:           ink,
-					VerticalPadding: 1.2,
-				}),
-			),
-		),
-	}
-}
-
-func textFlowTable() core.Component {
-	t, err := table.New([][]table.Cell{
-		{
-			{Content: tableText("Need", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Component", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Example", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText("Single run", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("text.New", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Headings, labels, body copy, page metadata.", false, ink), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("Inline styles", false, ink), Style: tableCellStyle(softBlue)},
-			{Content: tableText("richtext.New", false, ink), Style: tableCellStyle(softBlue)},
-			{Content: tableText("Bold spans, colored runs, underlined links.", false, ink), Style: tableCellStyle(softBlue)},
-		},
-		{
-			{Content: tableText("Visual separation", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("line.New", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Section rules, dividers, and lightweight hierarchy.", false, ink), Style: tableCellStyle(nil)},
-		},
-	}, table.WithColumnWidths([]float64{1.1, 1.15, 2.7}))
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-func reportExampleRows() []core.Row {
-	return []core.Row{
-		sectionTitle("Report-Style Page", "A compact example that combines layout, data, checks, codes, and approval."),
-		row.New(26).Add(
-			col.New(7).Add(
-				text.New("Site Readiness Report", props.Text{
-					Family: showcaseFont,
-					Style:  fontstyle.Bold,
-					Size:   16,
-					Color:  brand,
-				}),
-				text.New("North Facility / Prepared 2026-06-08 / Ref PAPER-2026", props.Text{
-					Family: showcaseFont,
-					Size:   8,
-					Top:    12,
-					Color:  muted,
-				}),
-			),
-			col.New(2).Add(code.NewQr("PAPER-READINESS-2026", props.Rect{Percent: 48, Center: true})),
-			col.New(3).Add(code.NewBar("PAPER-2026", props.Barcode{
-				Percent:    58,
-				Center:     true,
-				Proportion: props.Proportion{Width: 12, Height: 1.6},
-			})),
-		).WithStyle(&props.Cell{
-			BackgroundColor: canvas,
-			BorderRadius:    3,
-			PaddingLeft:     2,
-		}),
-		spacer(5),
-		row.New().Add(col.New(12).Add(reportSnapshotTable())),
-		spacer(5),
-		row.New(34).Add(
-			col.New(6).Add(
-				text.New("Checklist", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
-				checkbox.New("Source data reviewed", props.Checkbox{Checked: true, Top: 10, Size: 3.8}),
-				checkbox.New("Assets resolved from disk", props.Checkbox{Checked: true, Top: 18, Size: 3.8}),
-				checkbox.New("Generated PDF visually inspected", props.Checkbox{Top: 26, Size: 3.8}),
-			),
-			col.New(6).Add(
-				text.New("Approval", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 10, Color: brand}),
-				signature.New("Prepared by Paper", props.Signature{
-					FontColor:     teal,
-					LineColor:     teal,
-					LineThickness: 0.35,
-				}),
-			),
-		),
-		thinRule(),
-		spacer(3),
-		row.New().Add(col.New(12).Add(reportLineItemTable())),
-		spacer(5),
-		row.New().Add(col.New(12).Add(reportAuditTable())),
-		spacer(5),
-		row.New(24).Add(
-			col.New(4).Add(text.New("Reusable bands", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue}),
-				text.New("Headers, data tables, and approval rows can be assembled as reusable row groups.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
-			col.New(4).Add(text.New("Human + machine", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal}),
-				text.New("QR and barcode components carry references alongside readable report content.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
-			col.New(4).Add(text.New("Stable output", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber}),
-				text.New("Page numbers, margins, and footer rules stay consistent across generated pages.", props.Text{Top: 8, Right: 5, Size: 7.8, Color: ink})),
-		),
-	}
-}
-
-func reportSnapshotTable() core.Component {
-	t, err := table.New([][]table.Cell{
-		{
-			{Content: tableText("Metric", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Value", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Status", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Notes", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText("Pages generated", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("8", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("OK", false, green), Style: tableCellStyle(nil)},
-			{Content: tableText("Page numbers and repeated header/footer enabled.", false, ink), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("Assets", false, ink), Style: tableCellStyle(softTeal)},
-			{Content: tableText("Images + codes", false, ink), Style: tableCellStyle(softTeal)},
-			{Content: tableText("OK", false, green), Style: tableCellStyle(softTeal)},
-			{Content: tableText("Logo, QR, and barcode components render from the same grid.", false, ink), Style: tableCellStyle(softTeal)},
-		},
-		{
-			{Content: tableText("Layout", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Rows + columns", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("OK", false, green), Style: tableCellStyle(nil)},
-			{Content: tableText("Tables, checks, and signatures share predictable cells.", false, ink), Style: tableCellStyle(nil)},
-		},
-	}, table.WithColumnWidths([]float64{1.2, 1.1, 0.8, 2.5}))
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-func reportAuditTable() core.Component {
-	t, err := table.New([][]table.Cell{
-		{
-			{Content: tableText("Event", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Actor", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Timestamp", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Result", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText("Data assembled", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Report job", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("2026-06-08 09:00", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Ready", false, green), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("PDF generated", false, ink), Style: tableCellStyle(softBlue)},
-			{Content: tableText("Paper", false, ink), Style: tableCellStyle(softBlue)},
-			{Content: tableText("2026-06-08 09:01", false, ink), Style: tableCellStyle(softBlue)},
-			{Content: tableText("Saved", false, green), Style: tableCellStyle(softBlue)},
-		},
-	}, table.WithColumnWidths([]float64{1.4, 1.0, 1.35, 0.9}))
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-func reportLineItemTable() core.Component {
-	t, err := table.New([][]table.Cell{
-		{
-			{Content: tableText("Output", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Component mix", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Why it matters", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText("Operational reports", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("text, table, image, signature", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("Stable structure with dynamic content.", false, ink), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("Generated forms", false, ink), Style: tableCellStyle(softGold)},
-			{Content: tableText("checkbox, barcode, richtext", false, ink), Style: tableCellStyle(softGold)},
-			{Content: tableText("Machine-readable references and human approval in one file.", false, ink), Style: tableCellStyle(softGold)},
-		},
-	}, table.WithColumnWidths([]float64{1.35, 1.5, 2.6}))
 	if err != nil {
 		panic(err)
 	}
@@ -1368,48 +992,6 @@ func installRows() []core.Row {
 	}
 }
 
-func apiReferenceRows() []core.Row {
-	return []core.Row{
-		sectionTitle("API Reference", "Code snippets are isolated here so the showcase pages stay focused on rendered output."),
-		row.New(20).Add(
-			col.New(4).Add(text.New("Create from HTML", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue})),
-			col.New(4).Add(text.New("Compose with rows", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal})),
-			col.New(4).Add(text.New("Add tables", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber})),
-		),
-		codeBlock(`doc, err := paper.FromHTML(context.Background(), "<h1>Hello</h1><p>World</p>")
-_ = doc.Save("out.pdf")`),
-		spacer(4),
-		codeBlock(`m.AddRows(
-    row.New().Add(col.New(7).Add(main), col.New(5).Add(side)),
-    row.New(18).Add(text.NewCol(12, "Fixed-height band")),
-)`),
-		spacer(4),
-		codeBlock(`tbl, err := table.New(cells,
-    table.WithColumnWidths([]float64{2, 1, 1}),
-)
-m.AddRows(row.New().Add(col.New(12).Add(tbl)))`),
-		spacer(5),
-		thinRule(),
-		spacer(5),
-		row.New(19).Add(
-			col.New(4).Add(text.New("Configure grid", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: blue})),
-			col.New(4).Add(text.New("Embed HTML", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: teal})),
-			col.New(4).Add(text.New("Split sections", props.Text{Family: showcaseFont, Style: fontstyle.Bold, Size: 9, Color: amber})),
-		),
-		codeBlock(`cfg := config.NewBuilder().
-    WithMaxGridSize(12).
-    WithLeftMargin(15).
-    Build()`),
-		spacer(4),
-		codeBlock(`block, err := htmlcomponent.New(ctx, "<p>Inside a column</p>")
-m.AddAutoRow(col.New(6).Add(block))`),
-		spacer(4),
-		codeBlock(`m.AddRows(reportHeader(), snapshotTable(), checklist())
-m.AddRows(pageBreak())
-m.AddRows(appendixRows()...)`),
-	}
-}
-
 func htmlSupportTable() core.Component {
 	t, err := table.New([][]table.Cell{
 		{
@@ -1490,31 +1072,6 @@ func gridCells(cells []gridCellSpec) [][]table.Cell {
 	return [][]table.Cell{out}
 }
 
-func sampleTable() (*table.Table, error) {
-	return table.New([][]table.Cell{
-		{
-			{Content: tableText("Capability", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("API", true, white), Style: tableHeaderStyle()},
-			{Content: tableText("Use when", true, white), Style: tableHeaderStyle()},
-		},
-		{
-			{Content: tableText("Grid", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("row.New + col.New", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("You need deterministic, programmatic layout.", false, ink), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("HTML", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("paper.FromHTML / AddHTML", false, ink), Style: tableCellStyle(nil)},
-			{Content: tableText("The source is already HTML or CSS-styled content.", false, ink), Style: tableCellStyle(nil)},
-		},
-		{
-			{Content: tableText("Metrics", false, ink), Style: tableCellStyle(softGold)},
-			{Content: tableText("decorator.NewMetrics", false, ink), Style: tableCellStyle(softGold)},
-			{Content: tableText("You want generation timings and output size reports.", false, ink), Style: tableCellStyle(softGold)},
-		},
-	}, table.WithColumnWidths([]float64{1.1, 1.25, 2.3}))
-}
-
 func tableHeaderStyle() *props.Cell {
 	return &props.Cell{
 		BackgroundColor: deepInk,
@@ -1562,28 +1119,6 @@ func cardTitle(title string, color *props.Color) core.Component {
 	})
 }
 
-func metricCol(size int, value, label string, bg, accent *props.Color) core.Col {
-	return col.New(size).Add(
-		text.New(value, props.Text{
-			Family: showcaseFont,
-			Style:  fontstyle.Bold,
-			Size:   11,
-			Top:    3,
-			Align:  consts.AlignCenter,
-			Color:  accent,
-		}),
-		text.New(label, props.Text{
-			Family: showcaseFont,
-			Size:   7,
-			Top:    10,
-			Left:   3,
-			Right:  3,
-			Align:  consts.AlignCenter,
-			Color:  ink,
-		}),
-	).WithStyle(cardStyle(bg, accent))
-}
-
 func cardCol(size int, title, body string, bg, accent *props.Color) core.Col {
 	return col.New(size).Add(
 		cardTitle(title, accent),
@@ -1617,17 +1152,6 @@ func sectionTitle(title, subtitle string) core.Row {
 	))
 }
 
-func codeBlock(code string) core.Row {
-	lines := strings.Split(strings.Trim(code, "\n"), "\n")
-	height := 7 + float64(len(lines))*3.2
-	return row.New(height).Add(col.New(12).Add(codeTextComponents(code)...)).WithStyle(&props.Cell{
-		BackgroundColor: rgb(247, 247, 247),
-		BorderType:      border.Full,
-		BorderColor:     borderC,
-		BorderThickness: 0.25,
-	})
-}
-
 func thinRule() core.Row {
 	return row.New(1.2).Add(col.New(12).Add(line.New(props.Line{
 		Color:     borderC,
@@ -1655,22 +1179,6 @@ func infoCol(size int, title, body string, accent *props.Color) core.Col {
 	)
 }
 
-func codeTextComponents(code string) []core.Component {
-	lines := strings.Split(strings.Trim(code, "\n"), "\n")
-	components := make([]core.Component, 0, len(lines))
-	for i, line := range lines {
-		components = append(components, text.New(line, props.Text{
-			Family: consts.FontFamilyCourier,
-			Size:   7,
-			Top:    3 + float64(i)*3.2,
-			Left:   4,
-			Right:  4,
-			Color:  ink,
-		}))
-	}
-	return components
-}
-
 func cardStyle(bg, stroke *props.Color) *props.Cell {
 	return &props.Cell{
 		BackgroundColor: bg,
@@ -1693,8 +1201,4 @@ func pageBreak() core.Row {
 
 func rgb(r, g, b int) *props.Color {
 	return &props.Color{Red: r, Green: g, Blue: b}
-}
-
-func rgba(r, g, b int, a float64) *props.Color {
-	return &props.Color{Red: r, Green: g, Blue: b, Alpha: &a}
 }

@@ -384,7 +384,7 @@ func (tr *translator) dispatchBlockRowsWithStyle(ctx context.Context, n *dom.Nod
 	case tagFieldset:
 		return tr.fieldsetRows(ctx, n, style)
 	case tagInput, tagButton, tagSelect, tagTextArea:
-		return tr.formControlRowsContext(ctx, n, style)
+		return tr.formControlRows(n, style)
 	case "br":
 		return nil // top-level <br> is a no-op
 	default:

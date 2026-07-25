@@ -1162,16 +1162,6 @@ func isDisplayNone(n *dom.Node) bool {
 			strings.Contains(n.InlineStyle(), "display: none"))
 }
 
-// parseInlineStyle parses a CSS declaration block (e.g. "color:red; font-size:12pt")
-// into a property→value map. Shorthands are expanded via css.ExpandShorthands.
-// !important suffixes are stripped; importance is ignored (see
-// parseInlineStyleImportance for cascade-aware parsing).
-func parseInlineStyle(decl string) map[string]string {
-	normal, important := parseInlineStyleImportance(decl)
-	maps.Copy(normal, important)
-	return normal
-}
-
 // parseInlineStyleImportance parses a CSS declaration block into two
 // property→value maps: normal declarations and !important ones. Shorthands
 // are expanded via css.ExpandShorthands.

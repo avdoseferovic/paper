@@ -151,47 +151,10 @@ func isBackgroundAttachmentToken(lower string) bool {
 	}
 }
 
+// splitBackgroundTokens splits a background shorthand into tokens, emitting a
+// top-level "/" (the position/size separator) as its own token.
 func splitBackgroundTokens(value string) []string {
-	var tokens []string
-	var b strings.Builder
-	depth := 0
-	var quote rune
-	flush := func() {
-		token := strings.TrimSpace(b.String())
-		if token != "" {
-			tokens = append(tokens, token)
-		}
-		b.Reset()
-	}
-	for _, r := range value {
-		switch {
-		case quote != 0:
-			b.WriteRune(r)
-			if r == quote {
-				quote = 0
-			}
-		case r == '\'' || r == '"':
-			quote = r
-			b.WriteRune(r)
-		case r == '(':
-			depth++
-			b.WriteRune(r)
-		case r == ')':
-			if depth > 0 {
-				depth--
-			}
-			b.WriteRune(r)
-		case depth == 0 && (r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f'):
-			flush()
-		case depth == 0 && r == '/':
-			flush()
-			tokens = append(tokens, "/")
-		default:
-			b.WriteRune(r)
-		}
-	}
-	flush()
-	return tokens
+	return splitTopLevelTokens(value, true)
 }
 
 func hasTopLevelComma(value string) bool {

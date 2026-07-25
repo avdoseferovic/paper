@@ -83,7 +83,7 @@ func TestStylesheet_LinkLoadedBeforeInline(t *testing.T) {
 	_, hrefs := doc.StyleSources()
 	var combined []byte
 	for _, h := range hrefs {
-		data, _ := safeLoadStylesheet(tr.stylesheetResolver, h)
+		data, _ := safeLoadStylesheetErr(tr.stylesheetResolver, h)
 		combined = append(combined, data...)
 		combined = append(combined, '\n')
 	}

@@ -24,7 +24,7 @@ func parseInlineRuns(t *testing.T, htmlStr string) []runEntry {
 		return true
 	})
 	require.NotNil(t, target)
-	runs := inlineRuns(target)
+	runs := inlineRunsWithContext(target, runContext{})
 	out := make([]runEntry, len(runs))
 	for i, r := range runs {
 		out[i] = runEntry{
@@ -238,9 +238,9 @@ func TestInlineTag_Abbr_TitleSurfacedViaHandler(t *testing.T) {
 		return true
 	})
 	require.NotNil(t, p)
-	_ = inlineRunsWithHandler(p, func(thing, value string) {
+	_ = inlineRunsWithContext(p, runContext{handler: func(thing, value string) {
 		calls = append(calls, thing+":"+value)
-	})
+	}})
 	found := false
 	for _, c := range calls {
 		if c == "abbr.title:HyperText Markup Language" {
@@ -263,9 +263,9 @@ func TestInlineTag_Time_DatetimeSurfacedViaHandler(t *testing.T) {
 		return true
 	})
 	require.NotNil(t, p)
-	_ = inlineRunsWithHandler(p, func(thing, value string) {
+	_ = inlineRunsWithContext(p, runContext{handler: func(thing, value string) {
 		calls = append(calls, thing+":"+value)
-	})
+	}})
 	found := false
 	for _, c := range calls {
 		if c == "time.datetime:2026-05-20" {

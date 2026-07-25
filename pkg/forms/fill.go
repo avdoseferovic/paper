@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/avdoseferovic/paper/internal/pdfscan"
 	"github.com/avdoseferovic/paper/pkg/reader"
 )
 
@@ -237,7 +238,7 @@ func removeFormCatalogAcroForm(objects map[int]formObject, rootObjNum int) error
 		return fmt.Errorf("%w: catalog object %d missing", errFormNoRoot, rootObjNum)
 	}
 	objects[rootObjNum] = formObject{
-		content: removeFormDictionaryEntry(catalog.content, "AcroForm"),
+		content: pdfscan.RemoveDictEntry(catalog.content, "AcroForm"),
 	}
 	return nil
 }
@@ -586,14 +587,14 @@ func appendFormPageContent(pageContent []byte, streamObjNum int) ([]byte, error)
 	if idx < 0 {
 		return setFormDictionaryEntry(pageContent, "Contents", ref)
 	}
-	valueStart := formSkipSpaces(pageContent, idx+len("/Contents"))
+	valueStart := pdfscan.SkipSpaces(pageContent, idx+len("/Contents"))
 	if valueStart >= len(pageContent) {
 		return nil, errFormBadDictionary
 	}
 	var value string
 	switch pageContent[valueStart] {
 	case '[':
-		valueEnd, closed := formSkipArray(pageContent, valueStart)
+		valueEnd, closed := pdfscan.SkipArray(pageContent, valueStart)
 		if !closed {
 			return nil, errFormBadDictionary
 		}
@@ -604,7 +605,7 @@ func appendFormPageContent(pageContent []byte, streamObjNum int) ([]byte, error)
 			value = "[" + existing + " " + ref + "]"
 		}
 	default:
-		valueEnd, ok := formSkipIndirectRef(pageContent, valueStart)
+		valueEnd, ok := pdfscan.SkipIndirectRef(pageContent, valueStart)
 		if !ok {
 			return nil, errFormBadDictionary
 		}
@@ -619,11 +620,11 @@ func removeFormPageWidgetAnnots(pageContent []byte, omit map[int]bool) ([]byte, 
 	if idx < 0 {
 		return pageContent, nil
 	}
-	valueStart := formSkipSpaces(pageContent, idx+len("/Annots"))
+	valueStart := pdfscan.SkipSpaces(pageContent, idx+len("/Annots"))
 	if valueStart >= len(pageContent) || pageContent[valueStart] != '[' {
 		return pageContent, nil
 	}
-	valueEnd, _ := formSkipArray(pageContent, valueStart)
+	valueEnd, _ := pdfscan.SkipArray(pageContent, valueStart)
 	refs := formRefsInBytes(pageContent[valueStart:valueEnd])
 	kept := make([]string, 0, len(refs))
 	for _, ref := range refs {
@@ -632,7 +633,7 @@ func removeFormPageWidgetAnnots(pageContent []byte, omit map[int]bool) ([]byte, 
 		}
 	}
 	if len(kept) == 0 {
-		return removeFormDictionaryEntry(pageContent, "Annots"), nil
+		return pdfscan.RemoveDictEntry(pageContent, "Annots"), nil
 	}
 	return setFormDictionaryEntry(pageContent, "Annots", "["+strings.Join(kept, " ")+"]")
 }
@@ -644,9 +645,9 @@ func ensureFormHelvResource(resources []byte) ([]byte, error) {
 	helv := []byte(" /Helv << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> ")
 	fontIdx := bytes.Index(resources, []byte("/Font"))
 	if fontIdx >= 0 {
-		valueStart := formSkipSpaces(resources, fontIdx+len("/Font"))
+		valueStart := pdfscan.SkipSpaces(resources, fontIdx+len("/Font"))
 		if valueStart < len(resources) && bytes.HasPrefix(resources[valueStart:], []byte("<<")) {
-			valueEnd := formSkipBalanced(resources, valueStart, []byte("<<"), []byte(">>"))
+			valueEnd := pdfscan.SkipBalanced(resources, valueStart, []byte("<<"), []byte(">>"))
 			if valueEnd >= valueStart+4 {
 				insertAt := valueEnd - len(">>")
 				out := make([]byte, 0, len(resources)+len(helv))
@@ -830,7 +831,7 @@ func parseFormTrailerRef(trailer []byte, re *regexp.Regexp) string {
 }
 
 func setFormDictionaryEntry(content []byte, key, value string) ([]byte, error) {
-	cleaned := removeFormDictionaryEntry(bytes.TrimSpace(content), key)
+	cleaned := pdfscan.RemoveDictEntry(bytes.TrimSpace(content), key)
 	end := bytes.LastIndex(cleaned, []byte(">>"))
 	if end < 0 {
 		return nil, errFormBadDictionary
@@ -842,46 +843,29 @@ func setFormDictionaryEntry(content []byte, key, value string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func removeFormDictionaryEntry(dictionary []byte, key string) []byte {
-	idx := formKeyIndex(dictionary, key)
-	if idx < 0 {
-		return dictionary
-	}
-	valueStart := formSkipSpaces(dictionary, idx+len(key)+1)
-	valueEnd := formSkipPDFValue(dictionary, valueStart)
-	if valueEnd <= valueStart {
-		return dictionary
-	}
-	out := make([]byte, 0, len(dictionary)-(valueEnd-idx))
-	out = append(out, bytes.TrimRight(dictionary[:idx], " \t\r\n")...)
-	out = append(out, ' ')
-	out = append(out, bytes.TrimLeft(dictionary[valueEnd:], " \t\r\n")...)
-	return out
-}
-
 func formLiteralForKey(content []byte, key string) (string, bool) {
-	idx := formKeyIndex(content, key)
+	idx := pdfscan.KeyIndex(content, key)
 	if idx < 0 {
 		return "", false
 	}
-	start := formSkipSpaces(content, idx+len(key)+1)
+	start := pdfscan.SkipSpaces(content, idx+len(key)+1)
 	if start >= len(content) || content[start] != '(' {
 		return "", false
 	}
-	value, _ := parseFormLiteral(content, start)
+	value, _ := pdfscan.ParseLiteral(content, start)
 	return value, true
 }
 
 func formRefForKey(content []byte, key string) (int, bool) {
-	idx := formKeyIndex(content, key)
+	idx := pdfscan.KeyIndex(content, key)
 	if idx < 0 {
 		return 0, false
 	}
-	start := formSkipSpaces(content, idx+len(key)+1)
-	firstEnd := formSkipToken(content, start)
-	secondStart := formSkipSpaces(content, firstEnd)
-	secondEnd := formSkipToken(content, secondStart)
-	refStart := formSkipSpaces(content, secondEnd)
+	start := pdfscan.SkipSpaces(content, idx+len(key)+1)
+	firstEnd := pdfscan.SkipToken(content, start)
+	secondStart := pdfscan.SkipSpaces(content, firstEnd)
+	secondEnd := pdfscan.SkipToken(content, secondStart)
+	refStart := pdfscan.SkipSpaces(content, secondEnd)
 	if start >= len(content) || refStart >= len(content) || content[refStart] != 'R' {
 		return 0, false
 	}
@@ -897,15 +881,15 @@ func formRefForKey(content []byte, key string) (int, bool) {
 }
 
 func formRectForKey(content []byte, key string) ([4]float64, bool) {
-	idx := formKeyIndex(content, key)
+	idx := pdfscan.KeyIndex(content, key)
 	if idx < 0 {
 		return [4]float64{}, false
 	}
-	start := formSkipSpaces(content, idx+len(key)+1)
+	start := pdfscan.SkipSpaces(content, idx+len(key)+1)
 	if start >= len(content) || content[start] != '[' {
 		return [4]float64{}, false
 	}
-	end, closed := formSkipArray(content, start)
+	end, closed := pdfscan.SkipArray(content, start)
 	if !closed {
 		return [4]float64{}, false
 	}
@@ -942,20 +926,20 @@ func formNameForKey(content []byte, key string) string {
 }
 
 func formValueForKey(content []byte, key string) string {
-	idx := formKeyIndex(content, key)
+	idx := pdfscan.KeyIndex(content, key)
 	if idx < 0 {
 		return ""
 	}
-	start := formSkipSpaces(content, idx+len(key)+1)
+	start := pdfscan.SkipSpaces(content, idx+len(key)+1)
 	if start >= len(content) {
 		return ""
 	}
 	switch content[start] {
 	case '(':
-		value, _ := parseFormLiteral(content, start)
+		value, _ := pdfscan.ParseLiteral(content, start)
 		return value
 	case '/':
-		end := formSkipToken(content, start+1)
+		end := pdfscan.SkipToken(content, start+1)
 		return string(content[start+1 : end])
 	default:
 		return ""
@@ -977,12 +961,12 @@ func checkboxExportName(content []byte) string {
 }
 
 func formRefsForDictionaryKey(content []byte, key string) []int {
-	idx := formKeyIndex(content, key)
+	idx := pdfscan.KeyIndex(content, key)
 	if idx < 0 {
 		return nil
 	}
-	start := formSkipSpaces(content, idx+len(key)+1)
-	end := formSkipPDFValue(content, start)
+	start := pdfscan.SkipSpaces(content, idx+len(key)+1)
+	end := pdfscan.SkipValue(content, start)
 	if end <= start {
 		return nil
 	}
@@ -1005,31 +989,6 @@ func formRefsInBytes(content []byte) []int {
 	return refs
 }
 
-func formKeyIndex(content []byte, key string) int {
-	marker := []byte("/" + key)
-	searchFrom := 0
-	for searchFrom < len(content) {
-		idx := bytes.Index(content[searchFrom:], marker)
-		if idx < 0 {
-			return -1
-		}
-		idx += searchFrom
-		after := idx + len(marker)
-		if after >= len(content) || !isFormNameChar(content[after]) {
-			return idx
-		}
-		searchFrom = after
-	}
-	return -1
-}
-
-func isFormNameChar(c byte) bool {
-	return (c >= 'A' && c <= 'Z') ||
-		(c >= 'a' && c <= 'z') ||
-		(c >= '0' && c <= '9') ||
-		c == '_' || c == '-' || c == '.' || c == '#'
-}
-
 func pdfLiteralString(value string) string {
 	value = strings.ReplaceAll(value, "\\", "\\\\")
 	value = strings.ReplaceAll(value, "(", "\\(")
@@ -1042,156 +1001,4 @@ func formatFormFloat(v float64) string {
 		return strconv.Itoa(int(v))
 	}
 	return strconv.FormatFloat(v, 'f', 2, 64)
-}
-
-func formSkipPDFValue(data []byte, start int) int {
-	start = formSkipSpaces(data, start)
-	if start >= len(data) {
-		return start
-	}
-	if bytes.HasPrefix(data[start:], []byte("<<")) {
-		return formSkipBalanced(data, start, []byte("<<"), []byte(">>"))
-	}
-	if end, ok := formSkipIndirectRef(data, start); ok {
-		return end
-	}
-	switch data[start] {
-	case '[':
-		end, _ := formSkipArray(data, start)
-		return end
-	case '(':
-		_, end := parseFormLiteral(data, start)
-		return end
-	}
-	return formSkipToken(data, start)
-}
-
-func formSkipIndirectRef(data []byte, start int) (int, bool) {
-	start = formSkipSpaces(data, start)
-	firstEnd := formSkipToken(data, start)
-	if firstEnd <= start {
-		return start, false
-	}
-	_, err := strconv.Atoi(string(data[start:firstEnd]))
-	if err != nil {
-		return start, false
-	}
-	secondStart := formSkipSpaces(data, firstEnd)
-	secondEnd := formSkipToken(data, secondStart)
-	if secondEnd <= secondStart {
-		return start, false
-	}
-	_, err = strconv.Atoi(string(data[secondStart:secondEnd]))
-	if err != nil {
-		return start, false
-	}
-	refStart := formSkipSpaces(data, secondEnd)
-	if refStart >= len(data) || data[refStart] != 'R' {
-		return start, false
-	}
-	return refStart + 1, true
-}
-
-func formSkipBalanced(data []byte, start int, open, closing []byte) int {
-	depth := 0
-	for i := start; i < len(data); {
-		switch {
-		case bytes.HasPrefix(data[i:], open):
-			depth++
-			i += len(open)
-		case bytes.HasPrefix(data[i:], closing):
-			depth--
-			i += len(closing)
-			if depth == 0 {
-				return i
-			}
-		case data[i] == '(':
-			_, i = parseFormLiteral(data, i)
-		default:
-			i++
-		}
-	}
-	return len(data)
-}
-
-// formSkipArray returns the index just past the array starting at start and
-// reports whether the closing bracket was found. Callers that slice the array's
-// interior must check: an unterminated array ends at len(data), and the interior
-// bounds [start+1 : end-1] are then invalid for a trailing "[".
-func formSkipArray(data []byte, start int) (int, bool) {
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case '[':
-			depth++
-		case ']':
-			depth--
-			if depth == 0 {
-				return i + 1, true
-			}
-		case '(':
-			_, i = parseFormLiteral(data, i)
-			i--
-		}
-	}
-	return len(data), false
-}
-
-func parseFormLiteral(data []byte, start int) (string, int) {
-	var out strings.Builder
-	depth := 0
-	for i := start; i < len(data); i++ {
-		switch data[i] {
-		case '\\':
-			if i+1 < len(data) {
-				out.WriteByte(data[i+1])
-				i++
-			}
-		case '(':
-			depth++
-			if depth > 1 {
-				out.WriteByte('(')
-			}
-		case ')':
-			depth--
-			if depth == 0 {
-				return out.String(), i + 1
-			}
-			out.WriteByte(')')
-		default:
-			out.WriteByte(data[i])
-		}
-	}
-	return out.String(), len(data)
-}
-
-func formSkipSpaces(data []byte, start int) int {
-	for start < len(data) && isFormPDFSpace(data[start]) {
-		start++
-	}
-	return start
-}
-
-func formSkipToken(data []byte, start int) int {
-	i := start
-	for i < len(data) && !isFormPDFSpace(data[i]) && !isFormPDFDelimiter(data[i]) {
-		i++
-	}
-	if i == start && i < len(data) {
-		return i + 1
-	}
-	return i
-}
-
-func isFormPDFSpace(c byte) bool {
-	return c == 0 || c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == ' '
-}
-
-func isFormPDFDelimiter(c byte) bool {
-	switch c {
-	case '(', ')', '<', '>', '[', ']', '{', '}', '/', '%':
-		return true
-	default:
-		return false
-	}
 }
