@@ -1,3 +1,5 @@
+// Command emoji is a development helper that renders colour emoji so the
+// glyph output can be inspected by eye.
 package main
 
 import (

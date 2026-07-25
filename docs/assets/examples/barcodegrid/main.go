@@ -1,3 +1,4 @@
+// Package main demonstrates placing Code 128 barcodes across a grid of columns.
 package main
 
 import (

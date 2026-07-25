@@ -99,8 +99,7 @@ func TestInlineTag_SubSup_SetsVerticalAlignAndScalesFontSize(t *testing.T) {
 
 	var foundSub, foundSuper bool
 	for _, r := range runs {
-		switch strings.TrimSpace(r.text) {
-		case "2":
+		if strings.TrimSpace(r.text) == "2" {
 			if r.verticalAlign == "sub" {
 				assert.InDelta(t, 0.75, r.sizeScale, 0.001)
 				foundSub = true

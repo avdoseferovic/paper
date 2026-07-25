@@ -1,3 +1,4 @@
+// Package main demonstrates rendering a slice of values as a table with a header row.
 package main
 
 import (
@@ -82,9 +83,9 @@ func (o Object) GetContent(i int) core.Row {
 	return r
 }
 
-func getObjects(max int) []Object {
+func getObjects(count int) []Object {
 	var objects []Object
-	for i := range max {
+	for i := range count {
 		objects = append(objects, Object{
 			Key:   fmt.Sprintf("Key: %d", i),
 			Value: fmt.Sprintf("Bytes: %d", i),

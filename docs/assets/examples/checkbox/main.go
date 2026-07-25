@@ -1,3 +1,4 @@
+// Package main demonstrates checkbox components with and without labels.
 package main
 
 import (

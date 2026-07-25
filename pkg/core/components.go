@@ -26,6 +26,7 @@ type Image interface {
 	GetImageDimensions(img *entity.Image, extension extension.Type) *entity.Dimensions
 }
 
+// Line is the abstraction which deals of how to add lines inside PDF.
 type Line interface {
 	Add(cell *entity.Cell, prop *props.Line)
 }

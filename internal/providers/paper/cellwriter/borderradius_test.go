@@ -51,7 +51,7 @@ func TestBorderRadiusStyler_Apply(t *testing.T) {
 		next := mocks.NewCellWriter(t)
 		var captured *props.Cell
 		next.EXPECT().Apply(w, h, config, mock.AnythingOfType("*props.Cell")).
-			Run(func(_w, _h float64, _c *entity.Config, p *props.Cell) {
+			Run(func(_, _ float64, _ *entity.Config, p *props.Cell) {
 				captured = p
 			})
 

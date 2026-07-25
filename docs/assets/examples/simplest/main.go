@@ -1,3 +1,4 @@
+// Package main demonstrates the smallest document: one row with one line of text.
 package main
 
 import (

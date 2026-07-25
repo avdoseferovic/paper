@@ -28,7 +28,7 @@ func TestParseGlyphOutlineProducesContours(t *testing.T) {
 	if limit > 2000 {
 		limit = 2000
 	}
-	for gid := 0; gid < limit; gid++ {
+	for gid := range limit {
 		outline := utf.parseGlyphOutline(uint16(gid))
 		if outline == nil {
 			continue
@@ -53,7 +53,7 @@ func TestParseGlyphOutlineProducesContours(t *testing.T) {
 
 func TestParseGlyphOutlineOutOfRangeReturnsNil(t *testing.T) {
 	utf := loadUTF8FontFile(t)
-	if got := utf.parseGlyphOutline(uint16(len(utf.symbolPosition) + 100)); got != nil {
+	if got := utf.parseGlyphOutline(uint16((len(utf.symbolPosition) + 100) & 0xFFFF)); got != nil {
 		t.Fatal("expected nil outline for out-of-range glyph id")
 	}
 }

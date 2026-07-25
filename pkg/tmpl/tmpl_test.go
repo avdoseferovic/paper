@@ -118,8 +118,8 @@ func TestRenderFileWritesPDF(t *testing.T) {
 func writePNG(t *testing.T, path string) {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	for y := 0; y < 2; y++ {
-		for x := 0; x < 2; x++ {
+	for y := range 2 {
+		for x := range 2 {
 			img.SetRGBA(x, y, color.RGBA{R: 200, G: 10, B: 20, A: 255})
 		}
 	}

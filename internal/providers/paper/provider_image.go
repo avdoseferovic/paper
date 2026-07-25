@@ -11,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// ErrCannotReadImageOptions is returned when an image file cannot be read,
+// usually because the path or format is wrong.
 var ErrCannotReadImageOptions = errors.New("could not read image options, maybe path/name is wrong")
 
 func (g *provider) AddImageFromFile(file string, cell *entity.Cell, prop *props.Rect) {

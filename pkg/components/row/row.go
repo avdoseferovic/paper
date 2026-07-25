@@ -11,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Row is a horizontal band of the page holding one or more columns. Its height
+// is either set explicitly or derived from its content.
 type Row struct {
 	height          float64
 	cachedCellWidth float64 // width the cached height was computed for; 0 = explicit row height

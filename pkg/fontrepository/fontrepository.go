@@ -10,6 +10,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
+// ErrCannotReadFile is returned when a custom font file cannot be read.
 var ErrCannotReadFile = errors.New("cannot read file")
 
 // Repository is the abstraction to load custom fonts.

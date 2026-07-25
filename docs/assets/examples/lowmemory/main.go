@@ -1,3 +1,4 @@
+// Package main demonstrates low-memory mode, which writes pages out as they are built.
 package main
 
 import (

@@ -1,9 +1,12 @@
+// Package math resizes inner dimensions to fit inside outer ones while keeping
+// the original aspect ratio.
 package math
 
 import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
+// Math resizes dimensions while keeping their aspect ratio. It holds no state.
 type Math struct{}
 
 // New create a Math.
@@ -16,18 +19,15 @@ func New() *Math {
 //   - outer: The outer dimensions of the element
 //   - percent: The percentage of the external dimension that can be occupied
 //   - justReferenceWidth: Indicates whether resizing should be done only in relation to width or in relation to width and height
-func (s *Math) Resize(inner *entity.Dimensions, outer *entity.Dimensions, percent float64, justReferenceWidth bool) *entity.Dimensions {
+func (s *Math) Resize(inner, outer *entity.Dimensions, percent float64, justReferenceWidth bool) *entity.Dimensions {
 	percent /= 100.0
 
 	innerProportion := inner.Height / inner.Width
 	outerProportion := outer.Height / outer.Width
 
-	newInnerWidth := 0.0
-
+	newInnerWidth := outer.Width * percent
 	if innerProportion > outerProportion && !justReferenceWidth {
 		newInnerWidth = outer.Height / innerProportion * percent
-	} else {
-		newInnerWidth = outer.Width * percent
 	}
 
 	newInnerHeight := newInnerWidth * innerProportion
@@ -41,7 +41,7 @@ func (s *Math) Resize(inner *entity.Dimensions, outer *entity.Dimensions, percen
 }
 
 // GetInnerCenterCell define a inner cell formatted inside outer cell centered.
-func (s *Math) GetInnerCenterCell(inner *entity.Dimensions, outer *entity.Dimensions) *entity.Cell {
+func (s *Math) GetInnerCenterCell(inner, outer *entity.Dimensions) *entity.Cell {
 	widthCorrection := s.GetCenterCorrection(outer.Width, inner.Width)
 	heightCorrection := s.GetCenterCorrection(outer.Height, inner.Height)
 

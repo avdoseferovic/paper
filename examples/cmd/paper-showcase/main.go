@@ -78,7 +78,7 @@ func generateShowcase(out string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(out), 0o750); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
 	if err := doc.Save(out); err != nil {

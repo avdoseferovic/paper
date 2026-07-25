@@ -28,7 +28,7 @@ const (
 	LevelBLTA
 )
 
-// Options configures SignPDF.
+// Options configures PDF.
 type Options struct {
 	Signer      Signer
 	Level       PAdESLevel
@@ -79,9 +79,9 @@ var (
 	errInvalidPlaceholder   = errors.New("sign: invalid signature placeholder bounds")
 )
 
-// SignPDF applies a detached CMS/PAdES signature to an existing PDF using an
+// PDF applies a detached CMS/PAdES signature to an existing PDF using an
 // incremental update.
-func SignPDF(pdfBytes []byte, opts Options) ([]byte, error) {
+func PDF(pdfBytes []byte, opts Options) ([]byte, error) {
 	if opts.Signer == nil {
 		return nil, errSignerRequired
 	}

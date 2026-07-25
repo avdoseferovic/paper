@@ -1,3 +1,4 @@
+// Package main demonstrates password protection and permission flags.
 package main
 
 import (

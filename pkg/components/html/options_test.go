@@ -146,7 +146,7 @@ func TestWithGridSize_QuantisesImageColumnToCustomGrid(t *testing.T) {
 	t.Parallel()
 
 	// Arrange: an 85mm image is half of the default 170mm content width.
-	htmlStr := fmt.Sprintf(`<img src="%s" width="85mm" height="20mm" alt="x">`, pngDataURI(t))
+	htmlStr := fmt.Sprintf(`<img src=%q width="85mm" height="20mm" alt="x">`, pngDataURI(t))
 
 	// Act
 	defaultComponent, err := htmlcomponent.New(context.Background(), htmlStr)
@@ -169,7 +169,7 @@ func TestWithContentWidth_ChangesImageColumnQuantisation(t *testing.T) {
 
 	// Arrange: an 85mm image is half of the default 170mm content width but
 	// fills a custom 85mm content width entirely.
-	htmlStr := fmt.Sprintf(`<img src="%s" width="85mm" height="20mm" alt="x">`, pngDataURI(t))
+	htmlStr := fmt.Sprintf(`<img src=%q width="85mm" height="20mm" alt="x">`, pngDataURI(t))
 
 	// Act
 	defaultComponent, err := htmlcomponent.New(context.Background(), htmlStr)

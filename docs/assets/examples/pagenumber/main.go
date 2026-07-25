@@ -1,3 +1,4 @@
+// Package main demonstrates page numbering in a footer.
 package main
 
 import (

@@ -10,7 +10,7 @@ if err != nil {
 	return err
 }
 
-signed, err := sign.SignPDF(pdfBytes, sign.Options{
+signed, err := sign.PDF(pdfBytes, sign.Options{
 	Signer:      signer,
 	Level:       sign.LevelBB,
 	Name:        "Ada Lovelace",
@@ -26,7 +26,7 @@ if err != nil {
 For PAdES B-T, provide an RFC 3161 timestamp authority client:
 
 ```go
-signed, err := sign.SignPDF(pdfBytes, sign.Options{
+signed, err := sign.PDF(pdfBytes, sign.Options{
 	Signer:    signer,
 	Level:     sign.LevelBT,
 	TSAClient: sign.NewTSAClient("https://tsa.example.com"),
@@ -38,7 +38,7 @@ the signer's certificate chain, optional OCSP responses, CRLs, and extra
 certificates. B-LTA appends a document timestamp after the DSS update:
 
 ```go
-signed, err := sign.SignPDF(pdfBytes, sign.Options{
+signed, err := sign.PDF(pdfBytes, sign.Options{
 	Signer:     signer,
 	Level:      sign.LevelBLTA,
 	TSAClient:  sign.NewTSAClient("https://tsa.example.com"),
@@ -68,7 +68,7 @@ Current scope:
 - algorithm hash, digest OID, and signature OID metadata
 - `BuildDetachedCMS` for detached CMS SignedData generation with signing-time
   and message-digest signed attributes
-- `SignPDF` incremental signing for classic-xref PDFs supported by Paper's
+- `PDF` incremental signing for classic-xref PDFs supported by Paper's
   reader foundation
 - PAdES B-B signatures using `/SubFilter /ETSI.CAdES.detached`
 - PAdES B-T timestamp token embedding through `TSAClient`

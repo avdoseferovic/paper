@@ -1,3 +1,5 @@
+// Package test compares a generated document tree against a stored JSON
+// snapshot, and reports the first field that differs.
 package test
 
 import (
@@ -14,6 +16,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
+// Errors reported when a snapshot file cannot be read or parsed.
 var (
 	ErrCannotReadDir = errors.New("cannot read directory")
 	ErrGoModNotFound = errors.New("could not find go.mod")
@@ -27,6 +30,8 @@ var (
 	configOnce      sync.Once
 )
 
+// Node is one entry in the document tree written to a JSON snapshot: its type,
+// its value, any extra details, and its children.
 type Node struct {
 	Value   any            `json:"value,omitempty"`
 	Type    string         `json:"type"`

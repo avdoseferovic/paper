@@ -14,6 +14,7 @@ const labelGap = 1.0
 // centering in provider_capabilities.go and richtext_render.go).
 const checkboxLabelBaselineRatio = 0.35
 
+// Checkbox draws a checkbox, optionally with a label beside it.
 type Checkbox struct {
 	pdf                   checkboxPDF
 	font                  core.Font

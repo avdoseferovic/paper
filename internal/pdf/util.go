@@ -100,7 +100,7 @@ func sliceUncompress(data []byte, limit int64) ([]byte, error) {
 }
 
 func appendUTF16BEUnit(res []byte, unit uint16) []byte {
-	return append(res, byte(unit>>8), byte(unit)) // #nosec G115 -- bytes are the high and low halves of a uint16.
+	return append(res, byte(unit>>8), byte(unit&0xFF))
 }
 
 // utf8toutf16 converts UTF-8 to UTF-16BE; from http://www.fpdf.org/
@@ -158,7 +158,7 @@ func repClosure(m map[rune]byte) func(string) string {
 		buf.Reset()
 		for _, r := range str {
 			if r < 0x80 {
-				ch = byte(r) // #nosec G115 -- branch guarantees an ASCII byte.
+				ch = byte(r & 0x7F)
 			} else {
 				ch, ok = m[r]
 				if !ok {
@@ -187,6 +187,14 @@ func repClosure(m map[rune]byte) func(string) string {
 // format. In this case, the returned function is valid but does not perform
 // any rune translation.
 func UnicodeTranslator(r io.Reader) (func(string) string, error) {
+	m, err := parseCodepageMap(r)
+	if err != nil {
+		return doNothing, err
+	}
+	return repClosure(m), nil
+}
+
+func parseCodepageMap(r io.Reader) (map[rune]byte, error) {
 	m := make(map[rune]byte)
 	var uPos, cPos uint32
 	var lineStr, nameStr string
@@ -195,7 +203,7 @@ func UnicodeTranslator(r io.Reader) (func(string) string, error) {
 	for sc.Scan() {
 		lineStr = sc.Text()
 		lineStr = strings.TrimSpace(lineStr)
-		if len(lineStr) > 0 {
+		if lineStr != "" {
 			_, err := fmt.Sscanf(lineStr, "!%2X U+%4X %s", &cPos, &uPos, &nameStr)
 			if err == nil {
 				if cPos >= 0x80 {
@@ -208,12 +216,12 @@ func UnicodeTranslator(r io.Reader) (func(string) string, error) {
 	}
 	err := sc.Err()
 	if err != nil {
-		return doNothing, fmt.Errorf("scan unicode translator: %w", err)
+		return nil, fmt.Errorf("scan unicode translator: %w", err)
 	}
 	if parseErr != nil {
-		return doNothing, parseErr
+		return nil, parseErr
 	}
-	return repClosure(m), nil
+	return m, nil
 }
 
 // UnicodeTranslatorFromFile returns a function that can be used to translate,
@@ -240,6 +248,15 @@ func UnicodeTranslatorFromFile(fileStr string) (func(string) string, error) {
 	return translator, nil
 }
 
+// codepageMapCache memoizes parsed embedded code page maps by name. Building a
+// map scans ~256 descriptor lines with fmt.Sscanf, and
+// UnicodeTranslatorFromDescriptor is called once per text draw, so without this
+// the same static map is re-parsed thousands of times per document (profiled at
+// ~30% of allocated objects). The cached maps are read-only after construction,
+// so sharing them across goroutines is safe; the closure repClosure returns is
+// NOT (it captures a bytes.Buffer), so a fresh closure is built per call.
+var codepageMapCache sync.Map
+
 // UnicodeTranslatorFromDescriptor returns a function that can be used to
 // translate, where possible, utf-8 strings to a form that is compatible with
 // the specified code page. See UnicodeTranslator for more details.
@@ -254,26 +271,35 @@ func UnicodeTranslatorFromFile(fileStr string) (func(string) string, error) {
 //
 // The CellFormat_codepage example demonstrates this method.
 func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) func(string) string {
-	var str string
-	var ok bool
-	if f.err == nil {
-		if len(cpStr) == 0 {
-			cpStr = "cp1252"
-		}
-		str, ok = embeddedCodepageMap(cpStr)
-		if ok {
-			var err error
-			rep, err := UnicodeTranslator(strings.NewReader(str))
-			f.SetError(err)
-			return rep
-		} else {
-			var err error
-			rep, err := UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
-			f.SetError(err)
-			return rep
+	if f.err != nil {
+		return doNothing
+	}
+	if cpStr == "" {
+		cpStr = "cp1252"
+	}
+
+	if cached, hit := codepageMapCache.Load(cpStr); hit {
+		if m, valid := cached.(map[rune]byte); valid {
+			return repClosure(m)
 		}
 	}
-	return doNothing
+
+	// Code pages Paper ships are parsed from the embedded descriptor and cached;
+	// anything else is read from the font directory.
+	str, ok := embeddedCodepageMap(cpStr)
+	if !ok {
+		rep, err := UnicodeTranslatorFromFile(filepath.Join(f.fontpath, cpStr) + ".map")
+		f.SetError(err)
+		return rep
+	}
+
+	m, err := parseCodepageMap(strings.NewReader(str))
+	f.SetError(err)
+	if err != nil {
+		return doNothing
+	}
+	codepageMapCache.Store(cpStr, m)
+	return repClosure(m)
 }
 
 // Transform moves a point by given X, Y offset

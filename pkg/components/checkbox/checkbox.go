@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Checkbox is a component that draws a tick box, optionally with a label.
 type Checkbox struct {
 	label  string
 	prop   props.Checkbox

@@ -37,6 +37,7 @@ func OIDSignedData() asn1.ObjectIdentifier {
 // Algorithm identifies a hash and signature algorithm pair.
 type Algorithm int
 
+// The hash and signature algorithm pairs available for signing.
 const (
 	SHA256WithRSA Algorithm = iota
 	SHA384WithRSA

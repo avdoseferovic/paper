@@ -1,3 +1,4 @@
+// Package main demonstrates placing images across a grid of columns.
 package main
 
 import (

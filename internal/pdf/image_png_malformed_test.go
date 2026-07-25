@@ -34,7 +34,7 @@ func newTestPDF() *PDF {
 func TestRegisterImageOptionsReader_RejectsMalformedPNGDimensions(t *testing.T) {
 	t.Parallel()
 
-	idat := sliceCompress(bytes.Repeat([]byte{0}, 64))
+	idat := sliceCompress(make([]byte, 64))
 	for name, tc := range map[string]struct {
 		width, height uint32
 		wantErr       string

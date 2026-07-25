@@ -245,7 +245,7 @@ func TestUTF8FontSubsettingOutputIsDeterministic(t *testing.T) {
 	}
 
 	first := render()
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if got := render(); !bytes.Equal(first, got) {
 			t.Fatalf("UTF-8 font subset output differed on render %d", i+2)
 		}
@@ -301,7 +301,7 @@ func makeWOFF1FromSFNT(t *testing.T, sfnt []byte, compressTables bool) []byte {
 		compLength int
 	}
 	tables := make([]table, 0, numTables)
-	for i := 0; i < numTables; i++ {
+	for i := range numTables {
 		record := sfnt[12+i*16 : 12+(i+1)*16]
 		offset := int(binary.BigEndian.Uint32(record[8:12]))
 		length := int(binary.BigEndian.Uint32(record[12:16]))
@@ -338,31 +338,37 @@ func makeWOFF1FromSFNT(t *testing.T, sfnt []byte, compressTables bool) []byte {
 	for _, table := range tables {
 		totalLength = paddedLength(totalLength) + paddedLength(table.compLength)
 	}
-	out := make([]byte, 44+numTables*20)
-	copy(out[0:4], []byte{'w', 'O', 'F', 'F'})
-	copy(out[4:8], sfnt[0:4])
-	binary.BigEndian.PutUint32(out[8:12], uint32(totalLength)) // #nosec G115 -- test fixture is bounded.
-	binary.BigEndian.PutUint16(out[12:14], uint16(numTables))  // #nosec G115 -- table count is from a uint16 field.
-	binary.BigEndian.PutUint32(out[16:20], uint32(len(sfnt)))  // #nosec G115 -- test fixture is bounded.
+	// The header is fixed size and written by index; table data is appended to a
+	// separate body so neither buffer mixes indexed writes with append.
+	header := make([]byte, 44+numTables*20)
+	copy(header[0:4], "wOFF")
+	copy(header[4:8], sfnt[0:4])
+	putUint32(header[8:12], totalLength)
+	putUint16(header[12:14], numTables)
+	putUint32(header[16:20], len(sfnt))
 
-	offset := 44 + numTables*20
+	body := make([]byte, 0, totalLength-len(header))
+	offset := len(header)
 	for i, table := range tables {
 		offset = paddedLength(offset)
-		entry := out[44+i*20 : 44+(i+1)*20]
+		entry := header[44+i*20 : 44+(i+1)*20]
 		copy(entry[0:4], table.tag)
-		binary.BigEndian.PutUint32(entry[4:8], uint32(offset))            // #nosec G115 -- test fixture is bounded.
-		binary.BigEndian.PutUint32(entry[8:12], uint32(table.compLength)) // #nosec G115 -- test fixture is bounded.
-		binary.BigEndian.PutUint32(entry[12:16], uint32(table.length))    // #nosec G115 -- test fixture is bounded.
+		putUint32(entry[4:8], offset)
+		putUint32(entry[8:12], table.compLength)
+		putUint32(entry[12:16], table.length)
 		copy(entry[16:20], table.checksum)
-		if len(out) < offset {
-			out = append(out, make([]byte, offset-len(out))...)
+		if pad := offset - (len(header) + len(body)); pad > 0 {
+			body = append(body, make([]byte, pad)...)
 		}
-		out = append(out, table.compData...)
+		body = append(body, table.compData...)
 		if padding := paddedLength(table.compLength) - table.compLength; padding > 0 {
-			out = append(out, make([]byte, padding)...)
+			body = append(body, make([]byte, padding)...)
 		}
 		offset += paddedLength(table.compLength)
 	}
+	out := make([]byte, 0, totalLength)
+	out = append(out, header...)
+	out = append(out, body...)
 	if len(out) != totalLength {
 		t.Fatalf("WOFF length = %d, want %d", len(out), totalLength)
 	}

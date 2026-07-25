@@ -2,8 +2,11 @@ package entity
 
 import "fmt"
 
+// LabelStyle is how a page label numbers its pages.
 type LabelStyle string
 
+// The page numbering styles: decimal, upper/lower roman, upper/lower letters,
+// or no number at all.
 const (
 	LabelDecimal    LabelStyle = "D"
 	LabelRomanUpper LabelStyle = "R"
@@ -13,6 +16,8 @@ const (
 	LabelNone       LabelStyle = ""
 )
 
+// PageLabelRange labels the run of pages starting at PageIndex. Start is the
+// number the run counts from, and Prefix is put in front of each number.
 type PageLabelRange struct {
 	PageIndex int
 	Style     LabelStyle

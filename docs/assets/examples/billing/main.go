@@ -1,3 +1,4 @@
+// Package main demonstrates a complete invoice: header, line-item table, and totals.
 package main
 
 import (

@@ -447,7 +447,6 @@ func (f *PDF) putOpenAction(prefs *ViewerPreferences) {
 			f.outf("/OpenAction [%d 0 R /Fit]", pageRef)
 			return
 		}
-		//nolint:dupword // XYZ destinations take two literal null operands.
 		f.outf("/OpenAction [%d 0 R /XYZ null null %.2f]", pageRef, value/100)
 	}
 }

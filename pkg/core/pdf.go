@@ -14,11 +14,14 @@ import (
 	"github.com/avdoseferovic/paper/pkg/metrics"
 )
 
+// Errors reported when working with a generated document.
 var (
 	ErrCannotMergeBytes = errors.New("cannot merge bytes")
 	ErrCannotWriteFile  = errors.New("cannot write file")
 )
 
+// Pdf is a generated document: its bytes plus the timing report collected while
+// building it.
 type Pdf struct {
 	bytes  []byte
 	report *metrics.Report
@@ -57,9 +60,10 @@ func (p *Pdf) GetReport() *metrics.Report {
 	return p.report
 }
 
-// Save saves the PDF in a file.
+// Save saves the PDF in a file. The file is created with the usual 0666 before
+// umask, not the 0777 that os.ModePerm would grant.
 func (p *Pdf) Save(file string) error {
-	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	f, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrCannotWriteFile, err)
 	}

@@ -1,0 +1,81 @@
+name: ci
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
+
+      # The config in .golangci.yml is shared by all three modules in the
+      # workspace, and contains no inline suppressions: every exception is
+      # declared there with a rationale.
+      - name: Lint root module
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.10.1
+          args: --config .golangci.yml ./...
+
+      - name: Lint examples module
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.10.1
+          working-directory: examples
+          args: --config ../.golangci.yml ./...
+
+      - name: Lint docs module
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.10.1
+          working-directory: docs
+          args: --config ../.golangci.yml ./...
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test root module
+        run: go test -race ./...
+
+      - name: Test examples module
+        run: go test ./...
+        working-directory: examples
+
+      - name: Test docs examples
+        run: go test ./assets/examples/...
+        working-directory: docs

@@ -3,6 +3,7 @@ package props
 // GradientKind distinguishes supported CSS gradient families.
 type GradientKind int
 
+// The gradient families a Gradient can describe.
 const (
 	GradientLinear GradientKind = iota
 	GradientRadial

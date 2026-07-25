@@ -40,6 +40,7 @@ func TestParseLOCATableFormats(t *testing.T) {
 	t.Parallel()
 
 	t.Run("format0", func(t *testing.T) {
+		t.Parallel()
 		var loca []byte
 		for _, v := range []int{5, 10, 15} {
 			loca = appendUint16(loca, v)
@@ -61,6 +62,7 @@ func TestParseLOCATableFormats(t *testing.T) {
 	})
 
 	t.Run("format1", func(t *testing.T) {
+		t.Parallel()
 		var loca []byte
 		for _, v := range []int{7, 14, 21} {
 			loca = appendUint32(loca, v)
@@ -82,6 +84,7 @@ func TestParseLOCATableFormats(t *testing.T) {
 	})
 
 	t.Run("unknownFormat", func(t *testing.T) {
+		t.Parallel()
 		utf := &utf8FontFile{
 			fileReader:        &fileReader{array: make([]byte, 16)},
 			tableDescriptions: map[string]*tableDescription{"loca": {position: 0, size: 16}},
@@ -309,8 +312,10 @@ func TestParseCOLRV1ColorEdgeCases(t *testing.T) {
 
 	// Transform paints (formats 12-31) follow the nested paint offset.
 	var transform []byte
-	transform = append(transform, 0)            // padding so offsets are positive
-	transform = append(transform, 12)           // PaintTransform format
+	transform = append(transform,
+		0,  // padding so offsets are positive
+		12, // PaintTransform format
+	)
 	transform = appendOffset24(transform, 4)    // nested paint offset
 	transform = append(transform, 2)            // PaintSolid format
 	transform = appendUint16(transform, 5)      // palette index

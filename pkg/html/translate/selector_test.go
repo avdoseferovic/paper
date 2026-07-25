@@ -13,7 +13,7 @@ import (
 // applyStyleAndGetBg parses the HTML, applies the user CSS via the
 // translator's stylesheet pipeline, then returns the computed background
 // colour of the first element matching findTag (or nil when unmatched / no bg).
-func styleNthChild(t *testing.T, htmlStr string, findTag string, nth int) string {
+func styleNthChild(t *testing.T, htmlStr, findTag string, nth int) string {
 	t.Helper()
 	doc, err := dom.Parse(htmlStr)
 	require.NoError(t, err)

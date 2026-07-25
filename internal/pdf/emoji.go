@@ -8,8 +8,16 @@ import (
 	"strings"
 )
 
+// int16FromUint16Bits reinterprets the raw bits of a TrueType uint16 field as
+// the signed value the format stores there. The magnitude is masked so the
+// conversion is provably in range, then the sign bit is applied.
 func int16FromUint16Bits(v uint16) int16 {
-	return int16(v) // #nosec G115 -- TrueType stores signed int16 values as uint16 bits.
+	n := int16(v & 0x7FFF)
+	if v&0x8000 != 0 {
+		n -= 0x7FFF
+		n--
+	}
+	return n
 }
 
 func signedByteValue(v byte) int {
@@ -40,8 +48,8 @@ func (f *PDF) stringToCIDs(s string) string {
 		if !ok {
 			continue
 		}
-		b.WriteByte(byte(cid16 >> 8)) // #nosec G115 -- high byte of a uint16 CID.
-		b.WriteByte(byte(cid16))      // #nosec G115 -- low byte of a uint16 CID.
+		b.WriteByte(byte(cid16 >> 8))
+		b.WriteByte(byte(cid16 & 0xFF))
 	}
 	return b.String()
 }
@@ -328,7 +336,7 @@ func (utf *utf8FontFile) parseGlyphOutline(glyphID uint16) *glyphOutline {
 	return utf.parseGlyphData(glyfData[symbolPos:symbolPos+symbolLen], glyfData)
 }
 
-func (utf *utf8FontFile) parseGlyphData(data []byte, glyfData []byte) *glyphOutline {
+func (utf *utf8FontFile) parseGlyphData(data, glyfData []byte) *glyphOutline {
 	if len(data) < 10 {
 		return nil
 	}
@@ -413,7 +421,7 @@ func readSimpleGlyphFlags(data []byte, offset, numPoints int) ([]byte, int, bool
 	return flags, offset, true
 }
 
-func readSimpleGlyphCoords(data []byte, flags []byte, offset int, shortFlag, sameFlag byte) ([]int, int, bool) {
+func readSimpleGlyphCoords(data, flags []byte, offset int, shortFlag, sameFlag byte) ([]int, int, bool) {
 	coords := make([]int, len(flags))
 	current := 0
 	for i, flag := range flags {
@@ -475,16 +483,18 @@ type glyphTransform struct {
 	e, f       float64
 }
 
-func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outline *glyphOutline) {
+func (utf *utf8FontFile) parseCompositeGlyph(data, glyfData []byte, outline *glyphOutline) {
 	offset := 0
 	flags := uint16(symbolContinue)
 	for flags&symbolContinue != 0 {
-		if offset+4 > len(data) {
+		var (
+			glyphIndex int
+			ok         bool
+		)
+		flags, glyphIndex, offset, ok = readCompositeGlyphHeader(data, offset)
+		if !ok {
 			return
 		}
-		flags = binary.BigEndian.Uint16(data[offset : offset+2])              // #nosec G602 -- guarded by the offset+4 bounds check above.
-		glyphIndex := int(binary.BigEndian.Uint16(data[offset+2 : offset+4])) // #nosec G602 -- guarded by the offset+4 bounds check above.
-		offset += 4
 
 		transform, nextOffset, ok := readCompositeGlyphTransform(data, offset, flags)
 		if !ok {
@@ -506,6 +516,17 @@ func (utf *utf8FontFile) parseCompositeGlyph(data []byte, glyfData []byte, outli
 		}
 		appendTransformedContours(outline, compOutline, transform)
 	}
+}
+
+// readCompositeGlyphHeader reads one component's flags and glyph index from a
+// composite glyph description.
+func readCompositeGlyphHeader(data []byte, offset int) (flags uint16, glyphIndex, nextOffset int, ok bool) {
+	if offset < 0 || offset+4 > len(data) {
+		return 0, 0, offset, false
+	}
+	flags = binary.BigEndian.Uint16(data[offset : offset+2])
+	glyphIndex = int(binary.BigEndian.Uint16(data[offset+2 : offset+4]))
+	return flags, glyphIndex, offset + 4, true
 }
 
 func readCompositeGlyphTransform(data []byte, offset int, flags uint16) (glyphTransform, int, bool) {

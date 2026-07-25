@@ -144,7 +144,7 @@ func TestFromString_RejectsTooManyStyleRules(t *testing.T) {
 	b.WriteString("<html><head><style>")
 	for i := range 20 {
 		b.WriteString(".x")
-		b.WriteString(string(rune('a' + i)))
+		b.WriteRune(rune('a' + i))
 		b.WriteString("{color:red}")
 	}
 	b.WriteString("</style></head><body><p>ok</p></body></html>")
@@ -181,7 +181,7 @@ func pngHeaderWithDimensions(width, height uint32) []byte {
 }
 
 func writePNGChunk(buf *bytes.Buffer, name string, data []byte) {
-	_ = binary.Write(buf, binary.BigEndian, uint32(len(data)))
+	_ = binary.Write(buf, binary.BigEndian, uint32(len(data)&0x7FFFFFFF))
 	buf.WriteString(name)
 	buf.Write(data)
 	crc := crc32.NewIEEE()

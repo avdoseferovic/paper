@@ -108,7 +108,7 @@ func (r *horizontalMarginRow) GetColumns() []core.Col {
 	return r.child.GetColumns()
 }
 
-func (r *horizontalMarginRow) SplitAt(provider core.Provider, remainingHeight float64, width float64) (core.Row, core.Row, bool) {
+func (r *horizontalMarginRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
 	splittable, ok := r.child.(core.Splittable)
 	if !ok {
 		return nil, nil, false
@@ -397,7 +397,7 @@ func (s *splittableContainerRow) GetColumns() []core.Col           { return s.in
 // the point where cumulative row heights would exceed remainingHeight.
 // Returns (nil, self, true) when no child rows fit (push whole container to
 // next page). Returns (self, nil, false) when the container fits entirely.
-func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight float64, width float64) (core.Row, core.Row, bool) {
+func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
 	if s.container == nil {
 		return nil, nil, false
 	}

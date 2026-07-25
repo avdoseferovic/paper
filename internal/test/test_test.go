@@ -87,9 +87,9 @@ func TestGetPaperConfigFilePathRecursive_WhenModuleMatches_ShouldReturnThatDir(t
 
 	root := t.TempDir()
 	nested := filepath.Join(root, "pkg", "test")
-	err := os.MkdirAll(nested, os.ModePerm)
+	err := os.MkdirAll(nested, 0o750)
 	assert.NoError(t, err)
-	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module "+paperModule+"\n"), os.ModePerm)
+	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module "+paperModule+"\n"), 0o600)
 	assert.NoError(t, err)
 
 	path, err := getPaperConfigFilePathRecursive(nested + string(os.PathSeparator))
@@ -103,11 +103,11 @@ func TestGetPaperConfigFilePathRecursive_WhenIntermediateModuleDiffers_ShouldKee
 
 	root := t.TempDir()
 	nested := filepath.Join(root, "sub")
-	err := os.MkdirAll(nested, os.ModePerm)
+	err := os.MkdirAll(nested, 0o750)
 	assert.NoError(t, err)
-	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module "+paperModule+"\n"), os.ModePerm)
+	err = os.WriteFile(filepath.Join(root, goModFile), []byte("module "+paperModule+"\n"), 0o600)
 	assert.NoError(t, err)
-	err = os.WriteFile(filepath.Join(nested, goModFile), []byte("module example.test/other\n"), os.ModePerm)
+	err = os.WriteFile(filepath.Join(nested, goModFile), []byte("module example.test/other\n"), 0o600)
 	assert.NoError(t, err)
 
 	path, err := getPaperConfigFilePathRecursive(nested)

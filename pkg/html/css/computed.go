@@ -1,3 +1,6 @@
+// Package css parses CSS declarations and resolves them into a ComputedStyle
+// that the HTML translator can read. It covers lengths, colors, shorthands,
+// custom properties (variables), selector specificity, and text transforms.
 package css
 
 import (

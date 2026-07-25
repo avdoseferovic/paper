@@ -169,7 +169,7 @@ func (r *absoluteRow) GetColumns() []core.Col {
 	return r.child.GetColumns()
 }
 
-func (r *offsetRow) SplitAt(provider core.Provider, remainingHeight float64, width float64) (core.Row, core.Row, bool) {
+func (r *offsetRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
 	splittable, ok := r.child.(core.Splittable)
 	if !ok {
 		return nil, nil, false

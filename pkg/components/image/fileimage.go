@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// FileImage is a component that draws an image read from a file path.
 type FileImage struct {
 	path   string
 	prop   props.Rect
@@ -44,7 +45,8 @@ func NewFromFileRow(height float64, path string, ps ...props.Rect) core.Row {
 	return row.New(height).Add(c)
 }
 
-// NewFromFileRow is responsible to create an instance of an Image wrapped in a automatic Row.
+// NewAutoFromFileRow creates an Image wrapped in a Row whose height follows the
+// image.
 func NewAutoFromFileRow(path string, ps ...props.Rect) core.Row {
 	image := NewFromFile(path, ps...)
 	c := col.New().Add(image)

@@ -6,12 +6,14 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Line draws horizontal and vertical rules inside a cell.
 type Line struct {
 	pdf              linePDF
 	defaultColor     *props.Color
 	defaultThickness float64
 }
 
+// NewLine creates a Line that draws on the given PDF writer.
 func NewLine(pdf linePDF) *Line {
 	defaultColor := props.Black()
 	return &Line{
@@ -21,6 +23,8 @@ func NewLine(pdf linePDF) *Line {
 	}
 }
 
+// Add draws a line across cell, using the orientation, thickness, color, and
+// dash style in prop.
 func (l *Line) Add(cell *entity.Cell, prop *props.Line) {
 	if prop.Orientation == consts.OrientationVertical {
 		l.renderVertical(cell, prop)

@@ -65,7 +65,7 @@ func TestHTMLToBase64_PathologicalHTML_DoesNotPanic(t *testing.T) {
 		"<p style=\"width:-1px\">" + strings.Repeat("<b>", 500),
 		"<img src=\"\"><svg><svg><svg>",
 	} {
-		_, _ = wasmconvert.HTMLToBase64(context.Background(), in)
+		_, _ = wasmconvert.HTMLToBase64(t.Context(), in)
 		// Reaching here without a panic is the assertion.
 	}
 }

@@ -71,7 +71,7 @@ func (c *combinedRow) Render(p core.Provider, cell entity.Cell) {
 
 // Add and other Row methods aren't needed for our internal use; combinedRow
 // is treated as a black-box Row in the rendering pipeline.
-func (c *combinedRow) Add(cols ...core.Col) core.Row  { return c }
+func (c *combinedRow) Add(_ ...core.Col) core.Row     { return c }
 func (c *combinedRow) WithStyle(*props.Cell) core.Row { return c }
 func (c *combinedRow) GetColumns() []core.Col         { return nil }
 

@@ -29,6 +29,8 @@ func ApplyCellMargins(cell entity.Cell, style *props.Cell) entity.Cell {
 	return cell
 }
 
+// VerticalCellMargins returns the top and bottom margins added together, which
+// is the height a cell loses to its own margins.
 func VerticalCellMargins(style *props.Cell) float64 {
 	if style == nil {
 		return 0

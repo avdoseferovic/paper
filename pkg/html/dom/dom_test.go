@@ -111,6 +111,7 @@ func TestNodeClassification(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.tag, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tc.isBlock, dom.IsBlockTag(tc.tag))
 		})
 	}

@@ -18,8 +18,12 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// ErrCouldNotRegisterImageOptions is returned when the PDF writer rejects an
+// image, usually because the path or format is wrong.
 var ErrCouldNotRegisterImageOptions = errors.New("could not register image options, maybe path/name is wrong")
 
+// Image adds images to cells, keeping a cache so the same image is only
+// registered with the PDF writer once.
 type Image struct {
 	pdf        imagePDF
 	math       core.Math

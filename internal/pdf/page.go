@@ -63,21 +63,13 @@ func (f *PDF) SetCellMargin(margin float64) {
 // that specifies the coordinates and extent of the page box individually.
 func (f *PDF) SetPageBoxRec(t string, pb PageBox) {
 	switch strings.ToLower(t) {
-	case "trim":
-		fallthrough
-	case "trimbox":
+	case "trim", "trimbox":
 		t = "TrimBox"
-	case "crop":
-		fallthrough
-	case "cropbox":
+	case "crop", "cropbox":
 		t = "CropBox"
-	case "bleed":
-		fallthrough
-	case "bleedbox":
+	case "bleed", "bleedbox":
 		t = "BleedBox"
-	case "art":
-		fallthrough
-	case "artbox":
+	case "art", "artbox":
 		t = "ArtBox"
 	default:
 		f.err = fmt.Errorf("%w: %s", errInvalidPageBoxType, t)
@@ -450,7 +442,7 @@ func (f *PDF) putpages() {
 	var pageSize SizeType
 	var ok bool
 	nb := f.page
-	if len(f.aliasNbPagesStr) > 0 {
+	if f.aliasNbPagesStr != "" {
 		f.RegisterAlias(f.aliasNbPagesStr, sprintf("%d", nb))
 	}
 	f.replaceAliases()

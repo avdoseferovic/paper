@@ -68,12 +68,11 @@ func Translate(ctx context.Context, doc *dom.Document, opts ...Option) ([]core.R
 	return document.Rows, err
 }
 
-// TranslateDocument walks the styled DOM and returns the full Document
-// result: content rows plus @page options. It observes ctx at cheap phase and
-// recursive traversal boundaries. Unlike Translate, the first top-level
-// <header>/<footer> elements are extracted into HeaderRows/FooterRows instead
-// of rendering inline.
-func TranslateDocument(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
+// FromDOM walks the styled DOM and returns the full Document: content rows plus
+// @page options. It observes ctx at cheap phase and recursive traversal
+// boundaries. Unlike Translate, the first top-level <header>/<footer> elements
+// are extracted into HeaderRows/FooterRows instead of rendering inline.
+func FromDOM(ctx context.Context, doc *dom.Document, opts ...Option) (*Document, error) {
 	return translateDocument(ctx, doc, true, opts...)
 }
 

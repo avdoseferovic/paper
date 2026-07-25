@@ -5,6 +5,7 @@ import "fmt"
 // AnnotationType identifies a PDF annotation subtype supported by Paper.
 type AnnotationType string
 
+// The annotation subtypes Paper can emit.
 const (
 	AnnotationLink      AnnotationType = "Link"
 	AnnotationText      AnnotationType = "Text"
@@ -17,6 +18,7 @@ const (
 // MarkupType identifies the kind of text markup annotation.
 type MarkupType int
 
+// The text markup styles a markup annotation can use.
 const (
 	MarkupHighlight MarkupType = iota
 	MarkupUnderline

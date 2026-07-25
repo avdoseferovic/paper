@@ -1,5 +1,6 @@
-// Package translate — shared tokenizers for CSS values whose grammar nests
-// inside parentheses (transform functions, grid templates, repeat()).
+// Shared tokenizers for CSS values whose grammar nests inside parentheses
+// (transform functions, grid templates, repeat()).
+
 package translate
 
 import (

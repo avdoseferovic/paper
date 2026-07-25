@@ -96,8 +96,8 @@ func qrByteDataCodewords(data []byte, version int) ([]byte, error) {
 	}
 
 	bits := qrBitBuffer{}
-	bits.append(0x4, 4)                       // Byte mode.
-	bits.append(uint32(len(data)), countBits) // #nosec G115 -- QR byte capacity is at most 2,953 bytes.
+	bits.append(0x4, 4) // Byte mode.
+	bits.append(uint32(len(data)&0xFFFF), countBits)
 	for _, b := range data {
 		bits.append(uint32(b), 8)
 	}
@@ -473,10 +473,9 @@ func qrAlignmentPatternPositions(version int) []int {
 		return nil
 	}
 	count := version/7 + 2
-	step := 0
-	if version == 32 {
-		step = 26
-	} else {
+	// Version 32 is the single version whose spacing the formula does not produce.
+	step := 26
+	if version != 32 {
 		step = (version*4 + count*2 + 1) / (count*2 - 2) * 2
 	}
 	positions := make([]int, count)

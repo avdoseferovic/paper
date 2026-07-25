@@ -108,5 +108,5 @@ func TestRasterize_ClampsOversizedFontSize(t *testing.T) {
 	// An unclamped face rasterises a mask of its own em size: this input used to
 	// allocate ~2.7GB for a single glyph on a 118x118 canvas.
 	allocatedMB := (after.TotalAlloc - before.TotalAlloc) / (1 << 20)
-	assert.Less(t, int(allocatedMB), 64)
+	assert.Less(t, allocatedMB, uint64(64))
 }

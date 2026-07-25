@@ -138,7 +138,7 @@ func TestBuildToUnicodeCMapMapsRemappedEmojiCID(t *testing.T) {
 	}
 }
 
-func cidWidthTestFont(lastRune int, widths map[int]int, usedRunes map[int]int) *fontDefType {
+func cidWidthTestFont(lastRune int, widths, usedRunes map[int]int) *fontDefType {
 	cw := make([]int, lastRune+1)
 	cwExtra := make(map[int]int)
 	for cid, width := range widths {

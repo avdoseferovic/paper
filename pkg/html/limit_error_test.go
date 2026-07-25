@@ -74,7 +74,7 @@ func manyStyleRules(n int) string {
 	b.WriteString("<html><head><style>")
 	for i := range n {
 		b.WriteString(".x")
-		b.WriteString(string(rune('a' + i)))
+		b.WriteRune(rune('a' + i))
 		b.WriteString("{color:red}")
 	}
 	b.WriteString("</style></head><body><p>ok</p></body></html>")

@@ -4,7 +4,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -46,7 +45,7 @@ func providerInterfaceDecl(t *testing.T) *ast.InterfaceType {
 	t.Helper()
 
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filepath.Join("provider.go"), nil, 0)
+	file, err := parser.ParseFile(fset, "provider.go", nil, 0)
 	require.NoError(t, err)
 
 	for _, decl := range file.Decls {

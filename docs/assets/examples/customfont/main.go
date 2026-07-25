@@ -1,3 +1,4 @@
+// Package main demonstrates registering a TrueType font and drawing UTF-8 text with it.
 package main
 
 import (
@@ -102,116 +103,117 @@ func GetPaper(customFontFile string) core.Paper {
 func getLanguageSample() ([]string, [][]string) {
 	header := []string{"Language", "Phrase: Talk is cheap. Show me the code."}
 
-	var contents [][]string
-	contents = append(contents, []string{"Africâner", "Praat is goedkoop. Wys my die kode."})
-	contents = append(contents, []string{"Albanês", "Biseda është e lirë. Më trego kodin."})
-	contents = append(contents, []string{"Alemão", "Reden ist billig. Zeig mir den Code."})
-	contents = append(contents, []string{"Amárico", "ወሬ ርካሽ ነው ፡፡ ኮዱን አሳዩኝ ፡፡"})
-	contents = append(contents, []string{"Árabe", "كلام رخيص. أرني الكود."})
-	contents = append(contents, []string{"Armênio", "Խոսակցությունն էժան է: Showույց տվեք ինձ ծածկագիրը:"})
-	contents = append(contents, []string{"Azerbaijano", "Danışıq ucuzdur. Kodu göstərin."})
-	contents = append(contents, []string{"Basco", "Eztabaida merkea da. Erakutsi kodea."})
-	contents = append(contents, []string{"Bengali", "টক সস্তা। আমাকে কোডটি দেখান"})
-	contents = append(contents, []string{"Bielorusso", "Размовы танныя. Пакажыце мне код."})
-	contents = append(contents, []string{"Birmanês", "ဟောပြောချက်ကစျေးပေါတယ် ကုဒ်ကိုပြပါ။"})
-	contents = append(contents, []string{"Bósnio", "Govor je jeftin. Pokaži mi šifru."})
-	contents = append(contents, []string{"Búlgaro", "Разговорите са евтини. Покажи ми кода."})
-	contents = append(contents, []string{"Canarim", "ಮಾತುಕತೆ ಅಗ್ಗವಾಗಿದೆ. ನನಗೆ ಕೋಡ್ ತೋರಿಸಿ."})
-	contents = append(contents, []string{"Catalão", "Parlar és barat. Mostra’m el codi."})
-	contents = append(contents, []string{"Cazeque", "Сөйлесу арзан. Маған кодты көрсетіңіз."})
-	contents = append(contents, []string{"Cebuano", "Barato ra ang sulti. Ipakita kanako ang code."})
-	contents = append(contents, []string{"Chinês Simplificado", "谈话很便宜。给我看代码。"})
-	contents = append(contents, []string{"Chinês Tradicional", "談話很便宜。給我看代碼。"})
-	contents = append(contents, []string{"Cingalês", "කතාව ලාභයි. කේතය මට පෙන්වන්න."})
-	contents = append(contents, []string{"Coreano", "토크는 싸다. 코드를 보여주세요."})
-	contents = append(contents, []string{"Corso", "Parlà hè bonu. Mostrami u codice."})
-	contents = append(contents, []string{"Croata", "Razgovor je jeftin. Pokaži mi šifru."})
-	contents = append(contents, []string{"Curdo", "Axaftin erzan e. Kodê nîşanî min bidin."})
-	contents = append(contents, []string{"Dinamarquês", "Tal er billig. Vis mig koden."})
-	contents = append(contents, []string{"Eslovaco", "Hovor je lacný. Ukáž mi kód."})
-	contents = append(contents, []string{"Esloveno", "Pogovor je poceni. Pokaži mi kodo."})
-	contents = append(contents, []string{"Espanhol", "Hablar es barato. Enséñame el código."})
-	contents = append(contents, []string{"Esperanto", "Babilado estas malmultekosta. Montru al mi la kodon."})
-	contents = append(contents, []string{"Estoniano", "Rääkimine on odav. Näita mulle koodi."})
-	contents = append(contents, []string{"Filipino", "Mura ang usapan. Ipakita sa akin ang code."})
-	contents = append(contents, []string{"Finlandês", "Puhe on halpaa. Näytä koodi."})
-	contents = append(contents, []string{"Francês", "Parler n'est pas cher. Montre-moi le code."})
-	contents = append(contents, []string{"Frísio Ocidental", "Prate is goedkeap. Lit my de koade sjen."})
-	contents = append(contents, []string{"Gaélico Escocês", "Tha còmhradh saor. Seall dhomh an còd."})
-	contents = append(contents, []string{"Galego", "Falar é barato. Móstrame o código."})
-	contents = append(contents, []string{"Galês", "Mae siarad yn rhad. Dangoswch y cod i mi."})
-	contents = append(contents, []string{"Georgiano", "აუბარი იაფია. მაჩვენე კოდი."})
-	contents = append(contents, []string{"Grego", "Η συζήτηση είναι φθηνή. Δείξε μου τον κωδικό."})
-	contents = append(contents, []string{"Guzerate", "વાતો કરવી સસ્તી છે. મને કોડ બતાવો."})
-	contents = append(contents, []string{"Haitiano", "Pale bon mache. Montre m kòd la."})
-	contents = append(contents, []string{"Hauçá", "Magana tana da arha. Nuna min lambar."})
-	contents = append(contents, []string{"Havaiano", "Kūʻai ke kamaʻilio. E hōʻike mai iaʻu i ke pāʻālua."})
-	contents = append(contents, []string{"Hebraico", "הדיבורים זולים. הראה לי את הקוד."})
-	contents = append(contents, []string{"Híndi", "बोलना आसान है। मुझे कोड दिखाओ।"})
-	contents = append(contents, []string{"Hmong", "Kev hais lus yog pheej yig. Qhia kuv cov code."})
-	contents = append(contents, []string{"Holandês", "Praten is goedkoop. Laat me de code zien."})
-	contents = append(contents, []string{"Húngaro", "Beszélni olcsó. Mutasd meg a kódot."})
-	contents = append(contents, []string{"Igbo", "Okwu dị ọnụ ala. Gosi m koodu."})
-	contents = append(contents, []string{"Lídiche", "רעדן איז ביליק. ווייַזן מיר דעם קאָד."})
-	contents = append(contents, []string{"Indonésio", "Berbicara itu murah. Tunjukkan kodenya."})
-	contents = append(contents, []string{"Inglês", "Talk is cheap. Show me the code."})
-	contents = append(contents, []string{"Iorubá", "Ọrọ jẹ olowo poku. Fi koodu naa han mi."})
-	contents = append(contents, []string{"Irlandês", "Tá caint saor. Taispeáin dom an cód."})
-	contents = append(contents, []string{"Islandês", "Tal er ódýrt. Sýndu mér kóðann."})
-	contents = append(contents, []string{"Italiano", "Parlare è economico. Mostrami il codice."})
-	contents = append(contents, []string{"Japonês", "口で言うだけなら簡単です。コードを見せてください。"})
-	contents = append(contents, []string{"Javanês", "Omongan iku murah. Tampilake kode kasebut."})
-	contents = append(contents, []string{"Khmer", "ការនិយាយគឺថោក។ បង្ហាញលេខកូដមកខ្ញុំ"})
-	contents = append(contents, []string{"Laosiano", "ການສົນທະນາແມ່ນລາຄາຖືກ. ສະແດງລະຫັດໃຫ້ຂ້ອຍ."})
-	contents = append(contents, []string{"Latim", "Disputatio vilis est. Ostende mihi codice."})
-	contents = append(contents, []string{"Letão", "Saruna ir lēta. Parādiet man kodu."})
-	contents = append(contents, []string{"Lituano", "Kalbėti pigu. Parodyk man kodą."})
-	contents = append(contents, []string{"Luxemburguês", "Schwätzen ass bëlleg. Weist mir de Code."})
-	contents = append(contents, []string{"Macedônio", "Зборувањето е ефтино. Покажи ми го кодот."})
-	contents = append(contents, []string{"Malaiala", "സംസാരം വിലകുറഞ്ഞതാണ്. എനിക്ക് കോഡ് കാണിക്കുക."})
-	contents = append(contents, []string{"Malaio", "Perbincangan murah. Tunjukkan kod saya."})
-	contents = append(contents, []string{"Malgaxe", "Mora ny resaka. Asehoy ahy ny kaody."})
-	contents = append(contents, []string{"Maltês", "It-taħdita hija rħisa. Urini l-kodiċi."})
-	contents = append(contents, []string{"Maori", "He iti te korero. Whakaatuhia mai te tohu."})
-	contents = append(contents, []string{"Marati", "चर्चा स्वस्त आहे. मला कोड दाखवा."})
-	contents = append(contents, []string{"Mongol", "Яриа хямд. Надад кодоо харуул."})
-	contents = append(contents, []string{"Nepalês", "कुरा सस्तो छ। मलाई कोड देखाउनुहोस्।"})
-	contents = append(contents, []string{"Nianja", "Kulankhula ndikotsika mtengo. Ndiwonetseni nambala"})
-	contents = append(contents, []string{"Norueguês", "Snakk er billig. Vis meg koden."})
-	contents = append(contents, []string{"Oriá", "କଥାବାର୍ତ୍ତା ଶସ୍ତା ଅଟେ | ମୋତେ କୋଡ୍ ଦେଖାନ୍ତୁ |"})
-	contents = append(contents, []string{"Panjabi", "ਗੱਲ ਸਸਤਾ ਹੈ. ਮੈਨੂੰ ਕੋਡ ਦਿਖਾਓ."})
-	contents = append(contents, []string{"Pashto", "خبرې ارزانه دي. ما ته کوډ وښایاست"})
-	contents = append(contents, []string{"Persa", "بحث ارزان است. کد را به من نشان دهید"})
-	contents = append(contents, []string{"Polonês", "Rozmowa jest tania. Pokaż mi kod."})
-	contents = append(contents, []string{"Português", "Falar é fácil. Mostre-me o código."})
-	contents = append(contents, []string{"Quiniaruanda", "Ibiganiro birahendutse. Nyereka kode."})
-	contents = append(contents, []string{"Quirguiz", "Сүйлөшүү арзан. Мага кодду көрсөтүңүз."})
-	contents = append(contents, []string{"Romeno", "Vorbirea este ieftină. Arată-mi codul."})
-	contents = append(contents, []string{"Russo", "Обсуждение дешево. Покажи мне код."})
-	contents = append(contents, []string{"Samoano", "E taugofie talanoaga. Faʻaali mai le code."})
-	contents = append(contents, []string{"Sérvio", "Причање је јефтино. Покажи ми шифру."})
-	contents = append(contents, []string{"Sindi", "ڳالهه سستا آهي. مونکي ڪوڊ ڏيکاريو."})
-	contents = append(contents, []string{"Somali", "Hadalku waa jaban yahay. I tus lambarka."})
-	contents = append(contents, []string{"Soto do Sul", "Puo e theko e tlase. Mpontshe khoutu."})
-	contents = append(contents, []string{"Suaíli", "Mazungumzo ni ya bei rahisi. Nionyeshe nambari."})
-	contents = append(contents, []string{"Sueco", "Prat är billigt. Visa mig koden."})
-	contents = append(contents, []string{"Sundanês", "Omongan mirah. Tunjukkeun kode na."})
-	contents = append(contents, []string{"Tadjique", "Сӯҳбат арзон аст. Рамзро ба ман нишон диҳед."})
-	contents = append(contents, []string{"Tailandês", "พูดคุยราคาถูก แสดงรหัส"})
-	contents = append(contents, []string{"Tâmil", "பேச்சு மலிவானது. குறியீட்டை எனக்குக் காட்டு."})
-	contents = append(contents, []string{"Tártaro", "Сөйләшү арзан. Миңа код күрсәтегез."})
-	contents = append(contents, []string{"Tcheco", "Mluvení je levné. Ukaž mi kód."})
-	contents = append(contents, []string{"Télugo", "చర్చ చౌకగా ఉంటుంది. నాకు కోడ్ చూపించు."})
-	contents = append(contents, []string{"Turco", "Konuşma ucuz. Bana kodu göster."})
-	contents = append(contents, []string{"Turcomeno", "Gepleşik arzan. Kody görkez"})
-	contents = append(contents, []string{"Ucraniano", "Розмова дешева. Покажи мені код."})
-	contents = append(contents, []string{"Uigur", "پاراڭ ئەرزان. ماڭا كودنى كۆرسەت."})
-	contents = append(contents, []string{"Urdu", "بات گھٹیا ہے. مجھے کوڈ دکھائیں۔"})
-	contents = append(contents, []string{"Uzbeque", "Gapirish arzon. Menga kodni ko'rsating."})
-	contents = append(contents, []string{"Vietnamita", "Nói chuyện là rẻ. Cho tôi xem mã."})
-	contents = append(contents, []string{"Xhosa", "Ukuthetha akubizi. Ndibonise ikhowudi."})
-	contents = append(contents, []string{"Xona", "Kutaura kwakachipa. Ndiratidze kodhi."})
-	contents = append(contents, []string{"Zulu", "Ukukhuluma kushibhile. Ngikhombise ikhodi."})
+	contents := [][]string{
+		{"Africâner", "Praat is goedkoop. Wys my die kode."},
+		{"Albanês", "Biseda është e lirë. Më trego kodin."},
+		{"Alemão", "Reden ist billig. Zeig mir den Code."},
+		{"Amárico", "ወሬ ርካሽ ነው ፡፡ ኮዱን አሳዩኝ ፡፡"},
+		{"Árabe", "كلام رخيص. أرني الكود."},
+		{"Armênio", "Խոսակցությունն էժան է: Showույց տվեք ինձ ծածկագիրը:"},
+		{"Azerbaijano", "Danışıq ucuzdur. Kodu göstərin."},
+		{"Basco", "Eztabaida merkea da. Erakutsi kodea."},
+		{"Bengali", "টক সস্তা। আমাকে কোডটি দেখান"},
+		{"Bielorusso", "Размовы танныя. Пакажыце мне код."},
+		{"Birmanês", "ဟောပြောချက်ကစျေးပေါတယ် ကုဒ်ကိုပြပါ။"},
+		{"Bósnio", "Govor je jeftin. Pokaži mi šifru."},
+		{"Búlgaro", "Разговорите са евтини. Покажи ми кода."},
+		{"Canarim", "ಮಾತುಕತೆ ಅಗ್ಗವಾಗಿದೆ. ನನಗೆ ಕೋಡ್ ತೋರಿಸಿ."},
+		{"Catalão", "Parlar és barat. Mostra’m el codi."},
+		{"Cazeque", "Сөйлесу арзан. Маған кодты көрсетіңіз."},
+		{"Cebuano", "Barato ra ang sulti. Ipakita kanako ang code."},
+		{"Chinês Simplificado", "谈话很便宜。给我看代码。"},
+		{"Chinês Tradicional", "談話很便宜。給我看代碼。"},
+		{"Cingalês", "කතාව ලාභයි. කේතය මට පෙන්වන්න."},
+		{"Coreano", "토크는 싸다. 코드를 보여주세요."},
+		{"Corso", "Parlà hè bonu. Mostrami u codice."},
+		{"Croata", "Razgovor je jeftin. Pokaži mi šifru."},
+		{"Curdo", "Axaftin erzan e. Kodê nîşanî min bidin."},
+		{"Dinamarquês", "Tal er billig. Vis mig koden."},
+		{"Eslovaco", "Hovor je lacný. Ukáž mi kód."},
+		{"Esloveno", "Pogovor je poceni. Pokaži mi kodo."},
+		{"Espanhol", "Hablar es barato. Enséñame el código."},
+		{"Esperanto", "Babilado estas malmultekosta. Montru al mi la kodon."},
+		{"Estoniano", "Rääkimine on odav. Näita mulle koodi."},
+		{"Filipino", "Mura ang usapan. Ipakita sa akin ang code."},
+		{"Finlandês", "Puhe on halpaa. Näytä koodi."},
+		{"Francês", "Parler n'est pas cher. Montre-moi le code."},
+		{"Frísio Ocidental", "Prate is goedkeap. Lit my de koade sjen."},
+		{"Gaélico Escocês", "Tha còmhradh saor. Seall dhomh an còd."},
+		{"Galego", "Falar é barato. Móstrame o código."},
+		{"Galês", "Mae siarad yn rhad. Dangoswch y cod i mi."},
+		{"Georgiano", "აუბარი იაფია. მაჩვენე კოდი."},
+		{"Grego", "Η συζήτηση είναι φθηνή. Δείξε μου τον κωδικό."},
+		{"Guzerate", "વાતો કરવી સસ્તી છે. મને કોડ બતાવો."},
+		{"Haitiano", "Pale bon mache. Montre m kòd la."},
+		{"Hauçá", "Magana tana da arha. Nuna min lambar."},
+		{"Havaiano", "Kūʻai ke kamaʻilio. E hōʻike mai iaʻu i ke pāʻālua."},
+		{"Hebraico", "הדיבורים זולים. הראה לי את הקוד."},
+		{"Híndi", "बोलना आसान है। मुझे कोड दिखाओ।"},
+		{"Hmong", "Kev hais lus yog pheej yig. Qhia kuv cov code."},
+		{"Holandês", "Praten is goedkoop. Laat me de code zien."},
+		{"Húngaro", "Beszélni olcsó. Mutasd meg a kódot."},
+		{"Igbo", "Okwu dị ọnụ ala. Gosi m koodu."},
+		{"Lídiche", "רעדן איז ביליק. ווייַזן מיר דעם קאָד."},
+		{"Indonésio", "Berbicara itu murah. Tunjukkan kodenya."},
+		{"Inglês", "Talk is cheap. Show me the code."},
+		{"Iorubá", "Ọrọ jẹ olowo poku. Fi koodu naa han mi."},
+		{"Irlandês", "Tá caint saor. Taispeáin dom an cód."},
+		{"Islandês", "Tal er ódýrt. Sýndu mér kóðann."},
+		{"Italiano", "Parlare è economico. Mostrami il codice."},
+		{"Japonês", "口で言うだけなら簡単です。コードを見せてください。"},
+		{"Javanês", "Omongan iku murah. Tampilake kode kasebut."},
+		{"Khmer", "ការនិយាយគឺថោក។ បង្ហាញលេខកូដមកខ្ញុំ"},
+		{"Laosiano", "ການສົນທະນາແມ່ນລາຄາຖືກ. ສະແດງລະຫັດໃຫ້ຂ້ອຍ."},
+		{"Latim", "Disputatio vilis est. Ostende mihi codice."},
+		{"Letão", "Saruna ir lēta. Parādiet man kodu."},
+		{"Lituano", "Kalbėti pigu. Parodyk man kodą."},
+		{"Luxemburguês", "Schwätzen ass bëlleg. Weist mir de Code."},
+		{"Macedônio", "Зборувањето е ефтино. Покажи ми го кодот."},
+		{"Malaiala", "സംസാരം വിലകുറഞ്ഞതാണ്. എനിക്ക് കോഡ് കാണിക്കുക."},
+		{"Malaio", "Perbincangan murah. Tunjukkan kod saya."},
+		{"Malgaxe", "Mora ny resaka. Asehoy ahy ny kaody."},
+		{"Maltês", "It-taħdita hija rħisa. Urini l-kodiċi."},
+		{"Maori", "He iti te korero. Whakaatuhia mai te tohu."},
+		{"Marati", "चर्चा स्वस्त आहे. मला कोड दाखवा."},
+		{"Mongol", "Яриа хямд. Надад кодоо харуул."},
+		{"Nepalês", "कुरा सस्तो छ। मलाई कोड देखाउनुहोस्।"},
+		{"Nianja", "Kulankhula ndikotsika mtengo. Ndiwonetseni nambala"},
+		{"Norueguês", "Snakk er billig. Vis meg koden."},
+		{"Oriá", "କଥାବାର୍ତ୍ତା ଶସ୍ତା ଅଟେ | ମୋତେ କୋଡ୍ ଦେଖାନ୍ତୁ |"},
+		{"Panjabi", "ਗੱਲ ਸਸਤਾ ਹੈ. ਮੈਨੂੰ ਕੋਡ ਦਿਖਾਓ."},
+		{"Pashto", "خبرې ارزانه دي. ما ته کوډ وښایاست"},
+		{"Persa", "بحث ارزان است. کد را به من نشان دهید"},
+		{"Polonês", "Rozmowa jest tania. Pokaż mi kod."},
+		{"Português", "Falar é fácil. Mostre-me o código."},
+		{"Quiniaruanda", "Ibiganiro birahendutse. Nyereka kode."},
+		{"Quirguiz", "Сүйлөшүү арзан. Мага кодду көрсөтүңүз."},
+		{"Romeno", "Vorbirea este ieftină. Arată-mi codul."},
+		{"Russo", "Обсуждение дешево. Покажи мне код."},
+		{"Samoano", "E taugofie talanoaga. Faʻaali mai le code."},
+		{"Sérvio", "Причање је јефтино. Покажи ми шифру."},
+		{"Sindi", "ڳالهه سستا آهي. مونکي ڪوڊ ڏيکاريو."},
+		{"Somali", "Hadalku waa jaban yahay. I tus lambarka."},
+		{"Soto do Sul", "Puo e theko e tlase. Mpontshe khoutu."},
+		{"Suaíli", "Mazungumzo ni ya bei rahisi. Nionyeshe nambari."},
+		{"Sueco", "Prat är billigt. Visa mig koden."},
+		{"Sundanês", "Omongan mirah. Tunjukkeun kode na."},
+		{"Tadjique", "Сӯҳбат арзон аст. Рамзро ба ман нишон диҳед."},
+		{"Tailandês", "พูดคุยราคาถูก แสดงรหัส"},
+		{"Tâmil", "பேச்சு மலிவானது. குறியீட்டை எனக்குக் காட்டு."},
+		{"Tártaro", "Сөйләшү арзан. Миңа код күрсәтегез."},
+		{"Tcheco", "Mluvení je levné. Ukaž mi kód."},
+		{"Télugo", "చర్చ చౌకగా ఉంటుంది. నాకు కోడ్ చూపించు."},
+		{"Turco", "Konuşma ucuz. Bana kodu göster."},
+		{"Turcomeno", "Gepleşik arzan. Kody görkez"},
+		{"Ucraniano", "Розмова дешева. Покажи мені код."},
+		{"Uigur", "پاراڭ ئەرزان. ماڭا كودنى كۆرسەت."},
+		{"Urdu", "بات گھٹیا ہے. مجھے کوڈ دکھائیں۔"},
+		{"Uzbeque", "Gapirish arzon. Menga kodni ko'rsating."},
+		{"Vietnamita", "Nói chuyện là rẻ. Cho tôi xem mã."},
+		{"Xhosa", "Ukuthetha akubizi. Ndibonise ikhowudi."},
+		{"Xona", "Kutaura kwakachipa. Ndiratidze kodhi."},
+		{"Zulu", "Ukukhuluma kushibhile. Ngikhombise ikhodi."},
+	}
 
 	return header, contents
 }

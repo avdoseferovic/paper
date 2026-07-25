@@ -5,11 +5,13 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// FillColorStyler sets the cell's background fill color before passing the cell to the next writer.
 type FillColorStyler struct {
 	stylerTemplate
 	defaultFillColor *props.Color
 }
 
+// NewFillColorStyler creates a FillColorStyler that draws on the given PDF writer.
 func NewFillColorStyler(fpdf any) *FillColorStyler {
 	defaultFillColor := props.White()
 	return &FillColorStyler{
@@ -21,6 +23,7 @@ func NewFillColorStyler(fpdf any) *FillColorStyler {
 	}
 }
 
+// Apply sets the cell's background fill color from prop, then continues down the chain.
 func (f *FillColorStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
 	if prop == nil {
 		f.GoToNext(width, height, config, prop)

@@ -1,3 +1,4 @@
+// Package main demonstrates rows that take their height from the content inside them.
 package main
 
 import (

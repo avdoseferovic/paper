@@ -1,3 +1,6 @@
+// Package imagecodec converts images into a form the PDF writer can embed,
+// decoding the source bytes and re-encoding them when the original format is not
+// directly supported.
 package imagecodec
 
 import (
@@ -5,20 +8,22 @@ import (
 	"errors"
 	"fmt"
 	goimage "image"
-	_ "image/gif"
-	_ "image/jpeg"
+	_ "image/gif"  // registered with image.Decode so this format can be read
+	_ "image/jpeg" // registered with image.Decode so this format can be read
 	"strings"
 
-	svgraster "github.com/avdoseferovic/paper/internal/svg"
-	"github.com/avdoseferovic/paper/pkg/consts/extension"
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/webp"
+	_ "golang.org/x/image/tiff" // registered with image.Decode so this format can be read
+	_ "golang.org/x/image/webp" // registered with image.Decode so this format can be read
 
 	"github.com/avdoseferovic/paper/internal/pngcodec"
+	svgraster "github.com/avdoseferovic/paper/internal/svg"
+	"github.com/avdoseferovic/paper/pkg/consts/extension"
 )
 
 var errInvalidImageDimensions = errors.New("image decode produced invalid dimensions")
 
+// Normalized is an image ready to embed: the encoded bytes, the format they are
+// in, and the pixel size.
 type Normalized struct {
 	Bytes     []byte
 	Extension extension.Type
@@ -26,10 +31,13 @@ type Normalized struct {
 	Height    int
 }
 
+// HasDimensions reports whether both the width and height are known.
 func (n Normalized) HasDimensions() bool {
 	return n.Width > 0 && n.Height > 0
 }
 
+// NormalizeForPDF returns data in a format the PDF writer can embed. JPEG and
+// PNG pass through; other formats, including SVG, are rasterized to PNG.
 func NormalizeForPDF(data []byte, ext extension.Type) (Normalized, error) {
 	ext = canonicalExtension(ext)
 	switch ext {

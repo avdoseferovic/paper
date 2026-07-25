@@ -1,3 +1,4 @@
+// Package main demonstrates setting document metadata such as title, author, and subject.
 package main
 
 import (

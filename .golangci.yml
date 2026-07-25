@@ -1,0 +1,212 @@
+version: "2"
+
+run:
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - fatcontext
+    - gocognit
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - iface
+    - ineffassign
+    - intrange
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - perfsprint
+    - predeclared
+    - reassign
+    - recvcheck
+    - revive
+    - staticcheck
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unused
+    - usestdlibvars
+    - wastedassign
+
+  settings:
+    # The parsers in this repo (SVG paths, CSS rules, CSS selectors) are the
+    # functions that used to need complexity waivers. They are now split into
+    # named steps, so these gates hold with no suppressions anywhere.
+    gocognit:
+      min-complexity: 30
+    gocyclo:
+      min-complexity: 30
+    nestif:
+      min-complexity: 5
+
+    misspell:
+      # The customfont example lists language names and sample phrases in their
+      # own languages; these are correctly spelled words, not English typos.
+      ignore-rules:
+        - tradicional
+
+    errcheck:
+      check-type-assertions: true
+      # `_ = f()` is Go's explicit "this error is deliberately ignored", so it is
+      # left alone; only silently dropped errors are reported.
+      check-blank: false
+
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        # Reports every by-value param/range over a large struct. This library
+        # passes geometry and style structs by value on purpose.
+        - hugeParam
+        - rangeValCopy
+        # Naming a result is a readability choice, not a defect.
+        - unnamedResult
+        - tooManyResultsChecker
+        # Shadowing an imported package name in a short scope is idiomatic here.
+        - importShadow
+        # Requires a rationale comment on every nolint; there are none to annotate.
+        - whyNoLint
+        # Defers inside loops are used deliberately in bounded per-item cleanup.
+        - deferInLoop
+
+    # gosec has no rule turned off globally. Every integer conversion (G115) is
+    # made provably in range at the call site rather than suppressed; the few
+    # remaining exceptions are scoped by path under exclusions.rules below.
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: bool-literal-in-expr
+        - name: constant-logical-expr
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: datarace
+        - name: defer
+        - name: dot-imports
+        - name: duplicated-imports
+        - name: early-return
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: identical-branches
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: modifies-value-receiver
+        - name: optimize-operands-order
+        - name: package-comments
+        - name: range
+        - name: range-val-in-closure
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: string-of-int
+        - name: struct-tag
+        - name: superfluous-else
+        - name: time-naming
+        - name: unconditional-recursion
+        - name: unexported-return
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: use-any
+        - name: useless-break
+        - name: var-declaration
+        - name: var-naming
+          # Package-name checks are off: pkg/html, pkg/image and pkg/metrics are
+          # deliberate public API names for a PDF library, and files that need the
+          # standard library equivalent already alias it (goimage "image").
+          # Identifier naming, including initialisms, is still enforced.
+          arguments:
+            - []
+            - []
+            - - skipPackageNameChecks: true
+        - name: waitgroup-by-value
+        # Deliberately NOT enabled: unused-receiver. It requires `func (_ T) M()`,
+        # which reads worse than a named receiver and conflicts with keeping
+        # receiver names consistent across a type's method set.
+        #
+        # Deliberately NOT enabled: confusing-naming. It flags the exported-wrapper
+        # pattern this codebase uses throughout, where SetDrawColor validates and
+        # delegates to setDrawColor. That pairing is idiomatic Go, not a defect.
+
+    staticcheck:
+      checks:
+        - all
+
+  exclusions:
+    generated: lax
+    paths:
+      # Mockery output.
+      - internal/mocks
+    rules:
+      # The PDF standard security handler (ISO 32000-1, 7.6.3) specifies MD5 and
+      # RC4 by name. They are not a choice this library can make differently, and
+      # they are confined to these files.
+      - path: internal/pdf/protect(_test)?\.go
+        linters:
+          - gosec
+        text: "G401|G405|G501|G503"
+      # PAdES (ETSI EN 319 142) specifies VRI dictionary keys as the SHA-1 hash
+      # of the signature contents. SHA-1 here is an identifier, not a security
+      # primitive.
+      - path: pkg/sign/dss\.go
+        linters:
+          - gosec
+        text: "G401|G505"
+      # Fetching a caller-supplied URL is the documented purpose of these code
+      # paths: OCSP/timestamp responders (pkg/sign) and opt-in remote assets
+      # (WithRemoteAssets, gated by URLPolicy).
+      - path: pkg/sign/http\.go|pkg/html/translate/remote_assets\.go
+        linters:
+          - gosec
+        text: "G107|G704"
+      # Opening a path the caller passed in is what these functions are for:
+      # LoadPNG(path), Pdf.Save(file), AddUTF8Font(file), tmpl.Render(path), and
+      # the font/image loaders behind them. Refusing variable paths would remove
+      # the feature. The one place that reads paths from untrusted input, HTML
+      # asset resolution, does not rely on this: it is sandboxed with os.OpenRoot
+      # in pkg/html/translate/basedir.go, which rejects absolute paths and any
+      # path escaping the configured base directory.
+      #
+      # G703 (internal/cmd/mockfix) is a repo-local dev tool that rewrites files
+      # under a directory given on its own command line. G204 is a test shelling
+      # out to `go list` with arguments the test itself supplies.
+      - linters:
+          - gosec
+        text: "G304|G703|G204"
+      # Unchecked type assertions in tests and hand-written mocks: a failed
+      # assertion panics and fails the test with the offending type, which is the
+      # signal we want there. This matches errcheck's bare assertion message
+      # only, so genuinely unchecked errors in tests are still reported.
+      - path: _test\.go
+        linters:
+          - errcheck
+        text: "^Error return value is not checked$"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports

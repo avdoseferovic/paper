@@ -1,3 +1,6 @@
+// Package code generates barcode images: linear (Code 128), QR, and Data Matrix.
+// Each encoder returns a one-pixel-per-module image so the caller can scale it
+// without distorting the module grid.
 package code
 
 import (
@@ -16,6 +19,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
+// Errors reported when a barcode cannot be generated or encoded as an image.
 var (
 	ErrCannotEncodePNG          = errors.New("cannot encode png")
 	ErrCannotScaleBarcode       = errors.New("cannot scale barcode")
@@ -25,6 +29,7 @@ var (
 	errBarcodeScaleWouldDiscard = errors.New("target dimensions cannot discard barcode modules")
 )
 
+// Code generates barcode images. It holds no state.
 type Code struct{}
 
 // New create a Code (Singleton).

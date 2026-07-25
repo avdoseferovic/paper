@@ -1,3 +1,4 @@
+// Package main demonstrates a page sized in millimetres instead of a named page size.
 package main
 
 import (

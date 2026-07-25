@@ -44,7 +44,7 @@ func dataMatrixASCII(data []byte) []byte {
 }
 
 func dataMatrixSymbolFor(codewords int) (dataMatrixSymbol, bool) {
-	for _, symbol := range dataMatrixSymbols {
+	for _, symbol := range &dataMatrixSymbols {
 		if codewords <= symbol.dataCodewords {
 			return symbol, true
 		}
@@ -63,7 +63,7 @@ func dataMatrixPad(data []byte, capacity int) []byte {
 		if pad > 254 {
 			pad -= 254
 		}
-		result = append(result, byte(pad)) // #nosec G115 -- ECC 200 pad is in [1, 254].
+		result = append(result, byte(pad&0xFF))
 	}
 	return result
 }

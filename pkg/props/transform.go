@@ -1,5 +1,6 @@
 package props
 
+// The 2D CSS transform functions a TransformOp can hold.
 const (
 	TransformRotate    = "rotate"
 	TransformScale     = "scale"

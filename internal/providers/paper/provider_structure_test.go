@@ -4,7 +4,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -15,7 +14,7 @@ func TestProviderGoOnlyContainsProviderConstruction(t *testing.T) {
 	t.Parallel()
 
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filepath.Join("provider.go"), nil, 0)
+	file, err := parser.ParseFile(fset, "provider.go", nil, 0)
 	require.NoError(t, err)
 
 	allowed := map[string]bool{

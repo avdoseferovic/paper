@@ -1,3 +1,8 @@
+// Package cellwriter draws the background and border of a single cell.
+//
+// Each visual concern (fill color, border color, thickness, radius, shadow,
+// gradient, background image) is a small CellWriter, and they are chained so
+// every writer applies its own styling and then passes the cell along.
 package cellwriter
 
 import (
@@ -6,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// CellWriter is one link in the cell-drawing chain. Apply draws this writer's
+// part of the cell, then hands off to the next writer.
 type CellWriter interface {
 	SetNext(next CellWriter)
 	GetNext() CellWriter
@@ -18,6 +25,8 @@ type cellWriter struct {
 	defaultColor *props.Color
 }
 
+// NewCellWriter creates the last writer in the chain, which draws the cell box
+// itself once the stylers before it have set up the colors and borders.
 func NewCellWriter(fpdf any) CellWriter {
 	defaultColor := props.Black()
 	return &cellWriter{

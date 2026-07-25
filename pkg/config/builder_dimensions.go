@@ -17,7 +17,7 @@ func (b *CfgBuilder) WithPageSize(size pagesize.Type) Builder {
 }
 
 // WithDimensions defines custom page dimensions, this overrides page size.
-func (b *CfgBuilder) WithDimensions(width float64, height float64) Builder {
+func (b *CfgBuilder) WithDimensions(width, height float64) Builder {
 	if width <= 0 || height <= 0 {
 		return b
 	}

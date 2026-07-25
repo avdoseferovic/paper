@@ -1,3 +1,6 @@
+// Package cache stores image bytes that have already been read from disk, so a
+// document that reuses the same image does not read it again. NewMutexDecorator
+// wraps a Cache for concurrent use.
 package cache
 
 import (
@@ -9,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
+// Errors reported when an image cannot be loaded into the cache.
 var (
 	ErrCannotReadFile = errors.New("cannot read file")
 	ErrImageNotFound  = errors.New("image not found")

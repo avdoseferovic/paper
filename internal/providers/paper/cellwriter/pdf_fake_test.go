@@ -163,7 +163,7 @@ func (m *pdfMock) Rect(x, y, w, h float64, styleStr string) {
 	m.Called(x, y, w, h, styleStr)
 }
 
-func (m *pdfMock) RoundedRect(x, y, w, h, radius float64, corners string, styleStr string) {
+func (m *pdfMock) RoundedRect(x, y, w, h, radius float64, corners, styleStr string) {
 	m.Called(x, y, w, h, radius, corners, styleStr)
 }
 

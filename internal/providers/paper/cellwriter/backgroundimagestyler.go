@@ -28,6 +28,8 @@ type backgroundImageStyler struct {
 	stylerTemplate
 }
 
+// NewBackgroundImageStyler creates a writer that draws a cell's background
+// image, if it has one.
 func NewBackgroundImageStyler(fpdf any) CellWriter {
 	return &backgroundImageStyler{
 		stylerTemplate: stylerTemplate{

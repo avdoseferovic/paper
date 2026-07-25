@@ -1,6 +1,7 @@
 package pdf
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"reflect"
@@ -180,7 +181,7 @@ func TestSliceCompressRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sliceUncompress: %v", err)
 	}
-	if string(restored) != string(original) {
+	if !bytes.Equal(restored, original) {
 		t.Fatal("round-tripped data does not match original")
 	}
 }

@@ -135,7 +135,7 @@ func repositoryRoot(t *testing.T) string {
 
 func listPackages(t *testing.T, dir string, args ...string) []listedPackage {
 	t.Helper()
-	command := exec.Command("go", append([]string{"list", "-json"}, args...)...)
+	command := exec.CommandContext(t.Context(), "go", append([]string{"list", "-json"}, args...)...)
 	command.Dir = dir
 	command.Env = os.Environ()
 	output, err := command.CombinedOutput()

@@ -1,3 +1,9 @@
+// Package paper builds PDF documents from a grid of rows and columns.
+//
+// A document is assembled by adding rows to a Paper instance and then calling
+// Generate. Components such as text, images, barcodes, and signatures are placed
+// into columns, which share a fixed number of grid units per row. HTML input is
+// supported through FromHTML and its variants.
 package paper
 
 import (
@@ -15,6 +21,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 )
 
+// Errors reported while generating a document.
 var (
 	ErrCannotGenerateInLowMemoryMode       = errors.New("an error has occurred while trying to generate PDFs in low memory mode")
 	ErrCannotGenerateInParallelMode        = errors.New("an error has occurred while trying to generate PDFs concurrently")
@@ -27,6 +34,8 @@ var (
 	ErrHTMLHeaderAfterContent = errors.New("html top-level header/footer must be added before any other content")
 )
 
+// Paper builds a document. Add rows to it, then call Generate to produce the
+// PDF.
 type Paper struct {
 	config      *entity.Config
 	provider    core.Provider

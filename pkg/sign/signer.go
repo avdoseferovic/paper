@@ -10,6 +10,7 @@ import (
 	"fmt"
 )
 
+// Errors reported when a signer cannot be built from the given key material.
 var (
 	ErrNoCertificates    = errors.New("sign: no certificates provided")
 	ErrNilSignFunction   = errors.New("sign: signFn must not be nil")

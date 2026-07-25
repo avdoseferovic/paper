@@ -1,3 +1,4 @@
+// Package main demonstrates keeping a row on one page instead of letting it split.
 package main
 
 import (

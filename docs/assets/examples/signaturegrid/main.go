@@ -1,3 +1,4 @@
+// Package main demonstrates signature lines across a grid of columns.
 package main
 
 import (

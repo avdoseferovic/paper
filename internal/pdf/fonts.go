@@ -125,7 +125,7 @@ func (f *PDF) addCoreFontFile(familyStr, styleStr, fileStr string) {
 		f.err = err
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	f.AddFontFromReader(familyStr, styleStr, file)
 }
@@ -297,7 +297,7 @@ func (f *PDF) addFontDefinitionFromBytes(fontKey string, jsonFileBytes, zFileByt
 }
 
 func (f *PDF) registerFontDiff(info *fontDefType) {
-	if len(info.Diff) == 0 {
+	if info.Diff == "" {
 		return
 	}
 
@@ -316,7 +316,7 @@ func (f *PDF) registerFontDiff(info *fontDefType) {
 }
 
 func (f *PDF) registerEmbeddedFontFile(info fontDefType, zFileBytes []byte) {
-	if len(info.File) == 0 {
+	if info.File == "" {
 		return
 	}
 
@@ -369,7 +369,7 @@ func (f *PDF) AddFontFromReader(familyStr, styleStr string, r io.Reader) {
 	if f.err != nil {
 		return
 	}
-	if len(info.Diff) > 0 {
+	if info.Diff != "" {
 		n := -1
 		for j, str := range f.diffs {
 			if str == info.Diff {
@@ -384,7 +384,7 @@ func (f *PDF) AddFontFromReader(familyStr, styleStr string, r io.Reader) {
 		info.DiffN = n
 	}
 
-	if len(info.File) > 0 {
+	if info.File != "" {
 		if info.Tp == fontTypeTrueType {
 			f.fontFiles[info.File] = fontFileType{length1: int64(info.OriginalSize)}
 		} else {
@@ -840,11 +840,11 @@ func (f *PDF) putType1OrTrueTypeFontObject(nf int, font fontDefType) {
 func (f *PDF) putFontWidthsObject(font fontDefType) {
 	f.newobj()
 	var s fmtBuffer
-	s.WriteString("[")
+	s.write("[")
 	for j := 32; j < 256; j++ {
 		s.printf("%d ", font.Cw[j])
 	}
-	s.WriteString("]")
+	s.write("]")
 	f.out(s.String())
 	f.out("endobj")
 }
@@ -980,20 +980,20 @@ func (f *PDF) putUTF8DescriptorObject(fontName string, font fontDefType) {
 }
 
 func (f *PDF) putUTF8CIDToGIDMapObject(codeSignDictionary map[int]int) {
-	cidToGidMap := make([]byte, 256*256*2)
+	cidToGIDMap := make([]byte, 256*256*2)
 	for cc, glyph := range codeSignDictionary {
 		glyphID, ok := checkedUint16(glyph)
 		if !ok {
 			f.SetErrorf("glyph id out of range: %d", glyph)
 			return
 		}
-		cidToGidMap[cc*2] = byte(glyphID >> 8) // #nosec G115 -- high byte of a uint16 glyph id.
-		cidToGidMap[cc*2+1] = byte(glyphID)    // #nosec G115 -- low byte of a uint16 glyph id.
+		cidToGIDMap[cc*2] = byte(glyphID >> 8)
+		cidToGIDMap[cc*2+1] = byte(glyphID & 0xFF)
 	}
 
-	cidToGidMap = sliceCompress(cidToGidMap)
+	cidToGIDMap = sliceCompress(cidToGIDMap)
 	f.newobj()
-	stream := f.encryptedStream(cidToGidMap)
+	stream := f.encryptedStream(cidToGIDMap)
 	if f.err != nil {
 		return
 	}
@@ -1069,11 +1069,11 @@ func closeFontReader(name string, reader io.Reader) error {
 
 func buildToUnicodeCMap(usedRunes map[int]int) string {
 	var b fmtBuffer
-	b.WriteString("/CIDInit /ProcSet findresource begin\n")
-	b.WriteString("12 dict begin\nbegincmap\n")
-	b.WriteString("/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n")
-	b.WriteString("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n")
-	b.WriteString("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n")
+	b.write("/CIDInit /ProcSet findresource begin\n")
+	b.write("12 dict begin\nbegincmap\n")
+	b.write("/CIDSystemInfo\n<</Registry (Adobe)\n/Ordering (UCS)\n/Supplement 0\n>> def\n")
+	b.write("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n")
+	b.write("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n")
 
 	cids := keySortInt(usedRunes)
 	const chunkSize = 100
@@ -1088,18 +1088,18 @@ func buildToUnicodeCMap(usedRunes map[int]int) string {
 		if count > 0 {
 			b.printf("%d beginbfchar\n", count)
 			for _, cid := range cids[start:end] {
-				r := usedRunes[cid]
-				if cid <= 0 || cid > 0xFFFF || r <= 0 {
+				r, ok := codePointRune(usedRunes[cid])
+				if cid <= 0 || cid > 0xFFFF || !ok {
 					continue
 				}
-				b.printf("<%04X> <%s>\n", cid, utf16Hex(rune(r))) // #nosec G115 -- r is a Unicode scalar value.
+				b.printf("<%04X> <%s>\n", cid, utf16Hex(r))
 			}
-			b.WriteString("endbfchar\n")
+			b.write("endbfchar\n")
 		}
 		start = end
 	}
 
-	b.WriteString("endcmap\nCMapName currentdict /CMap defineresource pop\nend")
+	b.write("endcmap\nCMapName currentdict /CMap defineresource pop\nend")
 	return b.String()
 }
 
@@ -1415,12 +1415,17 @@ func packUint16(n1 int) []byte {
 	return bs
 }
 
+// putUint16 writes the low 16 bits of n, the width of an OpenType uint16 field.
 func putUint16(dst []byte, n int) {
-	binary.BigEndian.PutUint16(dst, uint16(n)) // #nosec G115 -- callers pass OpenType uint16 fields.
+	binary.BigEndian.PutUint16(dst, uint16(n&0xFFFF))
 }
 
+// putUint32 writes the low 32 bits of n, the width of an OpenType uint32 field.
+// It goes through two 16-bit halves so no masking constant exceeds int on
+// 32-bit platforms and each conversion is provably in range.
 func putUint32(dst []byte, n int) {
-	binary.BigEndian.PutUint32(dst, uint32(n)) // #nosec G115 -- callers pass OpenType uint32 fields.
+	binary.BigEndian.PutUint16(dst[0:2], uint16((n>>16)&0xFFFF))
+	binary.BigEndian.PutUint16(dst[2:4], uint16(n&0xFFFF))
 }
 
 func keySortStrings(s map[string][]byte) []string {

@@ -1,3 +1,4 @@
+// Package main demonstrates a footer that repeats at the bottom of every page.
 package main
 
 import (

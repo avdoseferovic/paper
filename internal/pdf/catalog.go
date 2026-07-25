@@ -2,6 +2,8 @@ package pdf
 
 import "time"
 
+// ViewerPreferences holds the catalog hints that tell a PDF reader how to
+// present the document when it opens.
 type ViewerPreferences struct {
 	PageLayout      string
 	PageMode        string
@@ -15,6 +17,8 @@ type ViewerPreferences struct {
 	OpenZoom        string
 }
 
+// PageLabelRange numbers a run of pages, starting at PageIndex. Style selects
+// the numbering (decimal, roman, letters) and Prefix is prepended to it.
 type PageLabelRange struct {
 	PageIndex int
 	Style     string
@@ -22,6 +26,7 @@ type PageLabelRange struct {
 	Start     int
 }
 
+// FileAttachment is a file embedded in the document.
 type FileAttachment struct {
 	FileName       string
 	MIMEType       string
@@ -31,6 +36,8 @@ type FileAttachment struct {
 	CreationDate   time.Time
 }
 
+// NamedDestination is a named jump target: a page plus how the reader should
+// fit it in the window.
 type NamedDestination struct {
 	Name      string
 	PageIndex int
@@ -40,6 +47,8 @@ type NamedDestination struct {
 	Zoom      float64
 }
 
+// PageAnnotation is an annotation placed on one page, such as a link, a text
+// note, or a highlight.
 type PageAnnotation struct {
 	PageIndex  int
 	Subtype    string
@@ -54,6 +63,7 @@ type PageAnnotation struct {
 	QuadPoints [][8]float64
 }
 
+// PageGeometry overrides a single page's rotation and box sizes.
 type PageGeometry struct {
 	PageIndex int
 	Rotate    int
@@ -68,8 +78,10 @@ type attachmentFileSpecRef struct {
 	ref  int
 }
 
+// FormFieldType is the kind of interactive form field to draw.
 type FormFieldType int
 
+// The interactive form field kinds.
 const (
 	FormFieldText FormFieldType = iota
 	FormFieldCheckbox
@@ -80,8 +92,12 @@ const (
 	FormFieldSignature
 )
 
+// FormFieldFlags is the bit set of PDF field flags, such as read-only or
+// required.
 type FormFieldFlags uint32
 
+// FormField describes one interactive form field: what it is, where it sits on
+// the page, and how it looks.
 type FormField struct {
 	Name      string
 	Type      FormFieldType
@@ -103,29 +119,35 @@ type FormField struct {
 	Children    []FormField
 }
 
-type PdfALevel int
+// ConformanceLevel is the PDF/A conformance level to write.
+type ConformanceLevel int
 
+// The supported PDF/A conformance levels.
 const (
-	PdfA2B PdfALevel = iota
-	PdfA2U
-	PdfA2A
-	PdfA3B
-	PdfA1B
-	PdfA1A
-	PdfA3A
-	PdfA4
-	PdfA4F
-	PdfA4E
+	ConformanceA2B ConformanceLevel = iota
+	ConformanceA2U
+	ConformanceA2A
+	ConformanceA3B
+	ConformanceA1B
+	ConformanceA1A
+	ConformanceA3A
+	ConformanceA4
+	ConformanceA4F
+	ConformanceA4E
 )
 
-type PdfAConfig struct {
-	Level           PdfALevel
+// ConformanceConfig configures PDF/A output: the conformance level, the ICC profile to
+// embed, and any extra XMP metadata.
+type ConformanceConfig struct {
+	Level           ConformanceLevel
 	ICCProfile      []byte
 	OutputCondition string
 	XMPSchemas      []XMPSchema
 	XMPProperties   []XMPPropertyBlock
 }
 
+// XMPSchema declares a custom XMP schema in the PDF/A extension metadata, so a
+// validator can resolve properties outside the standard namespaces.
 type XMPSchema struct {
 	Schema       string
 	NamespaceURI string
@@ -133,6 +155,7 @@ type XMPSchema struct {
 	Properties   []XMPSchemaProperty
 }
 
+// XMPSchemaProperty describes one property of an XMPSchema.
 type XMPSchemaProperty struct {
 	Name        string
 	ValueType   string
@@ -140,12 +163,14 @@ type XMPSchemaProperty struct {
 	Description string
 }
 
+// XMPPropertyBlock is a group of XMP properties written under one namespace.
 type XMPPropertyBlock struct {
 	Namespace  string
 	Prefix     string
 	Properties []XMPProperty
 }
 
+// XMPProperty is a single name/value pair of XMP metadata.
 type XMPProperty struct {
 	Name  string
 	Value string

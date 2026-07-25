@@ -231,17 +231,20 @@ func interpolateStops(stops []props.GradientStop, t float64) color.RGBA {
 		return color.RGBA{R: toColorByte(last.Color.Red), G: toColorByte(last.Color.Green), B: toColorByte(last.Color.Blue), A: 255}
 	}
 	for i := 1; i < len(stops); i++ {
-		if t <= stops[i].Position {
-			a, b := stops[i-1], stops[i]
-			span := b.Position - a.Position
-			if span <= 0 {
-				span = 1
-			}
-			frac := (t - a.Position) / span
-			r := lerp(a.Color.Red, b.Color.Red, frac)
-			g2 := lerp(a.Color.Green, b.Color.Green, frac)
-			bl := lerp(a.Color.Blue, b.Color.Blue, frac)
-			return color.RGBA{R: toColorByte(r), G: toColorByte(g2), B: toColorByte(bl), A: 255}
+		if t > stops[i].Position {
+			continue
+		}
+		a, b := stops[i-1], stops[i]
+		span := b.Position - a.Position
+		if span <= 0 {
+			span = 1
+		}
+		frac := (t - a.Position) / span
+		return color.RGBA{
+			R: toColorByte(lerp(a.Color.Red, b.Color.Red, frac)),
+			G: toColorByte(lerp(a.Color.Green, b.Color.Green, frac)),
+			B: toColorByte(lerp(a.Color.Blue, b.Color.Blue, frac)),
+			A: 255,
 		}
 	}
 	s := last.Color

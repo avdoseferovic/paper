@@ -11,7 +11,7 @@ type catalogPDF interface {
 	SetAcroFormFields(fields ...pdf.FormField)
 	SetPageAnnotations(annotations ...pdf.PageAnnotation)
 	SetPageGeometries(geometries ...pdf.PageGeometry)
-	SetPdfA(config pdf.PdfAConfig)
+	SetPdfA(config pdf.ConformanceConfig)
 	SetTaggedPDF(enabled bool)
 	SetLanguage(language string)
 	SetViewerPreferences(prefs pdf.ViewerPreferences)
@@ -143,9 +143,9 @@ func pdfPageGeometries(geometries []entity.PageGeometry) []pdf.PageGeometry {
 	return out
 }
 
-func pdfPdfAConfig(config *entity.PdfAConfig) pdf.PdfAConfig {
-	converted := pdf.PdfAConfig{
-		Level:           pdf.PdfALevel(config.Level),
+func pdfPdfAConfig(config *entity.PdfAConfig) pdf.ConformanceConfig {
+	converted := pdf.ConformanceConfig{
+		Level:           pdf.ConformanceLevel(config.Level),
 		ICCProfile:      config.ICCProfile,
 		OutputCondition: config.OutputCondition,
 	}

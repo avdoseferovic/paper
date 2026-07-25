@@ -1,3 +1,4 @@
+// Package main demonstrates drawing a full-page background image behind the content.
 package main
 
 import (

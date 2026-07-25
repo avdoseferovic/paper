@@ -161,8 +161,7 @@ func marshalTLV(tag byte, content []byte) []byte {
 	}
 	lenBytes := lengthBytes(length)
 	out := make([]byte, 0, 2+len(lenBytes)+len(content))
-	out = append(out, tag)
-	out = append(out, 0x80|byte(len(lenBytes))) // #nosec G115 -- lenBytes has at most the host int width.
+	out = append(out, tag, 0x80|byte(len(lenBytes)&0xFF))
 	out = append(out, lenBytes...)
 	return append(out, content...)
 }

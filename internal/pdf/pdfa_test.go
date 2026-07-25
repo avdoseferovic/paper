@@ -9,7 +9,7 @@ import (
 func TestSetPdfAEmitsMetadataAndOutputIntent(t *testing.T) {
 	f := readyPDF(t)
 	f.SetTitle("PDF/A Title", false)
-	f.SetPdfA(PdfAConfig{Level: PdfA2B})
+	f.SetPdfA(ConformanceConfig{Level: ConformanceA2B})
 	out := mustOutput(t, f)
 
 	for _, want := range []string{
@@ -30,7 +30,7 @@ func TestSetPdfAEmitsMetadataAndOutputIntent(t *testing.T) {
 
 func TestSetPdfALevelAEnablesTaggedOutput(t *testing.T) {
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
-	f.SetPdfA(PdfAConfig{Level: PdfA1A})
+	f.SetPdfA(ConformanceConfig{Level: ConformanceA1A})
 	f.AddPage()
 	f.SetFont("Helvetica", "", 12)
 	f.Cell(40, 10, "accessible")
@@ -47,7 +47,7 @@ func TestSetPdfALevelAEnablesTaggedOutput(t *testing.T) {
 func TestSetPdfAOverridesCustomXmpWithSingleMetadataRef(t *testing.T) {
 	f := readyPDF(t)
 	f.SetXmpMetadata([]byte(`<x:xmpmeta xmlns:x="adobe:ns:meta/"></x:xmpmeta>`))
-	f.SetPdfA(PdfAConfig{Level: PdfA3B})
+	f.SetPdfA(ConformanceConfig{Level: ConformanceA3B})
 	out := mustOutput(t, f)
 
 	if !bytes.Contains(out, []byte("<pdfaid:part>3</pdfaid:part>")) {

@@ -7,8 +7,10 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
+// ErrInvalidImageFormat is returned for an extension the library cannot read.
 var ErrInvalidImageFormat = errors.New("invalid image format")
 
+// FromBytes wraps raw image bytes and their format as an entity.Image.
 func FromBytes(bytes []byte, ext extension.Type) (*entity.Image, error) {
 	if !ext.IsValid() {
 		return nil, ErrInvalidImageFormat

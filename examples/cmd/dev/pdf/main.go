@@ -1,3 +1,5 @@
+// Command pdf is a development helper that generates a small document for
+// quick manual inspection.
 package main
 
 import (

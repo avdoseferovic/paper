@@ -162,6 +162,7 @@ func TestMarkerFormat(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.expected, func(t *testing.T) {
+			t.Parallel()
 			got := htmllist.FormatMarker(tc.style, tc.idx)
 			assert.Equal(t, tc.expected, got)
 		})

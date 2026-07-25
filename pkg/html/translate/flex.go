@@ -1,5 +1,6 @@
-// Package translate — flex layout dispatch and item-content construction.
-// Quantization, weight computation, and slack distribution live in flex_layout.go.
+// Flex layout dispatch and item-content construction. Quantization, weight
+// computation, and slack distribution live in flex_layout.go.
+
 package translate
 
 import (

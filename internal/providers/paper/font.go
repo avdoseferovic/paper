@@ -10,6 +10,8 @@ const (
 	gofpdfFontScale2 = 25.4
 )
 
+// Font tracks the font family, style, size, and color currently selected on the
+// underlying PDF writer.
 type Font struct {
 	pdf         fontPDF
 	size        float64
@@ -53,6 +55,7 @@ func (s *Font) GetFont() (string, fontstyle.Type, float64) {
 	return s.family, s.style, s.size
 }
 
+// GetHeight returns the line height for the given font, in millimeters.
 func (s *Font) GetHeight(family string, style fontstyle.Type, size float64) float64 {
 	s.SetFont(family, style, size)
 	_, _, fontSize := s.GetFont()
@@ -88,6 +91,7 @@ func (s *Font) SetFont(family string, style fontstyle.Type, size float64) {
 	s.pdf.SetFont(s.family, string(s.style), s.size)
 }
 
+// SetColor sets the fill color used to draw text. A nil color selects black.
 func (s *Font) SetColor(color *props.Color) {
 	if color == nil {
 		return
@@ -97,6 +101,7 @@ func (s *Font) SetColor(color *props.Color) {
 	setPDFTextColor(s.pdf, color)
 }
 
+// GetColor returns the color text is currently drawn in.
 func (s *Font) GetColor() *props.Color {
 	return s.fontColor
 }

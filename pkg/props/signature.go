@@ -123,7 +123,7 @@ func (s *Signature) ToFontProp() *Font {
 }
 
 // ToTextProp from Signature return a Text based on Signature.
-func (s *Signature) ToTextProp(align consts.Align, top float64, verticalPadding float64) *Text {
+func (s *Signature) ToTextProp(align consts.Align, top, verticalPadding float64) *Text {
 	font := s.ToFontProp()
 	text := &Text{
 		Family:          font.Family,

@@ -42,7 +42,7 @@ func DocumentFromString(ctx context.Context, htmlStr string, opts ...Option) (*D
 	if err != nil {
 		return nil, err
 	}
-	return translate.TranslateDocument(ctx, doc, cfg.translateOptions()...)
+	return translate.FromDOM(ctx, doc, cfg.translateOptions()...)
 }
 
 // DocumentFromReader parses HTML from an io.Reader and returns the full

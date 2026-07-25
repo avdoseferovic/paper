@@ -38,6 +38,8 @@ type AssetError struct {
 	Err      error
 }
 
+// NewAssetError builds an AssetError for a reference that could not be loaded.
+// category names the kind of asset, and ref is the value that failed.
 func NewAssetError(category, ref string, err error) *AssetError {
 	return &AssetError{Category: category, Ref: ref, Err: err}
 }

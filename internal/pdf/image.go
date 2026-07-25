@@ -81,7 +81,7 @@ func (f *PDF) imageOut(info *ImageInfoType, x, y, w, h float64, allowNegativeX, 
 	}
 
 	f.outf("q %.5f 0 0 %.5f %.5f %.5f cm /I%s Do Q", w*f.k, h*f.k, x*f.k, (f.h-(y+h))*f.k, info.i)
-	if link > 0 || len(linkStr) > 0 {
+	if link > 0 || linkStr != "" {
 		f.newLink(x, y, w, h, link, linkStr)
 	}
 }
@@ -415,10 +415,10 @@ func (f *PDF) putimage(info *ImageInfoType) {
 		}
 	}
 	f.outf("/BitsPerComponent %d", info.bpc)
-	if len(info.f) > 0 {
+	if info.f != "" {
 		f.outf("/Filter /%s", info.f)
 	}
-	if len(info.dp) > 0 {
+	if info.dp != "" {
 		f.outf("/DecodeParms <<%s>>", info.dp)
 	}
 	if len(info.trns) > 0 {
@@ -645,7 +645,7 @@ func (f *PDF) pngTransparency(colorType byte, chunkData []byte) []int {
 		}
 		return []int{int(chunkData[1]), int(chunkData[3]), int(chunkData[5])}
 	default:
-		pos := strings.Index(string(chunkData), "\x00")
+		pos := bytes.IndexByte(chunkData, 0)
 		if pos >= 0 {
 			return []int{pos}
 		}

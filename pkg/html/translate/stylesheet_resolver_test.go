@@ -31,7 +31,7 @@ func TestStylesheetResolver_BaseDir(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	cssPath := filepath.Join(dir, "theme.css")
-	require.NoError(t, os.WriteFile(cssPath, []byte("p{color:blue}"), 0o644))
+	require.NoError(t, os.WriteFile(cssPath, []byte("p{color:blue}"), 0o600))
 
 	resolver := stylesheetBaseDirResolver(dir)
 	bytes, err := resolver("theme.css")
@@ -55,7 +55,7 @@ func TestStylesheet_LinkLoadedBeforeInline(t *testing.T) {
 	// equal specificity). This verifies linked CSS is concatenated FIRST.
 	dir := t.TempDir()
 	cssPath := filepath.Join(dir, "ext.css")
-	require.NoError(t, os.WriteFile(cssPath, []byte("p { color: #ff0000 }"), 0o644))
+	require.NoError(t, os.WriteFile(cssPath, []byte("p { color: #ff0000 }"), 0o600))
 
 	htmlStr := `
 <html><head>

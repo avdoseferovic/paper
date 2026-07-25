@@ -12,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// BytesImage is a component that draws an image held in memory.
 type BytesImage struct {
 	bytes     []byte
 	extension extension.Type

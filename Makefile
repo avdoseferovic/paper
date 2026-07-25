@@ -3,6 +3,7 @@ GO_PATHS =  $(shell go list -f '{{ .Dir }}' ./... | grep -E -v 'docs|cmd|mocks')
 EXAMPLES_PATHS = $(shell cd examples && go list -f '{{ .Dir }}' ./...)
 DOCS_PATHS = $(shell cd docs && go list -f '{{ .Dir }}' ./...)
 GOIMPORTS ?= $(shell if command -v goimports >/dev/null 2>&1; then command -v goimports; else echo "go run golang.org/x/tools/cmd/goimports@latest"; fi)
+GOLANGCI_LINT ?= $(shell if command -v golangci-lint >/dev/null 2>&1; then command -v golangci-lint; else echo "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1"; fi)
 
 .PHONY: dod
 dod: build test fmt lint
@@ -25,8 +26,15 @@ fmt:
 	$(GOIMPORTS) -w ${GO_PATHS} ${EXAMPLES_PATHS} ${DOCS_PATHS}
 
 .PHONY: lint
-lint:
-	make mock-lint
+lint: go-lint mock-lint
+
+# golangci-lint runs against each module in the workspace. The config lives in
+# .golangci.yml at the repo root and is shared by all three.
+.PHONY: go-lint
+go-lint:
+	$(GOLANGCI_LINT) run --config .golangci.yml ./...
+	cd examples && $(GOLANGCI_LINT) run --config ../.golangci.yml ./...
+	cd docs && $(GOLANGCI_LINT) run --config ../.golangci.yml ./...
 
 .PHONY: mock-lint
 mock-lint:

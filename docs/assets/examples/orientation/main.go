@@ -1,3 +1,4 @@
+// Package main demonstrates landscape orientation.
 package main
 
 import (
