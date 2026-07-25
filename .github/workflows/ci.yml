@@ -33,20 +33,20 @@ jobs:
       # workspace, and contains no inline suppressions: every exception is
       # declared there with a rationale.
       - name: Lint root module
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.10.1
           args: --config .golangci.yml ./...
 
       - name: Lint examples module
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.10.1
           working-directory: examples
           args: --config ../.golangci.yml ./...
 
       - name: Lint docs module
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.10.1
           working-directory: docs
