@@ -46,14 +46,20 @@ jobs:
           cp -r docs _site
           rm -f _site/go.mod _site/go.sum
           rm -rf _site/plans
-          # Keep assets/examples/*/main.go — docsify embeds them via ':include'.
+          # Keep assets/examples/**/*.go — docsify embeds them via ':include'.
           find _site -name '*_test.go' -delete
-          mkdir -p _site/playground
-          cp examples/cmd/wasm/web/index.html      _site/playground/
-          cp examples/cmd/wasm/web/paper.wasm       _site/playground/
-          cp examples/cmd/wasm/web/wasm_exec.js     _site/playground/
+          # The docs pages generate their PDF previews in the browser, so the
+          # wasm has to be reachable from the site root as well as the
+          # playground. The playground keeps its own copy so that it stays
+          # servable standalone from examples/cmd/wasm/web.
+          mkdir -p _site/assets/wasm _site/playground
+          cp -f examples/cmd/wasm/web/paper.wasm    _site/assets/wasm/
+          cp -f examples/cmd/wasm/web/wasm_exec.js  _site/assets/wasm/
+          cp -f examples/cmd/wasm/web/index.html   _site/playground/
+          cp -f examples/cmd/wasm/web/paper.wasm    _site/playground/
+          cp -f examples/cmd/wasm/web/wasm_exec.js  _site/playground/
           touch _site/.nojekyll
-          echo "Assembled site:" && ls -1 _site && echo "playground:" && ls -1 _site/playground
+          echo "Assembled site:" && ls -1 _site && echo "wasm:" && ls -1 _site/assets/wasm && echo "playground:" && ls -1 _site/playground
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

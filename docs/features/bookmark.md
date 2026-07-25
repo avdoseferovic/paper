@@ -29,6 +29,8 @@ m.AddAutoRow(col.New(12).Add(text.New("Installation", props.Text{
 })))
 ```
 
-[filename](../assets/examples/bookmark/main.go ':include :type=code')
+[filename](../assets/examples/bookmark/paper.go ':include :type=code')
 
-[bookmark.pdf](../assets/pdf/bookmark.pdf ':include :type=pdf')
+```pdf-example
+	bookmark
+```

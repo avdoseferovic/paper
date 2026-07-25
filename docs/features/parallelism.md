@@ -47,11 +47,11 @@ Splicing is also re-checked while rendering, as defence in depth. If a future fe
 * [builder : WithParallelPagesMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithParallelPagesMode)
 
 ## Code Example
-[filename](../assets/examples/parallelism/main.go  ':include :type=code')
+[filename](../assets/examples/parallelism/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/parallelism.pdf
+```pdf-example
+	parallelism
 ```
 
 ## Time Execution

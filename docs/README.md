@@ -42,7 +42,7 @@ Use the row/column API when you need to mix HTML with manual components, headers
 ## Code Example
 This is part of the [simplest example](examples/simplest?id=simplest).
 
-[filename](assets/examples/simplest/main.go ':include :type=code')
+[filename](assets/examples/simplest/paper.go ':include :type=code')
 
 ## PDF Example
 This is part of the [showcase example](examples/showcase?id=showcase).

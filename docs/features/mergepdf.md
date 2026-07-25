@@ -18,7 +18,15 @@ Paper provides two complementary ways to combine PDF documents:
 * [pdf : Merge](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core#Pdf.Merge)
 
 ## Code Example
-[filename](../assets/examples/mergepdf/main.go  ':include :type=code')
+
+Building the document:
+
+[filename](../assets/examples/mergepdf/paper.go  ':include :type=code')
+
+Merging another PDF into it before saving — this is the `Document.Merge` call
+described above, and it needs the other PDF's bytes:
+
+[filename](../assets/examples/mergepdf/cmd/main.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf

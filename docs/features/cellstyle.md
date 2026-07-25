@@ -30,11 +30,11 @@ Cell Style applies visual decoration — background fill, borders, and line styl
 * [props : Cell](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Cell)
 
 ## Code Example
-[filename](../assets/examples/cellstyle/main.go ':include :type=code')
+[filename](../assets/examples/cellstyle/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/cellstyle.pdf
+```pdf-example
+	cellstyle
 ```
 
 ## Time Execution

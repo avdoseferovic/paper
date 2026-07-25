@@ -13,11 +13,11 @@
 * [builder : WithMaxGridSize](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithMaxGridSize)
 
 ## Code Example
-[filename](../assets/examples/maxgridsum/main.go ':include :type=code')
+[filename](../assets/examples/maxgridsum/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/maxgridsum.pdf
+```pdf-example
+	maxgridsum
 ```
 
 ## Time Execution

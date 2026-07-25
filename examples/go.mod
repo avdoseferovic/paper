@@ -7,7 +7,10 @@ require github.com/avdoseferovic/paper v0.2.1
 replace github.com/avdoseferovic/paper => ..
 
 require (
+	github.com/avdoseferovic/paper/docs v0.0.0
 	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 )
+
+replace github.com/avdoseferovic/paper/docs => ../docs

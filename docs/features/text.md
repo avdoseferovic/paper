@@ -37,11 +37,11 @@ Text can be created as a standalone `Component`, wrapped directly into a `Col`, 
 
 
 ## Code Example
-[filename](../assets/examples/textgrid/main.go ':include :type=code')
+[filename](../assets/examples/textgrid/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/textgrid.pdf
+```pdf-example
+	textgrid
 ```
 
 ## Time Execution

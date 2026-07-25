@@ -48,11 +48,11 @@ cfg := config.NewBuilder().
 * [protection : Encryption](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/protection#Encryption)
 
 ## Code Example
-[filename](../assets/examples/protection/main.go ':include :type=code')
+[filename](../assets/examples/protection/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/protection.pdf
+```pdf-example
+	protection
 ```
 ## Time Execution
 [filename](../assets/text/protection.txt  ':include :type=code')

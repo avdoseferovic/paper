@@ -28,11 +28,11 @@ The row height for auto-row usage is `Size + Top`.
 * [component : Checkbox](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/checkbox#Checkbox)
 
 ## Code Example
-[filename](../assets/examples/checkbox/main.go ':include :type=code')
+[filename](../assets/examples/checkbox/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/checkbox.pdf
+```pdf-example
+	checkbox
 ```
 
 ## Time Execution

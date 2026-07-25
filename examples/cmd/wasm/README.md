@@ -6,13 +6,38 @@ WebAssembly — entirely client-side, no server. A CodeMirror editor on the left
 selector) drives a preview on the right that re-renders the actual generated PDF
 as you type.
 
-The Go code (`main.go`, built with `//go:build js && wasm`) registers two globals:
+The Go code (`main.go`, built with `//go:build js && wasm`) registers four globals:
 
 ```js
 paperGeneratePDF(html)                // HTML → PDF
 paperGenerateFromSpec(json, pageSize) // component-grid JSON → PDF
+paperGenerateExample(name)            // a documented example → PDF
 // each → { pdf: "<base64>" } | { error: "<message>" }
+
+paperExampleAssets(name)              // → { assets: [...] } | { error: "..." }
 ```
+
+### Rendering a documented example
+
+`paperGenerateExample` runs the same `GetPaper` builder the docs page for that
+example displays, which is how the site generates its PDF previews instead of
+committing one per page. Examples that read images need those bytes in place
+first, because the browser has no filesystem:
+
+```js
+const { assets } = paperExampleAssets("imagegrid");
+for (const path of assets) {
+  // The map key is the repo-relative path Go passes to os.ReadFile; the URL
+  // drops the leading "docs/" because the deployed site root is docs/.
+  const bytes = await (await fetch(path.replace(/^docs\//, ""))).arrayBuffer();
+  paperFS.set(path, new Uint8Array(bytes));
+}
+const { pdf } = paperGenerateExample("imagegrid");
+```
+
+`paperFS` comes from [`docs/assets/js/paper-fs.js`](../../../docs/assets/js/paper-fs.js),
+which must be loaded **before** `wasm_exec.js`. A missing asset is reported as an
+error rather than silently rendering a placeholder box.
 
 See [`docs/wasm-support.md`](../../../docs/wasm-support.md) for the JSON spec
 schema.

@@ -20,11 +20,11 @@
 * [builder : WithSequentialLowMemory](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithSequentialLowMemoryMode)
 
 ## Code Example
-[filename](../assets/examples/lowmemory/main.go  ':include :type=code')
+[filename](../assets/examples/lowmemory/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/lowmemory.pdf
+```pdf-example
+	lowmemory
 ```
 
 ## Time Execution

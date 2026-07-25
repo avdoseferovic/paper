@@ -10,11 +10,11 @@ This is useful when you want to control pagination explicitly: for example, forc
 * [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Page)
 
 ## Code Example
-[filename](../assets/examples/addpage/main.go  ':include :type=code')
+[filename](../assets/examples/addpage/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/addpage.pdf
+```pdf-example
+	addpage
 ```
 
 ## Time Execution

@@ -127,6 +127,46 @@ local files is unavailable:
 
 The bundled default fonts and inline (`data:`) assets work normally.
 
+## In-browser previews on this site
+
+The PDF previews on the feature pages are not committed files — they are
+generated in your browser, by this wasm module, from the very same `GetPaper`
+builder shown above each one as the code sample. A preview therefore cannot
+drift from the code beside it.
+
+A page declares its preview with a fenced block naming a registered example:
+
+````markdown
+```pdf-example
+	imagegrid
+```
+````
+
+`docs/assets/js/paper-preview.js` turns that into a preview by calling
+`paperExampleAssets(name)`, fetching whatever files the example reads, handing
+the bytes to `paperFS`, and then calling `paperGenerateExample(name)`. The
+in-memory filesystem in `docs/assets/js/paper-fs.js` is what lets the library's
+ordinary `os.ReadFile` calls work, so the example code keeps using the idiomatic
+file-based API rather than a browser-specific variant.
+
+**What it costs.** The module is roughly 4.7MB gzipped. It is fetched lazily on
+the first preview and then reused for the rest of the browsing session, so:
+
+- a page with no preview never downloads it at all;
+- moving between pages does not re-download or re-instantiate it;
+- the first page with a preview pays the download, and later ones do not.
+
+Five previews stay committed PDFs (a plain ```` ```pdf ```` fence) because their
+inputs are impractical to ship to a browser: **background** and
+**disablepagebreak** need a 792KB PNG, **customfont** a 23MB font file, and
+**mergepdf** an existing PDF to merge into. **showcase** stays static as a broad
+regression fixture, and `paper.pdf` remains in the repository because
+`mergepdf` reads it as an input.
+
+If an example's file cannot be read, generation fails with a visible error and a
+retry button rather than rendering a placeholder — the renderer would otherwise
+draw an error box into an otherwise valid PDF and the failure would go unnoticed.
+
 ## Notes
 
 - The wasm build is guarded in CI (`GOOS=js GOARCH=wasm go build ./...` for both

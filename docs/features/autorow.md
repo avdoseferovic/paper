@@ -19,11 +19,11 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 * [image : NewAutoFromFileRow](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/image#NewAutoFromFileRow)
 
 ## Code Example
-[filename](../assets/examples/autorow/main.go  ':include :type=code')
+[filename](../assets/examples/autorow/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/autorow.pdf
+```pdf-example
+	autorow
 ```
 
 ## Time Execution
@@ -36,11 +36,11 @@ This is particularly useful for text blocks of unknown length, dynamic lists, or
 * [props : Page](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Page)
 
 ## Code Example
-[filename](../assets/examples/autorow/main.go  ':include :type=code')
+[filename](../assets/examples/autorow/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/autorow.pdf
+```pdf-example
+	autorow
 ```
 
 ## Time Execution

@@ -13,11 +13,11 @@
 * [paper : RegisterHeader](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterHeader)
 
 ## Code Example
-[filename](../assets/examples/header/main.go ':include :type=code')
+[filename](../assets/examples/header/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/header.pdf
+```pdf-example
+	header
 ```
 
 ## Time Execution

@@ -1,0 +1,36 @@
+// Package parallelism demonstrates generating page chunks concurrently.
+package parallelism
+
+import (
+	"github.com/avdoseferovic/paper/pkg/core"
+
+	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/decorator"
+
+	"github.com/avdoseferovic/paper/pkg/components/text"
+
+	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/props"
+)
+
+// GetPaper builds the parallelism example document.
+func GetPaper() core.Paper {
+	cfg := config.NewBuilder().
+		WithParallelPagesMode(7).
+		WithDebug(true).
+		WithPageNumber().
+		Build()
+
+	mrt := paper.New(cfg)
+	m := decorator.NewMetrics(mrt)
+
+	for range 50 {
+		m.AddRows(
+			text.NewRow(10, "Dummy text", props.Text{
+				Size: 8,
+			}),
+		)
+	}
+
+	return m
+}
