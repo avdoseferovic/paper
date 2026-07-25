@@ -44,9 +44,23 @@ type Config struct {
 }
 
 // HasDocumentCatalog reports whether any document-catalog feature is
-// configured. These features are written once per document, so generation
-// falls back to sequential mode when any of them is present.
+// configured. These features are written once per document.
 func (c *Config) HasDocumentCatalog() bool {
+	if c == nil {
+		return false
+	}
+	return c.RequiresSingleDocumentGeneration() || c.Deterministic
+}
+
+// RequiresSingleDocumentGeneration reports whether the document carries a
+// feature that page-chunked generation cannot reproduce, so it must be built in
+// a single pass.
+//
+// Deterministic output is deliberately excluded: it only affects the dates and
+// /ID written once when the document is serialized, which page splicing
+// preserves because it serializes exactly one document. Chunk-and-merge
+// strategies do not, so callers relying on those must check Deterministic too.
+func (c *Config) RequiresSingleDocumentGeneration() bool {
 	if c == nil {
 		return false
 	}
@@ -60,8 +74,7 @@ func (c *Config) HasDocumentCatalog() bool {
 		len(c.PageLabels) > 0 ||
 		len(c.Attachments) > 0 ||
 		len(c.NamedDestinations) > 0 ||
-		len(c.FileID) > 0 ||
-		c.Deterministic
+		len(c.FileID) > 0
 }
 
 // ToMap converts Config to a map[string]any .

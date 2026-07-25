@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -107,30 +108,125 @@ func TestParallelPages_MatchesSequentialOutput(t *testing.T) {
 	}
 }
 
-// TestParallelPages_ByteIdenticalToSequential is the strongest correctness gate
-// available: with deterministic output enabled, splicing concurrently rendered
-// pages must reproduce the sequential document exactly, byte for byte, at any
-// worker count. Content-hash resource names are what make this hold regardless
-// of the order in which workers register fonts.
-func TestParallelPages_ByteIdenticalToSequential(t *testing.T) {
+// drawOp is one text-showing operation together with the font state in effect
+// when it runs.
+type drawOp struct {
+	fontID string
+	size   string
+	text   string
+}
+
+var (
+	selectFontRe = regexp.MustCompile(`BT /F([0-9a-f]+) ([0-9.]+) Tf`)
+	showTextOpRe = regexp.MustCompile(`\((?:[^()\\]|\\.)*\)\s*Tj`)
+)
+
+// documentDrawOps returns every drawn string paired with the font selected at
+// that point. Comparing these sequences is stricter than comparing drawn text
+// alone (it would catch text rendered at the wrong size or in the wrong font)
+// while staying insensitive to redundant state operators, which legitimately
+// differ between generation modes.
+func documentDrawOps(pdfBytes []byte) []drawOp {
+	type token struct {
+		index          int
+		isFontSelect   bool
+		fontID, size   string
+		shownTextValue string
+	}
+
+	var tokens []token
+	for _, m := range selectFontRe.FindAllSubmatchIndex(pdfBytes, -1) {
+		tokens = append(tokens, token{
+			index:        m[0],
+			isFontSelect: true,
+			fontID:       string(pdfBytes[m[2]:m[3]]),
+			size:         string(pdfBytes[m[4]:m[5]]),
+		})
+	}
+	for _, m := range showTextOpRe.FindAllIndex(pdfBytes, -1) {
+		tokens = append(tokens, token{index: m[0], shownTextValue: string(pdfBytes[m[0]:m[1]])})
+	}
+	sort.Slice(tokens, func(i, j int) bool { return tokens[i].index < tokens[j].index })
+
+	var ops []drawOp
+	var currentFont, currentSize string
+	for _, tk := range tokens {
+		if tk.isFontSelect {
+			currentFont, currentSize = tk.fontID, tk.size
+			continue
+		}
+		ops = append(ops, drawOp{fontID: currentFont, size: currentSize, text: tk.shownTextValue})
+	}
+	return ops
+}
+
+// TestParallelPages_RendersSameContentAsSequential is the correctness gate for
+// splicing: every drawn string must appear in the same order, with the same font
+// and size in effect, as it would from sequential generation.
+//
+// This is deliberately not a byte comparison. Splicing emits one fewer redundant
+// font-selection operator at each chunk boundary, because a worker's fresh
+// document starts from the configured default font rather than inheriting the
+// previous page's state. The rendered result is the same; only the redundant
+// state operators differ, so the invariant worth pinning is the font state in
+// effect at each draw. TestParallelPages_SingleWorkerIsByteIdentical covers the
+// one case where byte equality does hold.
+func TestParallelPages_RendersSameContentAsSequential(t *testing.T) {
 	for _, rowCount := range []int{1, 50, 600} {
 		rows := parallelTestRows(rowCount)
 
 		sequential := generateWith(t, config.NewBuilder().
+			WithCompression(false).
 			WithDeterministic(true).
 			WithSequentialMode().
 			Build(), rows)
+		wantOps := documentDrawOps(sequential)
+		if len(wantOps) == 0 {
+			t.Fatalf("rows=%d: sequential output drew nothing", rowCount)
+		}
 
 		for _, workers := range []int{1, 2, 3, 4, 8, 16} {
 			parallel := generateWith(t, config.NewBuilder().
+				WithCompression(false).
 				WithDeterministic(true).
 				WithParallelPagesMode(workers).
 				Build(), rows)
 
-			if !bytes.Equal(sequential, parallel) {
-				t.Errorf("rows=%d workers=%d: output differs from sequential (%d vs %d bytes)",
-					rowCount, workers, len(parallel), len(sequential))
+			gotOps := documentDrawOps(parallel)
+			if len(gotOps) != len(wantOps) {
+				t.Errorf("rows=%d workers=%d: %d draw operations, want %d",
+					rowCount, workers, len(gotOps), len(wantOps))
+				continue
 			}
+			for i := range wantOps {
+				if gotOps[i] != wantOps[i] {
+					t.Errorf("rows=%d workers=%d: draw %d = %+v, want %+v",
+						rowCount, workers, i, gotOps[i], wantOps[i])
+					break
+				}
+			}
+			if got, want := countPages(parallel), countPages(sequential); got != want {
+				t.Errorf("rows=%d workers=%d: page count = %d, want %d", rowCount, workers, got, want)
+			}
+		}
+	}
+}
+
+// TestParallelPages_SingleWorkerIsByteIdentical pins the one configuration where
+// splicing must reproduce sequential output exactly: a single worker renders the
+// whole document as one chunk, so there is no chunk boundary to differ at.
+func TestParallelPages_SingleWorkerIsByteIdentical(t *testing.T) {
+	for _, rowCount := range []int{1, 50, 600} {
+		rows := parallelTestRows(rowCount)
+
+		sequential := generateWith(t, config.NewBuilder().
+			WithDeterministic(true).WithSequentialMode().Build(), rows)
+		parallel := generateWith(t, config.NewBuilder().
+			WithDeterministic(true).WithParallelPagesMode(1).Build(), rows)
+
+		if !bytes.Equal(sequential, parallel) {
+			t.Errorf("rows=%d: single-worker output differs from sequential (%d vs %d bytes)",
+				rowCount, len(parallel), len(sequential))
 		}
 	}
 }

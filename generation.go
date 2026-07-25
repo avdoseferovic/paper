@@ -41,16 +41,18 @@ func (m *Paper) generateDocument(ctx context.Context) (*core.Pdf, error) {
 
 	// Protection and document-catalog features (forms, PDF/A, tagged PDF,
 	// attachments, ...) are emitted once per document; chunked generation
-	// would lose them in the merge, so both force sequential mode.
-	if m.config.Protection != nil || m.config.HasDocumentCatalog() {
+	// would lose them, so both force sequential mode.
+	if m.config.Protection != nil || m.config.RequiresSingleDocumentGeneration() {
 		return m.generateSequentially(ctx)
 	}
 
+	// Parallel pages serializes a single spliced document, so it reproduces
+	// deterministic output; the chunk-and-merge low memory path does not.
 	if m.config.GenerationMode == consts.GenerationParallelPages {
 		return m.generateParallelPages(ctx)
 	}
 
-	if m.config.GenerationMode == consts.GenerationSequentialLowMemory {
+	if m.config.GenerationMode == consts.GenerationSequentialLowMemory && !m.config.Deterministic {
 		return m.generateLowMemory(ctx)
 	}
 
