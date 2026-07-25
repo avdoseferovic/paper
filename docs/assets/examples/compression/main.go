@@ -1,3 +1,4 @@
+// Package main demonstrates turning content-stream compression on and off.
 package main
 
 import (

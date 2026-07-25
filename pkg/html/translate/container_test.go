@@ -260,83 +260,89 @@ func (p *cursorProvider) CreateRow(height float64) {
 	p.y += height
 }
 
-func (p *cursorProvider) CreateCol(width, height float64, config *entity.Config, prop *props.Cell) {}
+func (p *cursorProvider) CreateCol(_, _ float64, _ *entity.Config, _ *props.Cell) {}
 
-func (p *cursorProvider) AddLine(cell *entity.Cell, prop *props.Line) {}
+func (p *cursorProvider) AddLine(_ *entity.Cell, _ *props.Line) {}
 
-func (p *cursorProvider) AddText(text string, cell *entity.Cell, prop *props.Text) {}
+func (p *cursorProvider) AddText(_ string, _ *entity.Cell, _ *props.Text) {}
 
-func (p *cursorProvider) AddCheckbox(label string, cell *entity.Cell, prop *props.Checkbox) {}
+func (p *cursorProvider) AddCheckbox(_ string, _ *entity.Cell, _ *props.Checkbox) {}
 
-func (p *cursorProvider) GetFontHeight(prop *props.Font) float64 { return 1 }
+func (p *cursorProvider) GetFontHeight(_ *props.Font) float64 { return 1 }
 
-func (p *cursorProvider) GetLinesQuantity(text string, textProp *props.Text, colWidth float64) int {
+func (p *cursorProvider) GetLinesQuantity(_ string, _ *props.Text, _ float64) int {
 	return 1
 }
 
-func (p *cursorProvider) AddMatrixCode(code string, cell *entity.Cell, prop *props.Rect) {}
+func (p *cursorProvider) AddMatrixCode(_ string, _ *entity.Cell, _ *props.Rect) {}
 
-func (p *cursorProvider) AddQrCode(code string, cell *entity.Cell, rect *props.Rect) {}
+func (p *cursorProvider) AddQrCode(_ string, _ *entity.Cell, _ *props.Rect) {}
 
-func (p *cursorProvider) AddBarCode(code string, cell *entity.Cell, prop *props.Barcode) {}
+func (p *cursorProvider) AddBarCode(_ string, _ *entity.Cell, _ *props.Barcode) {}
 
-func (p *cursorProvider) GetDimensionsByMatrixCode(code string) (*entity.Dimensions, error) {
+func (p *cursorProvider) GetDimensionsByMatrixCode(_ string) (*entity.Dimensions, error) {
 	return nil, nil
 }
 
-func (p *cursorProvider) GetDimensionsByImageByte(bytes []byte, extension extension.Type) (*entity.Dimensions, error) {
+func (p *cursorProvider) GetDimensionsByImageByte(_ []byte, _ extension.Type) (*entity.Dimensions, error) {
 	return nil, nil
 }
 
-func (p *cursorProvider) GetDimensionsByImage(file string) (*entity.Dimensions, error) {
+func (p *cursorProvider) GetDimensionsByImage(_ string) (*entity.Dimensions, error) {
 	return nil, nil
 }
 
-func (p *cursorProvider) GetDimensionsByQrCode(code string) (*entity.Dimensions, error) {
+func (p *cursorProvider) GetDimensionsByQrCode(_ string) (*entity.Dimensions, error) {
 	return nil, nil
 }
 
-func (p *cursorProvider) AddImageFromFile(value string, cell *entity.Cell, prop *props.Rect) {}
+func (p *cursorProvider) AddImageFromFile(_ string, _ *entity.Cell, _ *props.Rect) {}
 
-func (p *cursorProvider) AddImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
+func (p *cursorProvider) AddImageFromBytes(_ []byte, _ *entity.Cell, _ *props.Rect, _ extension.Type) {
 }
 
-func (p *cursorProvider) AddBackgroundImageFromBytes(bytes []byte, cell *entity.Cell, prop *props.Rect, extension extension.Type) {
+func (p *cursorProvider) AddBackgroundImageFromBytes(_ []byte, _ *entity.Cell, _ *props.Rect, _ extension.Type) {
 }
 
 func (p *cursorProvider) GenerateBytes() ([]byte, error) { return nil, nil }
 
-func (p *cursorProvider) SetProtection(protection *entity.Protection) {}
+func (p *cursorProvider) SetProtection(_ *entity.Protection) {}
 
-func (p *cursorProvider) SetCompression(compression bool) {}
+func (p *cursorProvider) SetCompression(_ bool) {}
 
-func (p *cursorProvider) SetMetadata(metadata *entity.Metadata) {}
+func (p *cursorProvider) SetMetadata(_ *entity.Metadata) {}
 
 // ── Splittable container ──────────────────────────────────────────────────────
 
 func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	t.Parallel()
-	p := &cursorProvider{}
-
-	// Build a container with 3 fixed-height rows: each 10mm.
-	// Total height = 3 * 10mm = 30mm (plus any padding).
-	rowA := buildFixedHeightRow(10)
-	rowB := buildFixedHeightRow(10)
-	rowC := buildFixedHeightRow(10)
-
-	container := &blockContainer{
-		rows: []core.Row{rowA, rowB, rowC},
-	}
-	cell := &entity.Cell{Width: 100, Height: 100}
-
-	// The container's total height should be 30mm.
-	assert.InDelta(t, 30.0, container.GetHeight(p, cell), 0.1)
-
 	cfg := &entity.Config{MaxGridSize: 12}
-	scr := newSplittableContainerRow(container)
-	scr.SetConfig(cfg)
+
+	// SplitAt records the last measured content width, so each subtest gets its
+	// own container and row rather than sharing mutated state.
+	newSCR := func() *splittableContainerRow {
+		// Three fixed-height rows of 10mm each, so the container is 30mm tall.
+		container := &blockContainer{
+			rows: []core.Row{buildFixedHeightRow(10), buildFixedHeightRow(10), buildFixedHeightRow(10)},
+		}
+		scr := newSplittableContainerRow(container)
+		scr.SetConfig(cfg)
+		return scr
+	}
+
+	t.Run("container total height is 30mm", func(t *testing.T) {
+		t.Parallel()
+		p := &cursorProvider{}
+		container := &blockContainer{
+			rows: []core.Row{buildFixedHeightRow(10), buildFixedHeightRow(10), buildFixedHeightRow(10)},
+		}
+		assert.InDelta(t, 30.0, container.GetHeight(p, &entity.Cell{Width: 100, Height: 100}), 0.1)
+	})
 
 	t.Run("SplitAt remaining=25 splits after 2 rows (20mm) + partial", func(t *testing.T) {
+		t.Parallel()
+		p := &cursorProvider{}
+		scr := newSCR()
 		first, rest, didSplit := scr.SplitAt(p, 25, 0)
 		require.True(t, didSplit, "30mm container should split when remaining=25mm")
 		require.NotNil(t, first)
@@ -347,18 +353,24 @@ func TestSplittableContainerRow_SplitAt(t *testing.T) {
 	})
 
 	t.Run("SplitAt remaining=100 does not split (fits)", func(t *testing.T) {
-		_, _, didSplit := scr.SplitAt(p, 100, 0)
+		t.Parallel()
+		p := &cursorProvider{}
+		_, _, didSplit := newSCR().SplitAt(p, 100, 0)
 		assert.False(t, didSplit, "container that fits should not split")
 	})
 
 	t.Run("SplitAt remaining=1 returns atomic push (nil first) when no row fits", func(t *testing.T) {
+		t.Parallel()
+		p := &cursorProvider{}
 		// When no rows fit (remaining < smallest row), first == nil means push whole container.
-		first, _, didSplit := scr.SplitAt(p, 0, 0)
+		first, _, didSplit := newSCR().SplitAt(p, 0, 0)
 		assert.True(t, didSplit, "split should be signaled")
 		assert.Nil(t, first, "when nothing fits, first must be nil (push to next page)")
 	})
 
 	t.Run("SplitAt uses the last measured content width", func(t *testing.T) {
+		t.Parallel()
+		p := &cursorProvider{}
 		widthAware := &widthAwareRow{}
 		container := &blockContainer{rows: []core.Row{widthAware}}
 		scr := newSplittableContainerRow(container)

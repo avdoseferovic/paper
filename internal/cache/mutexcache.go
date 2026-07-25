@@ -38,5 +38,8 @@ func (c *mutexCache) AddImage(value string, image *entity.Image) {
 
 // GetImage adds a behavior to lock/unlock cache read.
 func (c *mutexCache) GetImage(file string, extension extension.Type) (*entity.Image, error) {
+	c.imageMutex.RLock()
+	defer c.imageMutex.RUnlock()
+
 	return c.inner.GetImage(file, extension)
 }

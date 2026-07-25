@@ -52,7 +52,6 @@ func TestEncodeEANRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []string{"", "123456", "123456789", "1234567x", "55123456", "5901234123458"} {
-		value := value
 		t.Run(value, func(t *testing.T) {
 			t.Parallel()
 
@@ -109,8 +108,8 @@ func TestEncodeQR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encodeQR() error = %v", err)
 	}
-	for y := 0; y < 7; y++ {
-		for x := 0; x < 7; x++ {
+	for y := range 7 {
+		for x := range 7 {
 			wantBlack := max(abs(x-3), abs(y-3)) != 2
 			gray := color.GrayModel.Convert(barcode.At(x, y)).(color.Gray)
 			if gotBlack := gray.Y == 0; gotBlack != wantBlack {
@@ -144,7 +143,7 @@ func TestEncodeDataMatrix(t *testing.T) {
 			if got := barcode.Bounds(); got.Dx() != tt.size || got.Dy() != tt.size {
 				t.Fatalf("encodeDataMatrix(%q) bounds = %v, want %dx%d", tt.value, got, tt.size, tt.size)
 			}
-			for index := 0; index < tt.size; index++ {
+			for index := range tt.size {
 				if gray := color.GrayModel.Convert(barcode.At(0, index)).(color.Gray); gray.Y != 0 {
 					t.Fatalf("left finder at row %d is not black", index)
 				}

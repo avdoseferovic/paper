@@ -128,7 +128,7 @@ func parseTextRuns(svgBytes []byte, styles map[string]map[string]string) []textR
 		}
 		switch current := token.(type) {
 		case xml.StartElement:
-			if strings.ToLower(current.Name.Local) == "text" {
+			if strings.EqualFold(current.Name.Local, "text") {
 				run := textRun{
 					x:       parseNumber(attrValue(current.Attr, "x")),
 					y:       parseNumber(attrValue(current.Attr, "y")),

@@ -455,7 +455,7 @@ func isPointerLikeKind(kind reflect.Kind) bool {
 }
 
 // Regexp reports whether str matches rx.
-func Regexp(t testingT, rx any, str any, msgAndArgs ...any) bool {
+func Regexp(t testingT, rx, str any, msgAndArgs ...any) bool {
 	markHelper(t)
 	pattern, ok := rx.(*regexp.Regexp)
 	if !ok {

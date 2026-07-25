@@ -53,7 +53,7 @@ func TestPNGParseKeepsFirstError(t *testing.T) {
 	first := errors.New("first error")
 	f.SetError(first)
 
-	f.parsepngstream(bytes.NewBuffer([]byte("bad png")), false)
+	f.parsepngstream(bytes.NewBufferString("bad png"), false)
 
 	if !errors.Is(f.Error(), first) {
 		t.Fatalf("expected first error to remain, got %v", f.Error())
@@ -153,7 +153,7 @@ func pngWithChunks(colorType byte, chunks ...[]byte) []byte {
 
 func pngChunk(name string, data []byte) []byte {
 	var b bytes.Buffer
-	_ = binary.Write(&b, binary.BigEndian, uint32(len(data)))
+	_ = binary.Write(&b, binary.BigEndian, uint32(len(data)&0x7FFFFFFF))
 	b.WriteString(name)
 	b.Write(data)
 	_ = binary.Write(&b, binary.BigEndian, uint32(0))

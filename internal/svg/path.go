@@ -56,16 +56,16 @@ func (bounds *deviceBounds) add(x, y float32) {
 	bounds.maxY = max(bounds.maxY, y)
 }
 
-func (bounds deviceBounds) hasNaN() bool {
-	return bounds.minX != bounds.minX || bounds.minY != bounds.minY ||
-		bounds.maxX != bounds.maxX || bounds.maxY != bounds.maxY
+func (bounds *deviceBounds) hasNaN() bool {
+	return math.IsNaN(float64(bounds.minX)) || math.IsNaN(float64(bounds.minY)) ||
+		math.IsNaN(float64(bounds.maxX)) || math.IsNaN(float64(bounds.maxY))
 }
 
 // rect returns the pixel rectangle the path can touch, grown by pad and clipped
 // to clip. A NaN bound (reachable through a degenerate transform) drops the
 // shape: image.Rect would otherwise swap the inverted edges and hand back the
 // whole canvas.
-func (bounds deviceBounds) rect(clip image.Rectangle, pad float32) (image.Rectangle, bool) {
+func (bounds *deviceBounds) rect(clip image.Rectangle, pad float32) (image.Rectangle, bool) {
 	if !bounds.valid || bounds.hasNaN() {
 		return image.Rectangle{}, false
 	}

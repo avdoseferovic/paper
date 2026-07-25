@@ -34,7 +34,7 @@ func runsFromHTML(t *testing.T, htmlStr string) []props.RichRun {
 	})
 	require.NotNil(t, target, "expected to find a <p> or <span>")
 	inlineCSS, _ := doc.StyleSources()
-	tr := &translator{sheet: parseStylesheet(string(inlineCSS))}
+	tr := &translator{sheet: parseStylesheet(inlineCSS)}
 	style := computeNodeStyle(tr.sheet, target, nil)
 	return tr.inlineRunsStyled(target, blockInlineStyle(style))
 }
@@ -105,7 +105,7 @@ func TestTypography_StylesheetDeclarationsApplyDeterministically(t *testing.T) {
 
 	html := `<style>.chip{font-size:6.5pt;font-weight:bold;line-height:1.15;letter-spacing:0.05em;text-transform:uppercase}</style><p><span class="chip">psychisch</span></p>`
 	expectedLetterSpacing := 6.5 * 0.352778 * 0.05
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		runs := runsFromHTML(t, html)
 		require.Len(t, runs, 1)
 		assert.Equal(t, "PSYCHISCH", runs[0].Text)
@@ -133,7 +133,7 @@ func TestTypography_LetterSpacing_InheritedByFlexItem(t *testing.T) {
 	require.NotNil(t, itemNode)
 
 	inlineCSS, _ := doc.StyleSources()
-	tr := &translator{sheet: parseStylesheet(string(inlineCSS))}
+	tr := &translator{sheet: parseStylesheet(inlineCSS)}
 	rowStyle := computeNodeStyle(tr.sheet, rowNode, nil)
 	itemStyle := computeNodeStyle(tr.sheet, itemNode, rowStyle)
 	runs := tr.inlineRunsStyled(itemNode, blockInlineStyle(itemStyle))
@@ -745,5 +745,5 @@ func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
 		}
 	})
 	require.NotNil(t, details)
-	assert.Equal(t, consts.Align(consts.AlignJustify), details["align"])
+	assert.Equal(t, consts.AlignJustify, details["align"])
 }

@@ -1,3 +1,4 @@
+// Package main demonstrates horizontal rules, including dashed and coloured styles.
 package main
 
 import (

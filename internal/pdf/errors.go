@@ -66,19 +66,28 @@ func checkedUint16(n int) (uint16, bool) {
 	if n < 0 || n > 0xffff {
 		return 0, false
 	}
-	return uint16(n), true // #nosec G115 -- guarded by the bounds check above.
+	return uint16(n), true
 }
 
 func checkedUint32(n int) (uint32, bool) {
 	if n < 0 || uint64(n) > uint64(^uint32(0)) {
 		return 0, false
 	}
-	return uint32(n), true // #nosec G115 -- guarded by the bounds check above.
+	return uint32(n), true
+}
+
+// codePointRune converts a Unicode code point to a rune, reporting false when
+// the value is not a usable scalar value.
+func codePointRune(n int) (rune, bool) {
+	if n <= 0 || n > 0x10FFFF {
+		return 0, false
+	}
+	return rune(n), true
 }
 
 func checkedByte(n int) (byte, bool) {
 	if n < 0 || n > 0xff {
 		return 0, false
 	}
-	return byte(n), true // #nosec G115 -- guarded by the bounds check above.
+	return byte(n), true
 }

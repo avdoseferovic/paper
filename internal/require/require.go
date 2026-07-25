@@ -78,7 +78,7 @@ func GreaterOrEqual(t testingT, actual, expected any, msgAndArgs ...any) bool {
 }
 
 // Regexp requires str to match rx.
-func Regexp(t testingT, rx any, str any, msgAndArgs ...any) bool {
+func Regexp(t testingT, rx, str any, msgAndArgs ...any) bool {
 	return stop(t, assert.Regexp(t, rx, str, msgAndArgs...))
 }
 

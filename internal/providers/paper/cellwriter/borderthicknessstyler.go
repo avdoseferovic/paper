@@ -6,11 +6,13 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// BorderThicknessStyler sets the border line width before passing the cell to the next writer.
 type BorderThicknessStyler struct {
 	stylerTemplate
 	defaultLineThickness float64
 }
 
+// NewBorderThicknessStyler creates a BorderThicknessStyler that draws on the given PDF writer.
 func NewBorderThicknessStyler(fpdf any) *BorderThicknessStyler {
 	return &BorderThicknessStyler{
 		stylerTemplate: stylerTemplate{
@@ -21,6 +23,7 @@ func NewBorderThicknessStyler(fpdf any) *BorderThicknessStyler {
 	}
 }
 
+// Apply sets the border line width from prop, then continues down the chain.
 func (b *BorderThicknessStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
 	if prop == nil {
 		b.GoToNext(width, height, config, prop)

@@ -362,11 +362,11 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	var s fmtBuffer
 	f.appendCellFill(&s, w, h, borderStr, fill)
 	f.appendCellBorders(&s, w, h, borderStr)
-	if len(txtStr) > 0 {
+	if txtStr != "" {
 		f.appendCellText(&s, w, h, txtStr, alignStr, link, linkStr)
 	}
 	str := s.String()
-	if len(str) > 0 {
+	if str != "" {
 		f.out(str)
 	}
 	f.lasth = h
@@ -424,7 +424,7 @@ func cellFillOp(fill bool, borderStr string) string {
 }
 
 func (f *PDF) appendCellBorders(s *fmtBuffer, w, h float64, borderStr string) {
-	if len(borderStr) == 0 || borderStr == "1" {
+	if borderStr == "" || borderStr == "1" {
 		return
 	}
 	k := f.k
@@ -457,7 +457,7 @@ func (f *PDF) appendCellText(s *fmtBuffer, w, h float64, txtStr, alignStr string
 	if f.colorFlag {
 		s.printf(" Q")
 	}
-	if link > 0 || len(linkStr) > 0 {
+	if link > 0 || linkStr != "" {
 		f.newLink(f.x+dx, f.y+dy+.5*h-.5*f.fontSize, f.GetStringWidth(renderedText), f.fontSize, link, linkStr)
 	}
 }
@@ -754,7 +754,7 @@ func (f *PDF) normalizedMultiCellText(txtStr string) (string, []rune, int) {
 }
 
 func multiCellBorders(borderStr string) (string, string, string) {
-	if len(borderStr) == 0 {
+	if borderStr == "" {
 		return borderStr, "0", ""
 	}
 	if borderStr == "1" {
@@ -837,14 +837,14 @@ func (state *multiCellState) nextLine() {
 	state.l = 0
 	state.ns = 0
 	state.nl++
-	if len(state.borderStr) > 0 && state.nl == 2 {
+	if state.borderStr != "" && state.nl == 2 {
 		state.b = state.b2
 	}
 }
 
 func (state *multiCellState) finish() {
 	state.pdf.clearWordSpacing()
-	if len(state.borderStr) > 0 && strings.Contains(state.borderStr, "B") {
+	if state.borderStr != "" && strings.Contains(state.borderStr, "B") {
 		state.b += "B"
 	}
 	state.cell(state.j, state.i, state.finalAlign())

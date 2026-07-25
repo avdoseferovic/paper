@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -155,12 +156,12 @@ func TestParsePDF_XrefSubsectionEndedEarly(t *testing.T) {
 
 	// startxref appears before the table so the data can end mid-subsection.
 	prefix := "%PDF-1.4\nstartxref\n"
-	offsetText := fmt.Sprintf("%d", 0)
+	offsetText := "0"
 	// Compute the real offset of "xref" after the startxref block.
 	for {
 		candidate := prefix + offsetText + "\n"
 		realOffset := len(candidate)
-		if offsetText == fmt.Sprintf("%d", realOffset) {
+		if offsetText == strconv.Itoa(realOffset) {
 			data := []byte(candidate + "xref\n0 2\n0000000000 65535 f \n")
 
 			document, err := parsePDF(data)
@@ -170,7 +171,7 @@ func TestParsePDF_XrefSubsectionEndedEarly(t *testing.T) {
 			assert.Contains(t, err.Error(), "xref subsection ended early")
 			return
 		}
-		offsetText = fmt.Sprintf("%d", len(prefix+offsetText+"\n"))
+		offsetText = strconv.Itoa(len(prefix + offsetText + "\n"))
 	}
 }
 

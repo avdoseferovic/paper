@@ -121,7 +121,7 @@ func TestBuildDetachedCMS(t *testing.T) {
 	}
 }
 
-func TestSignPDFBB(t *testing.T) {
+func TestPDFBB(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testRSACertificate(t)
@@ -131,7 +131,7 @@ func TestSignPDFBB(t *testing.T) {
 	}
 	pdf := minimalPDF(t)
 
-	signed, err := sign.SignPDF(pdf, sign.Options{
+	signed, err := sign.PDF(pdf, sign.Options{
 		Signer:      signer,
 		Level:       sign.LevelBB,
 		Name:        "Paper Test Signer",
@@ -140,7 +140,7 @@ func TestSignPDFBB(t *testing.T) {
 		SigningTime: time.Date(2026, 7, 8, 12, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
-		t.Fatalf("SignPDF() error = %v", err)
+		t.Fatalf("PDF() error = %v", err)
 	}
 	if len(signed) <= len(pdf) {
 		t.Fatalf("signed PDF length = %d, want > %d", len(signed), len(pdf))
@@ -170,7 +170,7 @@ func TestSignPDFBB(t *testing.T) {
 	}
 }
 
-func TestSignPDFECDSA(t *testing.T) {
+func TestPDFECDSA(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testECDSACertificate(t)
@@ -179,9 +179,9 @@ func TestSignPDFECDSA(t *testing.T) {
 		t.Fatalf("NewLocalSigner() error = %v", err)
 	}
 
-	signed, err := sign.SignPDF(minimalPDF(t), sign.Options{Signer: signer})
+	signed, err := sign.PDF(minimalPDF(t), sign.Options{Signer: signer})
 	if err != nil {
-		t.Fatalf("SignPDF() error = %v", err)
+		t.Fatalf("PDF() error = %v", err)
 	}
 	if !bytes.Contains(signed, []byte("/Type /Sig")) {
 		t.Fatal("signed PDF missing /Type /Sig")
@@ -189,16 +189,16 @@ func TestSignPDFECDSA(t *testing.T) {
 	assertContentsPatched(t, signed)
 }
 
-func TestSignPDFNilSigner(t *testing.T) {
+func TestPDFNilSigner(t *testing.T) {
 	t.Parallel()
 
-	_, err := sign.SignPDF(minimalPDF(t), sign.Options{})
+	_, err := sign.PDF(minimalPDF(t), sign.Options{})
 	if err == nil {
-		t.Fatal("SignPDF() expected nil signer error")
+		t.Fatal("PDF() expected nil signer error")
 	}
 }
 
-func TestSignPDFBTRequiresTSA(t *testing.T) {
+func TestPDFBTRequiresTSA(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testRSACertificate(t)
@@ -206,13 +206,13 @@ func TestSignPDFBTRequiresTSA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewLocalSigner() error = %v", err)
 	}
-	_, err = sign.SignPDF(minimalPDF(t), sign.Options{Signer: signer, Level: sign.LevelBT})
+	_, err = sign.PDF(minimalPDF(t), sign.Options{Signer: signer, Level: sign.LevelBT})
 	if err == nil {
-		t.Fatal("SignPDF() expected B-T without TSA error")
+		t.Fatal("PDF() expected B-T without TSA error")
 	}
 }
 
-func TestSignPDFBTEmbedsTSAToken(t *testing.T) {
+func TestPDFBTEmbedsTSAToken(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testRSACertificate(t)
@@ -231,13 +231,13 @@ func TestSignPDFBTEmbedsTSAToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	signed, err := sign.SignPDF(minimalPDF(t), sign.Options{
+	signed, err := sign.PDF(minimalPDF(t), sign.Options{
 		Signer:    signer,
 		Level:     sign.LevelBT,
 		TSAClient: sign.NewTSAClient(server.URL),
 	})
 	if err != nil {
-		t.Fatalf("SignPDF() error = %v", err)
+		t.Fatalf("PDF() error = %v", err)
 	}
 	assertContentsPatched(t, signed)
 }
@@ -297,7 +297,7 @@ func TestOCSPClientFetchResponse(t *testing.T) {
 	}
 }
 
-func TestSignPDFBLTEmbedsDSS(t *testing.T) {
+func TestPDFBLTEmbedsDSS(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testRSACertificate(t)
@@ -306,7 +306,7 @@ func TestSignPDFBLTEmbedsDSS(t *testing.T) {
 		t.Fatalf("NewLocalSigner() error = %v", err)
 	}
 
-	signed, err := sign.SignPDF(minimalPDF(t), sign.Options{
+	signed, err := sign.PDF(minimalPDF(t), sign.Options{
 		Signer:    signer,
 		Level:     sign.LevelBLT,
 		TSAClient: testTSAClient(t),
@@ -316,7 +316,7 @@ func TestSignPDFBLTEmbedsDSS(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("SignPDF() error = %v", err)
+		t.Fatalf("PDF() error = %v", err)
 	}
 	for _, marker := range [][]byte{[]byte("/DSS"), []byte("/VRI"), []byte("/CRLs"), []byte("/Certs")} {
 		if !bytes.Contains(signed, marker) {
@@ -325,7 +325,7 @@ func TestSignPDFBLTEmbedsDSS(t *testing.T) {
 	}
 }
 
-func TestSignPDFBLTAAddsDocumentTimestamp(t *testing.T) {
+func TestPDFBLTAAddsDocumentTimestamp(t *testing.T) {
 	t.Parallel()
 
 	key, cert := testRSACertificate(t)
@@ -334,13 +334,13 @@ func TestSignPDFBLTAAddsDocumentTimestamp(t *testing.T) {
 		t.Fatalf("NewLocalSigner() error = %v", err)
 	}
 
-	signed, err := sign.SignPDF(minimalPDF(t), sign.Options{
+	signed, err := sign.PDF(minimalPDF(t), sign.Options{
 		Signer:    signer,
 		Level:     sign.LevelBLTA,
 		TSAClient: testTSAClient(t),
 	})
 	if err != nil {
-		t.Fatalf("SignPDF() error = %v", err)
+		t.Fatalf("PDF() error = %v", err)
 	}
 	if !bytes.Contains(signed, []byte("/Type /DocTimeStamp")) {
 		t.Fatal("B-LTA signed PDF missing document timestamp")

@@ -1,6 +1,9 @@
 package pdf
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
 func TestUTF8FontFileParseCMAPPrefersFormat12(t *testing.T) {
 	t.Parallel()
@@ -168,7 +171,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImage(t *testing.T) {
 	if glyph == nil {
 		t.Fatal("expected CBDT bitmap glyph image")
 	}
-	if glyph.imageType != "png" || string(glyph.data) != string(png) {
+	if glyph.imageType != "png" || !bytes.Equal(glyph.data, png) {
 		t.Fatalf("expected PNG data to round-trip, got type %q length %d", glyph.imageType, len(glyph.data))
 	}
 	if glyph.width != 10 || glyph.height != 12 || glyph.bearingX != -1 || glyph.bearingY != 9 || glyph.advance != 11 {
@@ -208,7 +211,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImageFormat18(t *testing.T) {
 	if glyph == nil {
 		t.Fatal("expected CBDT format 18 bitmap glyph image")
 	}
-	if glyph.imageType != "png" || string(glyph.data) != string(png) {
+	if glyph.imageType != "png" || !bytes.Equal(glyph.data, png) {
 		t.Fatalf("expected PNG data to round-trip, got type %q length %d", glyph.imageType, len(glyph.data))
 	}
 	if glyph.width != 15 || glyph.height != 14 || glyph.bearingX != 2 || glyph.bearingY != 12 || glyph.advance != 16 {
@@ -244,7 +247,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImageFormat19(t *testing.T) {
 	if glyph == nil {
 		t.Fatal("expected CBDT format 19 bitmap glyph image")
 	}
-	if glyph.imageType != "png" || string(glyph.data) != string(png) {
+	if glyph.imageType != "png" || !bytes.Equal(glyph.data, png) {
 		t.Fatalf("expected PNG data to round-trip, got type %q length %d", glyph.imageType, len(glyph.data))
 	}
 	if glyph.width != 15 || glyph.height != 14 || glyph.bearingX != -2 || glyph.bearingY != 12 || glyph.advance != 16 {
@@ -438,15 +441,15 @@ func appendPaintGlyphSolid(dst []byte, glyphID, paletteIndex int) []byte {
 }
 
 func appendUint16(dst []byte, value int) []byte {
-	return append(dst, byte(value>>8), byte(value))
+	return append(dst, byte((value>>8)&0xFF), byte(value&0xFF))
 }
 
 func appendUint32(dst []byte, value int) []byte {
-	return append(dst, byte(value>>24), byte(value>>16), byte(value>>8), byte(value))
+	return append(dst, byte((value>>24)&0xFF), byte((value>>16)&0xFF), byte((value>>8)&0xFF), byte(value&0xFF))
 }
 
 func appendOffset24(dst []byte, value int) []byte {
-	return append(dst, byte(value>>16), byte(value>>8), byte(value))
+	return append(dst, byte((value>>16)&0xFF), byte((value>>8)&0xFF), byte(value&0xFF))
 }
 
 func buildTestCBLCFormat17Table(glyphID, ppem, glyphDataLength int) []byte {
@@ -469,7 +472,7 @@ func buildTestCBLCFormat1Table(glyphID, ppem, imageFormat, glyphDataLength int) 
 	cblc = append(cblc, make([]byte, 24)...)
 	cblc = appendUint16(cblc, glyphID) // startGlyphIndex
 	cblc = appendUint16(cblc, glyphID) // endGlyphIndex
-	cblc = append(cblc, byte(ppem), byte(ppem), 32, 1)
+	cblc = append(cblc, byte(ppem&0xFF), byte(ppem&0xFF), 32, 1)
 
 	cblc = appendUint16(cblc, glyphID)
 	cblc = appendUint16(cblc, glyphID)
@@ -514,7 +517,7 @@ func buildTestCBLCHeader(glyphID, ppem int) []byte {
 	cblc = append(cblc, make([]byte, 24)...)
 	cblc = appendUint16(cblc, glyphID) // startGlyphIndex
 	cblc = appendUint16(cblc, glyphID) // endGlyphIndex
-	cblc = append(cblc, byte(ppem), byte(ppem), 32, 1)
+	cblc = append(cblc, byte(ppem&0xFF), byte(ppem&0xFF), 32, 1)
 
 	cblc = appendUint16(cblc, glyphID)
 	cblc = appendUint16(cblc, glyphID)
@@ -522,7 +525,7 @@ func buildTestCBLCHeader(glyphID, ppem int) []byte {
 }
 
 func appendBigGlyphMetrics(dst []byte, height, width, bearingX, bearingY, advance int) []byte {
-	return append(dst, byte(height), byte(width), byte(bearingX), byte(bearingY), byte(advance), 0, 0, 0)
+	return append(dst, byte(height&0xFF), byte(width&0xFF), byte(bearingX&0xFF), byte(bearingY&0xFF), byte(advance&0xFF), 0, 0, 0)
 }
 
 type testSBIXStrike struct {
@@ -591,5 +594,5 @@ func testPNG(width, height int) []byte {
 }
 
 func appendInt16(dst []byte, value int) []byte {
-	return append(dst, byte(value>>8), byte(value))
+	return append(dst, byte((value>>8)&0xFF), byte(value&0xFF))
 }

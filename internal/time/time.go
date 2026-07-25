@@ -1,3 +1,5 @@
+// Package time measures how long a closure takes to run and reports it as a
+// metrics.Time value.
 package time
 
 import (

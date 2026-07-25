@@ -6,10 +6,12 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// BorderLineStyler sets the border line style, such as dashed or solid before passing the cell to the next writer.
 type BorderLineStyler struct {
 	stylerTemplate
 }
 
+// NewBorderLineStyler creates a BorderLineStyler that draws on the given PDF writer.
 func NewBorderLineStyler(fpdf any) *BorderLineStyler {
 	return &BorderLineStyler{
 		stylerTemplate: stylerTemplate{
@@ -19,6 +21,7 @@ func NewBorderLineStyler(fpdf any) *BorderLineStyler {
 	}
 }
 
+// Apply sets the border line style, such as dashed or solid from prop, then continues down the chain.
 func (b *BorderLineStyler) Apply(width, height float64, config *entity.Config, prop *props.Cell) {
 	if prop == nil {
 		b.GoToNext(width, height, config, prop)

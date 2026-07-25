@@ -11,6 +11,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Page is one page of the document, holding its rows and the numbering used in
+// headers and footers.
 type Page struct {
 	number         int
 	total          int
@@ -158,7 +160,7 @@ func (p *Page) SetConfig(config *entity.Config) {
 }
 
 // SetNumber sets the Page number and total.
-func (p *Page) SetNumber(number int, total int) {
+func (p *Page) SetNumber(number, total int) {
 	p.number = number
 	p.total = total
 }
@@ -180,6 +182,8 @@ func (p *Page) SetRunningStrings(runningStrings map[string]string) {
 	p.runningStrings = runningStrings
 }
 
+// SetPageControl attaches the page-break controller the rows use to decide when
+// content moves to the next page.
 func (p *Page) SetPageControl(control core.PageControl) {
 	p.control = control
 }

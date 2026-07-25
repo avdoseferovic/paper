@@ -1,3 +1,5 @@
+// Package fixture provides pre-filled entities and props for tests, so test
+// cases only have to state the fields they actually care about.
 package fixture
 
 import (

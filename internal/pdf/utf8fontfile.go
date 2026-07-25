@@ -139,7 +139,7 @@ func (utf *utf8FontFile) parseFile() error {
 	utf.outTablesData = make(map[string][]byte)
 	utf.ascent = 0
 	utf.descent = 0
-	codeType := uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
+	codeType := utf.readTag()
 	if utf.err != nil {
 		return utf.err
 	}
@@ -149,7 +149,7 @@ func (utf *utf8FontFile) parseFile() error {
 			return err
 		}
 		utf.fileReader = &fileReader{array: sfnt}
-		codeType = uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
+		codeType = utf.readTag()
 		if utf.err != nil {
 			return utf.err
 		}
@@ -162,7 +162,7 @@ func (utf *utf8FontFile) parseFile() error {
 		if err != nil {
 			return err
 		}
-		codeType = uint32(utf.readUint32()) // #nosec G115 -- readUint32 returns a four-byte unsigned font tag.
+		codeType = utf.readTag()
 	}
 	if codeType != 0x00010000 && codeType != 0x74727565 {
 		return fmt.Errorf("%w: codeType=%d", errUnexpectedTrueTypeCodeType, codeType)
@@ -272,19 +272,19 @@ func buildWOFF1SFNT(flavor []byte, tables []woffTable) ([]byte, error) {
 	}
 	out := make([]byte, totalSize)
 	copy(out[0:4], flavor)
-	binary.BigEndian.PutUint16(out[4:6], uint16(numTables)) // #nosec G115 -- numTables is read from a uint16 WOFF field.
+	putUint16(out[4:6], numTables)
 	searchRange, entrySelector, rangeShift := sfntSearchParams(numTables)
-	binary.BigEndian.PutUint16(out[6:8], uint16(searchRange))    // #nosec G115 -- values fit OpenType uint16.
-	binary.BigEndian.PutUint16(out[8:10], uint16(entrySelector)) // #nosec G115 -- values fit OpenType uint16.
-	binary.BigEndian.PutUint16(out[10:12], uint16(rangeShift))   // #nosec G115 -- values fit OpenType uint16.
+	putUint16(out[6:8], searchRange)
+	putUint16(out[8:10], entrySelector)
+	putUint16(out[10:12], rangeShift)
 
 	offset := headerSize
 	for i, table := range tables {
 		record := out[12+i*16 : 12+(i+1)*16]
 		copy(record[0:4], table.tag)
-		binary.BigEndian.PutUint32(record[4:8], uint32(table.checksum))     // #nosec G115 -- checksum is a uint32 field.
-		binary.BigEndian.PutUint32(record[8:12], uint32(offset))            // #nosec G115 -- rebuilt fonts are bounded by memory.
-		binary.BigEndian.PutUint32(record[12:16], uint32(table.origLength)) // #nosec G115 -- origLength is a uint32 WOFF field.
+		putUint32(record[4:8], table.checksum)
+		putUint32(record[8:12], offset)
+		putUint32(record[12:16], table.origLength)
 		copy(out[offset:offset+len(table.data)], table.data)
 		offset += paddedLength(table.origLength)
 	}
@@ -414,6 +414,12 @@ func (utf *utf8FontFile) readUint32() int {
 	return (int(s[0]) * 16777216) + (int(s[1]) << 16) + (int(s[2]) << 8) + int(s[3])
 }
 
+// readTag reads a four-byte font tag as the unsigned value the format defines.
+// readBytes always yields exactly four bytes, zero-filled once an error is set.
+func (utf *utf8FontFile) readTag() uint32 {
+	return binary.BigEndian.Uint32(utf.readBytes(4))
+}
+
 func (utf *utf8FontFile) calcInt32(x, y []int) []int {
 	answer := make([]int, 2)
 	if y[1] > x[1] {
@@ -509,7 +515,7 @@ func (utf *utf8FontFile) splice(stream []byte, offset int, value []byte) []byte 
 	return append(append(stream[:offset], value...), stream[offset+len(value):]...)
 }
 
-func (utf *utf8FontFile) insertUint16(stream []byte, offset int, value int) []byte {
+func (utf *utf8FontFile) insertUint16(stream []byte, offset, value int) []byte {
 	return utf.splice(stream, offset, packUint16(value))
 }
 
@@ -587,7 +593,7 @@ func (utf *utf8FontFile) parseNAMETable() int {
 			var currentNameSb422 strings.Builder
 			for size > 0 {
 				char := utf.readUint16()
-				currentNameSb422.WriteRune(rune(char)) // #nosec G115 -- UTF-16 code units are valid rune values.
+				currentNameSb422.WriteRune(rune(char & 0xFFFF))
 				size--
 			}
 			currentName += currentNameSb422.String()
@@ -1779,8 +1785,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 		endCode := start + (len(cidArray[start]) - 1)
 		cmap = append(cmap, endCode)
 	}
-	cmap = append(cmap, 0xFFFF)
-	cmap = append(cmap, 0)
+	cmap = append(cmap, 0xFFFF, 0)
 
 	cmap = append(cmap, cidArrayKeys...)
 	cmap = append(cmap, 0xFFFF)

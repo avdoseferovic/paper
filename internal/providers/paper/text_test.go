@@ -216,7 +216,7 @@ func TestText_Add(t *testing.T) {
 		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
 		pdf.EXPECT().Text(0.0, 5.0, "hello")
-		// LinkString(x+left, y+top-fontHeight, textWidth, fontHeight, url) = LinkString(0, 5-5, 20, 5, url)
+		// The link box is x+left, y+top-fontHeight, textWidth, fontHeight, so 0, 0, 20, 5.
 		pdf.EXPECT().LinkString(0.0, 0.0, 20.0, 5.0, url)
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
@@ -584,7 +584,7 @@ func TestText_Add(t *testing.T) {
 		// GetStringWidth("") = 0 ≤ 0 → single line
 		pdf.EXPECT().GetStringWidth("").Return(0.0)
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
-		// Text(x + left_margin, y + top_margin) = Text(100, 5, "")
+		// The text origin is x plus the left margin and y plus the top margin, so 100, 5.
 		pdf.EXPECT().Text(100.0, 5.0, "")
 
 		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)

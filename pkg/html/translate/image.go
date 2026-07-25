@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	goimage "image"
-	_ "image/jpeg"
+	_ "image/jpeg" // registered with image.DecodeConfig to size JPEG images
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -168,7 +168,6 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 		style = tr.imageStyle(n)
 	}
 	dimensions := imageDimensions(n, style)
-	intrinsicWidth, intrinsicHeight := 0.0, 0.0
 
 	data, ext, intrinsicWidth, intrinsicHeight, ok := tr.prepareImageData(data, ext, dimensions, "img")
 	if !ok {
@@ -434,7 +433,7 @@ func selectWidthDescriptorCandidate(candidates []srcsetCandidate, slotWidthPx fl
 	return best.src
 }
 
-func bestWidthCandidate(candidate *srcsetCandidate, best *srcsetCandidate, slotWidthPx float64) bool {
+func bestWidthCandidate(candidate, best *srcsetCandidate, slotWidthPx float64) bool {
 	return best == nil ||
 		best.width < slotWidthPx ||
 		candidate.width < best.width ||

@@ -124,7 +124,7 @@ type cursorProvider struct {
 
 func (p *cursorProvider) CreateRow(_ float64) {}
 
-func (p *cursorProvider) CreateCol(_ float64, _ float64, _ *entity.Config, _ *props.Cell) {}
+func (p *cursorProvider) CreateCol(_, _ float64, _ *entity.Config, _ *props.Cell) {}
 
 func (p *cursorProvider) AddLine(_ *entity.Cell, _ *props.Line) {}
 

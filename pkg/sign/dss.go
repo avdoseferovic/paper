@@ -2,7 +2,7 @@ package sign
 
 import (
 	"bytes"
-	sha1 "crypto/sha1" // #nosec G505 -- PAdES VRI keys are specified as SHA-1 of signature contents.
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
@@ -195,6 +195,6 @@ func containsBytes(slice [][]byte, item []byte) bool {
 }
 
 func computeVRIKey(sigContents []byte) string {
-	sum := sha1.Sum(sigContents) // #nosec G401 -- PAdES VRI keys are specified as SHA-1 of signature contents.
+	sum := sha1.Sum(sigContents)
 	return strings.ToUpper(hex.EncodeToString(sum[:]))
 }

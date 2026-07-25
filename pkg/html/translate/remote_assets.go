@@ -61,13 +61,13 @@ func httpClientOrDefault(client *http.Client) *http.Client {
 }
 
 func httpGetBytes(ctx context.Context, client *http.Client, rawURL string, maxBytes int64) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("html: building request for %s: %w", rawURL, err)
 	}
 	// Remote asset fetching is explicit opt-in (WithRemoteAssets); URLPolicy
 	// lets callers gate the reachable targets.
-	resp, err := client.Do(req) //nolint:gosec,nolintlint // G704 fires only on some gosec versions; see opt-in note above.
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("html: fetch %s: %w", rawURL, err)
 	}

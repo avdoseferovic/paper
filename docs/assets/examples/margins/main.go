@@ -1,3 +1,4 @@
+// Package main demonstrates setting the page margins.
 package main
 
 import (

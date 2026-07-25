@@ -1,3 +1,4 @@
+// Package main demonstrates styling individual cells with fills, borders, and padding.
 package main
 
 import (

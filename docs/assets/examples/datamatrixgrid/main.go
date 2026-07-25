@@ -1,3 +1,4 @@
+// Package main demonstrates placing Data Matrix codes across a grid of columns.
 package main
 
 import (

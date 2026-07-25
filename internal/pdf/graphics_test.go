@@ -209,11 +209,11 @@ func TestRoundedRectBalancesGraphicsState(t *testing.T) {
 	f.RoundedRectExt(10, 60, 60, 40, 3, 6, 9, 12, "FD")
 
 	content := f.pages[f.page].String()
-	q, Q := graphicsStateOpCounts(content)
-	if q != Q {
-		t.Fatalf("rounded rectangles leaked graphics state: q=%d Q=%d\n%s", q, Q, content)
+	saves, restores := graphicsStateOpCounts(content)
+	if saves != restores {
+		t.Fatalf("rounded rectangles leaked graphics state: q=%d Q=%d\n%s", saves, restores, content)
 	}
-	if q == 0 {
+	if saves == 0 {
 		t.Fatalf("expected rounded rectangles to use graphics-state isolation")
 	}
 }
@@ -228,16 +228,18 @@ func TestRoundedRectClosesPathBeforePainting(t *testing.T) {
 	}
 }
 
-func graphicsStateOpCounts(content string) (q, Q int) {
+// graphicsStateOpCounts counts the PDF graphics-state save ("q") and restore
+// ("Q") operators in a content stream.
+func graphicsStateOpCounts(content string) (saves, restores int) {
 	for _, field := range strings.Fields(content) {
 		switch field {
 		case "q":
-			q++
+			saves++
 		case "Q":
-			Q++
+			restores++
 		}
 	}
-	return q, Q
+	return saves, restores
 }
 
 func TestPathDrawingAPI(t *testing.T) {

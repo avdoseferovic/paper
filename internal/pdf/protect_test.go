@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rc4" // #nosec G503 -- tests decrypt PDF standard security handler output.
+	"crypto/rc4"
 	"regexp"
 	"strconv"
 	"strings"
@@ -214,7 +214,7 @@ func extractPDFLiteralString(t *testing.T, obj []byte, key string) []byte {
 
 func rc4DecryptWithObjectKey(t *testing.T, p *protectType, n uint32, data []byte) string {
 	t.Helper()
-	c, err := rc4.NewCipher(p.objectKey(n)) // #nosec G405 -- decrypting PDF security handler output.
+	c, err := rc4.NewCipher(p.objectKey(n))
 	if err != nil {
 		t.Fatalf("rc4 cipher: %v", err)
 	}

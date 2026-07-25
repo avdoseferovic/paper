@@ -189,7 +189,7 @@ func (f *PDF) replaceAliases() {
 				if strings.Contains(s, searchStr) {
 					s = strings.ReplaceAll(s, searchStr, replaceStr)
 					f.pages[n].Truncate(0)
-					f.pages[n].WriteString(s)
+					_, _ = f.pages[n].WriteString(s)
 					replaced = true
 				}
 			}
@@ -231,22 +231,22 @@ func timeOrNow(tm time.Time) time.Time {
 }
 
 func (f *PDF) putinfo() {
-	if len(f.producer) > 0 {
+	if f.producer != "" {
 		f.outf("/Producer %s", f.textstring(f.producer))
 	}
-	if len(f.title) > 0 {
+	if f.title != "" {
 		f.outf("/Title %s", f.textstring(f.title))
 	}
-	if len(f.subject) > 0 {
+	if f.subject != "" {
 		f.outf("/Subject %s", f.textstring(f.subject))
 	}
-	if len(f.author) > 0 {
+	if f.author != "" {
 		f.outf("/Author %s", f.textstring(f.author))
 	}
-	if len(f.keywords) > 0 {
+	if f.keywords != "" {
 		f.outf("/Keywords %s", f.textstring(f.keywords))
 	}
-	if len(f.creator) > 0 {
+	if f.creator != "" {
 		f.outf("/Creator %s", f.textstring(f.creator))
 	}
 	creation := f.docTime(f.creationDate)
@@ -491,11 +491,11 @@ func (f *PDF) putstream(b []byte) {
 // out; Add a line to the document
 func (f *PDF) out(s string) {
 	if f.state == 2 {
-		f.pages[f.page].WriteString(s)
-		f.pages[f.page].WriteString("\n")
+		_, _ = f.pages[f.page].WriteString(s)
+		_, _ = f.pages[f.page].WriteString("\n")
 	} else {
-		f.buffer.WriteString(s)
-		f.buffer.WriteString("\n")
+		f.buffer.write(s)
+		f.buffer.write("\n")
 	}
 }
 
@@ -507,14 +507,14 @@ func (f *PDF) outbuf(r io.Reader) {
 			f.err = err
 			return
 		}
-		f.pages[f.page].WriteString("\n")
+		_, _ = f.pages[f.page].WriteString("\n")
 	} else {
 		_, err := f.buffer.ReadFrom(r)
 		if err != nil {
 			f.err = err
 			return
 		}
-		f.buffer.WriteString("\n")
+		f.buffer.write("\n")
 	}
 }
 

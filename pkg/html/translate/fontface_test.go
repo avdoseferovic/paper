@@ -74,7 +74,7 @@ func TestFontFace_EmitsFontRegistrationRow(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	fontPath := filepath.Join(dir, "fake.ttf")
-	require.NoError(t, os.WriteFile(fontPath, []byte("FAKE_TTF_BYTES"), 0o644))
+	require.NoError(t, os.WriteFile(fontPath, []byte("FAKE_TTF_BYTES"), 0o600))
 
 	htmlStr := `
 <html><head><style>

@@ -109,7 +109,7 @@ func TestAddFontFromReaderType1LoadsFontFileFromDisk(t *testing.T) {
 	for i := range fontFile {
 		fontFile[i] = byte(i)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "synth1.pfb"), fontFile, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "synth1.pfb"), fontFile, 0o600); err != nil {
 		t.Fatalf("write synthetic Type1 font file: %v", err)
 	}
 

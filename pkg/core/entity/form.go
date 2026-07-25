@@ -5,6 +5,7 @@ import "fmt"
 // FieldType identifies the kind of interactive AcroForm field.
 type FieldType int
 
+// The kinds of interactive form field.
 const (
 	FieldText FieldType = iota
 	FieldCheckbox
@@ -18,6 +19,8 @@ const (
 // FieldFlags are AcroForm field flags from ISO 32000 section 12.7.3.
 type FieldFlags uint32
 
+// Field flags, grouped by the field kind they apply to: any field, text fields,
+// choice fields, then button fields. Combine them with bitwise OR.
 const (
 	FlagReadOnly FieldFlags = 1 << 0
 	FlagRequired FieldFlags = 1 << 1
@@ -84,7 +87,7 @@ func NewAcroForm() *AcroForm {
 // Add appends a field and returns the form for chaining.
 func (af *AcroForm) Add(f *Field) *AcroForm {
 	if af == nil {
-		return af
+		return nil
 	}
 	if f != nil {
 		af.fields = append(af.fields, f)

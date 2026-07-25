@@ -1,3 +1,6 @@
+// Package paper implements the drawing provider that the document builder calls
+// into. It translates components and cells into calls on the underlying PDF
+// writer, handling fonts, colors, images, barcodes, and rich text.
 package paper
 
 import (

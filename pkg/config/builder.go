@@ -149,6 +149,8 @@ type metadataBuilder interface {
 	WithKeywords(keywordsStr string, isUTF8 bool) Builder
 }
 
+// CfgBuilder collects configuration through chained setters. Call Build to turn
+// it into an entity.Config.
 type CfgBuilder struct {
 	providerType                   consts.ProviderType
 	dimensions                     *entity.Dimensions

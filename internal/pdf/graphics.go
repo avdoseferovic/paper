@@ -23,7 +23,7 @@ func rgbColorValue(r, g, b int, grayStr, fullStr string) colorType {
 	clr.ig, clr.g = colorComp(g)
 	clr.ib, clr.b = colorComp(b)
 	clr.gray = clr.ir == clr.ig && clr.r == clr.b
-	if len(grayStr) > 0 {
+	if grayStr != "" {
 		if clr.gray {
 			clr.str = sprintf("%.3f %s", clr.r, grayStr)
 		} else {
@@ -303,7 +303,7 @@ func (f *PDF) Rect(x, y, w, h float64, styleStr string) {
 // string that includes "1" to round the upper left corner, "2" to round the
 // upper right corner, "3" to round the lower right corner, and "4" to round
 // the lower left corner. The RoundedRect example demonstrates this method.
-func (f *PDF) RoundedRect(x, y, w, h, r float64, corners string, stylestr string) {
+func (f *PDF) RoundedRect(x, y, w, h, r float64, corners, stylestr string) {
 	// This routine was adapted by Brigham Thompson from a script by Christophe Prugnaud
 	var rTL, rTR, rBR, rBL float64 // zero means no rounded corner
 	if strings.Contains(corners, "1") {

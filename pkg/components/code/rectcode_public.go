@@ -8,6 +8,7 @@ import (
 
 type rectCodeConstructor func(code string, ps ...props.Rect) core.Component
 
+// QrCode is a component that draws a QR code.
 type QrCode = rectCode
 
 // NewQr is responsible to create an instance of a QrCode.
@@ -32,6 +33,7 @@ func NewQrRow(height float64, code string, ps ...props.Rect) core.Row {
 	return newRectComponentRow(height, NewQr, code, ps...)
 }
 
+// MatrixCode is a component that draws a Data Matrix code.
 type MatrixCode = rectCode
 
 // NewMatrix is responsible to create an instance of a MatrixCode.

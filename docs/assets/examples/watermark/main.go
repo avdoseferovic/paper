@@ -19,7 +19,7 @@ func main() {
 		Build()
 
 	m := paper.New(cfg)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		m.AddRow(250, col.New(12).Add(text.New("Body content flows over the watermark.", props.Text{Top: 5})))
 	}
 

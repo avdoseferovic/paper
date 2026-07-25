@@ -12,6 +12,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Signature is a component that draws a signature line with a caption under it.
 type Signature struct {
 	value  string
 	prop   props.Signature
@@ -45,7 +46,8 @@ func NewRow(height float64, value string, ps ...props.Signature) core.Row {
 	return row.New(height).Add(c)
 }
 
-// NewRow is responsible to create an instance of a Signature wrapped in a automatic Row.
+// NewAutoRow creates a Signature wrapped in a Row whose height follows the
+// signature.
 func NewAutoRow(value string, ps ...props.Signature) core.Row {
 	signature := New(value, ps...)
 	c := col.New().Add(signature)

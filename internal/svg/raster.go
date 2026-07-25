@@ -16,6 +16,8 @@ import (
 	"github.com/avdoseferovic/paper/internal/pngcodec"
 )
 
+// DPIForRaster is the resolution SVGs are rasterised at, and MaxRasterPixels the
+// largest raster the renderer will allocate.
 const (
 	DPIForRaster    = 150.0
 	MaxRasterPixels = 50_000_000
@@ -35,6 +37,7 @@ const (
 	minCanvasBudgetFactor = 8
 )
 
+// Errors reported when an SVG cannot be rasterised.
 var (
 	ErrSVGHasZeroDimensions = errors.New("svg has zero dimensions")
 	ErrSVGTooLarge          = htmllimits.ErrSVGTooLarge
@@ -135,7 +138,7 @@ func readSVGViewBox(data []byte) (svgViewBox, error) {
 			return svgViewBox{}, fmt.Errorf("svg parse: %w", err)
 		}
 		start, ok := token.(xml.StartElement)
-		if !ok || strings.ToLower(start.Name.Local) != "svg" {
+		if !ok || !strings.EqualFold(start.Name.Local, "svg") {
 			continue
 		}
 		viewBox := svgViewBox{w: parseNumber(attrValue(start.Attr, "width")), h: parseNumber(attrValue(start.Attr, "height"))}

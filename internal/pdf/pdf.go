@@ -19,6 +19,13 @@ type fmtBuffer struct {
 	bytes.Buffer
 }
 
+// write appends s to the buffer. bytes.Buffer.WriteString never fails, so the
+// error it returns for io.StringWriter compatibility is dropped here rather than
+// at every call site.
+func (b *fmtBuffer) write(s string) {
+	_, _ = b.WriteString(s)
+}
+
 func (b *fmtBuffer) printf(fmtStr string, args ...any) {
 	// Format straight into the buffer instead of allocating an intermediate
 	// result string via Sprintf. fmt.Fprintf uses a pooled internal printer and

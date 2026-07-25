@@ -113,6 +113,8 @@ func (s *ComputedStyle) applyOpacity(val string) {
 	s.Opacity = v
 }
 
+// ParseCSSURL pulls the target out of a CSS `url(...)` value, stripping any
+// quotes. It reports whether the value was a url() at all.
 func ParseCSSURL(value string) (string, bool) {
 	value = strings.TrimSpace(value)
 	if !strings.HasPrefix(value, "url(") || !strings.HasSuffix(value, ")") {

@@ -21,6 +21,7 @@ var (
 // GradientKind identifies the type of gradient.
 type GradientKind int
 
+// The gradient functions this package can parse.
 const (
 	GradientLinear GradientKind = iota
 	GradientRadial

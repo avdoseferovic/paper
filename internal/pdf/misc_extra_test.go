@@ -184,7 +184,7 @@ func TestSetDashPatternWritesBufferedOps(t *testing.T) {
 func TestRegisterImageFromDisk(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "img.png")
-	if err := os.WriteFile(path, pngImageBytes(t), 0o644); err != nil {
+	if err := os.WriteFile(path, pngImageBytes(t), 0o600); err != nil {
 		t.Fatalf("write PNG fixture: %v", err)
 	}
 
@@ -208,7 +208,7 @@ func TestRegisterImageFromDisk(t *testing.T) {
 func TestRegisterImageOptionsUntypedFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "imagewithoutextension")
-	if err := os.WriteFile(path, pngImageBytes(t), 0o644); err != nil {
+	if err := os.WriteFile(path, pngImageBytes(t), 0o600); err != nil {
 		t.Fatalf("write PNG fixture: %v", err)
 	}
 
@@ -235,11 +235,11 @@ func grayAlphaPNGBytes(t *testing.T) []byte {
 	const w, h = 2, 2
 
 	var raw bytes.Buffer
-	for y := 0; y < h; y++ {
+	for y := range h {
 		raw.WriteByte(0) // filter: none
-		for x := 0; x < w; x++ {
-			raw.WriteByte(byte(50 + x*10 + y*20)) // gray
-			raw.WriteByte(byte(100 + x*5 + y*3))  // alpha
+		for x := range w {
+			raw.WriteByte(byte((50 + x*10 + y*20) & 0xFF)) // gray
+			raw.WriteByte(byte(100 + x*5 + y*3))           // alpha
 		}
 	}
 	var idat bytes.Buffer

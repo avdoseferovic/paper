@@ -7,6 +7,7 @@ import (
 	"fmt"
 )
 
+// ErrCannotMergePDFs is returned when the input documents cannot be combined.
 var ErrCannotMergePDFs = errors.New("cannot merge PDFs")
 
 // Bytes merges PDFs from byte slices. It observes ctx between documents.

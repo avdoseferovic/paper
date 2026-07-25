@@ -3,6 +3,7 @@ package entity
 // PdfALevel identifies the requested PDF/A part and conformance profile.
 type PdfALevel int
 
+// The supported PDF/A parts and conformance profiles.
 const (
 	PdfA2B PdfALevel = iota
 	PdfA2U

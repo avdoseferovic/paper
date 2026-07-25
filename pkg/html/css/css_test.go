@@ -515,6 +515,7 @@ func TestParseLength(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
 			got := css.ParseLength(tc.input, tc.parent)
 			assert.InDelta(t, tc.expected, got, 0.01)
 		})

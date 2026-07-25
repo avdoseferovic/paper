@@ -1,3 +1,4 @@
+// Package main demonstrates changing how many grid units a row spans.
 package main
 
 import (

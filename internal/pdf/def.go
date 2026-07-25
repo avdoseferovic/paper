@@ -124,27 +124,6 @@ func (p PointType) XY() (float64, float64) {
 	return p.X, p.Y
 }
 
-// PointConvert returns the value of pt, expressed in points (1/72 inch), as a
-// value expressed in the unit of measure specified in New(). Since font
-// management in PDF uses points, this method can help with line height
-// calculations and other methods that require user units.
-func (f *PDF) PointConvert(pt float64) float64 {
-	return pt / f.k
-}
-
-// PointToUnitConvert is an alias for PointConvert.
-func (f *PDF) PointToUnitConvert(pt float64) float64 {
-	return pt / f.k
-}
-
-// UnitToPointConvert returns the value of u, expressed in the unit of measure
-// specified in New(), as a value expressed in points (1/72 inch). Since font
-// management in PDF uses points, this method can help with setting font sizes
-// based on the sizes of other non-font page elements.
-func (f *PDF) UnitToPointConvert(u float64) float64 {
-	return u * f.k
-}
-
 type fontFileType struct {
 	length1, length2 int64
 	n                int
@@ -262,7 +241,7 @@ type PDF struct {
 	pageGeometries   []PageGeometry             // per-page rotation and geometry boxes
 	fileID           []byte                     // explicit trailer /ID bytes
 	deterministic    bool                       // derive stable /ID and zero implicit dates
-	pdfA             *PdfAConfig                // PDF/A conformance configuration
+	pdfA             *ConformanceConfig         // PDF/A conformance configuration
 	taggedPDF        bool                       // emit a tagged (accessible) PDF
 	structTreeRoot   int                        // object number of the structure tree root
 	outputIntentObj  int                        // object number of the PDF/A output intent
@@ -313,6 +292,27 @@ type PDF struct {
 	}
 	userUnderlineThickness float64 // A custom user underline thickness multiplier.
 	colorEmojiEnabled      bool
+}
+
+// PointConvert returns the value of pt, expressed in points (1/72 inch), as a
+// value expressed in the unit of measure specified in New(). Since font
+// management in PDF uses points, this method can help with line height
+// calculations and other methods that require user units.
+func (f *PDF) PointConvert(pt float64) float64 {
+	return pt / f.k
+}
+
+// PointToUnitConvert is an alias for PointConvert.
+func (f *PDF) PointToUnitConvert(pt float64) float64 {
+	return pt / f.k
+}
+
+// UnitToPointConvert returns the value of u, expressed in the unit of measure
+// specified in New(), as a value expressed in points (1/72 inch). Since font
+// management in PDF uses points, this method can help with setting font sizes
+// based on the sizes of other non-font page elements.
+func (f *PDF) UnitToPointConvert(u float64) float64 {
+	return u * f.k
 }
 
 type fontBoxType struct {

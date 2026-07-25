@@ -132,7 +132,7 @@ func TestWalkWithLimits(t *testing.T) {
 		doc, err := dom.Parse(`<html><body><p>a</p><p>b</p><p>c</p></body></html>`)
 		require.NoError(t, err)
 		var visited int
-		err = doc.WalkWithLimits(htmllimits.Limits{MaxDOMNodes: 2}, func(n *dom.Node) bool {
+		err = doc.WalkWithLimits(htmllimits.Limits{MaxDOMNodes: 2}, func(_ *dom.Node) bool {
 			visited++
 			return true
 		})

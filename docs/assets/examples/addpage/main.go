@@ -1,3 +1,4 @@
+// Package main demonstrates adding pages explicitly, so content starts on a fresh page.
 package main
 
 import (

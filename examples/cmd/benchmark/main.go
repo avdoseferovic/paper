@@ -1,3 +1,5 @@
+// Command benchmark measures document generation time and writes the
+// results to docs/assets/text/benchmark.txt.
 package main
 
 import (
@@ -50,7 +52,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	err := os.WriteFile(out, []byte(builder.String()), os.ModePerm)
+	err := os.WriteFile(out, []byte(builder.String()), 0o600)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

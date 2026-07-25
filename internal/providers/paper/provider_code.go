@@ -108,11 +108,10 @@ func (g *provider) getBarcodeImageName(code string, prop *props.Barcode) string 
 // loadCode is responsible for loading generated codes from cache or generating them.
 func (g *provider) loadCode(code, codeType string, generate func(code string) (*entity.Image, error)) (*entity.Image, error) {
 	image, err := g.cache.GetImage(codeType+code, extension.Png)
-	if err != nil {
-		image, err = generate(code)
-	} else {
+	if err == nil {
 		return image, nil
 	}
+	image, err = generate(code)
 	if err != nil {
 		return nil, err
 	}

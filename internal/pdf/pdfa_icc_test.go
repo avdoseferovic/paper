@@ -13,7 +13,7 @@ func TestSRGBICCProfile_ShouldContainValidHeaderAndRequiredTags(t *testing.T) {
 	profile := srgbICCProfile()
 
 	assert.Greater(t, len(profile), 2000)
-	assert.Equal(t, uint32(len(profile)), binary.BigEndian.Uint32(profile[0:4]))
+	assert.Equal(t, uint32(len(profile)&0x7FFFFFFF), binary.BigEndian.Uint32(profile[0:4]))
 	assert.Equal(t, []byte("mntr"), profile[12:16])
 	assert.Equal(t, []byte("RGB "), profile[16:20])
 	assert.Equal(t, []byte("XYZ "), profile[20:24])

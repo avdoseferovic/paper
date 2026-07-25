@@ -421,7 +421,7 @@ func TestApplyEffectsProperty(t *testing.T) {
 
 		var unsupported []string
 		s2 := NewComputedStyle()
-		s2.SetUnsupportedHandler(func(prop, val string) { unsupported = append(unsupported, prop) })
+		s2.SetUnsupportedHandler(func(prop, _ string) { unsupported = append(unsupported, prop) })
 		s2.Apply("box-shadow", "red", nil)
 		assert.Contains(t, unsupported, "box-shadow")
 	})
@@ -436,7 +436,7 @@ func TestApplyEffectsProperty(t *testing.T) {
 
 		var unsupported []string
 		s2 := NewComputedStyle()
-		s2.SetUnsupportedHandler(func(prop, val string) { unsupported = append(unsupported, prop) })
+		s2.SetUnsupportedHandler(func(prop, _ string) { unsupported = append(unsupported, prop) })
 		s2.Apply("text-shadow", "notashadow", nil)
 		assert.Contains(t, unsupported, "text-shadow")
 	})
@@ -465,7 +465,7 @@ func TestApplyEffectsProperty(t *testing.T) {
 		t.Parallel()
 		var unsupported []string
 		s := NewComputedStyle()
-		s.SetUnsupportedHandler(func(prop, val string) { unsupported = append(unsupported, prop) })
+		s.SetUnsupportedHandler(func(prop, _ string) { unsupported = append(unsupported, prop) })
 		s.Apply("filter", "blur(5px)", nil)
 		assert.Contains(t, unsupported, "filter")
 	})
@@ -523,7 +523,7 @@ func TestApplyBackgroundImage(t *testing.T) {
 		for _, val := range cases {
 			var unsupported []string
 			s := NewComputedStyle()
-			s.SetUnsupportedHandler(func(prop, v string) { unsupported = append(unsupported, v) })
+			s.SetUnsupportedHandler(func(_, v string) { unsupported = append(unsupported, v) })
 			s.Apply("background-image", val, nil)
 			assert.Contains(t, unsupported, val, "value %q", val)
 		}

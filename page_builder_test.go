@@ -472,7 +472,7 @@ func (r *atomicSplittableRow) WithStyle(_ *props.Cell) core.Row {
 
 func (r *atomicSplittableRow) Render(_ core.Provider, _ entity.Cell) {}
 
-func (r *atomicSplittableRow) SplitAt(_ core.Provider, _ float64, _ float64) (core.Row, core.Row, bool) {
+func (r *atomicSplittableRow) SplitAt(_ core.Provider, _, _ float64) (core.Row, core.Row, bool) {
 	if !r.didSplit {
 		return nil, nil, false
 	}
@@ -487,6 +487,6 @@ type splittingRow struct {
 	rest  core.Row
 }
 
-func (r *splittingRow) SplitAt(_ core.Provider, _ float64, _ float64) (core.Row, core.Row, bool) {
+func (r *splittingRow) SplitAt(_ core.Provider, _, _ float64) (core.Row, core.Row, bool) {
 	return r.first, r.rest, true
 }

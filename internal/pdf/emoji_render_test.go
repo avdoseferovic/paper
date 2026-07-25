@@ -157,16 +157,18 @@ func TestRenderBitmapGlyphFallbackMetricsAndEmptyGlyph(t *testing.T) {
 // using the repeat-flag encoding.
 func buildSimpleTestGlyph() []byte {
 	var g []byte
-	g = appendUint16(g, 1)    // numContours
-	g = appendInt16(g, 0)     // xMin
-	g = appendInt16(g, 0)     // yMin
-	g = appendInt16(g, 100)   // xMax
-	g = appendInt16(g, 100)   // yMax
-	g = appendUint16(g, 2)    // endPtsOfContours[0]
-	g = appendUint16(g, 0)    // instructionLength
-	g = append(g, 0x3F, 2)    // onCurve|xShort|yShort|repeat|xSame|ySame, repeat 2
-	g = append(g, 10, 20, 30) // x deltas
-	g = append(g, 5, 6, 7)    // y deltas
+	g = appendUint16(g, 1)  // numContours
+	g = appendInt16(g, 0)   // xMin
+	g = appendInt16(g, 0)   // yMin
+	g = appendInt16(g, 100) // xMax
+	g = appendInt16(g, 100) // yMax
+	g = appendUint16(g, 2)  // endPtsOfContours[0]
+	g = appendUint16(g, 0)  // instructionLength
+	g = append(g,
+		0x3F, 2, // onCurve|xShort|yShort|repeat|xSame|ySame, repeat 2
+		10, 20, 30, // x deltas
+		5, 6, 7, // y deltas
+	)
 	return g
 }
 

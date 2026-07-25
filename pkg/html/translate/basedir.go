@@ -26,7 +26,7 @@ func readFileInRoot(dir, name string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("html: opening base dir %q: %w", dir, err)
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 
 	f, err := root.Open(filepath.Clean(filepath.FromSlash(name)))
 	if err != nil {
@@ -37,7 +37,7 @@ func readFileInRoot(dir, name string) ([]byte, error) {
 		// symlinks) with a non-ErrNotExist error.
 		return nil, fmt.Errorf("%w: %q: %w", errPathEscapesBaseDir, name, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	data, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("html: reading %q from base dir: %w", name, err)

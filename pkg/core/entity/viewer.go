@@ -1,7 +1,9 @@
 package entity
 
+// PageLayout is how a reader should arrange pages on screen.
 type PageLayout string
 
+// The page arrangements a reader can be asked to use.
 const (
 	LayoutSinglePage     PageLayout = "SinglePage"
 	LayoutOneColumn      PageLayout = "OneColumn"
@@ -11,8 +13,11 @@ const (
 	LayoutTwoPageRight   PageLayout = "TwoPageRight"
 )
 
+// PageMode is what a reader should show alongside the page when the document
+// opens, such as the bookmark or thumbnail panel.
 type PageMode string
 
+// The side panels (or full-screen mode) a reader can open the document with.
 const (
 	ModeUseNone        PageMode = "UseNone"
 	ModeUseOutlines    PageMode = "UseOutlines"
@@ -22,6 +27,8 @@ const (
 	ModeUseAttachments PageMode = "UseAttachments"
 )
 
+// ViewerPreferences asks the reader how to present the document when it opens.
+// Every field is optional; a zero field leaves that choice to the reader.
 type ViewerPreferences struct {
 	PageLayout      PageLayout
 	PageMode        PageMode
@@ -35,6 +42,8 @@ type ViewerPreferences struct {
 	OpenZoom        string
 }
 
+// AppendMap adds the preferences that are actually set into m and returns it.
+// It is used to report the document's configuration.
 func (v *ViewerPreferences) AppendMap(m map[string]any) map[string]any {
 	if v == nil {
 		return m

@@ -69,7 +69,7 @@ func TestProcessPageGroupsConcurrentlyPreservesInputOrder(t *testing.T) {
 			<-completed[idx+1]
 		}
 		close(completed[idx])
-		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	require.NoError(t, err)
@@ -107,7 +107,7 @@ func TestProcessPageGroupsConcurrentlyRespectsWorkerLimit(t *testing.T) {
 		}
 		b.wait()
 		atomic.AddInt64(&active, -1)
-		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 		if len(group) == 2 {
 			return pageProcessResult{}, expectedErr
 		}
-		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	assert.ErrorIs(t, err, expectedErr)
@@ -143,7 +143,7 @@ func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
 		if len(group) == 2 {
 			panic("boom")
 		}
-		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	require.Error(t, err)
@@ -160,7 +160,7 @@ func TestProcessPageGroupsConcurrentlyReturnsContextError(t *testing.T) {
 	results, err := processPageGroupsConcurrently(ctx, 3, [][]core.Page{
 		make([]core.Page, 1),
 	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
-		return pageProcessResult{bytes: []byte{byte(len(group))}}, nil
+		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	assert.Nil(t, results)

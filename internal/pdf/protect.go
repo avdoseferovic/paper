@@ -6,9 +6,9 @@ package pdf
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5" // #nosec G501 -- PDF standard security handler revision 2 uses MD5.
+	"crypto/md5"
 	cryptoRand "crypto/rand"
-	"crypto/rc4" // #nosec G503 -- PDF standard security handler revision 2 uses RC4.
+	"crypto/rc4"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -54,7 +54,7 @@ type protectType struct {
 // created for each call; reusing a cipher across strings of the same object
 // would continue the keystream and corrupt every string after the first.
 func (p *protectType) rc4(n uint32, buf *[]byte) {
-	c, _ := rc4.NewCipher(p.objectKey(n)) // #nosec G405 -- required by the PDF security handler.
+	c, _ := rc4.NewCipher(p.objectKey(n))
 	c.XORKeyStream(*buf, *buf)
 }
 
@@ -64,7 +64,7 @@ func (p *protectType) objectKey(n uint32) []byte {
 	b := make([]byte, 0, len(p.encryptionKey)+5)
 	b = append(b, p.encryptionKey...)
 	b = append(b, nbuf[0], nbuf[1], nbuf[2], 0, 0)
-	s := md5.Sum(b) // #nosec G401 -- required by the PDF security handler.
+	s := md5.Sum(b)
 	return s[0:10]
 }
 
@@ -73,9 +73,8 @@ func (p *protectType) aesObjectKey(n uint32) []byte {
 	binary.LittleEndian.PutUint32(nbuf, n)
 	b := make([]byte, 0, len(p.encryptionKey)+9)
 	b = append(b, p.encryptionKey...)
-	b = append(b, nbuf[0], nbuf[1], nbuf[2], 0, 0)
-	b = append(b, 's', 'A', 'l', 'T')
-	s := md5.Sum(b) // #nosec G401 -- required by the PDF security handler.
+	b = append(b, nbuf[0], nbuf[1], nbuf[2], 0, 0, 's', 'A', 'l', 'T')
+	s := md5.Sum(b)
 	keyLen := min(len(p.encryptionKey)+5, aes.BlockSize)
 	return s[0:keyLen]
 }
@@ -120,8 +119,8 @@ func (p *protectType) aesEncrypt(n uint32, data []byte) ([]byte, error) {
 
 func oValueGen(userPass, ownerPass []byte) []byte {
 	var c *rc4.Cipher
-	tmp := md5.Sum(ownerPass)      // #nosec G401 -- required by the PDF security handler.
-	c, _ = rc4.NewCipher(tmp[0:5]) // #nosec G405 -- required by the PDF security handler.
+	tmp := md5.Sum(ownerPass)
+	c, _ = rc4.NewCipher(tmp[0:5])
 	size := len(userPass)
 	v := make([]byte, size)
 	c.XORKeyStream(v, userPass)
@@ -129,10 +128,10 @@ func oValueGen(userPass, ownerPass []byte) []byte {
 }
 
 func oValueGenRevision3(userPass, ownerPass []byte, keyLen int) []byte {
-	sum := md5.Sum(ownerPass) // #nosec G401 -- required by the PDF security handler.
+	sum := md5.Sum(ownerPass)
 	digest := sum[:]
 	for range 50 {
-		next := md5.Sum(digest) // #nosec G401 -- required by the PDF security handler.
+		next := md5.Sum(digest)
 		digest = next[:]
 	}
 
@@ -148,7 +147,7 @@ func oValueGenRevision3(userPass, ownerPass []byte, keyLen int) []byte {
 
 func (p *protectType) uValueGen() []byte {
 	var c *rc4.Cipher
-	c, _ = rc4.NewCipher(p.encryptionKey) // #nosec G405 -- required by the PDF security handler.
+	c, _ = rc4.NewCipher(p.encryptionKey)
 	size := len(p.padding)
 	v := make([]byte, size)
 	c.XORKeyStream(v, p.padding)
@@ -159,7 +158,7 @@ func (p *protectType) uValueGenRevision3() []byte {
 	buf := make([]byte, 0, len(p.padding)+len(p.fileID))
 	buf = append(buf, p.padding...)
 	buf = append(buf, p.fileID...)
-	sum := md5.Sum(buf) // #nosec G401 -- required by the PDF security handler.
+	sum := md5.Sum(buf)
 
 	v := append([]byte(nil), sum[:]...)
 	rc4Crypt(v, p.encryptionKey)
@@ -225,7 +224,7 @@ func (p *protectType) setProtectionRC4(privFlag byte, userPassStr, ownerPassStr 
 	buf = append(buf, userPass...)
 	buf = append(buf, p.oValue...)
 	buf = append(buf, privFlag, 0xff, 0xff, 0xff)
-	sum := md5.Sum(buf) // #nosec G401 -- required by the PDF security handler.
+	sum := md5.Sum(buf)
 	p.encryptionKey = sum[0:5]
 	p.uValue = p.uValueGen()
 	p.pValue = -(int(privFlag^255) + 1)
@@ -273,10 +272,10 @@ func encryptionKeyRevision3(userPass, ownerValue []byte, privFlag byte, fileID [
 	buf = append(buf, privFlag, 0xff, 0xff, 0xff)
 	buf = append(buf, fileID...)
 
-	sum := md5.Sum(buf) // #nosec G401 -- required by the PDF security handler.
+	sum := md5.Sum(buf)
 	digest := sum[:]
 	for range 50 {
-		next := md5.Sum(digest[:keyLen]) // #nosec G401 -- required by the PDF security handler.
+		next := md5.Sum(digest[:keyLen])
 		digest = next[:]
 	}
 
@@ -284,7 +283,7 @@ func encryptionKeyRevision3(userPass, ownerValue []byte, privFlag byte, fileID [
 }
 
 func rc4Crypt(data, key []byte) {
-	c, _ := rc4.NewCipher(key) // #nosec G405 -- required by the PDF security handler.
+	c, _ := rc4.NewCipher(key)
 	c.XORKeyStream(data, data)
 }
 

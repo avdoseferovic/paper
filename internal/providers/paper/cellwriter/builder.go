@@ -1,7 +1,9 @@
 package cellwriter
 
+// WriterBuilder assembles the chain of cell writers in the right order.
 type WriterBuilder struct{}
 
+// NewBuilder creates a WriterBuilder.
 func NewBuilder() *WriterBuilder {
 	return &WriterBuilder{}
 }

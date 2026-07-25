@@ -44,7 +44,7 @@ func postDER(client *http.Client, url, contentType string, body []byte, timeout 
 	if client == nil {
 		client = http.DefaultClient
 	}
-	resp, err := client.Do(req) // #nosec G704 -- endpoint is caller configuration or the validated certificate's responder.
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("sign: HTTP request: %w", err)
 	}

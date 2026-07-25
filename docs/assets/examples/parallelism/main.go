@@ -1,3 +1,4 @@
+// Package main demonstrates generating page chunks concurrently.
 package main
 
 import (

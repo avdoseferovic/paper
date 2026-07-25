@@ -1,3 +1,4 @@
+// Package main demonstrates a header that repeats at the top of every page.
 package main
 
 import (

@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Barcode is a component that draws a linear barcode.
 type Barcode struct {
 	code   string
 	prop   props.Barcode

@@ -46,9 +46,9 @@ func mustOutput(t *testing.T, f *PDF) []byte {
 func pngImageBytes(t *testing.T) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, 4, 4))
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 4; x++ {
-			img.Set(x, y, color.RGBA{R: uint8(x * 60), G: uint8(y * 60), B: 128, A: uint8(40 + x*50)})
+	for y := range 4 {
+		for x := range 4 {
+			img.Set(x, y, color.RGBA{R: uint8((x * 60) & 0xFF), G: uint8((y * 60) & 0xFF), B: 128, A: uint8((40 + x*50) & 0xFF)})
 		}
 	}
 	var buf bytes.Buffer
@@ -62,9 +62,9 @@ func pngImageBytes(t *testing.T) []byte {
 func jpegImageBytes(t *testing.T) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, 4, 4))
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 4; x++ {
-			img.Set(x, y, color.RGBA{R: uint8(x * 60), G: uint8(y * 60), B: 200, A: 255})
+	for y := range 4 {
+		for x := range 4 {
+			img.Set(x, y, color.RGBA{R: uint8((x * 60) & 0xFF), G: uint8((y * 60) & 0xFF), B: 200, A: 255})
 		}
 	}
 	var buf bytes.Buffer
@@ -79,8 +79,8 @@ func gifImageBytes(t *testing.T) []byte {
 	t.Helper()
 	pal := color.Palette{color.Black, color.White, color.RGBA{R: 255, A: 255}}
 	img := image.NewPaletted(image.Rect(0, 0, 4, 4), pal)
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 4; x++ {
+	for y := range 4 {
+		for x := range 4 {
 			img.SetColorIndex(x, y, uint8((x+y)%3))
 		}
 	}

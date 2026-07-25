@@ -52,13 +52,13 @@ func TestAddRichText_LocalAnchor(t *testing.T) {
 		// Expected: Link(x=0, y=4-4=0, w=8, h=4, id=42)
 		pdf.EXPECT().Link(
 			mock.AnythingOfType("float64"), // x
-			0.0,                            // y == baseline(4) - lineHeight(4) = 0
+			0.0,                            // y is baseline 4 minus line height 4, so zero
 			8.0,                            // width == GetStringWidth
 			4.0,                            // height == lineHeight
 			42,
 		).Once()
 
-		resolver := func(name string) int { return 42 }
+		resolver := func(_ string) int { return 42 }
 		prop := &props.RichText{AnchorResolver: resolver}
 		prop.MakeValid(nil)
 
@@ -137,7 +137,7 @@ func TestAddRichText_LetterSpacing(t *testing.T) {
 		// Render pass: 2 individual Text calls for "a" and "b"
 		textCallCount := 0
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
-			Run(func(x, y float64, s string) { textCallCount++ }).Maybe()
+			Run(func(_, _ float64, _ string) { textCallCount++ }).Maybe()
 
 		runs := []props.RichRun{{Text: "ab", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10, LetterSpacing: 0.5}}
 		prop := &props.RichText{}
@@ -255,9 +255,9 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		pdf.EXPECT().GetStringWidth(mock.AnythingOfType("string")).Return(8.0).Maybe()
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 		pdf.EXPECT().SetTextColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
-			Run(func(r, g, b int) { textCallOrder = append(textCallOrder, "setcolor") }).Maybe()
+			Run(func(_, _, _ int) { textCallOrder = append(textCallOrder, "setcolor") }).Maybe()
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).
-			Run(func(x, y float64, s string) { textCallOrder = append(textCallOrder, "text") }).Maybe()
+			Run(func(_, _ float64, _ string) { textCallOrder = append(textCallOrder, "text") }).Maybe()
 
 		shadowColor := &props.Color{Red: 0, Green: 0, Blue: 0}
 		runs := []props.RichRun{{
@@ -284,7 +284,7 @@ func TestAddRichText_TextShadow(t *testing.T) {
 		pdf, font := baseRichTextSetup(t)
 		textColorCalls := 0
 		pdf.EXPECT().SetTextColor(mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
-			Run(func(r, g, b int) { textColorCalls++ }).Maybe()
+			Run(func(_, _, _ int) { textColorCalls++ }).Maybe()
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
 
 		runs := []props.RichRun{{Text: "hello", Family: consts.FontFamilyArial, Style: fontstyle.Normal, Size: 10}}
@@ -608,7 +608,7 @@ func TestAddRichText_InlineImageObjectFitClipsToImageBox(t *testing.T) {
 // nearY matches a float64 within a small tolerance. Pill-geometry assertions
 // pin the painted rect's vertical anchor; using a tolerance keeps them robust
 // to floating-point noise while still asserting the intended position.
-func nearY(want float64) interface{} {
+func nearY(want float64) any {
 	return mock.MatchedBy(func(got float64) bool {
 		d := got - want
 		if d < 0 {
@@ -758,7 +758,7 @@ func TestAddRichText_Background(t *testing.T) {
 		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0).Maybe()
 		pdf.EXPECT().Text(mock.AnythingOfType("float64"), mock.AnythingOfType("float64"), mock.AnythingOfType("string")).Maybe()
 
-		near := func(want float64) interface{} {
+		near := func(want float64) any {
 			return mock.MatchedBy(func(got float64) bool {
 				d := got - want
 				if d < 0 {

@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Errors reported when a metrics report cannot be written out.
 var (
 	ErrCannotWriteStringFile = errors.New("cannot write string to file")
 	ErrCannotCreateFile      = errors.New("cannot create file")

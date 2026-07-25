@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Line is a component that draws a horizontal or vertical rule.
 type Line struct {
 	config *entity.Config
 	prop   props.Line
@@ -42,7 +43,7 @@ func NewRow(height float64, ps ...props.Line) core.Row {
 	return row.New(height).Add(c)
 }
 
-// NewRow is responsible to create an instance of a Line wrapped in a automatic Row.
+// NewAutoRow creates a Line wrapped in a Row whose height follows the line.
 func NewAutoRow(ps ...props.Line) core.Row {
 	r := New(ps...)
 	c := col.New().Add(r)

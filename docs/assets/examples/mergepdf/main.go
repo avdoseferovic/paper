@@ -1,3 +1,4 @@
+// Package main demonstrates merging a generated document with another PDF.
 package main
 
 import (

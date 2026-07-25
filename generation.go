@@ -108,7 +108,14 @@ func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
-	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, m.processPages)
+	// One cache shared by every worker: images decode once per document instead
+	// of once per chunk. The mutex decorator makes concurrent access safe.
+	sharedCache := cache.NewMutexDecorator(cache.New())
+	processor := func(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
+		return m.processPagesWithCache(ctx, pages, sharedCache)
+	}
+
+	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, processor)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
@@ -166,9 +173,13 @@ func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 }
 
 func (m *Paper) processPages(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
+	return m.processPagesWithCache(ctx, pages, cache.NewMutexDecorator(cache.New()))
+}
+
+func (m *Paper) processPagesWithCache(ctx context.Context, pages []core.Page, sharedCache cache.Cache) (pageProcessResult, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 
-	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
+	innerProvider := getProvider(sharedCache, m.config)
 	for i, page := range pages {
 		err := generationCanceled(ctx)
 		if err != nil {

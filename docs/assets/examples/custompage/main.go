@@ -1,3 +1,4 @@
+// Package main demonstrates building a document from a custom page definition.
 package main
 
 import (

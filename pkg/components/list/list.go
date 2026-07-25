@@ -7,6 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/core"
 )
 
+// Errors reported when the slice handed to a list is not usable.
 var (
 	ErrEmptyArray        = errors.New("empty array")
 	ErrNilElementInArray = errors.New("nil element in array")

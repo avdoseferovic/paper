@@ -65,7 +65,7 @@ func TestRowAndColConstructors(t *testing.T) {
 	assert.NotNil(t, barcode.NewAutoDataMatrixRow("payload"))
 }
 
-func propsWithType(t *testing.T, want consts.BarcodeType) interface{} {
+func propsWithType(t *testing.T, want consts.BarcodeType) any {
 	t.Helper()
 	return mock.MatchedBy(func(prop *props.Barcode) bool {
 		return prop != nil && prop.Type == want

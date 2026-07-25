@@ -10,19 +10,26 @@ import (
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 )
 
+// RuleKind tells a Rule apart: a normal selector rule or an at-rule.
 type RuleKind uint8
 
+// QualifiedRule is a selector rule such as `p { color: red }`. AtRule is a rule
+// introduced by an at-keyword, such as `@media`.
 const (
 	QualifiedRule RuleKind = iota
 	AtRule
 )
 
+// Declaration is one `property: value` pair, and whether it ended in
+// `!important`.
 type Declaration struct {
 	Property  string
 	Value     string
 	Important bool
 }
 
+// Rule is a parsed CSS rule. A qualified rule uses Selectors and Declarations;
+// an at-rule uses Name and Prelude, and may nest further Rules.
 type Rule struct {
 	Kind         RuleKind
 	Name         string
@@ -32,10 +39,13 @@ type Rule struct {
 	Rules        []*Rule
 }
 
+// Parse parses a stylesheet with no cap on the number of rules.
 func Parse(text string) ([]*Rule, error) {
 	return ParseWithMaxRules(text, htmllimits.NoLimits().MaxStyleRules)
 }
 
+// ParseWithMaxRules parses a stylesheet and fails once it has read more than
+// maxRules rules. A maxRules of zero or less means no cap.
 func ParseWithMaxRules(text string, maxRules int) ([]*Rule, error) {
 	parser := stylesheetParser{text: text, maxRules: maxRules}
 	return parser.parseRuleList(false)
@@ -48,7 +58,6 @@ type stylesheetParser struct {
 	maxRules int
 }
 
-//nolint:gocognit // A stylesheet's delimiter-driven state machine is clearest in one loop.
 func (parser *stylesheetParser) parseRuleList(stopAtBrace bool) ([]*Rule, error) {
 	var rules []*Rule
 	for {
@@ -63,69 +72,86 @@ func (parser *stylesheetParser) parseRuleList(stopAtBrace bool) ([]*Rule, error)
 
 		header, delimiter := parser.readHeader()
 		header = strings.TrimSpace(stripComments(header))
-		if delimiter == 0 {
-			return rules, nil
-		}
-		if header == "" {
-			if delimiter == '}' && stopAtBrace {
-				return rules, nil
-			}
-			continue
-		}
-		if delimiter == ';' {
-			if !strings.HasPrefix(header, "@") {
-				continue
-			}
-			err := parser.increment()
-			if err != nil {
-				return rules, err
-			}
-			name, prelude := splitAtRuleHeader(header)
-			rules = append(rules, &Rule{Kind: AtRule, Name: name, Prelude: prelude})
-			continue
-		}
-		if delimiter == '}' {
-			if stopAtBrace {
-				return rules, nil
-			}
-			continue
-		}
 
-		err := parser.increment()
+		rule, done, err := parser.readRule(header, delimiter, stopAtBrace)
+		if rule != nil {
+			rules = append(rules, rule)
+		}
 		if err != nil {
 			return rules, err
 		}
-		if strings.HasPrefix(header, "@") {
-			name, prelude := splitAtRuleHeader(header)
-			rule := &Rule{Kind: AtRule, Name: name, Prelude: prelude}
-			if isNestedRuleAtRule(name) {
-				nested, err := parser.parseRuleList(true)
-				rule.Rules = nested
-				rules = append(rules, rule)
-				if err != nil {
-					return rules, err
-				}
-				continue
-			}
-			body, closed := parser.readBlock()
-			rule.Declarations = parseDeclarations(body)
-			rules = append(rules, rule)
-			if !closed {
-				return rules, nil
-			}
-			continue
-		}
-
-		body, closed := parser.readBlock()
-		rules = append(rules, &Rule{
-			Kind:         QualifiedRule,
-			Selectors:    SplitSelectors(header),
-			Declarations: parseDeclarations(body),
-		})
-		if !closed {
+		if done {
 			return rules, nil
 		}
 	}
+}
+
+// readRule turns one header plus the delimiter that ended it into a rule. It
+// returns a nil rule for constructs that produce none (a stray declaration, an
+// empty header), and done=true when the caller should stop parsing this list.
+func (parser *stylesheetParser) readRule(header string, delimiter byte, stopAtBrace bool) (*Rule, bool, error) {
+	switch {
+	case delimiter == 0:
+		// Ran out of input before the header was terminated.
+		return nil, true, nil
+	case header == "":
+		return nil, delimiter == '}' && stopAtBrace, nil
+	case delimiter == ';':
+		return parser.readStatementAtRule(header)
+	case delimiter == '}':
+		return nil, stopAtBrace, nil
+	default:
+		return parser.readBlockRule(header)
+	}
+}
+
+// readStatementAtRule handles an at-rule terminated by ';', such as @import.
+// Anything else ending in ';' here is a declaration outside any block, which is
+// discarded.
+func (parser *stylesheetParser) readStatementAtRule(header string) (*Rule, bool, error) {
+	if !strings.HasPrefix(header, "@") {
+		return nil, false, nil
+	}
+	if err := parser.increment(); err != nil {
+		return nil, false, err
+	}
+	name, prelude := splitAtRuleHeader(header)
+	return &Rule{Kind: AtRule, Name: name, Prelude: prelude}, false, nil
+}
+
+// readBlockRule handles a header followed by '{'.
+func (parser *stylesheetParser) readBlockRule(header string) (*Rule, bool, error) {
+	if err := parser.increment(); err != nil {
+		return nil, false, err
+	}
+	if strings.HasPrefix(header, "@") {
+		return parser.readBlockAtRule(header)
+	}
+	body, closed := parser.readBlock()
+	rule := &Rule{
+		Kind:         QualifiedRule,
+		Selectors:    SplitSelectors(header),
+		Declarations: parseDeclarations(body),
+	}
+	return rule, !closed, nil
+}
+
+// readBlockAtRule handles an at-rule with a block: either one whose body is more
+// rules, such as @media, or one whose body is declarations, such as @page.
+func (parser *stylesheetParser) readBlockAtRule(header string) (*Rule, bool, error) {
+	name, prelude := splitAtRuleHeader(header)
+	rule := &Rule{Kind: AtRule, Name: name, Prelude: prelude}
+
+	if isNestedRuleAtRule(name) {
+		nested, err := parser.parseRuleList(true)
+		rule.Rules = nested
+		// The rule is kept even on error so partial nesting is still reported.
+		return rule, false, err
+	}
+
+	body, closed := parser.readBlock()
+	rule.Declarations = parseDeclarations(body)
+	return rule, !closed, nil
 }
 
 func (parser *stylesheetParser) increment() error {
@@ -299,6 +325,8 @@ func SplitSelectors(value string) []string {
 	return selectors
 }
 
+// StripImportantSuffix removes a trailing `!important` from a declaration value.
+// It reports whether the suffix was there.
 func StripImportantSuffix(value string) (string, bool) {
 	lower := strings.ToLower(value)
 	if index := strings.LastIndex(lower, "!important"); index >= 0 && strings.TrimSpace(value[index+len("!important"):]) == "" {

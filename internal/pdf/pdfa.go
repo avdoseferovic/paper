@@ -6,7 +6,7 @@ import (
 )
 
 // SetPdfA configures PDF/A identification metadata and output intents.
-func (f *PDF) SetPdfA(config PdfAConfig) {
+func (f *PDF) SetPdfA(config ConformanceConfig) {
 	clone := config
 	clone.ICCProfile = append([]byte(nil), config.ICCProfile...)
 	clone.XMPSchemas = cloneXMPSchemas(config.XMPSchemas)
@@ -18,55 +18,55 @@ func (f *PDF) SetPdfA(config PdfAConfig) {
 	}
 }
 
-func pdfAVersion(level PdfALevel) string {
+func pdfAVersion(level ConformanceLevel) string {
 	switch level {
-	case PdfA1B, PdfA1A:
+	case ConformanceA1B, ConformanceA1A:
 		return pdfVersion14
-	case PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3A:
+	case ConformanceA2B, ConformanceA2U, ConformanceA2A, ConformanceA3B, ConformanceA3A:
 		return cnPDFVersion
-	case PdfA4, PdfA4F, PdfA4E:
+	case ConformanceA4, ConformanceA4F, ConformanceA4E:
 		return "2.0"
 	default:
 		return cnPDFVersion
 	}
 }
 
-func isPdfALevelA(level PdfALevel) bool {
-	return level == PdfA1A || level == PdfA2A || level == PdfA3A
+func isPdfALevelA(level ConformanceLevel) bool {
+	return level == ConformanceA1A || level == ConformanceA2A || level == ConformanceA3A
 }
 
-func allowsPdfAAttachments(level PdfALevel) bool {
-	return level == PdfA3B || level == PdfA3A || level == PdfA4F || level == PdfA4E
+func allowsPdfAAttachments(level ConformanceLevel) bool {
+	return level == ConformanceA3B || level == ConformanceA3A || level == ConformanceA4F || level == ConformanceA4E
 }
 
-func pdfAPart(level PdfALevel) int {
+func pdfAPart(level ConformanceLevel) int {
 	switch level {
-	case PdfA1B, PdfA1A:
+	case ConformanceA1B, ConformanceA1A:
 		return 1
-	case PdfA2B, PdfA2U, PdfA2A:
+	case ConformanceA2B, ConformanceA2U, ConformanceA2A:
 		return 2
-	case PdfA3B, PdfA3A:
+	case ConformanceA3B, ConformanceA3A:
 		return 3
-	case PdfA4, PdfA4F, PdfA4E:
+	case ConformanceA4, ConformanceA4F, ConformanceA4E:
 		return 4
 	default:
 		return 2
 	}
 }
 
-func pdfAConformance(level PdfALevel) string {
+func pdfAConformance(level ConformanceLevel) string {
 	switch level {
-	case PdfA1A, PdfA2A, PdfA3A:
+	case ConformanceA1A, ConformanceA2A, ConformanceA3A:
 		return "A"
-	case PdfA1B, PdfA2B, PdfA3B:
+	case ConformanceA1B, ConformanceA2B, ConformanceA3B:
 		return "B"
-	case PdfA2U:
+	case ConformanceA2U:
 		return "U"
-	case PdfA4:
+	case ConformanceA4:
 		return ""
-	case PdfA4F:
+	case ConformanceA4F:
 		return "F"
-	case PdfA4E:
+	case ConformanceA4E:
 		return "E"
 	default:
 		return ""
@@ -136,7 +136,7 @@ func (f *PDF) buildPdfAXMP() string {
 	return b.String()
 }
 
-func (f *PDF) writePdfAXMPExtensionSchemas(b *strings.Builder, level PdfALevel) {
+func (f *PDF) writePdfAXMPExtensionSchemas(b *strings.Builder, level ConformanceLevel) {
 	emitAFSchema := allowsPdfAAttachments(level)
 	if !emitAFSchema && len(f.pdfA.XMPSchemas) == 0 {
 		return

@@ -1,5 +1,6 @@
 // Block margin, page-break, and page-control helpers for the translator
 // walker (split from translate.go).
+
 package translate
 
 import (

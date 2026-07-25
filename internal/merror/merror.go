@@ -1,3 +1,5 @@
+// Package merror holds the default text style used to draw error messages onto a
+// generated page.
 package merror
 
 import (

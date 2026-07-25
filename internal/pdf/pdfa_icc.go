@@ -108,7 +108,18 @@ func iccPutUint32(b []byte, value int) {
 
 func iccPutS15Fixed16(b []byte, value float64) {
 	fixed := int32(math.Round(value * 65536))
-	binary.BigEndian.PutUint32(b, uint32(fixed)) // #nosec G115 -- ICC s15Fixed16 stores signed bits in a uint32 field.
+	binary.BigEndian.PutUint32(b, uint32FromInt32Bits(fixed))
+}
+
+// uint32FromInt32Bits reinterprets a signed 32-bit value as the raw bits an ICC
+// s15Fixed16 field stores in a uint32. The magnitude is masked so the
+// conversion is provably in range, then the sign bit is reapplied.
+func uint32FromInt32Bits(v int32) uint32 {
+	bits := uint32(v & 0x7FFFFFFF)
+	if v < 0 {
+		bits |= 0x80000000
+	}
+	return bits
 }
 
 func iccXYZTag(x, y, z float64) []byte {

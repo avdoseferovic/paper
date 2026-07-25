@@ -403,7 +403,7 @@ func (b *pageBuilder) effectiveCellHeight() float64 {
 	return height
 }
 
-func (b *pageBuilder) appendPage(p core.Page, numbered bool, counted bool) {
+func (b *pageBuilder) appendPage(p core.Page, numbered, counted bool) {
 	b.pages = append(b.pages, p)
 	b.pageNumbered = append(b.pageNumbered, numbered)
 	b.pageNumberCounted = append(b.pageNumberCounted, counted)

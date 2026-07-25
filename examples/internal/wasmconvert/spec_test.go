@@ -86,7 +86,7 @@ func TestSpecToBase64_DegenerateSpec_DoesNotPanic(t *testing.T) {
 		{"span":9999,"type":"text","value":"big span"},
 		{"span":-3,"type":"line"}
 	]}]}`
-	_, _ = wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	_, _ = wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	// Reaching here without a panic is the assertion.
 }
 
@@ -126,7 +126,7 @@ func TestSpecToBase64_MalformedTable_DoesNotPanic(t *testing.T) {
 	// Ragged rows (differing column counts) must not panic.
 	spec := `{"rows":[{"cols":[{"span":12,"type":"table",
 		"head":["A","B","C"],"rows":[["1"],["1","2","3","4","5"]]}]}]}`
-	_, _ = wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	_, _ = wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 }
 
 // The three component-grid presets shipped in the Paper Playground design must

@@ -234,70 +234,112 @@ func (attribute attributeSelector) match(node *html.Node) bool {
 	}
 }
 
-//nolint:gocyclo // This direct dispatch keeps each supported pseudo-class easy to audit.
+// match reports whether node satisfies this pseudo-class. The supported classes
+// are grouped by what they inspect; each group reports whether it recognised the
+// name so unknown and deliberately-unsupported classes fall through to false.
 func (pseudo pseudoSelector) match(node *html.Node) bool {
+	for _, group := range []func(*html.Node) (bool, bool){
+		pseudo.matchStructural,
+		pseudo.matchPosition,
+		pseudo.matchLogical,
+		pseudo.matchFormState,
+	} {
+		if matched, handled := group(node); handled {
+			return matched
+		}
+	}
+	// Paper renders a static document, so interaction and navigation states
+	// (:hover, :active, :focus*, :visited, :target) never match. :has is
+	// unsupported until a bounded relative-selector implementation is needed.
+	return false
+}
+
+// matchStructural covers the pseudo-classes decided by a node's position among
+// its siblings, or by whether it has children.
+func (pseudo pseudoSelector) matchStructural(node *html.Node) (matched, handled bool) {
 	switch pseudo.name {
 	case "root":
-		return node.Parent != nil && node.Parent.Type == html.DocumentNode
+		return node.Parent != nil && node.Parent.Type == html.DocumentNode, true
 	case "first-child":
-		return previousElementSibling(node) == nil
+		return previousElementSibling(node) == nil, true
 	case "last-child":
-		return nextElementSibling(node) == nil
+		return nextElementSibling(node) == nil, true
 	case "only-child":
-		return previousElementSibling(node) == nil && nextElementSibling(node) == nil
+		return previousElementSibling(node) == nil && nextElementSibling(node) == nil, true
 	case "first-of-type":
-		return previousElementOfType(node) == nil
+		return previousElementOfType(node) == nil, true
 	case "last-of-type":
-		return nextElementOfType(node) == nil
+		return nextElementOfType(node) == nil, true
 	case "only-of-type":
-		return previousElementOfType(node) == nil && nextElementOfType(node) == nil
+		return previousElementOfType(node) == nil && nextElementOfType(node) == nil, true
 	case "empty":
-		return node.FirstChild == nil
-	case "nth-child":
-		return matchNth(pseudo.argument, elementIndex(node, false, false))
-	case "nth-last-child":
-		return matchNth(pseudo.argument, elementIndex(node, false, true))
-	case "nth-of-type":
-		return matchNth(pseudo.argument, elementIndex(node, true, false))
-	case "nth-last-of-type":
-		return matchNth(pseudo.argument, elementIndex(node, true, true))
-	case "not":
-		for _, matcher := range pseudo.matchers {
-			if matcher.Match(node) {
-				return false
-			}
-		}
-		return len(pseudo.matchers) > 0
-	case "is", "where":
-		for _, matcher := range pseudo.matchers {
-			if matcher.Match(node) {
-				return true
-			}
-		}
-		return false
-	case "checked":
-		return hasAttribute(node, "checked") || hasAttribute(node, "selected")
-	case "disabled":
-		return hasAttribute(node, "disabled")
-	case "enabled":
-		return !hasAttribute(node, "disabled")
-	case "required":
-		return hasAttribute(node, "required")
-	case "optional":
-		return !hasAttribute(node, "required")
-	case "link":
-		return strings.EqualFold(node.Data, "a") && hasAttribute(node, "href")
-	case "hover", "active", "focus", "focus-visible", "focus-within", "visited", "target", "has":
-		// Paper renders a static document: interaction and navigation state do
-		// not exist. :has is intentionally unsupported until a bounded relative
-		// selector implementation is needed.
-		return false
+		return node.FirstChild == nil, true
 	default:
-		return false
+		return false, false
 	}
 }
 
-//nolint:gocognit,gocyclo // CSS selector combinators require delimiter/quote state while scanning a selector.
+// matchPosition covers the :nth-* pseudo-classes, which test a node's index
+// against an An+B expression.
+func (pseudo pseudoSelector) matchPosition(node *html.Node) (matched, handled bool) {
+	switch pseudo.name {
+	case "nth-child":
+		return matchNth(pseudo.argument, elementIndex(node, false, false)), true
+	case "nth-last-child":
+		return matchNth(pseudo.argument, elementIndex(node, false, true)), true
+	case "nth-of-type":
+		return matchNth(pseudo.argument, elementIndex(node, true, false)), true
+	case "nth-last-of-type":
+		return matchNth(pseudo.argument, elementIndex(node, true, true)), true
+	default:
+		return false, false
+	}
+}
+
+// matchLogical covers the pseudo-classes that hold nested selector lists.
+func (pseudo pseudoSelector) matchLogical(node *html.Node) (matched, handled bool) {
+	switch pseudo.name {
+	case "not":
+		for _, matcher := range pseudo.matchers {
+			if matcher.Match(node) {
+				return false, true
+			}
+		}
+		// An empty :not() matches nothing, mirroring an invalid selector.
+		return len(pseudo.matchers) > 0, true
+	case "is", "where":
+		for _, matcher := range pseudo.matchers {
+			if matcher.Match(node) {
+				return true, true
+			}
+		}
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+// matchFormState covers the pseudo-classes decided by an attribute that is
+// present in the static markup.
+func (pseudo pseudoSelector) matchFormState(node *html.Node) (matched, handled bool) {
+	switch pseudo.name {
+	case "checked":
+		return hasAttribute(node, "checked") || hasAttribute(node, "selected"), true
+	case "disabled":
+		return hasAttribute(node, "disabled"), true
+	case "enabled":
+		return !hasAttribute(node, "disabled"), true
+	case "required":
+		return hasAttribute(node, "required"), true
+	case "optional":
+		return !hasAttribute(node, "required"), true
+	case "link":
+		return strings.EqualFold(node.Data, "a") && hasAttribute(node, "href"), true
+	default:
+		return false, false
+	}
+}
+
 func parseSelectorSteps(value string) ([]selectorStep, error) {
 	if value == "" {
 		return nil, errEmptySelector
@@ -312,7 +354,7 @@ func parseSelectorSteps(value string) ([]selectorStep, error) {
 		if position >= len(value) {
 			break
 		}
-		if value[position] == '>' || value[position] == '+' || value[position] == '~' {
+		if isSelectorCombinator(value[position]) {
 			if len(steps) == 0 || relation != noRelation {
 				return nil, errInvalidSelectorCombinator
 			}
@@ -320,49 +362,9 @@ func parseSelectorSteps(value string) ([]selectorStep, error) {
 			position++
 			continue
 		}
+
 		start := position
-		depthBracket, depthParen := 0, 0
-		quote := byte(0)
-		for position < len(value) {
-			current := value[position]
-			if quote != 0 {
-				if current == '\\' && position+1 < len(value) {
-					position += 2
-					continue
-				}
-				if current == quote {
-					quote = 0
-				}
-				position++
-				continue
-			}
-			switch current {
-			case '\'', '"':
-				quote = current
-			case '[':
-				depthBracket++
-			case ']':
-				if depthBracket > 0 {
-					depthBracket--
-				}
-			case '(':
-				depthParen++
-			case ')':
-				if depthParen > 0 {
-					depthParen--
-				}
-			case '>', '+', '~':
-				if depthBracket == 0 && depthParen == 0 {
-					goto compoundDone
-				}
-			default:
-				if selectorSpace(current) && depthBracket == 0 && depthParen == 0 {
-					goto compoundDone
-				}
-			}
-			position++
-		}
-	compoundDone:
+		position = scanCompoundExtent(value, position)
 		if start == position {
 			return nil, errEmptySelectorStep
 		}
@@ -374,21 +376,8 @@ func parseSelectorSteps(value string) ([]selectorStep, error) {
 		if len(steps) > 1 && relation == noRelation {
 			steps[len(steps)-1].relation = descendantRelation
 		}
-		relation = noRelation
 
-		space := false
-		for position < len(value) && selectorSpace(value[position]) {
-			position++
-			space = true
-		}
-		if position < len(value) && (value[position] == '>' || value[position] == '+' || value[position] == '~') {
-			relation = explicitRelation(value[position])
-			position++
-			continue
-		}
-		if space && position < len(value) {
-			relation = descendantRelation
-		}
+		position, relation = readSelectorRelation(value, position)
 	}
 	if len(steps) == 0 || relation != noRelation {
 		return nil, errIncompleteSelector
@@ -396,82 +385,141 @@ func parseSelectorSteps(value string) ([]selectorStep, error) {
 	return steps, nil
 }
 
-//nolint:gocognit,gocyclo,nestif // A compound selector is a short, explicit grammar production.
 func parseCompoundSelector(value string) (compoundSelector, error) {
 	compound := compoundSelector{}
-	position := 0
-	if position < len(value) && value[position] == '*' {
-		compound.tag = "*"
-		position++
-	} else if position < len(value) && isSelectorNameStart(value[position]) {
-		compound.tag, position = readSelectorName(value, position)
-	}
+	position := readCompoundTag(&compound, value)
 
 	for position < len(value) {
+		var err error
 		switch value[position] {
 		case '#':
-			name, next := readSelectorName(value, position+1)
-			if name == "" || compound.id != "" {
-				return compoundSelector{}, errInvalidIDSelector
-			}
-			compound.id, position = name, next
+			position, err = readCompoundID(&compound, value, position)
 		case '.':
-			name, next := readSelectorName(value, position+1)
-			if name == "" {
-				return compoundSelector{}, errInvalidClassSelector
-			}
-			compound.classes = append(compound.classes, name)
-			position = next
+			position, err = readCompoundClass(&compound, value, position)
 		case '[':
-			end, ok := selectorClosing(value, position, '[', ']')
-			if !ok {
-				return compoundSelector{}, errUnterminatedAttributeSelector
-			}
-			attribute, err := parseAttributeSelector(value[position+1 : end])
-			if err != nil {
-				return compoundSelector{}, err
-			}
-			compound.attrs = append(compound.attrs, attribute)
-			position = end + 1
+			position, err = readCompoundAttribute(&compound, value, position)
 		case ':':
-			if position+1 < len(value) && value[position+1] == ':' {
-				return compoundSelector{}, errPseudoElementNotSplit
-			}
-			name, next := readSelectorName(value, position+1)
-			if name == "" {
-				return compoundSelector{}, errInvalidPseudoSelector
-			}
-			pseudo := pseudoSelector{name: strings.ToLower(name)}
-			position = next
-			if position < len(value) && value[position] == '(' {
-				end, ok := selectorClosing(value, position, '(', ')')
-				if !ok {
-					return compoundSelector{}, errUnterminatedPseudoSelector
-				}
-				pseudo.argument = strings.TrimSpace(value[position+1 : end])
-				position = end + 1
-				if pseudo.name == pseudoNot || pseudo.name == "is" || pseudo.name == pseudoWhere {
-					for _, argument := range splitSelectorFunctionArgs(pseudo.argument) {
-						matcher, err := compileSelector(argument)
-						if err != nil {
-							return compoundSelector{}, err
-						}
-						pseudo.matchers = append(pseudo.matchers, matcher)
-					}
-					if len(pseudo.matchers) == 0 {
-						return compoundSelector{}, errEmptyPseudoSelectorArgument
-					}
-				}
-			}
-			compound.pseudos = append(compound.pseudos, pseudo)
+			position, err = readCompoundPseudo(&compound, value, position)
 		default:
-			return compoundSelector{}, fmt.Errorf("%w: %q", errUnsupportedSelectorCharacter, value[position])
+			err = fmt.Errorf("%w: %q", errUnsupportedSelectorCharacter, value[position])
+		}
+		if err != nil {
+			return compoundSelector{}, err
 		}
 	}
-	if compound.tag == "" && compound.id == "" && len(compound.classes) == 0 && len(compound.attrs) == 0 && len(compound.pseudos) == 0 {
+
+	if isEmptyCompound(compound) {
 		return compoundSelector{}, errEmptyCompoundSelector
 	}
 	return compound, nil
+}
+
+// readCompoundTag consumes the optional leading type selector, either "*" or a
+// tag name, and returns the offset after it.
+func readCompoundTag(compound *compoundSelector, value string) int {
+	if value == "" {
+		return 0
+	}
+	if value[0] == '*' {
+		compound.tag = "*"
+		return 1
+	}
+	if isSelectorNameStart(value[0]) {
+		tag, position := readSelectorName(value, 0)
+		compound.tag = tag
+		return position
+	}
+	return 0
+}
+
+func readCompoundID(compound *compoundSelector, value string, position int) (int, error) {
+	name, next := readSelectorName(value, position+1)
+	// A compound selector can carry at most one id.
+	if name == "" || compound.id != "" {
+		return position, errInvalidIDSelector
+	}
+	compound.id = name
+	return next, nil
+}
+
+func readCompoundClass(compound *compoundSelector, value string, position int) (int, error) {
+	name, next := readSelectorName(value, position+1)
+	if name == "" {
+		return position, errInvalidClassSelector
+	}
+	compound.classes = append(compound.classes, name)
+	return next, nil
+}
+
+func readCompoundAttribute(compound *compoundSelector, value string, position int) (int, error) {
+	end, ok := selectorClosing(value, position, '[', ']')
+	if !ok {
+		return position, errUnterminatedAttributeSelector
+	}
+	attribute, err := parseAttributeSelector(value[position+1 : end])
+	if err != nil {
+		return position, err
+	}
+	compound.attrs = append(compound.attrs, attribute)
+	return end + 1, nil
+}
+
+func readCompoundPseudo(compound *compoundSelector, value string, position int) (int, error) {
+	// "::" introduces a pseudo-element, which the caller splits off beforehand.
+	if position+1 < len(value) && value[position+1] == ':' {
+		return position, errPseudoElementNotSplit
+	}
+	name, next := readSelectorName(value, position+1)
+	if name == "" {
+		return position, errInvalidPseudoSelector
+	}
+
+	pseudo := pseudoSelector{name: strings.ToLower(name)}
+	position = next
+	if position < len(value) && value[position] == '(' {
+		var err error
+		position, err = readPseudoArgument(&pseudo, value, position)
+		if err != nil {
+			return position, err
+		}
+	}
+
+	compound.pseudos = append(compound.pseudos, pseudo)
+	return position, nil
+}
+
+// readPseudoArgument consumes the parenthesised argument of a functional
+// pseudo-class. The selector-list forms (:not, :is, :where) additionally compile
+// each argument into a matcher, and must not be empty.
+func readPseudoArgument(pseudo *pseudoSelector, value string, position int) (int, error) {
+	end, ok := selectorClosing(value, position, '(', ')')
+	if !ok {
+		return position, errUnterminatedPseudoSelector
+	}
+	pseudo.argument = strings.TrimSpace(value[position+1 : end])
+	position = end + 1
+
+	if pseudo.name != pseudoNot && pseudo.name != "is" && pseudo.name != pseudoWhere {
+		return position, nil
+	}
+	for _, argument := range splitSelectorFunctionArgs(pseudo.argument) {
+		matcher, err := compileSelector(argument)
+		if err != nil {
+			return position, err
+		}
+		pseudo.matchers = append(pseudo.matchers, matcher)
+	}
+	if len(pseudo.matchers) == 0 {
+		return position, errEmptyPseudoSelectorArgument
+	}
+	return position, nil
+}
+
+// isEmptyCompound reports whether a compound selector constrains nothing, which
+// is not a valid selector.
+func isEmptyCompound(compound compoundSelector) bool {
+	return compound.tag == "" && compound.id == "" && len(compound.classes) == 0 &&
+		len(compound.attrs) == 0 && len(compound.pseudos) == 0
 }
 
 func parseAttributeSelector(value string) (attributeSelector, error) {
@@ -732,6 +780,76 @@ func selectorSpace(value byte) bool {
 	default:
 		return false
 	}
+}
+
+func isSelectorCombinator(value byte) bool {
+	return value == '>' || value == '+' || value == '~'
+}
+
+// scanCompoundExtent returns the offset just past the compound selector that
+// starts at position. Whitespace and combinators end a compound only at the top
+// level: inside brackets, parentheses or quotes they are part of it, as in
+// `a[title="x > y"]` or `:is(p, div)`.
+func scanCompoundExtent(value string, position int) int {
+	depthBracket, depthParen := 0, 0
+	quote := byte(0)
+	for position < len(value) {
+		current := value[position]
+
+		if quote != 0 {
+			if current == '\\' && position+1 < len(value) {
+				position += 2
+				continue
+			}
+			if current == quote {
+				quote = 0
+			}
+			position++
+			continue
+		}
+
+		switch current {
+		case '\'', '"':
+			quote = current
+		case '[':
+			depthBracket++
+		case ']':
+			if depthBracket > 0 {
+				depthBracket--
+			}
+		case '(':
+			depthParen++
+		case ')':
+			if depthParen > 0 {
+				depthParen--
+			}
+		default:
+		}
+
+		if depthBracket == 0 && depthParen == 0 && quote == 0 &&
+			(isSelectorCombinator(current) || selectorSpace(current)) {
+			return position
+		}
+		position++
+	}
+	return position
+}
+
+// readSelectorRelation consumes the whitespace and optional combinator that
+// follow a compound selector, and reports how the next compound relates to it.
+func readSelectorRelation(value string, position int) (int, selectorRelation) {
+	space := false
+	for position < len(value) && selectorSpace(value[position]) {
+		position++
+		space = true
+	}
+	if position < len(value) && isSelectorCombinator(value[position]) {
+		return position + 1, explicitRelation(value[position])
+	}
+	if space && position < len(value) {
+		return position, descendantRelation
+	}
+	return position, noRelation
 }
 
 func explicitRelation(value byte) selectorRelation {

@@ -47,13 +47,13 @@ func TestTranslate_WhenOutlineFromHeadings_ShouldSetOutlineOnHeadingLevels(t *te
 	assert.Equal(t, 2, levels[1])
 }
 
-func TestTranslateDocument_WhenTopLevelHeader_ShouldExtractHeaderRows(t *testing.T) {
+func TestFromDOM_WhenTopLevelHeader_ShouldExtractHeaderRows(t *testing.T) {
 	t.Parallel()
 
 	doc, err := dom.Parse("<header><p>band</p></header><p>content</p>")
 	require.NoError(t, err)
 
-	document, err := translate.TranslateDocument(context.Background(), doc)
+	document, err := translate.FromDOM(context.Background(), doc)
 
 	require.NoError(t, err)
 	assert.Len(t, document.HeaderRows, 1)

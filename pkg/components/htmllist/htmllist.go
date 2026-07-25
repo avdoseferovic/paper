@@ -12,6 +12,8 @@ import (
 // StyleType controls the marker style.
 type StyleType string
 
+// The marker styles a list can use: no marker, a bullet, or one of the numbered
+// and lettered sequences.
 const (
 	None          StyleType = "none"
 	Bullet        StyleType = "bullet"

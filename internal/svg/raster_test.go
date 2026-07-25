@@ -103,14 +103,14 @@ func countOpaquePixels(img image.Image) int {
 
 func rgbaAt(img image.Image, x, y int) color.RGBA {
 	r, g, b, a := img.At(x, y).RGBA()
-	return color.RGBA{R: byte(r >> 8), G: byte(g >> 8), B: byte(b >> 8), A: byte(a >> 8)}
+	return color.RGBA{R: byte((r >> 8) & 0xFF), G: byte((g >> 8) & 0xFF), B: byte((b >> 8) & 0xFF), A: byte((a >> 8) & 0xFF)}
 }
 
 func FuzzSVGPath(f *testing.F) {
 	for _, seed := range []string{"M0 0 L10 10 Z", "M10 10 h20 v20 z", "M0,0 C10,0 10,20 20,20"} {
 		f.Add(seed)
 	}
-	f.Fuzz(func(t *testing.T, data string) {
+	f.Fuzz(func(_ *testing.T, data string) {
 		dst := image.NewRGBA(image.Rect(0, 0, 32, 32))
 		path := newSVGPath(&svgRenderer{dst: dst, viewBox: svgViewBox{w: 32, h: 32}, scaleX: 1, scaleY: 1}, identity())
 		_ = path.parse(data)

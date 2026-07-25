@@ -1,3 +1,6 @@
+// Package layout turns column weights into whole grid units and applies cell
+// margins. Hamilton distributes units so the rounded values still add up to the
+// row total.
 package layout
 
 import (
@@ -6,10 +9,13 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 )
 
+// DefaultGridSize returns the number of grid units a row spans when the caller
+// has not chosen one.
 func DefaultGridSize() int {
 	return int(pagesize.DefaultMaxGridSum)
 }
 
+// NormalizeGridSize replaces a zero or negative grid size with the default.
 func NormalizeGridSize(gridSize int) int {
 	if gridSize <= 0 {
 		return DefaultGridSize()
@@ -70,10 +76,14 @@ func Hamilton(weights []float64, total int) []int {
 	return result
 }
 
+// ProportionalUnits splits total units across items in proportion to weights.
 func ProportionalUnits(weights []float64, total int) []int {
 	return Hamilton(weights, total)
 }
 
+// ManualPlan is the result of checking column sizes the caller set by hand.
+// Slack is how many units are left over, Overflow how many the row is above the
+// grid size, and InvalidIndices lists the columns whose size was not positive.
 type ManualPlan struct {
 	Units          []int
 	GridSize       int
@@ -83,6 +93,8 @@ type ManualPlan struct {
 	InvalidIndices []int
 }
 
+// ManualUnits checks caller-supplied column sizes against the grid size and
+// reports what it found, without changing the sizes.
 func ManualUnits(units []int, gridSize int) ManualPlan {
 	plan := ManualPlan{
 		Units:    append([]int(nil), units...),
@@ -103,7 +115,9 @@ func ManualUnits(units []int, gridSize int) ManualPlan {
 	return plan
 }
 
-func UnitWidth(totalWidth float64, unit int, gridSize int) float64 {
+// UnitWidth returns the width of a column spanning unit grid units out of
+// gridSize, within totalWidth.
+func UnitWidth(totalWidth float64, unit, gridSize int) float64 {
 	if unit <= 0 {
 		return 0
 	}

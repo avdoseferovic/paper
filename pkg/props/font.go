@@ -62,7 +62,7 @@ func NormalizeFont(f Font, defaultFamily string) Font {
 }
 
 // ToTextProp from Font return a Text based on Font.
-func (f *Font) ToTextProp(align consts.Align, top float64, verticalPadding float64) *Text {
+func (f *Font) ToTextProp(align consts.Align, top, verticalPadding float64) *Text {
 	textProp := &Text{
 		Family:          f.Family,
 		Style:           f.Style,

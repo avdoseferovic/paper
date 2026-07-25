@@ -11,6 +11,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Text is a component that draws a string, wrapping it to the cell width.
 type Text struct {
 	value  string
 	prop   props.Text

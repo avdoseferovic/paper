@@ -12,6 +12,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Text draws and wraps text inside cells, caching line breaks it has already
+// worked out for a given string and width.
 type Text struct {
 	pdf                   textPDF
 	math                  core.Math

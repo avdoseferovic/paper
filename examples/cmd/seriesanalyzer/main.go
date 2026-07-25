@@ -1,3 +1,5 @@
+// Command seriesanalyzer builds a report from a numeric series, and doubles as
+// an example of assembling tables and charts.
 package main
 
 import (
@@ -53,7 +55,7 @@ func MergeFloat64(arr []float64) []float64 {
 	return mergeArrays(sortedLeft, sortedRight)
 }
 
-func mergeArrays(a []float64, b []float64) []float64 {
+func mergeArrays(a, b []float64) []float64 {
 	var merged []float64
 
 	i := 0

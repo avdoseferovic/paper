@@ -1,3 +1,4 @@
+// Package main demonstrates text components across a grid of columns.
 package main
 
 import (

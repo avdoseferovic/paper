@@ -882,7 +882,7 @@ func parseOctalEscape(data []byte, start int) (string, int) {
 	if err != nil || value > 0xff {
 		return "", end
 	}
-	return string([]byte{byte(value)}), end // #nosec G115 -- guarded by the range check above.
+	return string([]byte{byte(value & 0xFF)}), end
 }
 
 func parseHexString(data []byte, start int) (string, int) {

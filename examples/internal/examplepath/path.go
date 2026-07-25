@@ -1,3 +1,5 @@
+// Package examplepath resolves paths relative to the repository root so the
+// examples write their output to the same place no matter where they are run.
 package examplepath
 
 import (
@@ -37,7 +39,7 @@ func EnsureParent(path string) error {
 	if dir == "." || dir == "" {
 		return nil
 	}
-	err := os.MkdirAll(dir, 0o755)
+	err := os.MkdirAll(dir, 0o750)
 	if err != nil {
 		return fmt.Errorf("create parent directory %s: %w", dir, err)
 	}

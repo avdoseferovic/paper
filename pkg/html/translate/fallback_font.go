@@ -74,9 +74,8 @@ func (tr *translator) loadFallbackFont(ctx context.Context, resolver StylesheetR
 		data, err := safeLoadStylesheetErr(resolver, ref)
 		if err == nil {
 			return data, nil
-		} else {
-			resolverErr = err
 		}
+		resolverErr = err
 	}
 	data, err := readProgrammaticFallbackFont(ref)
 	if err != nil {
@@ -93,7 +92,7 @@ func readProgrammaticFallbackFont(ref string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("html: opening fallback font %q: %w", ref, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	data, err := io.ReadAll(io.LimitReader(f, maxFallbackFontBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("html: reading fallback font %q: %w", ref, err)

@@ -10,6 +10,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// Col is a column in a row. It spans a number of grid units and holds the
+// components drawn inside it.
 type Col struct {
 	size       int
 	isMax      bool
