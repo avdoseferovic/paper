@@ -45,6 +45,11 @@ func processPageGroupsConcurrently[T any](
 		}
 		errMu.Unlock()
 	}
+	failed := func() bool {
+		errMu.Lock()
+		defer errMu.Unlock()
+		return firstErr != nil
+	}
 
 	wg.Add(workerCount)
 	for range workerCount {
@@ -59,6 +64,11 @@ func processPageGroupsConcurrently[T any](
 					if !ok {
 						return
 					}
+					// Once any group has failed the result is discarded, so stop
+					// spending work on the groups that follow.
+					if failed() {
+						return
+					}
 					runPageGroupJob(ctx, index, pageGroups, processor, results, recordErr)
 				}
 			}
@@ -66,6 +76,9 @@ func processPageGroupsConcurrently[T any](
 	}
 
 	for index := range pageGroups {
+		if failed() {
+			break
+		}
 		select {
 		case <-done:
 			recordErr(generationCanceled(ctx))

@@ -33,7 +33,9 @@ The remaining limit is the garbage collector rather than the core count: allocat
 
 ### When parallel pages falls back to sequential
 
-Some features cannot be spliced, either because their PDF names are allocated sequentially (gradients, blend modes) or because they record absolute page indices (internal links, outlines, annotations, page geometries, form fields). When a document uses one of them, `WithParallelPagesMode` detects it after rendering and transparently re-renders the document sequentially, so the output stays correct. You get sequential performance in that case, not an error.
+Some features cannot be spliced, either because their PDF names are allocated sequentially (gradients, blend modes) or because they record absolute page indices (internal links, outlines, annotations, page geometries, form fields). When a document uses one of them, `WithParallelPagesMode` transparently re-renders the document sequentially, so the output stays correct. You get sequential performance in that case, not an error.
+
+Detection happens as soon as the feature is drawn, not at the end: the worker that meets it aborts the whole pool, so the fallback does not pay for a full parallel render first. On a 150-page outline document the fallback costs about 15% over generating sequentially outright.
 
 Documents using protection or document-catalog features (forms, PDF/A, tagged PDF, attachments) always use sequential generation, as before.
 

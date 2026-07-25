@@ -37,6 +37,12 @@ func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 			return m.renderPagesToProvider(ctx, pages, sharedCache)
 		})
 	if err != nil {
+		// A worker hit a feature whose PDF names or page references are
+		// position-dependent. Rendering aborted as soon as it was drawn, so fall
+		// back to a sequential render, which supports everything.
+		if errors.Is(err, pdf.ErrAbsorbUnsupported) {
+			return m.generateSequentially(ctx)
+		}
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
 		}
@@ -47,11 +53,10 @@ func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
+	// Splicing re-checks absorbability, so this also catches anything the
+	// per-page check could not see.
 	doc, err := m.spliceAndSerialize(rendered)
 	if errors.Is(err, pdf.ErrAbsorbUnsupported) {
-		// The document turned out to use a feature whose PDF names or page
-		// references are position-dependent, which is only detectable once the
-		// pages have been rendered. Correctness wins: re-render sequentially.
 		return m.generateSequentially(ctx)
 	}
 	return doc, err
@@ -94,6 +99,11 @@ func (m *Paper) spliceAndSerialize(rendered []core.Provider) (*core.Pdf, error) 
 
 // renderPagesToProvider renders pages into a fresh provider without
 // serializing it, leaving the page content streams available for splicing.
+//
+// Spliceability is re-checked after every page so that a document using an
+// unspliceable feature is detected as soon as that feature is drawn. The error
+// aborts the whole worker pool, which keeps the sequential fallback from paying
+// for a full parallel render first.
 func (m *Paper) renderPagesToProvider(
 	ctx context.Context,
 	pages []core.Page,
@@ -101,6 +111,7 @@ func (m *Paper) renderPagesToProvider(
 ) (core.Provider, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 	provider := getProvider(sharedCache, m.config)
+	checker, canCheck := provider.(paperprovider.AbsorbabilityChecker)
 
 	for i, page := range pages {
 		if err := generationCanceled(ctx); err != nil {
@@ -108,6 +119,12 @@ func (m *Paper) renderPagesToProvider(
 		}
 		ensureProviderPage(provider, i+1)
 		page.Render(provider, innerCtx)
+
+		if canCheck {
+			if err := checker.PagesAbsorbable(); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return provider, nil
