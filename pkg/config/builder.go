@@ -56,6 +56,7 @@ type dimensionsBuilder interface {
 
 type generationBuilder interface {
 	WithConcurrentMode(chunkWorkers int) Builder
+	WithParallelPagesMode(chunkWorkers int) Builder
 	WithSequentialMode() Builder
 	WithSequentialLowMemoryMode(chunkWorkers int) Builder
 	WithDebug(on bool) Builder

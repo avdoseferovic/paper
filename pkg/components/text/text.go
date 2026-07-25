@@ -72,6 +72,13 @@ func (t *Text) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 
 // SetConfig sets the config.
 func (t *Text) SetConfig(config *entity.Config) {
+	// The page builder applies the config twice: once when the row is added and
+	// again when the page is assembled. Normalizing is idempotent except for the
+	// defensive color clone, so repeating it with the same config only allocates
+	// an equal copy. Skipping that keeps one allocation per text component.
+	if t.config == config {
+		return
+	}
 	t.config = config
 	t.prop.MakeValid(t.config.DefaultFont)
 }

@@ -104,25 +104,42 @@ func NormalizeText(t Text, font *Font) Text {
 	minValue := 0.0
 	undefinedValue := 0.0
 
-	defaultFont := Font{}
+	// The defaults are read field by field rather than via NormalizeFont, which
+	// clones the default font's color on every call. That clone was then either
+	// discarded (when t already has a color) or cloned a second time below, so
+	// deriving the defaults directly drops one allocation per normalized Text
+	// without changing the result: the returned Text still owns its color.
+	var defaultFamily string
+	var defaultStyle fontstyle.Type
+	var defaultSize float64
+	var defaultColor *Color
 	if font != nil {
-		defaultFont = NormalizeFont(*font, "")
+		defaultFamily = font.Family
+		defaultStyle = font.Style
+		if defaultStyle == "" {
+			defaultStyle = fontstyle.Normal
+		}
+		defaultSize = font.Size
+		if defaultSize == undefinedValue {
+			defaultSize = defaultFontSize
+		}
+		defaultColor = font.Color
 	}
 
 	if t.Family == "" {
-		t.Family = defaultFont.Family
+		t.Family = defaultFamily
 	}
 
 	if t.Style == "" {
-		t.Style = defaultFont.Style
+		t.Style = defaultStyle
 	}
 
 	if t.Size == undefinedValue {
-		t.Size = defaultFont.Size
+		t.Size = defaultSize
 	}
 
 	if t.Color == nil {
-		t.Color = CloneColor(defaultFont.Color)
+		t.Color = CloneColor(defaultColor)
 	} else {
 		t.Color = CloneColor(t.Color)
 	}

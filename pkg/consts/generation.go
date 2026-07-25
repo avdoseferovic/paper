@@ -12,4 +12,9 @@ const (
 	// GenerationSequentialLowMemory renders page chunks sequentially,
 	// releasing memory between chunks, and merges the resulting documents.
 	GenerationSequentialLowMemory GenerationMode = "sequential_low_memory"
+	// GenerationParallelPages renders page chunks in parallel worker goroutines
+	// and splices the rendered pages into a single document, which is then
+	// serialized once. Unlike GenerationConcurrent it performs no byte-level
+	// PDF merge, so per-chunk document overhead does not scale with workers.
+	GenerationParallelPages GenerationMode = "parallel_pages"
 )
