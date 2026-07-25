@@ -9,6 +9,7 @@ import (
 
 type providerPDF interface {
 	AddLink() int
+	AddNamedLink(name string) int
 	AddPage()
 	AddUTF8FontFromBytes(familyStr, styleStr string, bytes []byte)
 	Bookmark(txtStr string, level int, y float64)

@@ -38,6 +38,18 @@ func (p *linkRecordingProvider) SetLink(linkID int, y float64, page int) {
 
 func (p *linkRecordingProvider) Link(_, _, _, _ float64, _ int) {}
 
+// namedLinkRecordingProvider also satisfies core.NamedLinkProvider, recording
+// the names it was asked to reserve.
+type namedLinkRecordingProvider struct {
+	linkRecordingProvider
+	namedLinks []string
+}
+
+func (p *namedLinkRecordingProvider) AddNamedLink(name string) int {
+	p.namedLinks = append(p.namedLinks, name)
+	return len(p.namedLinks)
+}
+
 // recordingRow records the cell and config it receives, with a fixed height.
 type recordingRow struct {
 	height       float64
@@ -121,7 +133,7 @@ func TestCombinedRow_NoopRowMethods(t *testing.T) {
 func TestAnchorRegistry_EnsureLinkID(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil link provider returns not ok when unregistered", func(t *testing.T) {
+	t.Run("nil link provider returns not ok", func(t *testing.T) {
 		t.Parallel()
 		reg := newAnchorRegistry()
 		id, ok := reg.EnsureLinkID("missing", nil)
@@ -143,16 +155,38 @@ func TestAnchorRegistry_EnsureLinkID(t *testing.T) {
 		assert.Equal(t, 1, lp.nextID, "AddLink must be called exactly once per name")
 	})
 
-	t.Run("registered name resolves without a provider", func(t *testing.T) {
+	// Link IDs index the issuing provider's own link table. Parallel page
+	// rendering gives each worker its own provider, so reusing one worker's ID
+	// in another would address the wrong destination — or none at all.
+	t.Run("each provider gets its own reservation for the same name", func(t *testing.T) {
 		t.Parallel()
 		reg := newAnchorRegistry()
-		lp := &linkRecordingProvider{}
-		id, ok := reg.EnsureLinkID("sec", lp)
+		first := &linkRecordingProvider{}
+		second := &linkRecordingProvider{nextID: 40}
+
+		firstID, ok := reg.EnsureLinkID("sec", first)
+		require.True(t, ok)
+		secondID, ok := reg.EnsureLinkID("sec", second)
 		require.True(t, ok)
 
-		got, ok := reg.EnsureLinkID("sec", nil)
-		assert.True(t, ok)
-		assert.Equal(t, id, got)
+		assert.Equal(t, 1, firstID)
+		assert.Equal(t, 41, secondID)
+		assert.Equal(t, 1, first.nextID, "each provider reserves exactly once per name")
+	})
+
+	// A provider that can name its link targets is asked to, so the separate
+	// per-worker reservations can be reconciled when pages are spliced.
+	t.Run("prefers a named reservation when the provider supports one", func(t *testing.T) {
+		t.Parallel()
+		reg := newAnchorRegistry()
+		lp := &namedLinkRecordingProvider{}
+
+		id, ok := reg.EnsureLinkID("sec", lp)
+
+		require.True(t, ok)
+		assert.Equal(t, 1, id)
+		assert.Equal(t, []string{"sec"}, lp.namedLinks)
+		assert.Equal(t, 0, lp.nextID, "the unnamed reservation must not be used")
 	})
 }
 

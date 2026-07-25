@@ -19,8 +19,11 @@ Text-heavy documents, Apple M1 Pro (10 cores), compared against sequential gener
 | 7 pages | 317µs | 422µs | 0.75x (slower) |
 | 35 pages | 1.45ms | 1.30ms | 1.11x |
 | 173 pages | 6.63ms | 3.92ms | 1.69x |
+| 140 pages, 150 bookmarks | 6.01ms | 3.87ms | 1.55x |
 
 Parallel rendering only pays off once there is enough work to spread. Below roughly 30 pages the coordination costs more than it saves, so the default sequential mode is the better choice for small documents.
+
+The bookmarked document is the last row: it used to abandon the parallel render and start over sequentially, costing about 15% over generating sequentially outright. It now splices like any other document.
 
 The remaining limit is the garbage collector rather than the core count: allocation is process-wide, so workers contend on it. Relaxing GC pressure in the host application widens the gap substantially. paper deliberately does not change the GC settings of the process it runs in.
 
@@ -29,15 +32,16 @@ The remaining limit is the garbage collector rather than the core count: allocat
 - Rendering happens per page *group*; `workers` sets how many groups are rendered concurrently.
 - Memory scales with the worker count, since each worker holds its own pages while rendering.
 - The generation modes are mutually exclusive; the last one called wins.
-- Output is deterministic. With `WithDeterministic(true)`, parallel output is byte-for-byte identical to sequential output at any worker count, because fonts and images are named by a content hash of their definition rather than by registration order.
+- Output is deterministic. With `WithDeterministic(true)`, parallel output is byte-for-byte identical to sequential output at any worker count, because fonts, images, gradients and blend modes are named by a content hash of their definition rather than by registration order.
+- `doc.GetReport().GenerationMode` reports the mode a document was actually generated with, which is not always the one you configured. Use it to check that a document you expected to render in parallel really did.
 
-### When parallel pages falls back to sequential
+### What still falls back to sequential
 
-Some features cannot be spliced, either because their PDF names are allocated sequentially (gradients, blend modes) or because they record absolute page indices (internal links, outlines, annotations, page geometries, form fields). When a document uses one of them, `WithParallelPagesMode` transparently re-renders the document sequentially, so the output stays correct. You get sequential performance in that case, not an error.
+Everything a page can draw is spliceable: text, images, external hyperlinks, internal links, bookmarks, gradients and blend modes (which is how watermarks draw). Page content is named by a content hash, and the state that records absolute page numbers — links and bookmarks — is rewritten as pages are spliced into place.
 
-Detection happens as soon as the feature is drawn, not at the end: the worker that meets it aborts the whole pool, so the fallback does not pay for a full parallel render first. On a 150-page outline document the fallback costs about 15% over generating sequentially outright.
+What is left is *document-catalog* features, which are written once for the whole document rather than per page: forms, PDF/A conformance, tagged PDF, attachments, named destinations, page labels, viewer preferences, an explicit document language or file ID, configured annotations and page geometries. A document using any of these, or document protection, is generated sequentially from the start — the configured mode is overridden before rendering begins, so nothing is rendered twice.
 
-Documents using protection or document-catalog features (forms, PDF/A, tagged PDF, attachments) always use sequential generation, as before.
+Splicing is also re-checked while rendering, as defence in depth. If a future feature turns out not to be spliceable, the worker that draws it aborts the pool immediately and `WithParallelPagesMode` transparently re-renders the document sequentially. You get sequential performance in that case, not an error and not a corrupt document.
 
 ## GoDoc
 * [builder : WithParallelPagesMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithParallelPagesMode)

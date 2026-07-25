@@ -701,19 +701,17 @@ func (f *PDF) putresourcedict() {
 	f.out("/XObject <<")
 	f.putxobjectdict()
 	f.out(">>")
-	count := len(f.blendList)
-	if count > 1 {
+	if len(f.blendList) > 1 {
 		f.out("/ExtGState <<")
-		for j := 1; j < count; j++ {
-			f.outf("/GS%d %d 0 R", j, f.blendList[j].objNum)
+		for _, blend := range f.blendList[1:] {
+			f.outf("/GS%s %d 0 R", blend.id, blend.objNum)
 		}
 		f.out(">>")
 	}
-	count = len(f.gradientList)
-	if count > 1 {
+	if len(f.gradientList) > 1 {
 		f.out("/Shading <<")
-		for j := 1; j < count; j++ {
-			f.outf("/Sh%d %d 0 R", j, f.gradientList[j].objNum)
+		for _, gradient := range f.gradientList[1:] {
+			f.outf("/Sh%s %d 0 R", gradient.id, gradient.objNum)
 		}
 		f.out(">>")
 	}

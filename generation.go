@@ -82,7 +82,7 @@ func (m *Paper) generateSequentially(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
-	return core.NewPDF(documentBytes, reportFromIssues(collectRenderIssues(provider))), nil
+	return core.NewPDF(documentBytes, newReport(consts.GenerationSequential, collectRenderIssues(provider))), nil
 }
 
 // chunkedPageGroups splits the built pages into ChunkWorkers groups of equal
@@ -135,7 +135,7 @@ func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
-	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
+	return core.NewPDF(mergedBytes, newReport(consts.GenerationSequentialLowMemory, issues)), nil
 }
 
 func (m *Paper) processPages(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
@@ -188,11 +188,15 @@ func collectRenderIssues(provider core.Provider) []metrics.RenderIssue {
 	return issueProvider.RenderIssues()
 }
 
-func reportFromIssues(issues []metrics.RenderIssue) *metrics.Report {
-	if len(issues) == 0 {
-		return nil
+// newReport builds the document's metrics report. The generation mode is recorded
+// because it is not always the configured one: a document using a feature the
+// configured mode cannot reproduce falls back to sequential generation, and
+// callers (and tests) otherwise have no way to tell that happened.
+func newReport(mode consts.GenerationMode, issues []metrics.RenderIssue) *metrics.Report {
+	return &metrics.Report{
+		GenerationMode: mode,
+		RenderIssues:   append([]metrics.RenderIssue(nil), issues...),
 	}
-	return &metrics.Report{RenderIssues: append([]metrics.RenderIssue(nil), issues...)}
 }
 
 func splitPageProcessResults(results []pageProcessResult) ([][]byte, []metrics.RenderIssue) {

@@ -5,12 +5,14 @@ import (
 	"context"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
 	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
@@ -37,7 +39,7 @@ func itoa(i int) string {
 	return string(digits)
 }
 
-func generateWith(t *testing.T, cfg *entity.Config, rows []core.Row) []byte {
+func generateDocument(t *testing.T, cfg *entity.Config, rows []core.Row) *core.Pdf {
 	t.Helper()
 
 	m := paper.New(cfg)
@@ -46,7 +48,45 @@ func generateWith(t *testing.T, cfg *entity.Config, rows []core.Row) []byte {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
+	return doc
+}
+
+func generateWith(t *testing.T, cfg *entity.Config, rows []core.Row) []byte {
+	t.Helper()
+
+	return generateDocument(t, cfg, rows).GetBytes()
+}
+
+// generateInParallel generates rows with the parallel pages mode and fails if
+// generation actually ran sequentially.
+//
+// Without this check a test can pass while proving nothing: an unspliceable
+// feature makes parallel generation transparently re-render the document
+// sequentially, so the output is correct either way and the assertion that was
+// supposed to cover splicing never exercises it.
+func generateInParallel(t *testing.T, cfg *entity.Config, rows []core.Row) []byte {
+	t.Helper()
+
+	doc := generateDocument(t, cfg, rows)
+	requireParallelGeneration(t, doc)
 	return doc.GetBytes()
+}
+
+// parallelWorkerCounts spreads a document across chunk boundaries in as many
+// ways as is cheap to check, because a splice bug shows up at a boundary.
+var parallelWorkerCounts = []int{1, 2, 3, 4, 8, 16}
+
+func requireParallelGeneration(t *testing.T, doc *core.Pdf) {
+	t.Helper()
+
+	report := doc.GetReport()
+	if report == nil {
+		t.Fatal("no metrics report, so there is no way to tell which mode generated the document")
+	}
+	if report.GenerationMode != consts.GenerationParallelPages {
+		t.Fatalf("document was generated in %q mode, want %q: it fell back instead of rendering in parallel",
+			report.GenerationMode, consts.GenerationParallelPages)
+	}
 }
 
 var showTextRe = regexp.MustCompile(`\((?:[^()\\]|\\.)*\)\s*Tj`)
@@ -65,6 +105,85 @@ func drawnText(pdfBytes []byte) []string {
 
 func countPages(pdfBytes []byte) int {
 	return bytes.Count(pdfBytes, []byte("/Type /Page\n")) + bytes.Count(pdfBytes, []byte("/Type /Page/"))
+}
+
+func generateHTMLDocument(t *testing.T, cfg *entity.Config, htmlStr string) *core.Pdf {
+	t.Helper()
+
+	doc, err := paper.FromHTML(context.Background(), htmlStr, cfg)
+	if err != nil {
+		t.Fatalf("generate from html: %v", err)
+	}
+	return doc
+}
+
+func generateHTML(t *testing.T, cfg *entity.Config, htmlStr string) []byte {
+	t.Helper()
+
+	return generateHTMLDocument(t, cfg, htmlStr).GetBytes()
+}
+
+var (
+	externalLinkRe = regexp.MustCompile(
+		`/Subtype /Link /Rect \[([-0-9. ]+)\] /Border \[0 0 0\] /A <</S /URI /URI \(((?:[^()\\]|\\.)*)\)>>`)
+	internalLinkRe = regexp.MustCompile(
+		`/Subtype /Link /Rect \[([-0-9. ]+)\] /Border \[0 0 0\] /Dest \[(\d+) 0 R /XYZ 0 ([-0-9.]+) null\]`)
+	outlineEntryRe = regexp.MustCompile(
+		`/Title \(((?:[^()\\]|\\.)*)\)\n/Parent \d+ 0 R\n(?:/(?:Prev|Next|First|Last) \d+ 0 R\n)*` +
+			`/Dest \[(\d+) 0 R /XYZ 0 ([-0-9.]+) null\]`)
+)
+
+// externalLinkAnnotations returns every URL link annotation as
+// "rectangle→target", in document order.
+func externalLinkAnnotations(pdfBytes []byte) []string {
+	matches := externalLinkRe.FindAllSubmatch(pdfBytes, -1)
+	out := make([]string, 0, len(matches))
+	for _, m := range matches {
+		out = append(out, string(m[1])+"→"+string(m[2]))
+	}
+	return out
+}
+
+// linkDestination is a clickable area that jumps somewhere inside the document.
+// destObject is the page object it points at, which is what has to survive
+// splicing; a document that failed to resolve it points at the page tree root.
+type linkDestination struct {
+	rect       string
+	destObject int
+	destY      string
+}
+
+func internalLinkAnnotations(pdfBytes []byte) []linkDestination {
+	matches := internalLinkRe.FindAllSubmatch(pdfBytes, -1)
+	out := make([]linkDestination, 0, len(matches))
+	for _, m := range matches {
+		object, err := strconv.Atoi(string(m[2]))
+		if err != nil {
+			continue
+		}
+		out = append(out, linkDestination{rect: string(m[1]), destObject: object, destY: string(m[3])})
+	}
+	return out
+}
+
+// outlineEntry is one bookmark: its title and the page object it jumps to.
+type outlineEntry struct {
+	title      string
+	destObject int
+	destY      string
+}
+
+func outlineEntries(pdfBytes []byte) []outlineEntry {
+	matches := outlineEntryRe.FindAllSubmatch(pdfBytes, -1)
+	out := make([]outlineEntry, 0, len(matches))
+	for _, m := range matches {
+		object, err := strconv.Atoi(string(m[2]))
+		if err != nil {
+			continue
+		}
+		out = append(out, outlineEntry{title: string(m[1]), destObject: object, destY: string(m[3])})
+	}
+	return out
 }
 
 // TestParallelPages_MatchesSequentialOutput is the correctness gate for
@@ -247,33 +366,207 @@ func TestParallelPages_FontsDeduplicated(t *testing.T) {
 	}
 }
 
-// TestParallelPages_FallsBackForUnsupportedFeatures verifies that a document
-// using a feature that cannot be spliced (here: outlines, which store absolute
-// page indices) still generates correctly by falling back to sequential
-// rendering, rather than failing.
-func TestParallelPages_FallsBackForUnsupportedFeatures(t *testing.T) {
-	rows := []core.Row{
-		text.NewRow(12, "Chapter 1", props.Text{
-			Size:    12,
-			Outline: &props.Outline{Level: 1, Title: "Chapter 1"},
-		}),
+// TestParallelPages_ReportsTheModeItUsed pins the signal every other test in
+// this file relies on to tell a real parallel render from a silent fallback.
+func TestParallelPages_ReportsTheModeItUsed(t *testing.T) {
+	rows := parallelTestRows(300)
+
+	t.Run("a spliceable document reports parallel pages", func(t *testing.T) {
+		doc := generateDocument(t, config.NewBuilder().WithParallelPagesMode(4).Build(), rows)
+
+		if got := doc.GetReport().GenerationMode; got != consts.GenerationParallelPages {
+			t.Errorf("generation mode = %q, want %q", got, consts.GenerationParallelPages)
+		}
+	})
+
+	// Tagged PDF is a document-catalog feature: it is written once for the whole
+	// document, so chunked generation cannot reproduce it and the configured
+	// mode is overridden.
+	t.Run("a document-catalog feature reports the sequential fallback", func(t *testing.T) {
+		cfg := config.NewBuilder().WithParallelPagesMode(4).Build()
+		m := paper.New(cfg)
+		m.SetTagged(true)
+		m.AddRows(rows...)
+
+		doc, err := m.Generate(context.Background())
+		if err != nil {
+			t.Fatalf("generate: %v", err)
+		}
+		if got := doc.GetReport().GenerationMode; got != consts.GenerationSequential {
+			t.Errorf("generation mode = %q, want %q", got, consts.GenerationSequential)
+		}
+	})
+}
+
+// TestParallelPages_RendersExternalLinksInParallel covers hyperlinked documents
+// — invoices and reports with URLs — which used to abandon the parallel render
+// entirely. External links carry a URL rather than a page index, so splicing
+// only has to carry the annotations across.
+func TestParallelPages_RendersExternalLinksInParallel(t *testing.T) {
+	target := "https://example.com/invoice"
+	rows := make([]core.Row, 0, 300)
+	for i := range 300 {
+		rows = append(rows, text.NewRow(9, "row-"+itoa(i)+" see the terms online",
+			props.Text{Size: 9, Top: 1, Hyperlink: &target}))
 	}
-	rows = append(rows, parallelTestRows(300)...)
 
 	sequential := generateWith(t, config.NewBuilder().WithCompression(false).WithSequentialMode().Build(), rows)
-	parallel := generateWith(t, config.NewBuilder().WithCompression(false).WithParallelPagesMode(4).Build(), rows)
+	wantLinks := externalLinkAnnotations(sequential)
+	if len(wantLinks) == 0 {
+		t.Fatal("sequential output emitted no external link annotations")
+	}
+
+	for _, workers := range parallelWorkerCounts {
+		parallel := generateInParallel(t, config.NewBuilder().
+			WithCompression(false).WithParallelPagesMode(workers).Build(), rows)
+
+		if _, err := reader.Parse(parallel); err != nil {
+			t.Fatalf("workers=%d: parallel output does not parse: %v", workers, err)
+		}
+		gotLinks := externalLinkAnnotations(parallel)
+		if len(gotLinks) != len(wantLinks) {
+			t.Fatalf("workers=%d: emitted %d external link annotations, want %d",
+				workers, len(gotLinks), len(wantLinks))
+		}
+		for i := range wantLinks {
+			if gotLinks[i] != wantLinks[i] {
+				t.Fatalf("workers=%d: external link %d = %q, want %q", workers, i, gotLinks[i], wantLinks[i])
+			}
+		}
+	}
+}
+
+// TestParallelPages_RendersOutlinesInParallel covers the single most common
+// reason documents used to fall back. Bookmarks store an absolute page number,
+// which splicing shifts by the pages already in the document.
+func TestParallelPages_RendersOutlinesInParallel(t *testing.T) {
+	rows := make([]core.Row, 0, 320)
+	for chapter := range 8 {
+		rows = append(rows, text.NewRow(12, "Chapter "+itoa(chapter), props.Text{
+			Size:    12,
+			Outline: &props.Outline{Level: 0, Title: "Chapter " + itoa(chapter)},
+		}))
+		rows = append(rows, parallelTestRows(40)...)
+	}
+
+	sequential := generateWith(t, config.NewBuilder().WithCompression(false).WithSequentialMode().Build(), rows)
+	wantOutline := outlineEntries(sequential)
+	if len(wantOutline) != 8 {
+		t.Fatalf("sequential output has %d outline entries, want 8", len(wantOutline))
+	}
+
+	for _, workers := range parallelWorkerCounts {
+		parallel := generateInParallel(t, config.NewBuilder().
+			WithCompression(false).WithParallelPagesMode(workers).Build(), rows)
+
+		if _, err := reader.Parse(parallel); err != nil {
+			t.Fatalf("workers=%d: parallel output does not parse: %v", workers, err)
+		}
+		if !bytes.Contains(parallel, []byte("/Outlines")) {
+			t.Fatalf("workers=%d: parallel output has no outline", workers)
+		}
+		if got, want := countPages(parallel), countPages(sequential); got != want {
+			t.Errorf("workers=%d: page count = %d, want %d", workers, got, want)
+		}
+
+		gotOutline := outlineEntries(parallel)
+		if len(gotOutline) != len(wantOutline) {
+			t.Fatalf("workers=%d: parallel output has %d outline entries, want %d",
+				workers, len(gotOutline), len(wantOutline))
+		}
+		for i := range wantOutline {
+			if gotOutline[i] != wantOutline[i] {
+				t.Errorf("workers=%d: outline entry %d = %v, want %v", workers, i, gotOutline[i], wantOutline[i])
+			}
+		}
+	}
+}
+
+// TestParallelPages_ResolvesInternalLinksAcrossChunks is the case index
+// rewriting exists for: the clickable area and the page it jumps to are
+// rendered by different workers, so neither worker's document can resolve the
+// link on its own.
+func TestParallelPages_ResolvesInternalLinksAcrossChunks(t *testing.T) {
+	var page strings.Builder
+	page.WriteString(`<p><a href="#the-end">jump to the end</a></p>`)
+	for i := range 400 {
+		page.WriteString("<p>filler paragraph " + itoa(i) + " lorem ipsum dolor sit amet consectetur</p>")
+	}
+	page.WriteString(`<h2 id="the-end">The End</h2>`)
+
+	sequential := generateHTML(t, config.NewBuilder().WithCompression(false).WithSequentialMode().Build(), page.String())
+	wantLinks := internalLinkAnnotations(sequential)
+	if len(wantLinks) == 0 {
+		t.Fatal("sequential output emitted no internal link annotation")
+	}
+
+	for _, workers := range parallelWorkerCounts {
+		parallelDoc := generateHTMLDocument(t, config.NewBuilder().
+			WithCompression(false).WithParallelPagesMode(workers).Build(), page.String())
+		requireParallelGeneration(t, parallelDoc)
+		parallel := parallelDoc.GetBytes()
+
+		if _, err := reader.Parse(parallel); err != nil {
+			t.Fatalf("workers=%d: parallel output does not parse: %v", workers, err)
+		}
+		if pages := countPages(parallel); pages < 4 {
+			t.Fatalf("document spans %d pages, too few to place the target in another chunk", pages)
+		}
+
+		gotLinks := internalLinkAnnotations(parallel)
+		if len(gotLinks) != len(wantLinks) {
+			t.Fatalf("workers=%d: emitted %d internal link annotations, want %d",
+				workers, len(gotLinks), len(wantLinks))
+		}
+		for i := range wantLinks {
+			// An unresolved destination points at object 1, the page tree root,
+			// which is what a naive splice produces when the target page was
+			// rendered by a different worker.
+			if gotLinks[i].destObject <= 1 {
+				t.Errorf("workers=%d: internal link %d points at object %d, which is not a page: the target was not resolved",
+					workers, i, gotLinks[i].destObject)
+			}
+			if gotLinks[i] != wantLinks[i] {
+				t.Errorf("workers=%d: internal link %d = %+v, want %+v", workers, i, gotLinks[i], wantLinks[i])
+			}
+		}
+	}
+}
+
+// TestParallelPages_RendersWatermarksInParallel covers blend modes, which are
+// how watermarks draw. Their PDF name used to be their position in the graphics
+// state list, so two workers would disagree on what /GS1 meant.
+func TestParallelPages_RendersWatermarksInParallel(t *testing.T) {
+	const sentinel = "XWMKSENTINEL"
+	rows := parallelTestRows(300)
+
+	sequential := generateWith(t, config.NewBuilder().
+		WithCompression(false).WithWatermark(sentinel).WithSequentialMode().Build(), rows)
+	parallel := generateInParallel(t, config.NewBuilder().
+		WithCompression(false).WithWatermark(sentinel).WithParallelPagesMode(4).Build(), rows)
 
 	if _, err := reader.Parse(parallel); err != nil {
-		t.Fatalf("fallback output does not parse: %v", err)
+		t.Fatalf("parallel output does not parse: %v", err)
 	}
-	if got, want := countPages(parallel), countPages(sequential); got != want {
-		t.Errorf("page count = %d, want %d", got, want)
+	pages := countPages(parallel)
+	if got, want := countPages(sequential), pages; got != want {
+		t.Errorf("page count = %d, want %d", want, got)
 	}
-	if got, want := len(drawnText(parallel)), len(drawnText(sequential)); got != want {
-		t.Errorf("drew %d strings, want %d", got, want)
+	if got := bytes.Count(parallel, []byte(sentinel)); got != pages {
+		t.Errorf("watermark drawn %d times across %d pages", got, pages)
 	}
-	if !bytes.Contains(parallel, []byte("/Outlines")) {
-		t.Error("fallback output lost the outline")
+
+	// Every page sets alpha to the same two values, so the whole document needs
+	// exactly the graphics states sequential generation needs — not one set per
+	// worker.
+	gotStates := bytes.Count(parallel, []byte("/Type /ExtGState"))
+	wantStates := bytes.Count(sequential, []byte("/Type /ExtGState"))
+	if gotStates != wantStates {
+		t.Errorf("emitted %d ExtGState objects, want %d (workers must share one copy per state)",
+			gotStates, wantStates)
+	}
+	if gotStates == 0 {
+		t.Fatal("no ExtGState objects at all, so the deduplication assertion proves nothing")
 	}
 }
 

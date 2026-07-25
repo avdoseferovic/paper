@@ -161,6 +161,7 @@ func (m *Metrics) generate(innerGenerate func() (*core.Pdf, error)) (*core.Pdf, 
 	report := m.buildMetrics(len(bytes)).Normalize()
 	if innerReport := document.GetReport(); innerReport != nil {
 		report.RenderIssues = append(report.RenderIssues, innerReport.RenderIssues...)
+		report.GenerationMode = innerReport.GenerationMode
 	}
 
 	return core.NewPDF(bytes, report), nil

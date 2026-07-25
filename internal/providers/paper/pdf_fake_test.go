@@ -271,6 +271,11 @@ func (m *pdfMock) AddLink() int {
 	return ret.Get(0).(int)
 }
 
+func (m *pdfMock) AddNamedLink(name string) int {
+	ret := m.Called(name)
+	return ret.Get(0).(int)
+}
+
 func (m *pdfMock) AddPage() {
 	m.Called()
 }

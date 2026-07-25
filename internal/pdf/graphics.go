@@ -147,14 +147,13 @@ func (f *PDF) SetAlpha(alpha float64, blendModeStr string) {
 	f.alpha = alpha
 	f.blendMode = blendModeStr
 	alphaStr := sprintf("%.3f", alpha)
-	keyStr := sprintf("%s %s", alphaStr, blendModeStr)
-	pos, ok := f.blendMap[keyStr]
-	if !ok {
-		pos = len(f.blendList)
-		f.blendList = append(f.blendList, blendModeType{alphaStr, alphaStr, blendModeStr, 0})
-		f.blendMap[keyStr] = pos
+	blend := blendModeType{strokeStr: alphaStr, fillStr: alphaStr, modeStr: blendModeStr}
+	blend.id = generateBlendModeID(blend)
+	if _, exists := f.blendMap[blend.id]; !exists {
+		f.blendMap[blend.id] = len(f.blendList)
+		f.blendList = append(f.blendList, blend)
 	}
-	f.outf("/GS%d gs", pos)
+	f.outf("/GS%s gs", blend.id)
 }
 
 const lineStyleRound = "round"
@@ -522,14 +521,18 @@ func (f *PDF) gradientClipEnd() {
 }
 
 func (f *PDF) gradient(tp, r1, g1, b1, r2, g2, b2 int, x1, y1, x2, y2, r float64) {
-	pos := len(f.gradientList)
 	clr1 := rgbColorValue(r1, g1, b1, "", "")
 	clr2 := rgbColorValue(r2, g2, b2, "", "")
-	f.gradientList = append(f.gradientList, gradientType{
-		tp, clr1.str, clr2.str,
-		x1, y1, x2, y2, r, 0,
-	})
-	f.outf("/Sh%d sh", pos)
+	gradient := gradientType{
+		tp: tp, clr1Str: clr1.str, clr2Str: clr2.str,
+		x1: x1, y1: y1, x2: x2, y2: y2, r: r,
+	}
+	gradient.id = generateGradientID(gradient)
+	if _, exists := f.gradientMap[gradient.id]; !exists {
+		f.gradientMap[gradient.id] = len(f.gradientList)
+		f.gradientList = append(f.gradientList, gradient)
+	}
+	f.outf("/Sh%s sh", gradient.id)
 }
 
 // LinearGradient draws a rectangular area with a blending of one color to

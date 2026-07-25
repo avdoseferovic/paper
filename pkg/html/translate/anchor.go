@@ -75,16 +75,25 @@ func (c *combinedRow) Add(_ ...core.Col) core.Row     { return c }
 func (c *combinedRow) WithStyle(*props.Cell) core.Row { return c }
 func (c *combinedRow) GetColumns() []core.Col         { return nil }
 
-// anchorRegistry stores the id→linkID mapping shared across all anchor target
-// and source components produced by a single Translate call. Lookups are
-// concurrent-safe so the renderer's row-by-row Render is safe to parallelise.
+// anchorRegistry stores the anchor name → linkID mapping shared across all
+// anchor target and source components produced by a single Translate call.
+// Lookups are concurrent-safe so the renderer's row-by-row Render is safe to
+// parallelise.
+//
+// Link IDs are indices into the provider's own link table, so the mapping is
+// kept per provider. Parallel page rendering gives each worker a separate
+// provider, and handing worker B an ID that worker A allocated would either
+// point at the wrong destination or at no destination at all. Providers that
+// implement core.NamedLinkProvider reserve the target under the anchor name
+// instead, which is what lets the per-worker reservations be reconciled when
+// the rendered pages are spliced into one document.
 type anchorRegistry struct {
 	mu     sync.Mutex
-	idToLP map[string]int // anchor name → linkID returned by provider.AddLink
+	idToLP map[core.LinkProvider]map[string]int // provider → anchor name → linkID
 }
 
 func newAnchorRegistry() *anchorRegistry {
-	return &anchorRegistry{idToLP: map[string]int{}}
+	return &anchorRegistry{idToLP: map[core.LinkProvider]map[string]int{}}
 }
 
 // EnsureLinkID satisfies richtext.anchorResolverIface — exported so the
@@ -93,20 +102,35 @@ func (r *anchorRegistry) EnsureLinkID(name string, lp core.LinkProvider) (int, b
 	return r.ensureLinkID(name, lp)
 }
 
-// ensureLinkID returns the linkID for name, registering one via lp on first
-// access. Thread-safe.
+// ensureLinkID returns lp's linkID for name, reserving one on first access.
+// Thread-safe. Reports false when there is no provider to reserve against,
+// since a link ID is only meaningful relative to the provider that issued it.
 func (r *anchorRegistry) ensureLinkID(name string, lp core.LinkProvider) (int, bool) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if id, ok := r.idToLP[name]; ok {
-		return id, true
-	}
 	if lp == nil {
 		return 0, false
 	}
-	id := lp.AddLink()
-	r.idToLP[name] = id
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	names, ok := r.idToLP[lp]
+	if !ok {
+		names = map[string]int{}
+		r.idToLP[lp] = names
+	}
+	if id, ok := names[name]; ok {
+		return id, true
+	}
+	id := reserveLink(name, lp)
+	names[name] = id
 	return id, true
+}
+
+// reserveLink reserves the anchor target, preferring a named reservation so it
+// survives page splicing.
+func reserveLink(name string, lp core.LinkProvider) int {
+	if named, ok := lp.(core.NamedLinkProvider); ok {
+		return named.AddNamedLink(name)
+	}
+	return lp.AddLink()
 }
 
 // collectAnchorIDs walks the DOM and returns the set of all `id` attribute

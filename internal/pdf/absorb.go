@@ -15,20 +15,22 @@ var ErrAbsorbUnsupported = errors.New("pdf: source document uses features unsupp
 //
 // This exists to support rendering pages concurrently: each worker renders its
 // own pages into a private PDF, and the results are spliced into one document
-// that is serialized once. Splicing is possible because content streams refer
-// to fonts and images by a content hash of their definition (see
-// generateFontID / generateImageID), not by a sequential index, so identical
-// resources produce identical names in every worker and the resource tables
-// merge as a plain set union.
+// that is serialized once. Splicing works because everything a content stream
+// names is identified independently of its position: fonts, images, gradients
+// and blend modes are named by a content hash of their definition (see
+// generateFontID / generateImageID / gradientType.id / blendModeType.id), so
+// identical resources produce identical names in every worker and the resource
+// tables merge as a plain set union. What is left is state that records
+// absolute page numbers — links and outlines — which is rewritten here by the
+// number of pages already in f.
 //
 // Both documents must still be in the rendering phase; call this before
 // GenerateBytes/Output on f. src must not be used afterwards, since f takes
 // ownership of its page buffers.
 //
-// Features whose PDF names are allocated sequentially (gradients, blend modes)
-// or that store absolute page indices (links, outlines, annotations, page
-// geometries) are rejected with ErrAbsorbUnsupported rather than silently
-// producing a corrupt document.
+// Document-catalog features that are written once per document (annotations,
+// page geometries, form fields) are rejected with ErrAbsorbUnsupported rather
+// than silently producing a document that has lost them.
 func (f *PDF) AbsorbPages(src *PDF) error {
 	if f.err != nil {
 		return f.err
@@ -40,10 +42,13 @@ func (f *PDF) AbsorbPages(src *PDF) error {
 		return err
 	}
 
+	pageOffset := f.page
+	links := f.absorbLinks(src, pageOffset)
+
 	for n := 1; n <= src.page; n++ {
 		f.page++
 		f.pages = append(f.pages, src.pages[n])
-		f.pageLinks = append(f.pageLinks, make([]linkType, 0))
+		f.pageLinks = append(f.pageLinks, remapPageLinks(src.pageLinks[n], links))
 		if size, ok := src.pageSizes[n]; ok {
 			f.pageSizes[f.page] = size
 		}
@@ -52,8 +57,11 @@ func (f *PDF) AbsorbPages(src *PDF) error {
 		}
 	}
 
+	f.absorbOutlines(src, pageOffset)
 	f.absorbFonts(src)
 	f.absorbImages(src)
+	f.absorbBlendModes(src)
+	f.absorbGradients(src)
 	return nil
 }
 
@@ -68,42 +76,96 @@ func (f *PDF) PagesAbsorbable() error {
 	return f.absorbable()
 }
 
-// absorbable reports whether f's pages can be spliced into another document
-// without rewriting position-dependent names or page references.
+// absorbable reports whether f's pages can be spliced into another document.
+//
+// Everything left here is a document-catalog feature: it is written once for
+// the whole document and carries page references throughout, so splicing would
+// need a design pass of its own rather than an index offset.
+//
+// None of these is reachable through paper's public API, which routes the
+// configuration that produces them to single-document generation before a
+// generation mode is chosen (see entity.Config.RequiresSingleDocumentGeneration).
+// The check is kept as defence in depth: it is what turns "someone added a new
+// position-dependent feature" into a sequential fallback instead of a silently
+// corrupt PDF.
 func (f *PDF) absorbable() error {
-	src := f
-	// blendList and gradientList are 1-based with a placeholder at index 0, so
-	// a length above one means the document actually registered something. Both
-	// are named /GS<n> and /Sh<n> by slice position inside content streams.
-	if len(src.blendList) > 1 {
-		return fmt.Errorf("%w: blend modes", ErrAbsorbUnsupported)
-	}
-	if len(src.gradientList) > 1 {
-		return fmt.Errorf("%w: gradients", ErrAbsorbUnsupported)
-	}
-	// links is 1-based with a placeholder at index 0 (see the PDF constructor),
-	// so only a length above one means a link was actually registered.
-	if len(src.links) > 1 {
-		return fmt.Errorf("%w: internal links", ErrAbsorbUnsupported)
-	}
-	if len(src.outlines) > 0 {
-		return fmt.Errorf("%w: outlines", ErrAbsorbUnsupported)
-	}
-	if len(src.pageAnnotations) > 0 {
+	if len(f.pageAnnotations) > 0 {
 		return fmt.Errorf("%w: page annotations", ErrAbsorbUnsupported)
 	}
-	if len(src.pageGeometries) > 0 {
+	if len(f.pageGeometries) > 0 {
 		return fmt.Errorf("%w: page geometries", ErrAbsorbUnsupported)
 	}
-	if len(src.acroFormFields) > 0 {
+	if len(f.acroFormFields) > 0 {
 		return fmt.Errorf("%w: form fields", ErrAbsorbUnsupported)
 	}
-	for n := 1; n <= src.page; n++ {
-		if n < len(src.pageLinks) && len(src.pageLinks[n]) > 0 {
-			return fmt.Errorf("%w: page links", ErrAbsorbUnsupported)
+	return nil
+}
+
+// absorbLinks merges src's internal link destinations into f, shifting the page
+// numbers of resolved destinations by pageOffset. It returns the translation
+// from src's link identifiers to f's, indexed by src identifier; entry 0 is the
+// "no internal link" identifier and always maps to itself.
+func (f *PDF) absorbLinks(src *PDF, pageOffset int) []int {
+	translation := make([]int, len(src.links))
+	for link := 1; link < len(src.links); link++ {
+		destination := src.links[link]
+		if destination.page != 0 {
+			destination.page += pageOffset
+		}
+		translation[link] = f.mergeLink(destination)
+	}
+	return translation
+}
+
+// mergeLink adds a link destination to f and returns its identifier there.
+//
+// A named destination that f already knows keeps its existing identifier, so
+// the worker that rendered the target page and the workers that only drew
+// clickable areas pointing at it converge on one link. Only one of them
+// resolved the destination, so a resolved entry always wins over a reservation.
+func (f *PDF) mergeLink(destination intLinkType) int {
+	if destination.name == "" {
+		f.links = append(f.links, destination)
+		return len(f.links) - 1
+	}
+	link, exists := f.linkNames[destination.name]
+	if !exists {
+		f.links = append(f.links, destination)
+		link = len(f.links) - 1
+		f.linkNames[destination.name] = link
+		return link
+	}
+	if f.links[link].page == 0 {
+		f.links[link] = destination
+	}
+	return link
+}
+
+// remapPageLinks copies a page's clickable areas, rewriting internal link
+// identifiers through translation. External links carry a URL rather than an
+// identifier and need no rewriting.
+func remapPageLinks(pageLinks []linkType, translation []int) []linkType {
+	absorbed := make([]linkType, len(pageLinks))
+	copy(absorbed, pageLinks)
+	for i := range absorbed {
+		if absorbed[i].link != 0 {
+			absorbed[i].link = translation[absorbed[i].link]
 		}
 	}
-	return nil
+	return absorbed
+}
+
+// absorbOutlines appends src's bookmarks, shifting the page each points at.
+//
+// The outline tree itself is wired at serialization time by
+// prepareBookmarkOutlines, so only the destination needs rewriting here.
+// Bookmarks end up in document order because page groups are absorbed in page
+// order.
+func (f *PDF) absorbOutlines(src *PDF, pageOffset int) {
+	for _, outline := range src.outlines {
+		outline.p += pageOffset
+		f.outlines = append(f.outlines, outline)
+	}
 }
 
 // absorbFonts unions src's font tables into f. Font names in content streams
@@ -133,5 +195,32 @@ func (f *PDF) absorbImages(src *PDF) {
 		if _, exists := f.images[key]; !exists {
 			f.images[key] = img
 		}
+	}
+}
+
+// absorbBlendModes unions src's alpha and blend mode states into f. They are
+// named by a content hash in content streams, so the same state registered by
+// two workers collapses to a single ExtGState object.
+func (f *PDF) absorbBlendModes(src *PDF) {
+	for i := 1; i < len(src.blendList); i++ {
+		blend := src.blendList[i]
+		if _, exists := f.blendMap[blend.id]; exists {
+			continue
+		}
+		f.blendMap[blend.id] = len(f.blendList)
+		f.blendList = append(f.blendList, blend)
+	}
+}
+
+// absorbGradients unions src's gradients into f, on the same content-hash basis
+// as blend modes.
+func (f *PDF) absorbGradients(src *PDF) {
+	for i := 1; i < len(src.gradientList); i++ {
+		gradient := src.gradientList[i]
+		if _, exists := f.gradientMap[gradient.id]; exists {
+			continue
+		}
+		f.gradientMap[gradient.id] = len(f.gradientList)
+		f.gradientList = append(f.gradientList, gradient)
 	}
 }

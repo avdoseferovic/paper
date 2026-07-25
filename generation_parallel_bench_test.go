@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/avdoseferovic/paper"
+	"github.com/avdoseferovic/paper/pkg/components/text"
 	"github.com/avdoseferovic/paper/pkg/config"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
 
 // BenchmarkGenerationModes compares the generation modes on the same document:
@@ -32,6 +34,38 @@ func BenchmarkGenerationModes(b *testing.B) {
 			})
 		}
 	}
+}
+
+// BenchmarkOutlineDocument measures the document shape that used to abandon the
+// parallel render and re-render sequentially, paying for both. Bookmarks are
+// spliced now, so this is a plain sequential-versus-parallel comparison.
+func BenchmarkOutlineDocument(b *testing.B) {
+	rows := outlineBenchmarkRows(150)
+
+	b.Run("sequential", func(b *testing.B) {
+		benchmarkGeneration(b, config.NewBuilder().WithSequentialMode().Build(), rows)
+	})
+	for _, workers := range []int{4, 8} {
+		b.Run(fmt.Sprintf("parallelpages-%d", workers), func(b *testing.B) {
+			benchmarkGeneration(b, config.NewBuilder().WithParallelPagesMode(workers).Build(), rows)
+		})
+	}
+}
+
+// outlineBenchmarkRows builds a document of roughly pageCount pages, each
+// opening with a bookmarked chapter heading.
+func outlineBenchmarkRows(pageCount int) []core.Row {
+	const rowsPerPage = 26
+	rows := make([]core.Row, 0, pageCount*(rowsPerPage+1))
+	for chapter := range pageCount {
+		title := fmt.Sprintf("Chapter %d", chapter)
+		rows = append(rows, text.NewRow(9, title, props.Text{
+			Size:    9,
+			Outline: &props.Outline{Level: 0, Title: title},
+		}))
+		rows = append(rows, parallelTestRows(rowsPerPage)...)
+	}
+	return rows
 }
 
 func benchmarkGeneration(b *testing.B, cfg *entity.Config, rows []core.Row) {
