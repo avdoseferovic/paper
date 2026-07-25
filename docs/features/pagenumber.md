@@ -35,11 +35,11 @@
 * [props : Place](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/props#Place)
 
 ## Code Example
-[filename](../assets/examples/pagenumber/main.go ':include :type=code')
+[filename](../assets/examples/pagenumber/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/pagenumber.pdf
+```pdf-example
+	pagenumber
 ```
 
 ## Time Execution

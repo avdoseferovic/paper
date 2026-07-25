@@ -25,11 +25,11 @@ Both functions return `([]core.Row, error)`. Errors: `ErrEmptyArray` (empty slic
 * [list : BuildFromPointer](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/list#BuildFromPointer)
 
 ## Code Example
-[filename](../assets/examples/list/main.go ':include :type=code')
+[filename](../assets/examples/list/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/list.pdf
+```pdf-example
+	list
 ```
 ## Time Execution
 [filename](../assets/text/list.txt  ':include :type=code')

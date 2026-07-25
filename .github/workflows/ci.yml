@@ -79,3 +79,10 @@ jobs:
       - name: Test docs examples
         run: go test ./assets/examples/...
         working-directory: docs
+
+      # docs/assets/js/paper-fs.js hand-implements the filesystem syscalls Go's
+      # js/wasm runtime calls. A regression there does not fail loudly — the
+      # renderer draws an error box and still emits a valid PDF — so it is
+      # pinned by its own tests. Node is preinstalled on ubuntu-latest.
+      - name: Test browser filesystem shim
+        run: node --test docs/assets/js/paper-fs.test.mjs

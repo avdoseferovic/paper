@@ -22,6 +22,8 @@ cfg := config.NewBuilder().
 For image-based page backgrounds, see
 [Background](background.md?id=add-background).
 
-[filename](../assets/examples/watermark/main.go ':include :type=code')
+[filename](../assets/examples/watermark/paper.go ':include :type=code')
 
-[watermark.pdf](../assets/pdf/watermark.pdf ':include :type=pdf')
+```pdf-example
+	watermark
+```

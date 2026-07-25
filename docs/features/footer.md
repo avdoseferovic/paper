@@ -13,11 +13,11 @@
 * [paper : RegisterFooter](https://pkg.go.dev/github.com/avdoseferovic/paper#Paper.RegisterFooter)
 
 ## Code Example
-[filename](../assets/examples/footer/main.go ':include :type=code')
+[filename](../assets/examples/footer/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/footer.pdf
+```pdf-example
+	footer
 ```
 
 ## Time Execution

@@ -15,11 +15,11 @@
 * [builder : WithTopMargin](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithTopMargin)
 
 ## Code Example
-[filename](../assets/examples/margins/main.go ':include :type=code')
+[filename](../assets/examples/margins/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/margins.pdf
+```pdf-example
+	margins
 ```
 
 ## Time Execution

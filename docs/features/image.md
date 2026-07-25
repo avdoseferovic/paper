@@ -32,11 +32,11 @@ Both sources expose the same set of constructors — `New`, `NewCol`, `NewRow`, 
 * [component : FileImage](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/image#FileImage)
 
 ## Code Example
-[filename](../assets/examples/imagegrid/main.go ':include :type=code')
+[filename](../assets/examples/imagegrid/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/imagegrid.pdf
+```pdf-example
+	imagegrid
 ```
 
 ## Time Execution

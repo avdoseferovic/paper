@@ -13,11 +13,11 @@
 * [orientation : Type](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/orientation)
 
 ## Code Example
-[filename](../assets/examples/orientation/main.go ':include :type=code')
+[filename](../assets/examples/orientation/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/orientation.pdf
+```pdf-example
+	orientation
 ```
 
 ## Time Execution

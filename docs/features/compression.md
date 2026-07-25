@@ -14,11 +14,11 @@ Compression is **disabled** by default. Pass `true` to enable it or `false` to e
 * [builder : WithCompression](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithCompression)
 
 ## Code Example
-[filename](../assets/examples/compression/main.go ':include :type=code')
+[filename](../assets/examples/compression/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/compression.pdf
+```pdf-example
+	compression
 ```
 ## Time Execution
 [filename](../assets/text/compression.txt  ':include :type=code')

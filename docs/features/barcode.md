@@ -27,11 +27,11 @@ The Barcode component renders a 1-D barcode inside a cell. The default type is `
 * [component : Barcode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/components/code#Barcode)
 
 ## Code Example
-[filename](../assets/examples/barcodegrid/main.go  ':include :type=code')
+[filename](../assets/examples/barcodegrid/paper.go  ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/barcodegrid.pdf
+```pdf-example
+	barcodegrid
 ```
 
 ## Time Execution

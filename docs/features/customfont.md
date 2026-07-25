@@ -15,7 +15,7 @@ Paper ships with a standard set of built-in fonts. `WithCustomFonts` lets you re
 * [entity : CustomFont](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/core/entity#CustomFont)
 
 ## Code Example
-[filename](../assets/examples/customfont/main.go ':include :type=code')
+[filename](../assets/examples/customfont/paper.go ':include :type=code')
 
 ## PDF Generated
 ```pdf

@@ -12,11 +12,11 @@
 * [builder : WithDimensions](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithDimensions)
 
 ## Code Example
-[filename](../assets/examples/customdimensions/main.go ':include :type=code')
+[filename](../assets/examples/customdimensions/paper.go ':include :type=code')
 
 ## PDF Generated
-```pdf
-	assets/pdf/customdimensions.pdf
+```pdf-example
+	customdimensions
 ```
 ## Time Execution
 [filename](../assets/text/customdimensions.txt  ':include :type=code')

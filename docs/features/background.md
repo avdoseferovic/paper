@@ -13,7 +13,7 @@
 * [consts : Extension](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/consts/extension#Type)
 
 ## Code Example
-[filename](../assets/examples/background/main.go  ':include :type=code')
+[filename](../assets/examples/background/paper.go  ':include :type=code')
 
 ## PDF Generated
 ```pdf
