@@ -2,18 +2,6 @@ package config
 
 import "github.com/avdoseferovic/paper/pkg/consts"
 
-// WithConcurrentMode defines concurrent generation, chunk workers define how mano chuncks
-// will be executed concurrently.
-func (b *CfgBuilder) WithConcurrentMode(chunkWorkers int) Builder {
-	if chunkWorkers < 1 {
-		return b
-	}
-
-	b.generationMode = consts.GenerationConcurrent
-	b.chunkWorkers = chunkWorkers
-	return b
-}
-
 // WithParallelPagesMode renders pages concurrently into one document, splicing
 // the rendered pages together instead of merging separate PDFs. chunkWorkers
 // defines how many page groups are rendered concurrently.

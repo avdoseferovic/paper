@@ -6,15 +6,12 @@ type GenerationMode string
 const (
 	// GenerationSequential renders pages one at a time on a single goroutine.
 	GenerationSequential GenerationMode = "sequential"
-	// GenerationConcurrent renders page chunks in parallel worker goroutines
-	// and merges the resulting documents.
-	GenerationConcurrent GenerationMode = "concurrent"
 	// GenerationSequentialLowMemory renders page chunks sequentially,
 	// releasing memory between chunks, and merges the resulting documents.
 	GenerationSequentialLowMemory GenerationMode = "sequential_low_memory"
 	// GenerationParallelPages renders page chunks in parallel worker goroutines
 	// and splices the rendered pages into a single document, which is then
-	// serialized once. Unlike GenerationConcurrent it performs no byte-level
-	// PDF merge, so per-chunk document overhead does not scale with workers.
+	// serialized once. It performs no byte-level PDF merge, so the per-chunk
+	// document overhead does not scale with the worker count.
 	GenerationParallelPages GenerationMode = "parallel_pages"
 )

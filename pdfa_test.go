@@ -146,12 +146,12 @@ func TestGenerate_WithPdfACustomXMPExtensions(t *testing.T) {
 	assert.True(t, bytes.Contains(pdfBytes, []byte("<fx:ConformanceLevel>BASIC &amp; WL</fx:ConformanceLevel>")))
 }
 
-func TestGenerate_WithRuntimeSetPdfAAndConcurrentMode_ShouldKeepCatalogEntries(t *testing.T) {
+func TestGenerate_WithRuntimeSetPdfAAndParallelPagesMode_ShouldKeepCatalogEntries(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().
 		WithCompression(false).
-		WithConcurrentMode(2).
+		WithParallelPagesMode(2).
 		Build()
 	doc := paper.New(cfg)
 	doc.SetPdfA(entity.PdfAConfig{Level: entity.PdfA2B})

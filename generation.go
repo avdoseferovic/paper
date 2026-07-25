@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -45,10 +44,6 @@ func (m *Paper) generateDocument(ctx context.Context) (*core.Pdf, error) {
 	// would lose them in the merge, so both force sequential mode.
 	if m.config.Protection != nil || m.config.HasDocumentCatalog() {
 		return m.generateSequentially(ctx)
-	}
-
-	if m.config.GenerationMode == consts.GenerationConcurrent {
-		return m.generateConcurrently(ctx)
 	}
 
 	if m.config.GenerationMode == consts.GenerationParallelPages {
@@ -106,41 +101,6 @@ func (m *Paper) chunkedPageGroups(ctx context.Context) ([][]core.Page, error) {
 	return pageGroups, nil
 }
 
-func (m *Paper) generateConcurrently(ctx context.Context) (*core.Pdf, error) {
-	pageGroups, err := m.chunkedPageGroups(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// One cache shared by every worker: images decode once per document instead
-	// of once per chunk. The mutex decorator makes concurrent access safe.
-	sharedCache := cache.NewMutexDecorator(cache.New())
-	processor := func(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
-		return m.processPagesWithCache(ctx, pages, sharedCache)
-	}
-
-	results, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups, processor)
-	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return nil, err
-		}
-		return nil, ErrCannotGenerateInParallelMode
-	}
-
-	err = generationCanceled(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	pdfs, issues := splitPageProcessResults(results)
-	mergedBytes, err := merge.Bytes(ctx, pdfs...)
-	if err != nil {
-		return nil, err
-	}
-
-	return core.NewPDF(mergedBytes, reportFromIssues(issues)), nil
-}
-
 func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 	pageGroups, err := m.chunkedPageGroups(ctx)
 	if err != nil {
@@ -177,13 +137,9 @@ func (m *Paper) generateLowMemory(ctx context.Context) (*core.Pdf, error) {
 }
 
 func (m *Paper) processPages(ctx context.Context, pages []core.Page) (pageProcessResult, error) {
-	return m.processPagesWithCache(ctx, pages, cache.NewMutexDecorator(cache.New()))
-}
-
-func (m *Paper) processPagesWithCache(ctx context.Context, pages []core.Page, sharedCache cache.Cache) (pageProcessResult, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 
-	innerProvider := getProvider(sharedCache, m.config)
+	innerProvider := getProvider(cache.NewMutexDecorator(cache.New()), m.config)
 	for i, page := range pages {
 		err := generationCanceled(ctx)
 		if err != nil {
@@ -206,101 +162,6 @@ func (m *Paper) processPagesWithCache(ctx context.Context, pages []core.Page, sh
 		bytes:  bytes,
 		issues: collectRenderIssues(innerProvider),
 	}, nil
-}
-
-func processPageGroupsConcurrently(
-	ctx context.Context,
-	workerCount int,
-	pageGroups [][]core.Page,
-	processor func(context.Context, []core.Page) (pageProcessResult, error),
-) ([]pageProcessResult, error) {
-	if len(pageGroups) == 0 {
-		return nil, nil
-	}
-	err := generationCanceled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if workerCount < 1 {
-		workerCount = 1
-	}
-	workerCount = min(workerCount, len(pageGroups))
-
-	results := make([]pageProcessResult, len(pageGroups))
-	jobs := make(chan int)
-	done := ctx.Done()
-	var wg sync.WaitGroup
-	var errMu sync.Mutex
-	var firstErr error
-	recordErr := func(err error) {
-		errMu.Lock()
-		if firstErr == nil {
-			firstErr = err
-		}
-		errMu.Unlock()
-	}
-
-	wg.Add(workerCount)
-	for range workerCount {
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-done:
-					recordErr(generationCanceled(ctx))
-					return
-				case index, ok := <-jobs:
-					if !ok {
-						return
-					}
-					runPageGroupJob(ctx, index, pageGroups, processor, results, recordErr)
-				}
-			}
-		}()
-	}
-
-	for index := range pageGroups {
-		select {
-		case <-done:
-			recordErr(generationCanceled(ctx))
-			close(jobs)
-			wg.Wait()
-			return nil, firstErr
-		case jobs <- index:
-		}
-	}
-	close(jobs)
-	wg.Wait()
-
-	if firstErr != nil {
-		return nil, firstErr
-	}
-	return results, nil
-}
-
-// runPageGroupJob processes a single page group in an isolated scope so that a
-// panic in the processor is recovered and reported via recordErr instead of
-// crashing the worker goroutine (recover only works within the same goroutine).
-func runPageGroupJob(
-	ctx context.Context,
-	index int,
-	pageGroups [][]core.Page,
-	processor func(context.Context, []core.Page) (pageProcessResult, error),
-	results []pageProcessResult,
-	recordErr func(error),
-) {
-	defer func() {
-		if r := recover(); r != nil {
-			recordErr(fmt.Errorf("%w %d: %v", errPanicProcessingPageGroup, index, r))
-		}
-	}()
-
-	result, err := processor(ctx, pageGroups[index])
-	if err != nil {
-		recordErr(err)
-		return
-	}
-	results[index] = result
 }
 
 func generationCanceled(ctx context.Context) error {

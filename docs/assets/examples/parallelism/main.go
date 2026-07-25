@@ -36,7 +36,7 @@ func main() {
 
 func GetPaper() core.Paper {
 	cfg := config.NewBuilder().
-		WithConcurrentMode(7).
+		WithParallelPagesMode(7).
 		WithDebug(true).
 		WithPageNumber().
 		Build()

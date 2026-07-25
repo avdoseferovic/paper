@@ -66,12 +66,12 @@ func TestGenerate_WithRuntimeSetTagged_ShouldEmitTaggedPDF(t *testing.T) {
 	assert.True(t, bytes.Contains(pdf.GetBytes(), []byte("/Marked true")))
 }
 
-func TestGenerate_WithTaggedPDFAndConcurrentMode_ShouldKeepCatalogEntries(t *testing.T) {
+func TestGenerate_WithTaggedPDFAndParallelPagesMode_ShouldKeepCatalogEntries(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().
 		WithCompression(false).
-		WithConcurrentMode(2).
+		WithParallelPagesMode(2).
 		WithTaggedPDF(true).
 		Build()
 	doc := paper.New(cfg)

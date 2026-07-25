@@ -106,7 +106,7 @@ func TestAcroFormForcesWholeDocumentGeneration(t *testing.T) {
 		Add(forms.NewTextField("name", [4]float64{72, 700, 300, 720}, 0))
 	cfg := config.NewBuilder().
 		WithCompression(false).
-		WithConcurrentMode(2).
+		WithParallelPagesMode(2).
 		WithAcroForm(form).
 		Build()
 	doc := paper.New(cfg)

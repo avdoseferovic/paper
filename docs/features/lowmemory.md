@@ -9,7 +9,6 @@
 | Default (sequential) | `config.NewBuilder()` | Medium | Baseline |
 | Low memory | `WithSequentialLowMemoryMode(n)` | Low | Slower |
 | Parallel pages | `WithParallelPagesMode(workers)` | Higher | Fastest on large documents |
-| Concurrent (legacy) | `WithConcurrentMode(workers)` | Highest | Slower than sequential on small documents |
 
 ## Usage notes
 

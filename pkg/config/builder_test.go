@@ -249,7 +249,7 @@ func TestCfgBuilder_WithBottomMargin(t *testing.T) {
 	})
 }
 
-func TestBuilder_WithConcurrentMode(t *testing.T) {
+func TestBuilder_WithParallelPagesMode(t *testing.T) {
 	t.Parallel()
 	t.Run("when chunk size is invalid, should not change the default value", func(t *testing.T) {
 		t.Parallel()
@@ -257,7 +257,7 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		sut := config.NewBuilder()
 
 		// Act
-		cfg := sut.WithConcurrentMode(-1).Build()
+		cfg := sut.WithParallelPagesMode(-1).Build()
 
 		// Assert
 		assert.Equal(t, consts.GenerationSequential, cfg.GenerationMode)
@@ -269,10 +269,10 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		sut := config.NewBuilder()
 
 		// Act
-		cfg := sut.WithConcurrentMode(7).Build()
+		cfg := sut.WithParallelPagesMode(7).Build()
 
 		// Assert
-		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationParallelPages, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override sequential", func(t *testing.T) {
@@ -282,10 +282,10 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		sut.WithSequentialMode()
 
 		// Act
-		cfg := sut.WithConcurrentMode(7).Build()
+		cfg := sut.WithParallelPagesMode(7).Build()
 
 		// Assert
-		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationParallelPages, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 	t.Run("when chunk size is valid, should override sequential low memory", func(t *testing.T) {
@@ -295,10 +295,10 @@ func TestBuilder_WithConcurrentMode(t *testing.T) {
 		sut.WithSequentialLowMemoryMode(5)
 
 		// Act
-		cfg := sut.WithConcurrentMode(7).Build()
+		cfg := sut.WithParallelPagesMode(7).Build()
 
 		// Assert
-		assert.Equal(t, consts.GenerationConcurrent, cfg.GenerationMode)
+		assert.Equal(t, consts.GenerationParallelPages, cfg.GenerationMode)
 		assert.Equal(t, 7, cfg.ChunkWorkers)
 	})
 }
@@ -334,7 +334,7 @@ func TestCfgBuilder_WithSequentialMode(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		sut := config.NewBuilder()
-		sut.WithConcurrentMode(10)
+		sut.WithParallelPagesMode(10)
 
 		// Act
 		cfg := sut.WithSequentialMode().Build()
@@ -388,7 +388,7 @@ func TestCfgBuilder_WithSequentialLowMemoryMode(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		sut := config.NewBuilder()
-		sut.WithConcurrentMode(5)
+		sut.WithParallelPagesMode(5)
 
 		// Act
 		cfg := sut.WithSequentialLowMemoryMode(7).Build()
