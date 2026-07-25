@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/avdoseferovic/paper/pkg/consts"
 )
 
 // Errors reported when a metrics report cannot be written out.
@@ -186,9 +188,15 @@ func (i RenderIssue) String() string {
 
 // Report is a metrics report.
 type Report struct {
-	TimeMetrics  []TimeMetric
-	SizeMetric   SizeMetric
-	RenderIssues []RenderIssue
+	TimeMetrics []TimeMetric
+	SizeMetric  SizeMetric
+	// GenerationMode is the mode the document was actually generated with,
+	// which is not always the mode that was configured: a document using a
+	// feature the configured mode cannot reproduce falls back to sequential
+	// generation. Empty when the document did not come from a generator that
+	// records it (a merge result, for example).
+	GenerationMode consts.GenerationMode
+	RenderIssues   []RenderIssue
 }
 
 // Normalize normalizes the report.

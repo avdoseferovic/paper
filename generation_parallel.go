@@ -8,6 +8,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/pdf"
 	paperprovider "github.com/avdoseferovic/paper/internal/providers/paper"
+	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/metrics"
 )
@@ -37,9 +38,12 @@ func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 			return m.renderPagesToProvider(ctx, pages, sharedCache)
 		})
 	if err != nil {
-		// A worker hit a feature whose PDF names or page references are
-		// position-dependent. Rendering aborted as soon as it was drawn, so fall
-		// back to a sequential render, which supports everything.
+		// A worker hit a feature that cannot be spliced. Every such feature is
+		// configured rather than drawn, and is already routed to sequential
+		// generation before a mode is chosen, so this is defence in depth
+		// against one being added later. Rendering aborted as soon as the
+		// feature appeared, so falling back does not pay for a full parallel
+		// render first.
 		if errors.Is(err, pdf.ErrAbsorbUnsupported) {
 			return m.generateSequentially(ctx)
 		}
@@ -94,7 +98,7 @@ func (m *Paper) spliceAndSerialize(rendered []core.Provider) (*core.Pdf, error) 
 
 	var issues []metrics.RenderIssue
 	issues = append(issues, collectRenderIssues(master)...)
-	return core.NewPDF(documentBytes, reportFromIssues(issues)), nil
+	return core.NewPDF(documentBytes, newReport(consts.GenerationParallelPages, issues)), nil
 }
 
 // renderPagesToProvider renders pages into a fresh provider without

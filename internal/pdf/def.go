@@ -15,18 +15,6 @@ const (
 	pdfVersion14 = "1.4"
 )
 
-type blendModeType struct {
-	strokeStr, fillStr, modeStr string
-	objNum                      int
-}
-
-type gradientType struct {
-	tp                int // 2: linear, 3: radial
-	clr1Str, clr2Str  string
-	x1, y1, x2, y2, r float64
-	objNum            int
-}
-
 const (
 	// OrientationPortrait represents the portrait orientation.
 	OrientationPortrait = "portrait"
@@ -138,9 +126,15 @@ type linkType struct {
 	linkStr      string // ...application-provided external link string
 }
 
+// intLinkType is the destination of an internal link. name, when set, is a
+// stable identity for the destination that survives splicing: two documents
+// that reserved the same name refer to the same destination, so a link whose
+// target page was rendered into a different document still resolves. Links
+// reserved with AddLink have no name and are private to their document.
 type intLinkType struct {
 	page int
 	y    float64
+	name string
 }
 
 // outlineType is used for a sidebar outline of bookmarks
@@ -228,6 +222,7 @@ type PDF struct {
 	aliasMap         map[string]string          // map of alias->replacement
 	pageLinks        [][]linkType               // pageLinks[page][link], both 1-based
 	links            []intLinkType              // array of internal links
+	linkNames        map[string]int             // named link destination -> index into links
 	outlines         []outlineType              // array of outlines
 	outlineRoot      int                        // root of outlines
 	acroFormFields   []FormField                // interactive AcroForm fields to emit
@@ -274,10 +269,11 @@ type PDF struct {
 	dashArray        []float64                  // dash array
 	dashPhase        float64                    // dash phase
 	blendList        []blendModeType            // slice[idx] of alpha transparency modes, 1-based
-	blendMap         map[string]int             // map into blendList
+	blendMap         map[string]int             // blend mode content hash -> index into blendList
 	blendMode        string                     // current blend mode
 	alpha            float64                    // current transpacency
-	gradientList     []gradientType             // slice[idx] of gradient records
+	gradientList     []gradientType             // slice[idx] of gradient records, 1-based
+	gradientMap      map[string]int             // gradient content hash -> index into gradientList
 	clipNest         int                        // Number of active clipping contexts
 	transformNest    int                        // Number of active transformation contexts
 	err              error                      // Set if error occurs during life cycle of instance

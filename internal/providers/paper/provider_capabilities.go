@@ -35,6 +35,13 @@ func (g *provider) Bookmark(title string, level int, y float64) {
 // AddLink reserves a new internal link target ID.
 func (g *provider) AddLink() int { return g.fpdf.AddLink() }
 
+// AddNamedLink reserves an internal link target ID under a document-level name.
+// Parallel page rendering gives each worker its own document, so the same
+// destination is reserved separately by every worker that references it; the
+// name is what lets those reservations collapse into one link when the pages
+// are spliced back together.
+func (g *provider) AddNamedLink(name string) int { return g.fpdf.AddNamedLink(name) }
+
 // SetLink registers the target's Y position and page number for a link ID.
 func (g *provider) SetLink(linkID int, y float64, page int) {
 	g.fpdf.SetLink(linkID, y, page)

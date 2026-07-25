@@ -66,6 +66,7 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	f.pageLinks = append(f.pageLinks, make([]linkType, 0))
 	f.links = make([]intLinkType, 0, 8)
 	f.links = append(f.links, intLinkType{})
+	f.linkNames = make(map[string]int)
 	f.aliasMap = make(map[string]string)
 	f.inHeader = false
 	f.inFooter = false
@@ -151,6 +152,7 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	f.alpha = 1
 	f.gradientList = make([]gradientType, 0, 8)
 	f.gradientList = append(f.gradientList, gradientType{})
+	f.gradientMap = make(map[string]int)
 
 	f.pdfVersion = "1.3"
 	f.SetProducer("FPDF "+cnPDFVersion, true)

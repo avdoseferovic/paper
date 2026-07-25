@@ -1142,6 +1142,28 @@ func (f *PDF) AddLink() int {
 	return len(f.links) - 1
 }
 
+// AddNamedLink creates an internal link whose destination is identified by
+// name, and returns its identifier. It behaves like AddLink except that the
+// destination survives page splicing: when AbsorbPages merges two documents
+// that both reserved name, the two reservations collapse into one link, so a
+// clickable area drawn in one document reaches a destination registered in the
+// other. Reserving the same name twice returns the same identifier.
+//
+// Use this instead of AddLink whenever the destination has a document-level
+// identity, such as an HTML anchor. See SetLink() for defining the target.
+func (f *PDF) AddNamedLink(name string) int {
+	if name == "" {
+		return f.AddLink()
+	}
+	if link, exists := f.linkNames[name]; exists {
+		return link
+	}
+	f.links = append(f.links, intLinkType{name: name})
+	link := len(f.links) - 1
+	f.linkNames[name] = link
+	return link
+}
+
 // SetLink defines the page and position a link points to. See AddLink().
 func (f *PDF) SetLink(link int, y float64, page int) {
 	if y == -1 {
@@ -1150,7 +1172,8 @@ func (f *PDF) SetLink(link int, y float64, page int) {
 	if page == -1 {
 		page = f.page
 	}
-	f.links[link] = intLinkType{page, y}
+	f.links[link].page = page
+	f.links[link].y = y
 }
 
 // newLink adds a new clickable link on current page
