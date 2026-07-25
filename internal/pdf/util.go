@@ -150,25 +150,49 @@ func doNothing(s string) string {
 // 	}
 // }
 
+// isASCIIOnly reports whether str consists solely of bytes below 0x80.
+func isASCIIOnly(str string) bool {
+	for i := range len(str) {
+		if str[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
+}
+
 func repClosure(m map[rune]byte) func(string) string {
 	var buf bytes.Buffer
 	return func(str string) string {
-		var ch byte
-		var ok bool
-		buf.Reset()
-		for _, r := range str {
-			if r < 0x80 {
-				ch = byte(r & 0x7F)
-			} else {
-				ch, ok = m[r]
-				if !ok {
-					ch = byte('.')
-				}
-			}
-			buf.WriteByte(ch)
+		// Every rune below 0x80 translates to itself, so an all-ASCII string is
+		// returned unchanged. Returning the input directly skips building an
+		// identical copy; the translator runs on every drawn text run, and this
+		// copy was ~17% of allocated objects for Latin text.
+		if isASCIIOnly(str) {
+			return str
 		}
-		return buf.String()
+		return translateNonASCII(&buf, m, str)
 	}
+}
+
+// translateNonASCII maps str into the code page described by m, replacing runes
+// with no mapping by '.'.
+func translateNonASCII(buf *bytes.Buffer, m map[rune]byte, str string) string {
+	var ch byte
+	var ok bool
+	buf.Reset()
+	for _, r := range str {
+		if r < 0x80 {
+			// Masking keeps the conversion provably within a byte.
+			ch = byte(r & 0x7F)
+		} else {
+			ch, ok = m[r]
+			if !ok {
+				ch = byte('.')
+			}
+		}
+		buf.WriteByte(ch)
+	}
+	return buf.String()
 }
 
 // UnicodeTranslator returns a function that can be used to translate, where
@@ -350,23 +374,51 @@ func fontFamilyEscape(familyStr string) string {
 	return pdfNameEscape(familyStr)
 }
 
+// pdfNameByteNeedsEscape reports whether c must be written as #XX inside a PDF
+// name object: every byte outside the regular printable range, and every
+// delimiter or '#'.
+func pdfNameByteNeedsEscape(c byte) bool {
+	if c < '!' || c > '~' {
+		return true
+	}
+	switch c {
+	case '#', '/', '%', '(', ')', '<', '>', '[', ']', '{', '}':
+		return true
+	}
+	return false
+}
+
+const pdfNameHexDigits = "0123456789ABCDEF"
+
 // pdfNameEscape escapes a string for use as a PDF name object (PDF 32000-1
 // §7.3.5): every byte outside the regular printable range and every
 // delimiter or '#' is written as #XX.
+//
+// Names that need no escaping — the common case, since this is on the path of
+// every SetFont call — are returned unchanged so the caller allocates nothing.
 func pdfNameEscape(s string) string {
+	needsEscape := false
+	for i := range len(s) {
+		if pdfNameByteNeedsEscape(s[i]) {
+			needsEscape = true
+			break
+		}
+	}
+	if !needsEscape {
+		return s
+	}
+
 	var b strings.Builder
+	b.Grow(len(s) + 8)
 	for i := range len(s) {
 		c := s[i]
-		switch {
-		case c < '!' || c > '~':
-			fmt.Fprintf(&b, "#%02X", c)
-		case c == '#' || c == '/' || c == '%' ||
-			c == '(' || c == ')' || c == '<' || c == '>' ||
-			c == '[' || c == ']' || c == '{' || c == '}':
-			fmt.Fprintf(&b, "#%02X", c)
-		default:
-			b.WriteByte(c)
+		if pdfNameByteNeedsEscape(c) {
+			b.WriteByte('#')
+			b.WriteByte(pdfNameHexDigits[c>>4])
+			b.WriteByte(pdfNameHexDigits[c&0x0F])
+			continue
 		}
+		b.WriteByte(c)
 	}
 	return b.String()
 }

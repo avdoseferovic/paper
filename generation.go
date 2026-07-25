@@ -51,6 +51,10 @@ func (m *Paper) generateDocument(ctx context.Context) (*core.Pdf, error) {
 		return m.generateConcurrently(ctx)
 	}
 
+	if m.config.GenerationMode == consts.GenerationParallelPages {
+		return m.generateParallelPages(ctx)
+	}
+
 	if m.config.GenerationMode == consts.GenerationSequentialLowMemory {
 		return m.generateLowMemory(ctx)
 	}

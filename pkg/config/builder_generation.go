@@ -14,6 +14,19 @@ func (b *CfgBuilder) WithConcurrentMode(chunkWorkers int) Builder {
 	return b
 }
 
+// WithParallelPagesMode renders pages concurrently into one document, splicing
+// the rendered pages together instead of merging separate PDFs. chunkWorkers
+// defines how many page groups are rendered concurrently.
+func (b *CfgBuilder) WithParallelPagesMode(chunkWorkers int) Builder {
+	if chunkWorkers < 1 {
+		return b
+	}
+
+	b.generationMode = consts.GenerationParallelPages
+	b.chunkWorkers = chunkWorkers
+	return b
+}
+
 // WithSequentialMode defines that paper will run in default mode.
 func (b *CfgBuilder) WithSequentialMode() Builder {
 	b.chunkWorkers = 1

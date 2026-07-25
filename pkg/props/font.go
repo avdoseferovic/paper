@@ -6,6 +6,10 @@ import (
 )
 
 // Font represents properties from a text.
+// defaultFontSize is the size applied when a Font or Text leaves Size unset.
+const defaultFontSize = 8.0
+
+// Font represents properties from a text.
 type Font struct {
 	// Family of the text, ex: constf.Arial, helvetica and etc.
 	Family string
@@ -54,7 +58,7 @@ func NormalizeFont(f Font, defaultFamily string) Font {
 	}
 
 	if f.Size == 0.0 {
-		f.Size = 8.0
+		f.Size = defaultFontSize
 	}
 
 	f.Color = CloneColor(f.Color)

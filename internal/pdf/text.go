@@ -189,11 +189,18 @@ func (f *PDF) Text(x, y float64, txtStr string) {
 	} else {
 		txt2 = f.escape(txtStr)
 	}
+	// Undecorated text is the overwhelmingly common case and needs no
+	// intermediate string: write the operator straight into the page buffer.
+	if txtStr == "" || (!f.underline && !f.strikeout) {
+		f.outTextShow(x, y, txt2)
+		return
+	}
+
 	s := sprintf("BT %.2f %.2f Td (%s) Tj ET", x*f.k, (f.h-y)*f.k, txt2)
-	if f.underline && txtStr != "" {
+	if f.underline {
 		s += " " + f.dounderline(x, y, txtStr)
 	}
-	if f.strikeout && txtStr != "" {
+	if f.strikeout {
 		s += " " + f.dostrikeout(x, y, txtStr)
 	}
 	if f.colorFlag {
@@ -359,11 +366,13 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	if w == 0 {
 		w = f.w - f.rMargin - f.x
 	}
-	var s fmtBuffer
-	f.appendCellFill(&s, w, h, borderStr, fill)
-	f.appendCellBorders(&s, w, h, borderStr)
+	s, releaseCellBuffer := takeCellBuffer()
+	defer releaseCellBuffer()
+
+	f.appendCellFill(s, w, h, borderStr, fill)
+	f.appendCellBorders(s, w, h, borderStr)
 	if txtStr != "" {
-		f.appendCellText(&s, w, h, txtStr, alignStr, link, linkStr)
+		f.appendCellText(s, w, h, txtStr, alignStr, link, linkStr)
 	}
 	str := s.String()
 	if str != "" {

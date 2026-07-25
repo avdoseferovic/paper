@@ -460,7 +460,7 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 		f.isCurrentUTF8 = false
 	}
 	if f.page > 0 {
-		f.outf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
+		f.outFontSelect(f.currentFont.i, f.fontSizePt)
 	}
 }
 
@@ -591,7 +591,7 @@ func (f *PDF) SetFontSize(size float64) {
 	f.fontSizePt = size
 	f.fontSize = size / f.k
 	if f.page > 0 {
-		f.outf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
+		f.outFontSelect(f.currentFont.i, f.fontSizePt)
 	}
 }
 
@@ -601,7 +601,7 @@ func (f *PDF) SetFontUnitSize(size float64) {
 	f.fontSizePt = size * f.k
 	f.fontSize = size
 	if f.page > 0 {
-		f.outf("BT /F%s %.2f Tf ET", f.currentFont.i, f.fontSizePt)
+		f.outFontSelect(f.currentFont.i, f.fontSizePt)
 	}
 }
 

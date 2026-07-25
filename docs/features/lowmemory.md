@@ -7,14 +7,15 @@
 | Mode | Method | Memory | Speed |
 |------|--------|--------|-------|
 | Default (sequential) | `config.NewBuilder()` | Medium | Baseline |
-| Low memory | `WithSequentialLowMemoryMode(n)` | Low | Slightly slower |
-| Concurrent | `WithConcurrentMode(workers)` | High | Fastest |
+| Low memory | `WithSequentialLowMemoryMode(n)` | Low | Slower |
+| Parallel pages | `WithParallelPagesMode(workers)` | Higher | Fastest on large documents |
+| Concurrent (legacy) | `WithConcurrentMode(workers)` | Highest | Slower than sequential on small documents |
 
 ## Usage notes
 
 - Use this mode when generating large documents (hundreds of pages) on memory-constrained environments.
 - Headers and footers are still applied to every page; the low-memory mode does not affect their correctness.
-- Incompatible with `WithConcurrentMode`; the last mode set wins.
+- The generation modes are mutually exclusive; the last mode set wins.
 
 ## GoDoc
 * [builder : WithSequentialLowMemory](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithSequentialLowMemoryMode)

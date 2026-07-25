@@ -86,7 +86,16 @@ func (f *PDF) SetTextColor(r, g, b int) {
 }
 
 func (f *PDF) setTextColor(r, g, b int) {
-	f.color.text = rgbColorValue(r, g, b, "g", "rg")
+	// rgbColorValue formats a fresh operator string on every call, and the text
+	// color is re-applied for every drawn text run even though it rarely
+	// changes. Reuse the current value when the components already match; str is
+	// empty only before the first real assignment, so it doubles as the
+	// "computed at least once" marker. colorFlag is always refreshed, since the
+	// fill color may have moved since.
+	if f.color.text.str == "" ||
+		f.color.text.ir != r || f.color.text.ig != g || f.color.text.ib != b {
+		f.color.text = rgbColorValue(r, g, b, "g", "rg")
+	}
 	f.colorFlag = f.color.fill.str != f.color.text.str
 }
 
