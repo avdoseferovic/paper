@@ -166,3 +166,34 @@ func TestProcessPageGroupsConcurrentlyReturnsContextError(t *testing.T) {
 	assert.Nil(t, results)
 	assert.ErrorIs(t, err, context.Canceled)
 }
+
+// TestProcessPageGroupsConcurrentlyStopsAfterFirstError verifies that once a
+// group fails, the pool stops handing out the groups that follow. The whole
+// result is discarded on error, so continuing to render is wasted work — this is
+// what keeps the parallel-pages sequential fallback from paying for a full
+// parallel render before falling back.
+func TestProcessPageGroupsConcurrentlyStopsAfterFirstError(t *testing.T) {
+	t.Parallel()
+
+	const groups = 64
+	pageGroups := make([][]core.Page, groups)
+	for i := range pageGroups {
+		pageGroups[i] = make([]core.Page, 1)
+	}
+
+	expectedErr := errors.New("unspliceable feature")
+	var processed atomic.Int64
+
+	// One worker so ordering is deterministic: the first group fails, and every
+	// later group must be skipped.
+	_, err := processPageGroupsConcurrently(context.Background(), 1, pageGroups,
+		func(_ context.Context, _ []core.Page) (pageProcessResult, error) {
+			if processed.Add(1) == 1 {
+				return pageProcessResult{}, expectedErr
+			}
+			return pageProcessResult{}, nil
+		})
+
+	assert.ErrorIs(t, err, expectedErr)
+	assert.Equal(t, int64(1), processed.Load())
+}

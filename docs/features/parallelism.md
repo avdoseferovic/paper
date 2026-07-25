@@ -1,10 +1,6 @@
 # Parallelism
 
-paper can render a document's pages on several goroutines instead of one. Two modes do this, and they differ in how the concurrently rendered pages are joined back together.
-
-`WithParallelPagesMode` is the one to reach for. It renders page groups in parallel, then splices the rendered pages into a single document that is serialized once.
-
-`WithConcurrentMode` is the older strategy: every chunk is serialized to a complete PDF and those byte streams are merged. Each chunk therefore pays for a full document — font programs, resource dictionary, cross-reference table — and the merge re-parses all of it, so its overhead grows with the worker count. It is kept for compatibility.
+`WithParallelPagesMode` renders page groups on several goroutines instead of one, then splices the rendered pages into a single document that is serialized once.
 
 ## Generation modes comparison
 
@@ -13,7 +9,6 @@ paper can render a document's pages on several goroutines instead of one. Two mo
 | Default (sequential) | `config.NewBuilder()` | Medium | Baseline |
 | Low memory | `WithSequentialLowMemoryMode(n)` | Low | Slower |
 | Parallel pages | `WithParallelPagesMode(workers)` | Higher | Fastest on large documents |
-| Concurrent (legacy) | `WithConcurrentMode(workers)` | Highest | Slower than sequential on small documents |
 
 ## Measured speedup
 
@@ -31,20 +26,21 @@ The remaining limit is the garbage collector rather than the core count: allocat
 
 ## Usage notes
 
-- Both parallel modes render page *groups*; `workers` sets how many groups are rendered concurrently.
+- Rendering happens per page *group*; `workers` sets how many groups are rendered concurrently.
 - Memory scales with the worker count, since each worker holds its own pages while rendering.
 - The generation modes are mutually exclusive; the last one called wins.
 - Output is deterministic. With `WithDeterministic(true)`, parallel output is byte-for-byte identical to sequential output at any worker count, because fonts and images are named by a content hash of their definition rather than by registration order.
 
 ### When parallel pages falls back to sequential
 
-Some features cannot be spliced, either because their PDF names are allocated sequentially (gradients, blend modes) or because they record absolute page indices (internal links, outlines, annotations, page geometries, form fields). When a document uses one of them, `WithParallelPagesMode` detects it after rendering and transparently re-renders the document sequentially, so the output stays correct. You get sequential performance in that case, not an error.
+Some features cannot be spliced, either because their PDF names are allocated sequentially (gradients, blend modes) or because they record absolute page indices (internal links, outlines, annotations, page geometries, form fields). When a document uses one of them, `WithParallelPagesMode` transparently re-renders the document sequentially, so the output stays correct. You get sequential performance in that case, not an error.
+
+Detection happens as soon as the feature is drawn, not at the end: the worker that meets it aborts the whole pool, so the fallback does not pay for a full parallel render first. On a 150-page outline document the fallback costs about 15% over generating sequentially outright.
 
 Documents using protection or document-catalog features (forms, PDF/A, tagged PDF, attachments) always use sequential generation, as before.
 
 ## GoDoc
 * [builder : WithParallelPagesMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithParallelPagesMode)
-* [builder : WithConcurrentMode](https://pkg.go.dev/github.com/avdoseferovic/paper/pkg/config#CfgBuilder.WithConcurrentMode)
 
 ## Code Example
 [filename](../assets/examples/parallelism/main.go  ':include :type=code')

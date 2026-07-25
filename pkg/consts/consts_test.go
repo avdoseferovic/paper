@@ -39,7 +39,7 @@ func TestConsts_StringValuesAreStable(t *testing.T) {
 		{"BarcodeCode128", string(consts.BarcodeCode128), "code128"},
 		{"BarcodeEAN", string(consts.BarcodeEAN), "ean"},
 		{"GenerationSequential", string(consts.GenerationSequential), "sequential"},
-		{"GenerationConcurrent", string(consts.GenerationConcurrent), "concurrent"},
+		{"GenerationParallelPages", string(consts.GenerationParallelPages), "parallel_pages"},
 		{"GenerationSequentialLowMemory", string(consts.GenerationSequentialLowMemory), "sequential_low_memory"},
 		{"ProviderPaper", string(consts.ProviderPaper), "paper"},
 	}

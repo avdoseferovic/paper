@@ -12,8 +12,8 @@ import (
 )
 
 // BenchmarkGenerationModes compares the generation modes on the same document:
-// sequential, the chunk-and-merge concurrent mode, and the page-splicing
-// parallel mode. Run with -benchtime 20x for stable numbers.
+// sequential, low memory, and page-splicing parallel rendering at a couple of
+// worker counts. Run with -benchtime 20x for stable numbers.
 func BenchmarkGenerationModes(b *testing.B) {
 	for _, rowCount := range []int{200, 1000, 5000} {
 		rows := parallelTestRows(rowCount)
@@ -22,10 +22,11 @@ func BenchmarkGenerationModes(b *testing.B) {
 			benchmarkGeneration(b, config.NewBuilder().WithSequentialMode().Build(), rows)
 		})
 
+		b.Run(fmt.Sprintf("rows=%d/lowmemory-4", rowCount), func(b *testing.B) {
+			benchmarkGeneration(b, config.NewBuilder().WithSequentialLowMemoryMode(4).Build(), rows)
+		})
+
 		for _, workers := range []int{4, 8} {
-			b.Run(fmt.Sprintf("rows=%d/concurrent-%d", rowCount, workers), func(b *testing.B) {
-				benchmarkGeneration(b, config.NewBuilder().WithConcurrentMode(workers).Build(), rows)
-			})
 			b.Run(fmt.Sprintf("rows=%d/parallelpages-%d", rowCount, workers), func(b *testing.B) {
 				benchmarkGeneration(b, config.NewBuilder().WithParallelPagesMode(workers).Build(), rows)
 			})

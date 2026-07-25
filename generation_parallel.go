@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/internal/pdf"
@@ -17,12 +16,11 @@ import (
 // document, then splices the rendered pages into a single document that is
 // serialized once.
 //
-// This differs from generateConcurrently in what happens after rendering:
-// concurrent mode serializes every chunk to PDF bytes and merges those byte
-// streams, so each chunk pays for a full document (font programs, resource
-// dictionary, xref) and the merge re-parses all of it. Here only page content
-// streams and resource tables move between documents, so the per-chunk cost
-// does not grow with the worker count.
+// Only page content streams and resource tables move between documents, so the
+// per-chunk cost does not grow with the worker count. Serializing every chunk to
+// PDF bytes and merging those byte streams instead would make each chunk pay for
+// a full document (font programs, resource dictionary, xref) and re-parse all of
+// it in the merge.
 func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 	pageGroups, err := m.chunkedPageGroups(ctx)
 	if err != nil {
@@ -34,8 +32,17 @@ func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 
 	sharedCache := cache.NewMutexDecorator(cache.New())
 
-	rendered, err := m.renderPageGroupsConcurrently(ctx, pageGroups, sharedCache)
+	rendered, err := processPageGroupsConcurrently(ctx, m.config.ChunkWorkers, pageGroups,
+		func(ctx context.Context, pages []core.Page) (core.Provider, error) {
+			return m.renderPagesToProvider(ctx, pages, sharedCache)
+		})
 	if err != nil {
+		// A worker hit a feature whose PDF names or page references are
+		// position-dependent. Rendering aborted as soon as it was drawn, so fall
+		// back to a sequential render, which supports everything.
+		if errors.Is(err, pdf.ErrAbsorbUnsupported) {
+			return m.generateSequentially(ctx)
+		}
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
 		}
@@ -46,11 +53,10 @@ func (m *Paper) generateParallelPages(ctx context.Context) (*core.Pdf, error) {
 		return nil, err
 	}
 
+	// Splicing re-checks absorbability, so this also catches anything the
+	// per-page check could not see.
 	doc, err := m.spliceAndSerialize(rendered)
 	if errors.Is(err, pdf.ErrAbsorbUnsupported) {
-		// The document turned out to use a feature whose PDF names or page
-		// references are position-dependent, which is only detectable once the
-		// pages have been rendered. Correctness wins: re-render sequentially.
 		return m.generateSequentially(ctx)
 	}
 	return doc, err
@@ -91,97 +97,13 @@ func (m *Paper) spliceAndSerialize(rendered []core.Provider) (*core.Pdf, error) 
 	return core.NewPDF(documentBytes, reportFromIssues(issues)), nil
 }
 
-// renderPageGroupsConcurrently renders each page group into its own provider,
-// returning the providers in page order.
-func (m *Paper) renderPageGroupsConcurrently(
-	ctx context.Context,
-	pageGroups [][]core.Page,
-	sharedCache cache.Cache,
-) ([]core.Provider, error) {
-	workerCount := m.config.ChunkWorkers
-	if workerCount < 1 {
-		workerCount = 1
-	}
-	workerCount = min(workerCount, len(pageGroups))
-
-	results := make([]core.Provider, len(pageGroups))
-	jobs := make(chan int)
-	done := ctx.Done()
-	var wg sync.WaitGroup
-	var errMu sync.Mutex
-	var firstErr error
-	recordErr := func(err error) {
-		errMu.Lock()
-		if firstErr == nil {
-			firstErr = err
-		}
-		errMu.Unlock()
-	}
-
-	wg.Add(workerCount)
-	for range workerCount {
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-done:
-					recordErr(generationCanceled(ctx))
-					return
-				case index, ok := <-jobs:
-					if !ok {
-						return
-					}
-					m.runRenderJob(ctx, index, pageGroups, sharedCache, results, recordErr)
-				}
-			}
-		}()
-	}
-
-	for index := range pageGroups {
-		select {
-		case <-done:
-			recordErr(generationCanceled(ctx))
-			close(jobs)
-			wg.Wait()
-			return nil, firstErr
-		case jobs <- index:
-		}
-	}
-	close(jobs)
-	wg.Wait()
-
-	if firstErr != nil {
-		return nil, firstErr
-	}
-	return results, nil
-}
-
-// runRenderJob renders one page group in an isolated scope so a panic is
-// reported through recordErr instead of killing the worker goroutine.
-func (m *Paper) runRenderJob(
-	ctx context.Context,
-	index int,
-	pageGroups [][]core.Page,
-	sharedCache cache.Cache,
-	results []core.Provider,
-	recordErr func(error),
-) {
-	defer func() {
-		if r := recover(); r != nil {
-			recordErr(fmt.Errorf("%w %d: %v", errPanicProcessingPageGroup, index, r))
-		}
-	}()
-
-	provider, err := m.renderPagesToProvider(ctx, pageGroups[index], sharedCache)
-	if err != nil {
-		recordErr(err)
-		return
-	}
-	results[index] = provider
-}
-
 // renderPagesToProvider renders pages into a fresh provider without
 // serializing it, leaving the page content streams available for splicing.
+//
+// Spliceability is re-checked after every page so that a document using an
+// unspliceable feature is detected as soon as that feature is drawn. The error
+// aborts the whole worker pool, which keeps the sequential fallback from paying
+// for a full parallel render first.
 func (m *Paper) renderPagesToProvider(
 	ctx context.Context,
 	pages []core.Page,
@@ -189,6 +111,7 @@ func (m *Paper) renderPagesToProvider(
 ) (core.Provider, error) {
 	innerCtx := m.pageBuilder.cell.Copy()
 	provider := getProvider(sharedCache, m.config)
+	checker, canCheck := provider.(paperprovider.AbsorbabilityChecker)
 
 	for i, page := range pages {
 		if err := generationCanceled(ctx); err != nil {
@@ -196,6 +119,12 @@ func (m *Paper) renderPagesToProvider(
 		}
 		ensureProviderPage(provider, i+1)
 		page.Render(provider, innerCtx)
+
+		if canCheck {
+			if err := checker.PagesAbsorbable(); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return provider, nil

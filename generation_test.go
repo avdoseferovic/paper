@@ -68,12 +68,12 @@ func TestFromHTML_WhenOutlineFromHeadingsDisabled_ShouldNotEmitOutline(t *testin
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without the option")
 }
 
-func TestGenerate_WhenConcurrentModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
+func TestGenerate_WhenParallelPagesModeWithOutlines_ShouldPreserveOutline(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().
 		WithCompression(false).
-		WithConcurrentMode(4).
+		WithParallelPagesMode(4).
 		Build()
 	assertOutlineSurvivesGeneration(t, cfg)
 }

@@ -34,7 +34,7 @@ func TestConfig_ToMap(t *testing.T) {
 	assert.Equal(t, fontstyle.Bold, m["prop_font_style"])
 	assert.Equal(t, 15.0, m["prop_font_size"])
 	assert.Equal(t, "RGB(255, 0, 0)", m["prop_font_color"])
-	assert.Equal(t, consts.GenerationConcurrent, m["generation_mode"])
+	assert.Equal(t, consts.GenerationParallelPages, m["generation_mode"])
 	assert.Equal(t, 7, m["chunk_workers"])
 	assert.Equal(t, true, m["config_debug"])
 	assert.Equal(t, 15, m["config_max_grid_sum"])
@@ -75,7 +75,7 @@ func fixtureConfig() entity.Config {
 		Dimensions:           &dimensions,
 		Margins:              &margins,
 		DefaultFont:          &font,
-		GenerationMode:       consts.GenerationConcurrent,
+		GenerationMode:       consts.GenerationParallelPages,
 		ChunkWorkers:         7,
 		Debug:                true,
 		MaxGridSize:          15,

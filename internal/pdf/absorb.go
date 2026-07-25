@@ -57,6 +57,17 @@ func (f *PDF) AbsorbPages(src *PDF) error {
 	return nil
 }
 
+// PagesAbsorbable reports whether the pages rendered into f so far could be
+// spliced into another document, returning ErrAbsorbUnsupported if not.
+//
+// Callers rendering pages concurrently use this to notice an unspliceable
+// feature as soon as it is drawn, rather than after rendering the whole
+// document, so the work already done can be abandoned early. It only inspects
+// slice lengths, so it is cheap enough to call per page.
+func (f *PDF) PagesAbsorbable() error {
+	return f.absorbable()
+}
+
 // absorbable reports whether f's pages can be spliced into another document
 // without rewriting position-dependent names or page references.
 func (f *PDF) absorbable() error {

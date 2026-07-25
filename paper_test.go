@@ -31,7 +31,7 @@ import (
 )
 
 // TestMain runs the package test binary under a leak check so any goroutine leaked
-// by the concurrent generation worker pool fails the suite deterministically.
+// by the page rendering worker pool fails the suite deterministically.
 func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
@@ -86,11 +86,11 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, sut)
 		assert.Equal(t, "*paper.Paper", fmt.Sprintf("%T", sut))
 	})
-	t.Run("when config with an concurrent mode is sent, should create Paper object", func(t *testing.T) {
+	t.Run("when config with a parallel pages mode is sent, should create Paper object", func(t *testing.T) {
 		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
-			WithConcurrentMode(7).
+			WithParallelPagesMode(7).
 			Build()
 
 		// Act
@@ -466,10 +466,10 @@ func TestMaroto_Generate(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
-	t.Run("when rows do not fit on the current page and concurrent mode is active, should executed in parallel", func(t *testing.T) {
+	t.Run("when rows do not fit on the current page and parallel pages mode is active, should render in parallel", func(t *testing.T) {
 		// Arrange
 		cfg := config.NewBuilder().
-			WithConcurrentMode(7).
+			WithParallelPagesMode(7).
 			Build()
 
 		sut := paper.New(cfg)
@@ -484,10 +484,10 @@ func TestMaroto_Generate(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
-	t.Run("when protection and concurrent mode are active, should generate protected PDF bytes", func(t *testing.T) {
+	t.Run("when protection and parallel pages mode are active, should generate protected PDF bytes", func(t *testing.T) {
 		// Arrange
 		cfg := config.NewBuilder().
-			WithConcurrentMode(7).
+			WithParallelPagesMode(7).
 			WithProtection(protection.None, "user", "owner").
 			Build()
 
@@ -495,7 +495,7 @@ func TestMaroto_Generate(t *testing.T) {
 
 		// Act
 		for range 30 {
-			sut.AddRows(text.NewRow(10, "protected concurrent"))
+			sut.AddRows(text.NewRow(10, "protected parallel"))
 		}
 
 		// Assert
@@ -595,10 +595,10 @@ func TestMaroto_Generate(t *testing.T) {
 		// Assert
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_sequential_low_memory.json")
 	})
-	t.Run("when two pages are sent and concurrent mode is active, should executed in parallel", func(t *testing.T) {
+	t.Run("when two pages are sent and parallel pages mode is active, should render in parallel", func(t *testing.T) {
 		// Arrange
 		cfg := config.NewBuilder().
-			WithConcurrentMode(10).
+			WithParallelPagesMode(10).
 			Build()
 
 		sut := paper.New(cfg)
@@ -609,16 +609,16 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		test.New(t).Assert(sut.GetStructure()).Equals("paper_concurrent.json")
+		test.New(t).Assert(sut.GetStructure()).Equals("paper_parallel_pages.json")
 	})
-	t.Run("goroutines do not leak after multiple generate calls on concurrent mode", func(t *testing.T) {
+	t.Run("goroutines do not leak after multiple generate calls in parallel pages mode", func(t *testing.T) {
 		// The leak check polls with backoff for goroutines to settle and compares
 		// against the package-level test baseline.
 		defer goleak.VerifyNone(t)
 
 		// Arrange
 		cfg := config.NewBuilder().
-			WithConcurrentMode(10).
+			WithParallelPagesMode(10).
 			Build()
 
 		sut := paper.New(cfg)
@@ -700,10 +700,10 @@ func TestPaper_GenerateRepeatedCallsProtectedSequential(t *testing.T) {
 	assertRepeatedGenerateStable(t, cfg)
 }
 
-func TestPaper_GenerateRepeatedCallsConcurrent(t *testing.T) {
+func TestPaper_GenerateRepeatedCallsParallelPages(t *testing.T) {
 	t.Parallel()
 
-	assertRepeatedGenerateStable(t, config.NewBuilder().WithConcurrentMode(2).Build())
+	assertRepeatedGenerateStable(t, config.NewBuilder().WithParallelPagesMode(2).Build())
 }
 
 func TestPaper_GenerateRepeatedCallsLowMemory(t *testing.T) {
@@ -716,10 +716,10 @@ func TestPaper_GenerateReturnsContextError(t *testing.T) {
 	t.Parallel()
 
 	for name, cfg := range map[string]*coreentity.Config{
-		"sequential": config.NewBuilder().WithSequentialMode().Build(),
-		"concurrent": config.NewBuilder().WithConcurrentMode(2).Build(),
-		"low-memory": config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
-		"protection": config.NewBuilder().WithProtection(protection.None, "user", "owner").Build(),
+		"sequential":     config.NewBuilder().WithSequentialMode().Build(),
+		"parallel_pages": config.NewBuilder().WithParallelPagesMode(2).Build(),
+		"low-memory":     config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
+		"protection":     config.NewBuilder().WithProtection(protection.None, "user", "owner").Build(),
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -739,10 +739,10 @@ func TestPaper_GenerateReturnsContextError(t *testing.T) {
 	}
 }
 
-func TestPaper_GenerateConcurrentCancellationDoesNotLeak(t *testing.T) {
+func TestPaper_GenerateParallelPagesCancellationDoesNotLeak(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	cfg := config.NewBuilder().WithConcurrentMode(2).Build()
+	cfg := config.NewBuilder().WithParallelPagesMode(2).Build()
 	sut := paper.New(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	for range 8 {
@@ -824,10 +824,10 @@ func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 		}
 	})
 
-	t.Run("concurrent and low memory generation aggregate image fallback issues", func(t *testing.T) {
+	t.Run("parallel pages and low memory generation aggregate image fallback issues", func(t *testing.T) {
 		for name, cfg := range map[string]*coreentity.Config{
-			"concurrent": config.NewBuilder().WithConcurrentMode(2).Build(),
-			"low-memory": config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
+			"parallel_pages": config.NewBuilder().WithParallelPagesMode(2).Build(),
+			"low-memory":     config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
 		} {
 			t.Run(name, func(t *testing.T) {
 				sut := paper.New(cfg)
