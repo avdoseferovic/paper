@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -206,7 +207,7 @@ func TestParsePDF_ObjectErrors(t *testing.T) {
 		// Only the last object's endobj can be cut without shifting offsets.
 		data := assemblePDF(minimalObjects())
 		idx := bytes.LastIndex(data, []byte("endobj"))
-		mutated := append([]byte{}, data...)
+		mutated := slices.Clone(data)
 		copy(mutated[idx:], "endXXX")
 
 		_, err := parsePDF(mutated)
@@ -397,7 +398,7 @@ func TestCollectMergedOutlineTops_DropsSourceOnMissingMapping(t *testing.T) {
 func TestBytes_ContextCanceled(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	merged, err := Bytes(ctx, assemblePDF(minimalObjects()), assemblePDF(minimalObjects()))
@@ -411,7 +412,7 @@ func TestBytes_ContextCanceled(t *testing.T) {
 func TestBytes_MergesMinimalDocuments(t *testing.T) {
 	t.Parallel()
 
-	merged, err := Bytes(context.Background(), assemblePDF(minimalObjects()), assemblePDF(minimalObjects()))
+	merged, err := Bytes(t.Context(), assemblePDF(minimalObjects()), assemblePDF(minimalObjects()))
 
 	require.NoError(t, err)
 	document, err := parsePDF(merged)

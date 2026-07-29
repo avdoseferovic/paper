@@ -2,8 +2,9 @@ package pdf
 
 import (
 	"bytes"
+	"cmp"
 	"math"
-	"sort"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -107,7 +108,7 @@ func (f *PDF) fallbackFontKeyForRune(r rune) (string, bool) {
 			keys = append(keys, key)
 		}
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	for _, key := range keys {
 		if fontSupportsRune(f.fonts[key], r) {
 			return key, true
@@ -363,9 +364,7 @@ func (f *PDF) CellFormat(w, h float64, txtStr, borderStr string, ln int,
 	if f.err != nil {
 		return
 	}
-	if w == 0 {
-		w = f.w - f.rMargin - f.x
-	}
+	w = cmp.Or(w, f.w-f.rMargin-f.x)
 	s, releaseCellBuffer := takeCellBuffer()
 	defer releaseCellBuffer()
 
@@ -718,12 +717,8 @@ type multiCellState struct {
 }
 
 func (f *PDF) newMultiCellState(w, h float64, txtStr, borderStr, alignStr string, fill bool) multiCellState {
-	if alignStr == "" {
-		alignStr = "J"
-	}
-	if w == 0 {
-		w = f.w - f.rMargin - f.x
-	}
+	alignStr = cmp.Or(alignStr, "J")
+	w = cmp.Or(w, f.w-f.rMargin-f.x)
 	s, srune, nb := f.normalizedMultiCellText(txtStr)
 	borderStr, b, b2 := multiCellBorders(borderStr)
 	return multiCellState{

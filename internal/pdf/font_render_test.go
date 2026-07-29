@@ -30,6 +30,8 @@ func readyUTF8PDF(t *testing.T) *PDF {
 }
 
 func TestUTF8StringWidthPositive(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	if w := f.GetStringWidth("Zdravo ćao"); w <= 0 {
 		t.Fatalf("UTF-8 string width = %v", w)
@@ -37,6 +39,8 @@ func TestUTF8StringWidthPositive(t *testing.T) {
 }
 
 func TestUTF8JustifiedMultiCell(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	long := strings.Repeat("Zdravo ćao svijete ", 30)
 	// Justified alignment exercises appendJustifiedUTF8CellText / blankCount.
@@ -48,6 +52,8 @@ func TestUTF8JustifiedMultiCell(t *testing.T) {
 }
 
 func TestUTF8MultiCellExplicitNewlinesAndOverflow(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	text := "Line one\n" + strings.Repeat("supercalifragilisticexpialidocious", 4) + "\nLast line"
 	f.MultiCell(50, 6, text, "0", "L", false)
@@ -58,6 +64,8 @@ func TestUTF8MultiCellExplicitNewlinesAndOverflow(t *testing.T) {
 }
 
 func TestUTF8WriteWrapsAcrossLines(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	f.Write(6, strings.Repeat("wrapping words across the page width ", 20))
 	if f.Err() {
@@ -67,6 +75,8 @@ func TestUTF8WriteWrapsAcrossLines(t *testing.T) {
 }
 
 func TestUTF8SplitText(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	lines := f.SplitText(strings.Repeat("alpha beta gamma délta ", 12), 50)
 	if len(lines) < 2 {
@@ -75,6 +85,8 @@ func TestUTF8SplitText(t *testing.T) {
 }
 
 func TestUnderlineAndStrikeoutRendering(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetFont("Helvetica", "U", 12)
 	f.Cell(40, 10, "underlined")
@@ -88,7 +100,10 @@ func TestUnderlineAndStrikeoutRendering(t *testing.T) {
 }
 
 func TestCoreFontSemiboldStyleFallbacksToAvailableStyle(t *testing.T) {
+	t.Parallel()
+
 	t.Run("semibold falls back to regular", func(t *testing.T) {
+		t.Parallel()
 		f := readyPDF(t)
 		f.SetFont("Helvetica", "M", 12)
 		f.Cell(40, 10, "semibold fallback")
@@ -102,6 +117,7 @@ func TestCoreFontSemiboldStyleFallbacksToAvailableStyle(t *testing.T) {
 	})
 
 	t.Run("semibold italic falls back to italic", func(t *testing.T) {
+		t.Parallel()
 		f := readyPDF(t)
 		f.SetFont("Helvetica", "MI", 12)
 		f.Cell(40, 10, "semibold italic fallback")
@@ -116,6 +132,8 @@ func TestCoreFontSemiboldStyleFallbacksToAvailableStyle(t *testing.T) {
 }
 
 func TestSubWriteOffsetsBaseline(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetXY(10, 30)
 	f.Write(6, "H")
@@ -128,6 +146,8 @@ func TestSubWriteOffsetsBaseline(t *testing.T) {
 }
 
 func TestFontSizeHelpers(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetFontUnitSize(10)
 	sizePt, sizeUnit := f.GetFontSize()
@@ -143,6 +163,8 @@ func TestFontSizeHelpers(t *testing.T) {
 }
 
 func TestGetFontDescCoreVsUTF8(t *testing.T) {
+	t.Parallel()
+
 	// Core fonts do not carry a full descriptor; the lookup must still succeed.
 	core := readyPDF(t)
 	_ = core.GetFontDesc("Helvetica", "")

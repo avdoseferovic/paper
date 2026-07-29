@@ -3,6 +3,8 @@ package pdf
 import "testing"
 
 func TestPointTypeXY(t *testing.T) {
+	t.Parallel()
+
 	x, y := PointType{X: 3, Y: 7}.XY()
 	if x != 3 || y != 7 {
 		t.Fatalf("XY = %v, %v", x, y)
@@ -10,6 +12,8 @@ func TestPointTypeXY(t *testing.T) {
 }
 
 func TestPointConversionsRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "mm"})
 	// PointConvert and PointToUnitConvert are aliases.
 	if f.PointConvert(72) != f.PointToUnitConvert(72) {
@@ -24,6 +28,8 @@ func TestPointConversionsRoundTrip(t *testing.T) {
 }
 
 func TestPointConvertPointUnit(t *testing.T) {
+	t.Parallel()
+
 	// With unit "pt", k == 1 so conversions are identity.
 	f := NewCustom(&InitType{UnitStr: "pt"})
 	if got := f.PointConvert(15); got != 15 {
@@ -35,6 +41,8 @@ func TestPointConvertPointUnit(t *testing.T) {
 }
 
 func TestImageInfoExtentWidthHeight(t *testing.T) {
+	t.Parallel()
+
 	info := &ImageInfoType{w: 144, h: 72, scale: 1, dpi: 72}
 	// At 72 dpi and scale 1, pixels map 1:1 to points.
 	if got := info.Width(); got != 144 {
@@ -50,6 +58,8 @@ func TestImageInfoExtentWidthHeight(t *testing.T) {
 }
 
 func TestImageInfoSetDpiChangesExtent(t *testing.T) {
+	t.Parallel()
+
 	info := &ImageInfoType{w: 144, h: 144, scale: 1, dpi: 72}
 	info.SetDpi(144)
 	// Doubling dpi halves the rendered extent.
@@ -59,6 +69,8 @@ func TestImageInfoSetDpiChangesExtent(t *testing.T) {
 }
 
 func TestImageInfoGobRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := &ImageInfoType{
 		data:  []byte{1, 2, 3},
 		smask: []byte{4, 5},
@@ -92,6 +104,8 @@ func TestImageInfoGobRoundTrip(t *testing.T) {
 }
 
 func TestImageInfoGobDecodeRejectsGarbage(t *testing.T) {
+	t.Parallel()
+
 	var info ImageInfoType
 	if err := info.GobDecode([]byte("not gob data")); err == nil {
 		t.Fatal("expected error decoding garbage")

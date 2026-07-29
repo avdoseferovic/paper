@@ -1,6 +1,7 @@
 package css
 
 import (
+	"cmp"
 	"strconv"
 	"strings"
 )
@@ -48,10 +49,7 @@ func ParseLength(value string, parentFontSize float64) float64 {
 		return v
 	}
 
-	remFactor := parentFontSize
-	if remFactor == 0 {
-		remFactor = defaultRemMM
-	}
+	remFactor := cmp.Or(parentFontSize, defaultRemMM)
 	// Longer suffixes must be checked before their suffixes ("rem" before
 	// "em", "mm"/"cm" before "m"): "1rem" also ends in "em" and must not be
 	// rejected because "1r" fails to parse.

@@ -1,6 +1,7 @@
 package css
 
 import (
+	"cmp"
 	"maps"
 	"strings"
 )
@@ -227,15 +228,9 @@ func parseBorderTriple(val string) (string, string, string) {
 			colorVal = p
 		}
 	}
-	if width == "" {
-		width = cssValueMedium
-	}
-	if style == "" {
-		style = cssValueNone
-	}
-	if colorVal == "" {
-		colorVal = "currentColor"
-	}
+	width = cmp.Or(width, cssValueMedium)
+	style = cmp.Or(style, cssValueNone)
+	colorVal = cmp.Or(colorVal, "currentColor")
 	return width, style, colorVal
 }
 

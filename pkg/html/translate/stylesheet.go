@@ -1,8 +1,9 @@
 package translate
 
 import (
+	"cmp"
+	"maps"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -154,12 +155,7 @@ func expandDeclarationsInOrder(declarations []cssDeclaration) []cssDeclaration {
 			continue
 		}
 		parts := css.ExpandShorthands(map[string]string{d.property: d.value})
-		keys := make([]string, 0, len(parts))
-		for prop := range parts {
-			keys = append(keys, prop)
-		}
-		sort.Strings(keys)
-		for _, prop := range keys {
+		for _, prop := range slices.Sorted(maps.Keys(parts)) {
 			expanded = append(expanded, cssDeclaration{
 				property:  prop,
 				value:     parts[prop],
@@ -290,10 +286,7 @@ func splitPseudoElementSelector(selector string) (string, string) {
 		{value: "::placeholder", pseudo: "placeholder"},
 	} {
 		if strings.HasSuffix(lower, suffix.value) {
-			base := strings.TrimSpace(trimmed[:len(trimmed)-len(suffix.value)])
-			if base == "" {
-				base = "*"
-			}
+			base := cmp.Or(strings.TrimSpace(trimmed[:len(trimmed)-len(suffix.value)]), "*")
 			return base, suffix.pseudo
 		}
 	}
@@ -333,12 +326,9 @@ func (s *stylesheet) applyToNodeCtx(
 // hasImportance reports whether the rule carries any declaration for the phase
 // being applied, so the matcher can be skipped for rules that cannot contribute.
 func (r compiledRule) hasImportance(important bool) bool {
-	for _, declaration := range r.declarations {
-		if declaration.important == important {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(r.declarations, func(declaration cssDeclaration) bool {
+		return declaration.important == important
+	})
 }
 
 // sortByCascade orders rules by ascending specificity, falling back to source
@@ -366,12 +356,9 @@ func (s *stylesheet) hasPseudoRulesFor(n *html.Node, pseudo string) bool {
 	if s == nil || n == nil {
 		return false
 	}
-	for _, rule := range s.pseudos {
-		if rule.pseudo == pseudo && rule.matcher.Match(n) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(s.pseudos, func(rule compiledPseudoRule) bool {
+		return rule.pseudo == pseudo && rule.matcher.Match(n)
+	})
 }
 
 func (s *stylesheet) applyPseudoToNodeCtx(

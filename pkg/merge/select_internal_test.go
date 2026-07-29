@@ -1,7 +1,7 @@
 package merge
 
 import (
-	"context"
+	"cmp"
 	"regexp"
 	"strings"
 	"testing"
@@ -49,12 +49,9 @@ func mergedPageContents(t *testing.T, merged []byte) []string {
 	t.Helper()
 	re := regexp.MustCompile(`(?s)<<[^<>]*?/Type /Page\b.*?>>`)
 	var pages []string
-	for _, obj := range strings.Split(string(merged), "endobj") {
-		if idx := strings.Index(obj, "/Type /Page"); idx >= 0 && !strings.Contains(obj, "/Type /Pages") {
-			match := re.FindString(obj)
-			if match == "" {
-				match = obj
-			}
+	for obj := range strings.SplitSeq(string(merged), "endobj") {
+		if strings.Contains(obj, "/Type /Page") && !strings.Contains(obj, "/Type /Pages") {
+			match := cmp.Or(re.FindString(obj), obj)
 			pages = append(pages, match)
 		}
 	}
@@ -64,7 +61,7 @@ func mergedPageContents(t *testing.T, merged []byte) []string {
 func TestBytes_PreservesInheritedPageAttributes(t *testing.T) {
 	t.Parallel()
 
-	merged, err := Bytes(context.Background(), assemblePDF(a4Objects("A")), assemblePDF(a4Objects("B")))
+	merged, err := Bytes(t.Context(), assemblePDF(a4Objects("A")), assemblePDF(a4Objects("B")))
 
 	require.NoError(t, err)
 	pages := mergedPageContents(t, merged)
@@ -84,7 +81,7 @@ func TestBytes_KeepsPageOwnMediaBox(t *testing.T) {
 		{3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>"},
 	}
 
-	merged, err := Bytes(context.Background(), assemblePDF(objects))
+	merged, err := Bytes(t.Context(), assemblePDF(objects))
 
 	require.NoError(t, err)
 	pages := mergedPageContents(t, merged)
@@ -103,7 +100,7 @@ func TestBytes_InheritedResourcesReferenceIsRewritten(t *testing.T) {
 		{4, "<< /ProcSet [/PDF] >>"},
 	}
 
-	merged, err := Bytes(context.Background(), assemblePDF(objects))
+	merged, err := Bytes(t.Context(), assemblePDF(objects))
 
 	require.NoError(t, err)
 	pages := mergedPageContents(t, merged)
@@ -120,13 +117,13 @@ func TestBytesSelected_SubsetAndOrder(t *testing.T) {
 
 	source := assemblePDF(twoPageObjects())
 
-	reversed, err := BytesSelected(context.Background(), PageSelection{PDF: source, Pages: []int{1, 0}})
+	reversed, err := BytesSelected(t.Context(), PageSelection{PDF: source, Pages: []int{1, 0}})
 	require.NoError(t, err)
 	document, err := parsePDF(reversed)
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(document.pageIDs))
 
-	subset, err := BytesSelected(context.Background(), PageSelection{PDF: source, Pages: []int{1}})
+	subset, err := BytesSelected(t.Context(), PageSelection{PDF: source, Pages: []int{1}})
 	require.NoError(t, err)
 	document, err = parsePDF(subset)
 	require.NoError(t, err)
@@ -140,16 +137,16 @@ func TestBytesSelected_Validation(t *testing.T) {
 
 	source := assemblePDF(twoPageObjects())
 
-	_, err := BytesSelected(context.Background(), PageSelection{PDF: source, Pages: []int{2}})
+	_, err := BytesSelected(t.Context(), PageSelection{PDF: source, Pages: []int{2}})
 	assert.ErrorIs(t, err, ErrCannotMergePDFs)
 
-	_, err = BytesSelected(context.Background(), PageSelection{PDF: source, Pages: []int{-1}})
+	_, err = BytesSelected(t.Context(), PageSelection{PDF: source, Pages: []int{-1}})
 	assert.ErrorIs(t, err, ErrCannotMergePDFs)
 
-	_, err = BytesSelected(context.Background(), PageSelection{PDF: source, Pages: nil})
+	_, err = BytesSelected(t.Context(), PageSelection{PDF: source, Pages: nil})
 	assert.ErrorIs(t, err, ErrCannotMergePDFs)
 
-	_, err = BytesSelected(context.Background())
+	_, err = BytesSelected(t.Context())
 	assert.ErrorIs(t, err, ErrCannotMergePDFs)
 }
 
@@ -159,7 +156,7 @@ func TestBytesSelected_MultipleSelections(t *testing.T) {
 	a := assemblePDF(a4Objects("A"))
 	b := assemblePDF(twoPageObjects())
 
-	merged, err := BytesSelected(context.Background(),
+	merged, err := BytesSelected(t.Context(),
 		PageSelection{PDF: a, Pages: []int{0}},
 		PageSelection{PDF: b, Pages: []int{1}},
 	)

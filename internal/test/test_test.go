@@ -32,7 +32,10 @@ func TestNew_WhenCalled_ShouldSetupSingleton(t *testing.T) {
 	sut := New(t)
 
 	assert.NotNil(t, sut)
-	assert.NotNil(t, configSingleton)
+
+	cfg, err := loadConfig()
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestPaperTest_Equals_WhenStructureMatchesGolden_ShouldPass(t *testing.T) {
@@ -72,7 +75,10 @@ func TestPaperTest_Equals_WhenGoldenMatches_ShouldDecodeExpectedShape(t *testing
 	t.Parallel()
 
 	_ = New(t)
-	bytes, err := os.ReadFile(configSingleton.getAbsoluteFilePath(goldenFile))
+	cfg, err := loadConfig()
+	assert.NoError(t, err)
+
+	bytes, err := os.ReadFile(cfg.getAbsoluteFilePath(goldenFile))
 	assert.NoError(t, err)
 
 	testNode := &Node{}

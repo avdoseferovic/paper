@@ -22,6 +22,8 @@ func ExampleNew() {
 
 	// Do things and generate
 	_, _ = m.Generate(context.Background())
+
+	// Output:
 }
 
 // ExampleFromHTML demonstrates the shortest path from HTML to PDF.
@@ -32,6 +34,8 @@ func ExampleFromHTML() {
 	}
 
 	_ = doc.GetBytes()
+
+	// Output:
 }
 
 // ExamplePaper_AddPages demonstrates how to add a new page in paper.
@@ -44,6 +48,8 @@ func ExamplePaper_AddPages() {
 	m.AddPages(p)
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_AddRows demonstrates how to add new rows in paper.
@@ -56,6 +62,8 @@ func ExamplePaper_AddRows() {
 	)
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_AddRow demonstrates how to add a new row in paper.
@@ -65,6 +73,8 @@ func ExamplePaper_AddRow() {
 	m.AddRow(10, text.NewCol(12, "text"))
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_FitInCurrentPage demonstrates how to check if the new line fits on the current page.
@@ -74,6 +84,8 @@ func ExamplePaper_FitInCurrentPage() {
 	m.FitInCurrentPage(12)
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_GetCurrentConfig demonstrates how to get the current paper configuration.
@@ -83,6 +95,8 @@ func ExamplePaper_GetCurrentConfig() {
 	m.GetCurrentConfig()
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_RegisterHeader demonstrates how to register a header to me added in every new page.
@@ -98,6 +112,8 @@ func ExamplePaper_RegisterHeader() {
 	}
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_RegisterFooter demonstrates how to register a footer to me added in every new page.
@@ -113,6 +129,8 @@ func ExamplePaper_RegisterFooter() {
 	}
 
 	// Do things and generate
+
+	// Output:
 }
 
 // ExamplePaper_Generate demonstrates how to generate a file.
@@ -128,6 +146,8 @@ func ExamplePaper_Generate() {
 
 	// You can retrieve as Base64, Save file, Merge with another file or GetReport.
 	_ = doc.GetBytes()
+
+	// Output:
 }
 
 // ExamplePaperGetStruct demonstrates how to get paper component tree
@@ -139,4 +159,6 @@ func ExamplePaper_GetStructure() {
 	m.GetStructure()
 
 	// Do things and generate
+
+	// Output:
 }

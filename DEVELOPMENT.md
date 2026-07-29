@@ -7,15 +7,26 @@ Contributor guide for the Paper repository. For contribution policy
 ## Prerequisites
 
 - **Go 1.26.4+**
-- **mockery v2.53.6** — install everything with:
+- Dev tools (goimports, gofumpt, godoc, deadcode, govulncheck, mockery) —
+  install everything with:
 
   ```bash
-  make install
+  make tools     # or: make install
   ```
 
-  Tools land in `$(go env GOPATH)/bin`; make sure that directory is on your
-  `PATH`. Optional extras: `ripgrep` (faster mock lint; plain grep works too)
-  and `docsify-cli` via npm (local docs site).
+  Versions are pinned by Go 1.24 `tool` directives in `tools/go.mod`, so
+  `make fmt` and CI cannot disagree because someone's formatter drifted.
+  Binaries land in `./.tools` (gitignored); the Makefile invokes them by path,
+  so nothing needs to be on your `PATH`.
+
+  `tools/` is deliberately **not** listed in `go.work`. Workspace resolution
+  applies minimal version selection across every module it lists, so a tool's
+  dependency could quietly raise the version the library itself compiles
+  against. The Makefile runs the tools module with `GOWORK=off` to keep the
+  two apart.
+
+  Optional extras: `ripgrep` (faster mock lint; plain grep works too) and
+  `docsify-cli` via npm (local docs site).
 
 ## Module layout
 
@@ -26,12 +37,25 @@ The repository is a Go workspace (`go.work`, committed) with three modules:
 | `.` (root) | The library: root API, `pkg/`, `internal/` (including the embedded PDF engine in `internal/pdf`) |
 | `examples` | Larger demo programs (`examples/cmd/...`) |
 | `docs` | Docsify site + runnable documentation examples (`docs/assets/examples/...`) |
+| `tools` | Pinned dev tooling only; not in `go.work` (see Prerequisites) |
 
 `examples` and `docs` are nested modules so their dependencies never leak into
 consumers of the library. Their `go.mod` files pin a released version of the
 root module; the committed `go.work` makes local builds resolve the
 root module from source instead. The pins only matter at release time — see
 RELEASING.md for the `GOWORK=off` verification step.
+
+Both nested modules also carry `replace github.com/avdoseferovic/paper => ..`,
+and it should stay. Without it they resolve the pinned *previous* tag from the
+module proxy and inherit that tag's dependency set — which is how libraries the
+root module has already dropped (`cascadia`, `boombuler/barcode`, `oksvg`,
+`rasterx`, `tdewolff/parse`) reappear as indirect requirements of `docs`. The
+dependency guard in `internal/dependency` will not warn you: it runs under
+`go.work`, so it sees local source either way.
+
+The cost is that `GOWORK=off` on its own is not a real standalone check, since
+a `replace` survives it. RELEASING.md therefore drops the replace explicitly
+for the duration of that check and restores it afterwards.
 
 `pkg/test` is a regular package of the root module (a dependency-free
 re-export of `internal/test`), not a separate module.
@@ -51,7 +75,18 @@ make dod        # definition of done: build + test + fmt + lint
 make build      # compile root + examples
 make test       # root, examples, and docs-example tests
 make fmt        # gofmt + gofumpt + goimports
-make lint       # mock pattern check
+make lint       # golangci-lint (all three modules) + mock pattern check
+make vuln       # govulncheck, per module
+make deadcode   # unreachable-code report
+make tools      # (re)install the pinned dev tools into ./.tools
+```
+
+Fuzz targets cover the parsers that take untrusted input — `pkg/reader`
+(PDF bytes), `pkg/svg`, `pkg/html/css`, and `pkg/html`. `go test` replays only
+their seed corpora; to actually fuzz one:
+
+```bash
+go test -run='^$' -fuzz=FuzzParse -fuzztime=60s ./pkg/reader/
 ```
 
 ## Tests

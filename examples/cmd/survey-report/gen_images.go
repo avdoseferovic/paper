@@ -1,5 +1,4 @@
 //go:build ignore
-// +build ignore
 
 // gen_images.go generates synthetic "medical" placeholder images for the
 // survey-report demo so the demo is self-contained.
@@ -38,7 +37,8 @@ func writePNG(path string, img image.Image) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
+
 	return png.Encode(f, img)
 }
 
@@ -48,8 +48,8 @@ func writePNG(path string, img image.Image) error {
 func chestXRay(w, h int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	cx, cy := float64(w)/2, float64(h)/2
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			dx, dy := float64(x)-cx, float64(y)-cy
 			// Base radial gradient from light center to dark edge.
 			r := math.Hypot(dx, dy) / math.Hypot(cx, cy)
@@ -62,7 +62,7 @@ func chestXRay(w, h int) image.Image {
 			// Left and right lung fields — darker ovals roughly 25% off-center.
 			lungR := math.Hypot((dx-float64(w)*0.18)/(float64(w)*0.22), (dy-float64(h)*0.05)/(float64(h)*0.30))
 			lungL := math.Hypot((dx+float64(w)*0.18)/(float64(w)*0.22), (dy-float64(h)*0.05)/(float64(h)*0.30))
-			lung := math.Min(lungR, lungL)
+			lung := min(lungR, lungL)
 			base -= 0.18 * math.Exp(-math.Pow(lung, 2))
 
 			// Cardiac silhouette — softer light blob slightly left of centre.
@@ -97,21 +97,21 @@ func ecgStrip(w, h int) image.Image {
 	waveCol := color.RGBA{135, 25, 25, 255}
 
 	// Fill background.
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			img.Set(x, y, bg)
 		}
 	}
 
 	// 1mm fine grid every 8px, 5mm coarse grid every 40px.
-	for x := 0; x < w; x++ {
+	for x := range w {
 		if x%40 == 0 {
 			drawVLine(img, x, 0, h, gridCoarse)
 		} else if x%8 == 0 {
 			drawVLine(img, x, 0, h, gridFine)
 		}
 	}
-	for y := 0; y < h; y++ {
+	for y := range h {
 		if y%40 == 0 {
 			drawHLine(img, 0, w, y, gridCoarse)
 		} else if y%8 == 0 {
@@ -122,7 +122,7 @@ func ecgStrip(w, h int) image.Image {
 	// Trace one sinus complex repeated across the strip.
 	baseline := float64(h) * 0.55
 	period := 200.0 // pixels per beat (~50 mm at 8px/mm = 60 bpm @ 25mm/s strip)
-	for x := 0; x < w-1; x++ {
+	for x := range w - 1 {
 		y1 := ecgY(float64(x), period, baseline, float64(h))
 		y2 := ecgY(float64(x+1), period, baseline, float64(h))
 		drawThickLine(img, x, int(math.Round(y1)), x+1, int(math.Round(y2)), waveCol, 2)
@@ -164,8 +164,8 @@ func vitalsChart(w, h int) image.Image {
 	sys := color.RGBA{192, 47, 47, 255}
 	hr := color.RGBA{52, 110, 196, 255}
 
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			img.Set(x, y, bg)
 		}
 	}
@@ -279,13 +279,7 @@ func inBounds(img *image.RGBA, x, y int) bool {
 }
 
 func clamp01(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
+	return min(max(v, 0), 1)
 }
 
 func abs(a int) int {

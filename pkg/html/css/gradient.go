@@ -361,9 +361,7 @@ func distributeStops(stops []GradientStop) {
 		return
 	}
 	// First and last default to 0 and 1 if not set.
-	if stops[0].Position < 0 {
-		stops[0].Position = 0
-	}
+	stops[0].Position = max(stops[0].Position, 0)
 	if stops[len(stops)-1].Position < 0 {
 		stops[len(stops)-1].Position = 1
 	}

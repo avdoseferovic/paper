@@ -1,6 +1,9 @@
 package cssparse
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestParse(t *testing.T) {
 	t.Parallel()
@@ -69,13 +72,5 @@ func FuzzParse(f *testing.F) {
 }
 
 func sameStrings(got, want []string) bool {
-	if len(got) != len(want) {
-		return false
-	}
-	for index := range got {
-		if got[index] != want[index] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(got, want)
 }

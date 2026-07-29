@@ -128,12 +128,9 @@ func nodeContainsNonWinAnsiText(n *dom.Node) bool {
 }
 
 func textContainsNonWinAnsi(text string) bool {
-	for _, r := range text {
-		if !canEncodeWinAnsiRune(r) {
-			return true
-		}
-	}
-	return false
+	return strings.ContainsFunc(text, func(r rune) bool {
+		return !canEncodeWinAnsiRune(r)
+	})
 }
 
 func canEncodeWinAnsiRune(r rune) bool {

@@ -1,29 +1,27 @@
 #!/usr/bin/env bash
 #
-# Installs the development toolchain into $(go env GOPATH)/bin.
-# Versions are pinned to match the Makefile.
-# No sudo required — make sure $(go env GOPATH)/bin is on your PATH.
+# Installs the development toolchain.
+#
+# Every tool is pinned by a Go 1.24 tool directive in tools/go.mod, so this
+# script no longer names versions: `make tools` (which it delegates to) is the
+# single source of truth, and Dependabot keeps tools/go.mod current.
+#
+# Tools land in ./.tools, which is gitignored and is where the Makefile looks
+# for them. Nothing is written to $(go env GOPATH)/bin and no sudo is required.
 
 set -euo pipefail
 
-MOCKERY_VERSION="v2.53.6" # must match the Makefile mocks target
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-GOBIN="$(go env GOPATH)/bin"
-
-go install golang.org/x/tools/cmd/goimports@latest
-go install mvdan.cc/gofumpt@latest
-go install golang.org/x/tools/cmd/godoc@latest
-go install "github.com/vektra/mockery/v2@${MOCKERY_VERSION}"
+make -C "${REPO_ROOT}" tools
 
 echo ""
-echo "Tools installed to ${GOBIN}."
-case ":${PATH}:" in
-*":${GOBIN}:"*) ;;
-*)
-	echo "WARNING: ${GOBIN} is not on your PATH. Add it, e.g.:"
-	echo "  export PATH=\"\$PATH:${GOBIN}\""
-	;;
-esac
+echo "Tools installed to ${REPO_ROOT}/.tools:"
+ls -1 "${REPO_ROOT}/.tools"
+
+echo ""
+echo "The Makefile invokes these by path, so they need not be on your PATH."
+echo "To use them by hand: export PATH=\"${REPO_ROOT}/.tools:\$PATH\""
 
 echo ""
 echo "Optional (docs site): npm i -g docsify-cli"

@@ -26,9 +26,19 @@ var (
 	goModFile       = "go.mod"
 	paperModule     = "github.com/avdoseferovic/paper"
 	defaultTestPath = "test/paper/"
-	configSingleton = (*Config)(nil)
-	configOnce      sync.Once
 )
+
+// loadConfig resolves the snapshot directory once per process. The error is
+// memoised alongside the value so that every caller observes an initialisation
+// failure, not just whichever one happened to win the race to run it.
+var loadConfig = sync.OnceValues(func() (*Config, error) {
+	path, err := getPaperConfigFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{AbsolutePath: path, TestPath: defaultTestPath}, nil
+})
 
 // Node is one entry in the document tree written to a JSON snapshot: its type,
 // its value, any extra details, and its children.
@@ -48,19 +58,8 @@ type PaperTest struct {
 // New creates the PaperTest instance to unit tests.
 func New(t *testing.T) *PaperTest {
 	t.Helper()
-	var initErr error
-	configOnce.Do(func() {
-		path, err := getPaperConfigFilePath()
-		if err != nil {
-			initErr = err
-			return
-		}
-
-		cfg := &Config{AbsolutePath: path, TestPath: defaultTestPath}
-		configSingleton = cfg
-	})
-	if initErr != nil {
-		t.Errorf("could not configure paper tests: %s", initErr)
+	if _, err := loadConfig(); err != nil {
+		t.Errorf("could not configure paper tests: %s", err)
 	}
 
 	return &PaperTest{
@@ -85,7 +84,13 @@ func (m *PaperTest) Equals(file string) *PaperTest {
 	}
 	actualString := string(actualBytes)
 
-	indentedExpectBytes, err := os.ReadFile(configSingleton.getAbsoluteFilePath(file))
+	cfg, err := loadConfig()
+	if err != nil {
+		m.t.Error(err.Error())
+		return m
+	}
+
+	indentedExpectBytes, err := os.ReadFile(cfg.getAbsoluteFilePath(file))
 	if err != nil {
 		m.t.Error(err.Error())
 		return m

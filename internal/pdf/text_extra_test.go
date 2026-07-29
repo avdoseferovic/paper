@@ -6,6 +6,8 @@ import (
 )
 
 func TestWriteHandlesNewlinesAndUnbrokenOverflow(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	startY := f.GetY()
 
@@ -25,6 +27,8 @@ func TestWriteHandlesNewlinesAndUnbrokenOverflow(t *testing.T) {
 }
 
 func TestCellFormatVerticalAlignment(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	for _, align := range []string{"LT", "LB", "LA"} {
 		f.CellFormat(40, 12, "aligned "+align, "", 1, align, false, 0, "")
@@ -36,6 +40,8 @@ func TestCellFormatVerticalAlignment(t *testing.T) {
 }
 
 func TestFontDescentFallsBackWithoutDescentMetric(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	if d := f.fontDescent(); d >= 0 {
 		t.Fatalf("expected negative descent from font metrics, got %v", d)
@@ -49,6 +55,8 @@ func TestFontDescentFallsBackWithoutDescentMetric(t *testing.T) {
 }
 
 func TestCellFormatTriggersAutomaticPageBreak(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetAutoPageBreak(true, 20)
 	f.SetY(285)
@@ -64,6 +72,8 @@ func TestCellFormatTriggersAutomaticPageBreak(t *testing.T) {
 }
 
 func TestSplitTextUnbrokenAndNewlineLines(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 
 	lines := f.SplitText(strings.Repeat("a", 120), 30)
@@ -86,6 +96,8 @@ func TestSplitTextUnbrokenAndNewlineLines(t *testing.T) {
 }
 
 func TestBookmarkSiblingsAndOutlineOutput(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.Bookmark("Chapter 1", 0, -1)
@@ -102,6 +114,8 @@ func TestBookmarkSiblingsAndOutlineOutput(t *testing.T) {
 }
 
 func TestMultiCellJustifiedRTLUsesRightAlignment(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	f.RTL()
 	f.MultiCell(60, 5, "many short words that wrap across multiple lines in this cell", "", "J", false)
@@ -118,6 +132,8 @@ func TestMultiCellJustifiedRTLUsesRightAlignment(t *testing.T) {
 }
 
 func TestUTF8NonBreakingSpaceUsesSpaceAdvance(t *testing.T) {
+	t.Parallel()
+
 	f := &PDF{
 		isCurrentUTF8: true,
 		currentFont: fontDefType{
@@ -136,6 +152,8 @@ func TestUTF8NonBreakingSpaceUsesSpaceAdvance(t *testing.T) {
 }
 
 func TestUTF8TextFallsBackToRegisteredFontForUnsupportedRune(t *testing.T) {
+	t.Parallel()
+
 	f := fallbackFontTestPDF()
 
 	if got, want := f.GetStringWidth("A\u2264"), 13.0; got != want {
@@ -157,6 +175,8 @@ func TestUTF8TextFallsBackToRegisteredFontForUnsupportedRune(t *testing.T) {
 }
 
 func TestUTF8CellFormatFallsBackToRegisteredFontForUnsupportedRune(t *testing.T) {
+	t.Parallel()
+
 	f := fallbackFontTestPDF()
 
 	f.CellFormat(40, 10, "A\u2264A", "", 0, "L", false, 0, "")

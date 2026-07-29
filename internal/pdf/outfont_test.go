@@ -10,6 +10,8 @@ import (
 // formatting it replaces, so the allocation optimization cannot silently change
 // a single byte of emitted PDF.
 func TestOutFontSelect_MatchesFmtOutput(t *testing.T) {
+	t.Parallel()
+
 	sizes := []float64{
 		0, 1, 8, 9, 9.5, 10, 10.005, 12.345, 0.001, 99.999,
 		100, 1000.5, -3.25, 1e6, 0.125,
@@ -38,6 +40,8 @@ func TestOutFontSelect_MatchesFmtOutput(t *testing.T) {
 // it replaced in PDF.Text, including the colorFlag wrapping, so the fast path
 // cannot alter a byte of emitted PDF.
 func TestOutTextShow_MatchesFmtOutput(t *testing.T) {
+	t.Parallel()
+
 	coords := []struct{ x, y float64 }{
 		{0, 0}, {1, 1}, {10.5, 20.25}, {-3.5, 7.125}, {123.456, 654.321}, {0.001, 0.009},
 	}
@@ -70,6 +74,8 @@ func TestOutTextShow_MatchesFmtOutput(t *testing.T) {
 // TestOutFontSelect_WritesToCurrentPage verifies the operator lands in the page
 // content stream while rendering, matching out/outf routing.
 func TestOutFontSelect_WritesToCurrentPage(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", Size: SizeType{Wd: 100, Ht: 100}})
 	f.AddPage()
 

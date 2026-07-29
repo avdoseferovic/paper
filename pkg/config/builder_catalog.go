@@ -1,6 +1,8 @@
 package config
 
 import (
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
 
@@ -55,7 +57,7 @@ func (b *CfgBuilder) WithViewerPreferences(prefs entity.ViewerPreferences) Build
 // WithPageLabels defines the labels viewers show instead of physical page
 // numbers.
 func (b *CfgBuilder) WithPageLabels(labels ...entity.PageLabelRange) Builder {
-	b.pageLabels = append([]entity.PageLabelRange(nil), labels...)
+	b.pageLabels = slices.Clone(labels)
 	return b
 }
 
@@ -67,13 +69,13 @@ func (b *CfgBuilder) WithFileAttachments(attachments ...entity.FileAttachment) B
 
 // WithNamedDestinations defines named destinations in the generated PDF.
 func (b *CfgBuilder) WithNamedDestinations(destinations ...entity.NamedDestination) Builder {
-	b.namedDestinations = append([]entity.NamedDestination(nil), destinations...)
+	b.namedDestinations = slices.Clone(destinations)
 	return b
 }
 
 // WithFileID sets an explicit trailer /ID for the generated PDF.
 func (b *CfgBuilder) WithFileID(id []byte) Builder {
-	b.fileID = append([]byte(nil), id...)
+	b.fileID = slices.Clone(id)
 	return b
 }
 

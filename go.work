@@ -1,5 +1,9 @@
 go 1.26.4
 
+// Without this line the workspace go directive selects go1.26.4 for every
+// local build, silently overriding the root go.mod's toolchain directive.
+toolchain go1.26.5
+
 use (
 	.
 	./docs

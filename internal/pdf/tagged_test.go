@@ -7,6 +7,8 @@ import (
 )
 
 func TestTaggedPDFEmitsStructureTree(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetCompression(false)
 	f.SetTaggedPDF(true)
@@ -39,6 +41,8 @@ func TestTaggedPDFEmitsStructureTree(t *testing.T) {
 }
 
 func TestUntaggedPDFHasNoStructureTree(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	out := mustOutput(t, f)
 	if bytes.Contains(out, []byte("/StructTreeRoot")) {

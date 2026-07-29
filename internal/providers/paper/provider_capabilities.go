@@ -24,9 +24,7 @@ func (g *provider) RegisterFont(family string, style fontstyle.Type, bytes []byt
 // from the top of the page content area (entity.Cell convention); the page
 // top margin is added so the destination matches where components draw.
 func (g *provider) Bookmark(title string, level int, y float64) {
-	if level < 0 {
-		level = 0
-	}
+	level = max(level, 0)
 	left, top, _, _ := g.fpdf.GetMargins()
 	_ = left // only the top margin matters for the outline destination
 	g.fpdf.Bookmark(title, level, y+top)
@@ -85,12 +83,8 @@ func (g *provider) WithAlpha(a float64, fn func()) {
 	if math.IsNaN(a) {
 		a = 1
 	}
-	if a < 0 {
-		a = 0
-	}
-	if a > 1 {
-		a = 1
-	}
+	a = max(a, 0)
+	a = min(a, 1)
 	g.fpdf.SetAlpha(a, "Normal")
 	defer g.fpdf.SetAlpha(1, "Normal")
 	fn()

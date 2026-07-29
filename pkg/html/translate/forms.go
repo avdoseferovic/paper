@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"context"
 	"maps"
 	"strings"
@@ -183,10 +184,7 @@ func formControlRuns(n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 	case tagInput:
 		return inputControlRuns(n, ctx)
 	case tagButton:
-		text := strings.TrimSpace(n.TextContent())
-		if text == "" {
-			text = "Button"
-		}
+		text := cmp.Or(strings.TrimSpace(n.TextContent()), "Button")
 		return []props.RichRun{formControlRun(n, text, ctx, formControlButton, false)}, true
 	case tagSelect:
 		return []props.RichRun{formControlRun(n, selectControlText(n), ctx, formControlSelect, false)}, true
@@ -199,10 +197,7 @@ func formControlRuns(n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
 }
 
 func inputControlRuns(n *dom.Node, ctx runContext) ([]props.RichRun, bool) {
-	inputType := strings.ToLower(strings.TrimSpace(n.Attr("type")))
-	if inputType == "" {
-		inputType = inputTypeText
-	}
+	inputType := cmp.Or(strings.ToLower(strings.TrimSpace(n.Attr("type"))), inputTypeText)
 	switch inputType {
 	case cssValueHidden:
 		return nil, true
@@ -264,10 +259,7 @@ func textareaControlText(n *dom.Node) (string, bool) {
 
 func selectControlText(n *dom.Node) string {
 	first, selected := selectOptionText(n.Children())
-	text := selected
-	if text == "" {
-		text = first
-	}
+	text := cmp.Or(selected, first)
 	if text == "" {
 		return "▾"
 	}
@@ -281,17 +273,13 @@ func selectOptionText(nodes []*dom.Node) (string, string) {
 		switch child.Tag() {
 		case tagOption:
 			text := strings.TrimSpace(child.TextContent())
-			if first == "" {
-				first = text
-			}
+			first = cmp.Or(first, text)
 			if hasAttr(child, "selected") {
 				return first, text
 			}
 		case tagOptgroup:
 			groupFirst, groupSelected := selectOptionText(child.Children())
-			if first == "" {
-				first = groupFirst
-			}
+			first = cmp.Or(first, groupFirst)
 			if groupSelected != "" {
 				return first, groupSelected
 			}
@@ -336,12 +324,8 @@ func applyFormControlDefaults(run *props.RichRun, kind formControlKind, style *c
 	if run.BorderColor == nil {
 		run.BorderColor = &props.Color{Red: 150, Green: 150, Blue: 150}
 	}
-	if run.BorderWidth == 0 {
-		run.BorderWidth = 0.25
-	}
-	if run.BgRadius == 0 {
-		run.BgRadius = 0.8
-	}
+	run.BorderWidth = cmp.Or(run.BorderWidth, 0.25)
+	run.BgRadius = cmp.Or(run.BgRadius, 0.8)
 	applyFormControlPadding(run, kind, style)
 	applyFormControlDimensions(run, kind, style)
 }
@@ -366,12 +350,8 @@ func applyFormControlPadding(run *props.RichRun, kind formControlKind, style *cs
 			bottom = style.PaddingBottom
 		}
 	}
-	if run.BgPadLeft == 0 {
-		run.BgPadLeft = left
-	}
-	if run.BgPadRight == 0 {
-		run.BgPadRight = right
-	}
+	run.BgPadLeft = cmp.Or(run.BgPadLeft, left)
+	run.BgPadRight = cmp.Or(run.BgPadRight, right)
 	if run.BgPadY == 0 {
 		run.BgPadY = max(top, bottom)
 	}

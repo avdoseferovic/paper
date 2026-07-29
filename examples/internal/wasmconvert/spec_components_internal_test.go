@@ -3,6 +3,8 @@ package wasmconvert
 import "testing"
 
 func TestBuildComponent_PrimaryTypes_MapToRealComponents(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		comp SpecComp
@@ -22,6 +24,7 @@ func TestBuildComponent_PrimaryTypes_MapToRealComponents(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := buildComponent(tc.comp)
 			if len(got) != tc.want {
 				t.Fatalf("buildComponent(%s) = %d components, want %d", tc.name, len(got), tc.want)
@@ -38,6 +41,8 @@ func TestBuildComponent_PrimaryTypes_MapToRealComponents(t *testing.T) {
 // A labeled barcode caption must carry a non-zero Top offset so it sits below
 // the barcode rather than overlapping it (columns do not flow-stack).
 func TestBuildComponent_BarcodeCaption_HasTopOffset(t *testing.T) {
+	t.Parallel()
+
 	got := buildComponent(SpecComp{Type: "barcode", Value: "x", Label: "CAP"})
 	if len(got) != 2 {
 		t.Fatalf("expected barcode + caption, got %d components", len(got))

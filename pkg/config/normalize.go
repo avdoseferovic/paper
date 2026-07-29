@@ -1,6 +1,9 @@
 package config
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -19,7 +22,7 @@ func NormalizeConfig(cfg *entity.Config) *entity.Config {
 		Dimensions:                     cloneDimensions(cfg.Dimensions),
 		Margins:                        cloneMargins(cfg.Margins),
 		DefaultFont:                    cloneFont(cfg.DefaultFont),
-		CustomFonts:                    append([]entity.CustomFont(nil), cfg.CustomFonts...),
+		CustomFonts:                    slices.Clone(cfg.CustomFonts),
 		GenerationMode:                 cfg.GenerationMode,
 		ChunkWorkers:                   cfg.ChunkWorkers,
 		Debug:                          cfg.Debug,
@@ -44,16 +47,14 @@ func NormalizeConfig(cfg *entity.Config) *entity.Config {
 		TaggedPDF:                      cfg.TaggedPDF,
 		Language:                       cfg.Language,
 		ViewerPreferences:              cloneViewerPreferences(cfg.ViewerPreferences),
-		PageLabels:                     append([]entity.PageLabelRange(nil), cfg.PageLabels...),
+		PageLabels:                     slices.Clone(cfg.PageLabels),
 		Attachments:                    entity.CloneAttachments(cfg.Attachments),
-		NamedDestinations:              append([]entity.NamedDestination(nil), cfg.NamedDestinations...),
-		FileID:                         append([]byte(nil), cfg.FileID...),
+		NamedDestinations:              slices.Clone(cfg.NamedDestinations),
+		FileID:                         slices.Clone(cfg.FileID),
 		Deterministic:                  cfg.Deterministic,
 	}
 
-	if normalized.ProviderType == "" {
-		normalized.ProviderType = defaults.ProviderType
-	}
+	normalized.ProviderType = cmp.Or(normalized.ProviderType, defaults.ProviderType)
 	if normalized.Dimensions == nil {
 		normalized.Dimensions = cloneDimensions(defaults.Dimensions)
 	}
@@ -63,9 +64,7 @@ func NormalizeConfig(cfg *entity.Config) *entity.Config {
 	if normalized.DefaultFont == nil {
 		normalized.DefaultFont = cloneFont(defaults.DefaultFont)
 	}
-	if normalized.GenerationMode == "" {
-		normalized.GenerationMode = defaults.GenerationMode
-	}
+	normalized.GenerationMode = cmp.Or(normalized.GenerationMode, defaults.GenerationMode)
 	if normalized.ChunkWorkers < 1 {
 		normalized.ChunkWorkers = defaults.ChunkWorkers
 	}

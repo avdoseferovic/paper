@@ -153,10 +153,10 @@ func backgroundImageSize(value string, imageWidth, imageHeight, cellWidth, cellH
 	aspect := imageHeight / imageWidth
 	switch tokens[0] {
 	case "contain":
-		scale := math.Min(cellWidth/imageWidth, cellHeight/imageHeight)
+		scale := min(cellWidth/imageWidth, cellHeight/imageHeight)
 		return imageWidth * scale, imageHeight * scale
 	case "cover":
-		scale := math.Max(cellWidth/imageWidth, cellHeight/imageHeight)
+		scale := max(cellWidth/imageWidth, cellHeight/imageHeight)
 		return imageWidth * scale, imageHeight * scale
 	}
 

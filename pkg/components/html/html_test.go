@@ -2,7 +2,6 @@ package html_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -22,7 +21,7 @@ import (
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	component, err := htmlcomponent.New(context.Background(), `<h1>Heading</h1><p>Hello <b>HTML</b></p>`)
+	component, err := htmlcomponent.New(t.Context(), `<h1>Heading</h1><p>Hello <b>HTML</b></p>`)
 
 	require.NoError(t, err)
 	require.NotNil(t, component)
@@ -37,7 +36,7 @@ func TestNew(t *testing.T) {
 func TestNewCol(t *testing.T) {
 	t.Parallel()
 
-	c, err := htmlcomponent.NewCol(context.Background(), 6, `<p>Column HTML</p>`)
+	c, err := htmlcomponent.NewCol(t.Context(), 6, `<p>Column HTML</p>`)
 
 	require.NoError(t, err)
 	require.NotNil(t, c)
@@ -47,7 +46,7 @@ func TestNewCol(t *testing.T) {
 func TestNewRow(t *testing.T) {
 	t.Parallel()
 
-	r, err := htmlcomponent.NewRow(context.Background(), 12, `<p>Fixed row HTML</p>`)
+	r, err := htmlcomponent.NewRow(t.Context(), 12, `<p>Fixed row HTML</p>`)
 
 	require.NoError(t, err)
 	require.NotNil(t, r)
@@ -57,7 +56,7 @@ func TestNewRow(t *testing.T) {
 func TestNewAutoRow(t *testing.T) {
 	t.Parallel()
 
-	r, err := htmlcomponent.NewAutoRow(context.Background(), `<p>Auto row HTML</p>`)
+	r, err := htmlcomponent.NewAutoRow(t.Context(), `<p>Auto row HTML</p>`)
 
 	require.NoError(t, err)
 	require.NotNil(t, r)
@@ -67,7 +66,7 @@ func TestNewAutoRow(t *testing.T) {
 func TestHTMLComponentMixedWithDirectComponentsGeneratesPDF(t *testing.T) {
 	t.Parallel()
 
-	component, err := htmlcomponent.New(context.Background(), `
+	component, err := htmlcomponent.New(t.Context(), `
 <style>
   .box { padding: 2mm; border: 1px solid #336699; background: #eef5ff; }
 </style>
@@ -85,7 +84,7 @@ func TestHTMLComponentMixedWithDirectComponentsGeneratesPDF(t *testing.T) {
 		),
 	)
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	pdfBytes := doc.GetBytes()
@@ -96,7 +95,7 @@ func TestHTMLComponentMixedWithDirectComponentsGeneratesPDF(t *testing.T) {
 func TestHTMLComponentRenderRestoresCursorToCellOrigin(t *testing.T) {
 	t.Parallel()
 
-	component, err := htmlcomponent.New(context.Background(), `<p>One</p><p>Two</p>`)
+	component, err := htmlcomponent.New(t.Context(), `<p>One</p><p>Two</p>`)
 	require.NoError(t, err)
 	component.SetConfig(config.NewBuilder().Build())
 

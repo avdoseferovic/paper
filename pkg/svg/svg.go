@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -134,7 +135,7 @@ func (s *SVG) Bytes() []byte {
 	if s == nil {
 		return nil
 	}
-	return append([]byte(nil), s.data...)
+	return slices.Clone(s.data)
 }
 
 // Width returns the explicit SVG width, or the viewBox width when width is absent.
@@ -255,7 +256,7 @@ func parse(data []byte) (*SVG, error) {
 		return nil, ErrNoSVGElement
 	}
 	doc := &SVG{
-		data:        append([]byte(nil), data...),
+		data:        slices.Clone(data),
 		root:        svgRoot,
 		aspectRatio: DefaultPreserveAspectRatio(),
 	}

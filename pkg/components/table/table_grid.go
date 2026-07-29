@@ -4,12 +4,8 @@ package table
 func normaliseSpans(cells [][]Cell) {
 	for r := range cells {
 		for c := range cells[r] {
-			if cells[r][c].Colspan < 1 {
-				cells[r][c].Colspan = 1
-			}
-			if cells[r][c].Rowspan < 1 {
-				cells[r][c].Rowspan = 1
-			}
+			cells[r][c].Colspan = max(cells[r][c].Colspan, 1)
+			cells[r][c].Rowspan = max(cells[r][c].Rowspan, 1)
 		}
 	}
 }
@@ -22,9 +18,7 @@ func deriveColCount(cells [][]Cell) (int, error) {
 		for _, cell := range row {
 			total += cell.Colspan
 		}
-		if total > maxCols {
-			maxCols = total
-		}
+		maxCols = max(maxCols, total)
 	}
 	if maxCols == 0 {
 		return 0, ErrTableEmpty

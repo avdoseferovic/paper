@@ -10,6 +10,8 @@ import (
 )
 
 func TestOkClearErrorAndString(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	if !f.Ok() {
 		t.Fatalf("expected fresh document to be ok, got %v", f.Error())
@@ -29,6 +31,8 @@ func TestOkClearErrorAndString(t *testing.T) {
 }
 
 func TestSetDisplayModeLayoutsRender(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.SetDisplayMode("fullwidth", "TwoColumnLeft")
@@ -74,6 +78,8 @@ func TestSetDisplayModeLayoutsRender(t *testing.T) {
 }
 
 func TestTextCoreFontUnderlineStrikeoutAndColor(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.SetFont("Helvetica", "US", 12)
@@ -96,6 +102,8 @@ func TestTextCoreFontUnderlineStrikeoutAndColor(t *testing.T) {
 }
 
 func TestTextUTF8RTLReversesString(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	f.RTL()
 	f.Text(100, 30, "abc")
@@ -108,6 +116,8 @@ func TestTextUTF8RTLReversesString(t *testing.T) {
 }
 
 func TestHeaderFuncModeAndFooterFuncLpi(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetFont("Helvetica", "", 12)
 
@@ -141,6 +151,8 @@ func TestHeaderFuncModeAndFooterFuncLpi(t *testing.T) {
 }
 
 func TestUnicodeTranslatorFromFile(t *testing.T) {
+	t.Parallel()
+
 	tr, err := UnicodeTranslatorFromFile(filepath.Join("embedded", "maps", "cp1252.map"))
 	if err != nil {
 		t.Fatalf("expected map file to load, got %v", err)
@@ -159,6 +171,8 @@ func TestUnicodeTranslatorFromFile(t *testing.T) {
 }
 
 func TestSetAlphaBlendModeWrittenToOutput(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.SetAlpha(0.5, "Multiply")
@@ -170,6 +184,8 @@ func TestSetAlphaBlendModeWrittenToOutput(t *testing.T) {
 }
 
 func TestSetDashPatternWritesBufferedOps(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.SetDashPattern([]float64{3, 1}, 0.5)
@@ -182,6 +198,8 @@ func TestSetDashPatternWritesBufferedOps(t *testing.T) {
 }
 
 func TestRegisterImageFromDisk(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "img.png")
 	if err := os.WriteFile(path, pngImageBytes(t), 0o600); err != nil {
@@ -206,6 +224,8 @@ func TestRegisterImageFromDisk(t *testing.T) {
 }
 
 func TestRegisterImageOptionsUntypedFile(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "imagewithoutextension")
 	if err := os.WriteFile(path, pngImageBytes(t), 0o600); err != nil {
@@ -263,6 +283,8 @@ func grayAlphaPNGBytes(t *testing.T) []byte {
 }
 
 func TestRegisterGrayAlphaPNGSplitsSoftMask(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	info := f.RegisterImageOptionsReader("gray-alpha", ImageOptions{ImageType: "png"}, bytes.NewReader(grayAlphaPNGBytes(t)))
 	if f.Err() {
@@ -282,6 +304,8 @@ func TestRegisterGrayAlphaPNGSplitsSoftMask(t *testing.T) {
 }
 
 func TestPNGTransparencyChunkParsing(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 
 	if got := f.pngTransparency(0, []byte{0, 7}); len(got) != 1 || got[0] != 7 {
@@ -312,6 +336,8 @@ func TestPNGTransparencyChunkParsing(t *testing.T) {
 }
 
 func TestApplyPNGPhysicalDimensions(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 
 	meterChunk := appendUint32(nil, 11811) // 300 dpi in pixels per meter

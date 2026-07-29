@@ -27,6 +27,8 @@ func assertContainsAll(t *testing.T, out []byte, wants ...string) {
 }
 
 func TestSetViewerPreferencesEmitsCatalogEntries(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 2)
 	f.SetViewerPreferences(ViewerPreferences{
 		PageLayout:      "TwoPageRight",
@@ -49,6 +51,8 @@ func TestSetViewerPreferencesEmitsCatalogEntries(t *testing.T) {
 }
 
 func TestViewerPreferencesZeroOpenPageAloneEmitsNoOpenAction(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetViewerPreferences(ViewerPreferences{HideMenubar: true})
 	out := mustOutput(t, f)
@@ -60,6 +64,8 @@ func TestViewerPreferencesZeroOpenPageAloneEmitsNoOpenAction(t *testing.T) {
 }
 
 func TestViewerPreferencesPercentZoomOpenAction(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetViewerPreferences(ViewerPreferences{OpenZoom: "125%"})
 	out := mustOutput(t, f)
@@ -68,6 +74,8 @@ func TestViewerPreferencesPercentZoomOpenAction(t *testing.T) {
 }
 
 func TestSetPageLabelsEmitsNumberTree(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 2)
 	f.SetPageLabels(
 		PageLabelRange{PageIndex: 1, Style: "D", Start: 1},
@@ -83,6 +91,8 @@ func TestSetPageLabelsEmitsNumberTree(t *testing.T) {
 }
 
 func TestSetAttachmentsEmitsEmbeddedFiles(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetAttachments(FileAttachment{
 		FileName:       "invoice.xml",
@@ -108,6 +118,8 @@ func TestSetAttachmentsEmitsEmbeddedFiles(t *testing.T) {
 }
 
 func TestSetAttachmentsDefaultsMIMEAndRelationship(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetAttachments(FileAttachment{FileName: "raw.bin", Data: []byte{1, 2, 3}})
 	out := mustOutput(t, f)
@@ -119,6 +131,8 @@ func TestSetAttachmentsDefaultsMIMEAndRelationship(t *testing.T) {
 }
 
 func TestSetNamedDestinationsEmitsSortedDestsNameTree(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 3)
 	f.SetNamedDestinations(
 		NamedDestination{Name: "section", PageIndex: 2, FitType: "FitH", Top: 700},
@@ -138,6 +152,8 @@ func TestSetNamedDestinationsEmitsSortedDestsNameTree(t *testing.T) {
 }
 
 func TestSetPageAnnotationsEmitsAnnotationDicts(t *testing.T) {
+	t.Parallel()
+
 	destPage := 1
 	f := newCatalogTestPDF(t, 2)
 	f.SetPageAnnotations(
@@ -159,6 +175,8 @@ func TestSetPageAnnotationsEmitsAnnotationDicts(t *testing.T) {
 }
 
 func TestTextAnnotationIconDefaultsToNote(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetPageAnnotations(PageAnnotation{PageIndex: 0, Subtype: "Text", Rect: [4]float64{1, 2, 3, 4}, Contents: "x"})
 	out := mustOutput(t, f)
@@ -167,6 +185,8 @@ func TestTextAnnotationIconDefaultsToNote(t *testing.T) {
 }
 
 func TestSetPageGeometriesEmitsPageEntries(t *testing.T) {
+	t.Parallel()
+
 	crop := [4]float64{10, 20, 210, 290}
 	trim := [4]float64{15, 25, 205, 285}
 	f := newCatalogTestPDF(t, 2)
@@ -185,6 +205,8 @@ func TestSetPageGeometriesEmitsPageEntries(t *testing.T) {
 }
 
 func TestSetPageGeometriesSkipsInvalidRotation(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetPageGeometries(PageGeometry{PageIndex: 0, Rotate: 45})
 	out := mustOutput(t, f)
@@ -195,6 +217,8 @@ func TestSetPageGeometriesSkipsInvalidRotation(t *testing.T) {
 }
 
 func TestSetFileIDWritesTrailerID(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetFileID([]byte{0xab, 0xcd, 0xef})
 	out := mustOutput(t, f)
@@ -203,6 +227,8 @@ func TestSetFileIDWritesTrailerID(t *testing.T) {
 }
 
 func TestDeterministicOutputIsStable(t *testing.T) {
+	t.Parallel()
+
 	build := func() []byte {
 		f := newCatalogTestPDF(t, 1)
 		f.SetDeterministic(true)
@@ -220,6 +246,8 @@ func TestDeterministicOutputIsStable(t *testing.T) {
 }
 
 func TestExplicitFileIDBeatsDeterministicID(t *testing.T) {
+	t.Parallel()
+
 	f := newCatalogTestPDF(t, 1)
 	f.SetDeterministic(true)
 	f.SetFileID([]byte{0x01})

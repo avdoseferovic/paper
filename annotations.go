@@ -1,6 +1,10 @@
 package paper
 
-import "github.com/avdoseferovic/paper/pkg/core/entity"
+import (
+	"slices"
+
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+)
 
 // AddAnnotation adds a page annotation to the generated PDF.
 func (m *Paper) AddAnnotation(annotation entity.PageAnnotation) {
@@ -103,6 +107,6 @@ func (m *Paper) AddTextMarkup(
 		Type:       annotationType,
 		Rect:       rect,
 		Color:      &color,
-		QuadPoints: append([][8]float64(nil), quadPoints...),
+		QuadPoints: slices.Clone(quadPoints),
 	})
 }

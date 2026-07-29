@@ -2,7 +2,6 @@ package reader_test
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -338,7 +337,7 @@ func generatedReaderPDF(t *testing.T, compression bool, value string) []byte {
 		Build()
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New(value)))
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -354,7 +353,7 @@ func generatedMultiPageReaderPDF(t *testing.T) []byte {
 		pagecomponent.New().Add(text.NewRow(10, "second page")),
 		pagecomponent.New().Add(text.NewRow(10, "third page")),
 	)
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -372,7 +371,7 @@ func generatedReaderPDFWithMetadata(t *testing.T, value, author, title string) [
 		Build()
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New(value)))
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}

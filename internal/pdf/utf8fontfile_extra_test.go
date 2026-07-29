@@ -1,6 +1,9 @@
 package pdf
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestHasOutlineTables(t *testing.T) {
 	t.Parallel()
@@ -180,7 +183,7 @@ func TestParseCBLCFormat2BitmapGlyph(t *testing.T) {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{
@@ -210,7 +213,7 @@ func TestParseCBLCFormat4BitmapGlyph(t *testing.T) {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{

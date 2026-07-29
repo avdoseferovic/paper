@@ -1,6 +1,7 @@
 package pdf
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -36,6 +37,8 @@ func colorEmojiPDF(t *testing.T) *PDF {
 }
 
 func TestTextRendersCOLRColorGlyphLayers(t *testing.T) {
+	t.Parallel()
+
 	f := colorEmojiPDF(t)
 	f.SetTextColor(20, 30, 40)
 	f.Text(10, 20, "AB")
@@ -60,6 +63,8 @@ func TestTextRendersCOLRColorGlyphLayers(t *testing.T) {
 }
 
 func TestTextColorEmojiRTLWithUnderlineAndStrikeout(t *testing.T) {
+	t.Parallel()
+
 	f := colorEmojiPDF(t)
 	f.SetFont("arial", "US", 12)
 	f.SetColorEmojiEnabled(true)
@@ -90,7 +95,7 @@ func bitmapEmojiFontFile(t *testing.T) *utf8FontFile {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{
@@ -109,6 +114,8 @@ func bitmapEmojiFontFile(t *testing.T) *utf8FontFile {
 }
 
 func TestTextWithColorEmojiRendersBitmapGlyph(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 	f.SetColorEmojiEnabled(true)
 	f.currentFont.utf8File = bitmapEmojiFontFile(t)
@@ -130,6 +137,8 @@ func TestTextWithColorEmojiRendersBitmapGlyph(t *testing.T) {
 }
 
 func TestRenderBitmapGlyphFallbackMetricsAndEmptyGlyph(t *testing.T) {
+	t.Parallel()
+
 	f := readyUTF8PDF(t)
 
 	if got := f.renderBitmapGlyph(9, &bitmapGlyphImage{}, 0, 0); got != "" {
@@ -218,7 +227,7 @@ func TestParseGlyphOutlineCompositeGlyph(t *testing.T) {
 
 	composite := buildCompositeTestGlyph()
 	simple := buildSimpleTestGlyph()
-	glyf := append(append([]byte(nil), composite...), simple...)
+	glyf := append(slices.Clone(composite), simple...)
 	utf := &utf8FontFile{
 		fileReader:        &fileReader{array: glyf},
 		tableDescriptions: map[string]*tableDescription{"glyf": {position: 0, size: len(glyf)}},

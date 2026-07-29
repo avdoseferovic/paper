@@ -23,7 +23,7 @@ func TestTranslate_Block(t *testing.T) {
 	t.Run("single paragraph produces one row", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><p>hello</p></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -31,7 +31,7 @@ func TestTranslate_Block(t *testing.T) {
 	t.Run("h1 + p produces two rows", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><h1>title</h1><p>body</p></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 2)
 	})
@@ -39,7 +39,7 @@ func TestTranslate_Block(t *testing.T) {
 	t.Run("display:none skips element", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><p style="display:none">hidden</p><p>visible</p></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -47,7 +47,7 @@ func TestTranslate_Block(t *testing.T) {
 	t.Run("hr produces a row", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><hr></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -55,7 +55,7 @@ func TestTranslate_Block(t *testing.T) {
 	t.Run("div with children flattens to children's rows", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><div><p>a</p><p>b</p></div></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 2)
 	})
@@ -64,7 +64,7 @@ func TestTranslate_Block(t *testing.T) {
 func TestTranslate_ReturnsContextErrorAfterStylesheetPhase(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	doc := parseDoc(t, `<html><head><link rel="stylesheet" href="local.css"></head><body><p>hello</p></body></html>`)
 
 	rows, err := translate.Translate(ctx, doc, translate.WithUnsupportedHandler(func(_, _ string) {
@@ -81,7 +81,7 @@ func TestTranslate_Inline(t *testing.T) {
 	t.Run("p with bold child produces one row", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><p>hello <b>world</b></p></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -92,7 +92,7 @@ func TestTranslate_Inline(t *testing.T) {
 		// single inline formatting context: "<strong>1</strong> = text" must
 		// stay on one line, not split into a row per child.
 		doc := parseDoc(t, "<html><body><div><strong>1</strong> = trifft fast nicht zu: long answer text</div></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -102,7 +102,7 @@ func TestTranslate_Inline(t *testing.T) {
 		// Leading inline text + a block child + trailing inline text → the two
 		// inline groups each collapse to one row, with the block in between.
 		doc := parseDoc(t, "<html><body><div>before <b>x</b><p>block</p>after <i>y</i></div></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 3)
 	})
@@ -111,7 +111,7 @@ func TestTranslate_Inline(t *testing.T) {
 func TestTranslate_Table(t *testing.T) {
 	t.Parallel()
 	doc := parseDoc(t, "<html><body><table><tr><td>a</td><td>b</td></tr></table></body></html>")
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(rows), 1)
 }
@@ -122,7 +122,7 @@ func TestTranslate_Flex(t *testing.T) {
 	t.Run("class-based display:flex produces 1 row", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><head><style>.cols{display:flex}</style></head><body><div class="cols"><div>a</div><div>b</div></div></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		assert.Len(t, rows[0].GetColumns(), 2)
@@ -131,7 +131,7 @@ func TestTranslate_Flex(t *testing.T) {
 	t.Run("class-based display:none via stylesheet hides element", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><head><style>.hidden{display:none}</style></head><body><div class="hidden"><p>invisible</p></div><p>visible</p></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -139,7 +139,7 @@ func TestTranslate_Flex(t *testing.T) {
 	t.Run("class-based display:none via stylesheet hides known block tag", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><head><style>.hidden{display:none}</style></head><body><p class="hidden">invisible</p><p>visible</p></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -147,7 +147,7 @@ func TestTranslate_Flex(t *testing.T) {
 	t.Run("hidden attribute hides element", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><p hidden>invisible</p><p>visible</p></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -155,7 +155,7 @@ func TestTranslate_Flex(t *testing.T) {
 	t.Run("WithGridSize(8) distributes flex cols over 8 not 12", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, `<html><body><div style="display:flex"><div>a</div><div>b</div></div></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc, translate.WithGridSize(8))
+		rows, err := translate.Translate(t.Context(), doc, translate.WithGridSize(8))
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -179,7 +179,7 @@ func TestTranslate_FlexDemoSections(t *testing.T) {
 				<div><h3>Ship to</h3><p>Warehouse</p></div>
 				<div><h3>Payment</h3><p>Net 30</p></div>
 			</div></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -194,7 +194,7 @@ func TestTranslate_FlexDemoSections(t *testing.T) {
 				<div style="flex:0 0 50%"><b>Amount due</b></div>
 				<div style="flex:0 0 25%"><b>$540.00</b></div>
 			</div></body></html>`)
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		cols := rows[0].GetColumns()
@@ -214,7 +214,7 @@ func TestTranslate_List(t *testing.T) {
 	t.Run("ul produces one row containing HTMLList", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><ul><li>a</li><li>b</li></ul></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(rows), 1)
 	})
@@ -222,7 +222,7 @@ func TestTranslate_List(t *testing.T) {
 	t.Run("ol produces decimal markers", func(t *testing.T) {
 		t.Parallel()
 		doc := parseDoc(t, "<html><body><ol><li>a</li><li>b</li></ol></body></html>")
-		rows, err := translate.Translate(context.Background(), doc)
+		rows, err := translate.Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(rows), 1)
 	})

@@ -39,3 +39,6 @@ examples/cmd/wasm/web/wasm_exec.js
 
 # Locally assembled Pages site (make site)
 /site/
+
+# Pinned dev tools installed by `make tools` from tools/go.mod.
+/.tools/

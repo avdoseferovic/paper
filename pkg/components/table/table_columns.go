@@ -2,6 +2,7 @@ package table
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -152,11 +153,10 @@ func (t *Table) columnSpanWidth(totalWidth float64, startCol, span int) float64 
 
 func (t *Table) originColumn(flatIndex int) int {
 	for r := range t.grid {
-		for c, slot := range t.grid[r] {
-			if slot == flatIndex {
-				return c
-			}
+		if c := slices.Index(t.grid[r], flatIndex); c >= 0 {
+			return c
 		}
 	}
+
 	return 0
 }

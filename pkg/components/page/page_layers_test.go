@@ -2,6 +2,7 @@ package page_test
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -93,9 +94,7 @@ func clonePageContextStrings(runningStrings map[string]string) map[string]string
 		return nil
 	}
 	clone := make(map[string]string, len(runningStrings))
-	for name, value := range runningStrings {
-		clone[name] = value
-	}
+	maps.Copy(clone, runningStrings)
 	return clone
 }
 

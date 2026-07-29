@@ -1,6 +1,8 @@
 package paper
 
 import (
+	"slices"
+
 	pdf "github.com/avdoseferovic/paper/internal/pdf"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 )
@@ -96,7 +98,7 @@ func pdfFormField(field *entity.Field) pdf.FormField {
 		BGColor:     field.BGColor,
 		BorderColor: field.BorderColor,
 		BorderWidth: field.BorderWidth,
-		Options:     append([]string(nil), field.Options...),
+		Options:     slices.Clone(field.Options),
 		ExportValue: field.ExportValue,
 	}
 	for _, child := range field.Children() {

@@ -1,6 +1,10 @@
 package props
 
-import "github.com/avdoseferovic/paper/pkg/consts"
+import (
+	"cmp"
+
+	"github.com/avdoseferovic/paper/pkg/consts"
+)
 
 // Barcode represents properties from a barcode inside a cell.
 type Barcode struct {
@@ -87,13 +91,9 @@ func NormalizeBarcode(b Barcode) Barcode {
 		b.Top = 0
 	}
 
-	if b.Left < minValue {
-		b.Left = minValue
-	}
+	b.Left = max(b.Left, minValue)
 
-	if b.Top < minValue {
-		b.Top = minValue
-	}
+	b.Top = max(b.Top, minValue)
 
 	if b.Proportion.Width <= 0 {
 		b.Proportion.Width = 1
@@ -112,9 +112,7 @@ func NormalizeBarcode(b Barcode) Barcode {
 		b.Proportion.Height = b.Proportion.Width * minHeightProportionBasedOnWidth
 	}
 
-	if b.Type == "" {
-		b.Type = consts.BarcodeCode128
-	}
+	b.Type = cmp.Or(b.Type, consts.BarcodeCode128)
 
 	return b
 }

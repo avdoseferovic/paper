@@ -1,7 +1,6 @@
 package translate_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -95,7 +94,7 @@ func TestTranslate_PageBreakAfter_ProducesBreakRow(t *testing.T) {
 	<div style="page-break-after:always">Section 1</div>
 	<p>Section 2</p>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	// There should be at least one PageBreaker row in the output
 	var foundBreak bool
@@ -114,7 +113,7 @@ func TestTranslate_PageBreakBefore_ProducesBreakRow(t *testing.T) {
 	<p>Section 1</p>
 	<div style="page-break-before:always">Section 2</div>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	var foundBreak bool
 	for _, r := range rows {
@@ -132,7 +131,7 @@ func TestTranslate_PaperBlankPageCustomProperty(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<div style="--paper-page: blank; --paper-page-footer: none; --paper-page-number: none"></div>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -151,7 +150,7 @@ func TestTranslate_PaperBlankPageCanCountWithoutStamp(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<div style="--paper-page: blank; --paper-page-footer: none; --paper-page-number: count"></div>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -170,7 +169,7 @@ func TestTranslate_PaperPageDecorationCustomProperties(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-footer: none; --paper-page-number: none"><p>First unnumbered page</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -188,7 +187,7 @@ func TestTranslate_PaperPageDecorationFirstPageScope(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-footer: none; --paper-page-number: none; --paper-page-decor-scope: first-page"><p>First page undecorated only</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -206,7 +205,7 @@ func TestTranslate_PaperPageTopMarginCustomProperty(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-top-margin: 0mm"><p>Flush page</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -223,7 +222,7 @@ func TestTranslate_PaperPageTopMarginFirstPageScope(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-top-margin: 0mm; --paper-page-top-margin-scope: first-page"><p>Flush first page</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -241,7 +240,7 @@ func TestTranslate_PaperPageContinuationTopMarginCustomProperty(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-top-margin: 1mm; --paper-page-top-margin-scope: first-page; --paper-page-top-margin-continuation: 0mm"><p>Scoped top margin</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -261,7 +260,7 @@ func TestTranslate_PaperPageRenderOffsetCustomProperties(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-render-offset-x: 0.5mm; --paper-page-render-offset-y: 1mm; --paper-page-render-offset-scope: first-page; --paper-page-render-offset-x-continuation: 0mm; --paper-page-render-offset-y-continuation: 0mm"><p>Offset render only</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 2)
 
@@ -285,7 +284,7 @@ func TestTranslate_PageControlPrecedesElementMarginsAfterPageBreak(t *testing.T)
 	doc := parseDoc(t, `<html><body>
 	<section style="page-break-before: always; margin-top: 2.5mm; --paper-page-top-margin: 0mm"><p>Flush page</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.True(t, len(rows) >= 3)
 
@@ -302,7 +301,7 @@ func TestTranslate_PaperPageControlsDoNotRepeatFromInheritedVars(t *testing.T) {
 	doc := parseDoc(t, `<html><body>
 	<section style="--paper-page-footer: none; --paper-page-number: none"><p>child</p><p>child two</p></section>
 	</body></html>`)
-	rows, err := translate.Translate(context.Background(), doc)
+	rows, err := translate.Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	controls := 0

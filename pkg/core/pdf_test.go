@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -124,7 +123,7 @@ func TestPdf_Merge(t *testing.T) {
 		sut := core.NewPDF([]byte("not a valid pdf"), nil)
 
 		// Act
-		err := sut.Merge(context.Background(), []byte("also not a valid pdf"))
+		err := sut.Merge(t.Context(), []byte("also not a valid pdf"))
 
 		// Assert
 		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
@@ -134,13 +133,13 @@ func TestPdf_Merge(t *testing.T) {
 		// Arrange
 		m := paper.New()
 		m.AddRows(text.NewRow(10, "page1"))
-		doc, _ := m.Generate(context.Background())
+		doc, _ := m.Generate(t.Context())
 		pdfBytes := doc.GetBytes()
 
 		sut := core.NewPDF(pdfBytes, nil)
 
 		// Act
-		err := sut.Merge(context.Background(), pdfBytes)
+		err := sut.Merge(t.Context(), pdfBytes)
 
 		// Assert
 		assert.Nil(t, err)
@@ -151,14 +150,14 @@ func TestPdf_Merge(t *testing.T) {
 		// Arrange
 		m := paper.New()
 		m.AddRows(text.NewRow(10, "page1"))
-		doc, _ := m.Generate(context.Background())
+		doc, _ := m.Generate(t.Context())
 		pdfBytes := doc.GetBytes()
 
 		report := &metrics.Report{}
 		sut := core.NewPDF(pdfBytes, report)
 
 		// Act
-		err := sut.Merge(context.Background(), pdfBytes)
+		err := sut.Merge(t.Context(), pdfBytes)
 
 		// Assert
 		assert.Nil(t, err)
@@ -175,7 +174,7 @@ func TestPdf_Merge(t *testing.T) {
 		sut := core.NewPDF(protectedBytes, nil)
 
 		// Act
-		err := sut.Merge(context.Background(), plainBytes)
+		err := sut.Merge(t.Context(), plainBytes)
 
 		// Assert
 		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
@@ -188,7 +187,7 @@ func TestPdf_Merge(t *testing.T) {
 		sut := core.NewPDF(protectedBytes, nil)
 
 		// Act
-		err := sut.Merge(context.Background(), plainBytes)
+		err := sut.Merge(t.Context(), plainBytes)
 
 		// Assert
 		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
@@ -201,7 +200,7 @@ func TestPdf_Merge(t *testing.T) {
 		sut := core.NewPDF(plainBytes, nil)
 
 		// Act
-		err := sut.Merge(context.Background(), protectedBytes)
+		err := sut.Merge(t.Context(), protectedBytes)
 
 		// Assert
 		assert.ErrorIs(t, err, core.ErrCannotMergeBytes)
@@ -213,7 +212,7 @@ func plainPDFBytes(t *testing.T) []byte {
 
 	m := paper.New()
 	m.AddRows(text.NewRow(10, "plain"))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("generate plain PDF: %v", err)
 	}
@@ -229,7 +228,7 @@ func protectedPDFBytes(t *testing.T, algorithm protection.Encryption) []byte {
 		Build()
 	m := paper.New(cfg)
 	m.AddRows(text.NewRow(10, "protected"))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("generate protected PDF: %v", err)
 	}

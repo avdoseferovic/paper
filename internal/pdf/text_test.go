@@ -8,6 +8,8 @@ import (
 )
 
 func TestGetStringWidthScalesWithFontSize(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	w12 := f.GetStringWidth("Hello")
 	if w12 <= 0 {
@@ -21,6 +23,8 @@ func TestGetStringWidthScalesWithFontSize(t *testing.T) {
 }
 
 func TestGetStringSymbolWidthEmptyString(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	if got := f.GetStringSymbolWidth(""); got != 0 {
 		t.Fatalf("empty string width = %d", got)
@@ -28,6 +32,8 @@ func TestGetStringSymbolWidthEmptyString(t *testing.T) {
 }
 
 func TestCellAndCellf(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Cell(40, 10, "Plain cell")
 	f.Ln(10)
@@ -41,6 +47,8 @@ func TestCellAndCellf(t *testing.T) {
 }
 
 func TestTextAndWrite(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Text(20, 20, "Absolute text")
 	f.SetXY(20, 40)
@@ -53,6 +61,8 @@ func TestTextAndWrite(t *testing.T) {
 }
 
 func TestMultiCellWrapsAndAligns(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	long := strings.Repeat("word ", 40)
 	f.MultiCell(80, 6, long, "1", "J", false)
@@ -64,6 +74,8 @@ func TestMultiCellWrapsAndAligns(t *testing.T) {
 }
 
 func TestSplitLines(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	lines := f.SplitLines([]byte(strings.Repeat("alpha beta gamma ", 10)), 60)
 	if len(lines) < 2 {
@@ -72,6 +84,8 @@ func TestSplitLines(t *testing.T) {
 }
 
 func TestSplitText(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	lines := f.SplitText(strings.Repeat("alpha beta gamma ", 10), 60)
 	if len(lines) < 2 {
@@ -80,6 +94,8 @@ func TestSplitText(t *testing.T) {
 }
 
 func TestWriteAlignedVariants(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	for _, a := range []string{"L", "C", "R"} {
 		f.SetXY(10, 10)
@@ -92,6 +108,8 @@ func TestWriteAlignedVariants(t *testing.T) {
 }
 
 func TestInternalLinks(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	link := f.AddLink()
 	if link <= 0 {
@@ -107,6 +125,8 @@ func TestInternalLinks(t *testing.T) {
 }
 
 func TestExternalLinks(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.LinkString(10, 30, 40, 10, "https://example.com")
 	f.SetXY(10, 50)
@@ -118,6 +138,8 @@ func TestExternalLinks(t *testing.T) {
 }
 
 func TestBookmark(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Bookmark("Chapter 1", 0, 0)
 	f.Bookmark("Section 1.1", 1, 0)
@@ -131,6 +153,8 @@ func TestBookmark(t *testing.T) {
 }
 
 func TestBookmarkNonASCIITitleUsesUTF16(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t) // core font: isCurrentUTF8 is false
 	f.Bookmark("Résumé", 0, 0)
 	if f.Err() {
@@ -143,6 +167,8 @@ func TestBookmarkNonASCIITitleUsesUTF16(t *testing.T) {
 }
 
 func TestBookmarkASCIITitleStaysPlain(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Bookmark("Chapter 1", 0, 0)
 	out := mustOutput(t, f)
@@ -152,6 +178,8 @@ func TestBookmarkASCIITitleStaysPlain(t *testing.T) {
 }
 
 func TestBookmarkDestUsesOwnPageHeight(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "pt", SizeStr: "A4"})
 	f.AddPage()
 	f.SetFont("Helvetica", "", 12)
@@ -176,6 +204,8 @@ func TestBookmarkDestUsesOwnPageHeight(t *testing.T) {
 }
 
 func TestWordSpacingAndRenderingMode(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetWordSpacing(2)
 	f.SetTextRenderingMode(1)

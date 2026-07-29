@@ -7,7 +7,8 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
-func alphaPtr(v float64) *float64 { return &v }
+//go:fix inline
+func alphaPtr(v float64) *float64 { return new(v) }
 
 func TestClampAlpha(t *testing.T) {
 	t.Parallel()
@@ -56,15 +57,15 @@ func TestEffectiveAlpha(t *testing.T) {
 
 	t.Run("background alpha is used when set", func(t *testing.T) {
 		t.Parallel()
-		prop := &props.Cell{BackgroundColor: &props.Color{Alpha: alphaPtr(0.5)}}
+		prop := &props.Cell{BackgroundColor: &props.Color{Alpha: new(0.5)}}
 		assert.Equal(t, 0.5, effectiveAlpha(prop))
 	})
 
 	t.Run("border alpha wins when lower than background alpha", func(t *testing.T) {
 		t.Parallel()
 		prop := &props.Cell{
-			BackgroundColor: &props.Color{Alpha: alphaPtr(0.5)},
-			BorderColor:     &props.Color{Alpha: alphaPtr(0.3)},
+			BackgroundColor: &props.Color{Alpha: new(0.5)},
+			BorderColor:     &props.Color{Alpha: new(0.3)},
 		}
 		assert.Equal(t, 0.3, effectiveAlpha(prop))
 	})
@@ -72,8 +73,8 @@ func TestEffectiveAlpha(t *testing.T) {
 	t.Run("higher border alpha does not override background alpha", func(t *testing.T) {
 		t.Parallel()
 		prop := &props.Cell{
-			BackgroundColor: &props.Color{Alpha: alphaPtr(0.2)},
-			BorderColor:     &props.Color{Alpha: alphaPtr(0.9)},
+			BackgroundColor: &props.Color{Alpha: new(0.2)},
+			BorderColor:     &props.Color{Alpha: new(0.9)},
 		}
 		assert.Equal(t, 0.2, effectiveAlpha(prop))
 	})

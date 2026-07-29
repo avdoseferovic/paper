@@ -2,7 +2,8 @@
 package page
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
@@ -225,9 +226,7 @@ func (p *Page) contentCell(cell entity.Cell) entity.Cell {
 		delta := p.config.Margins.Top - *p.control.TopMargin
 		inner.Y -= delta
 		inner.Height += delta
-		if inner.Height < 0 {
-			inner.Height = 0
-		}
+		inner.Height = max(inner.Height, 0)
 	}
 	if p.control.RenderOffsetX != nil {
 		inner.X += *p.control.RenderOffsetX
@@ -262,8 +261,9 @@ func (p *Page) renderRows(provider core.Provider, innerCell entity.Cell) {
 		placed = append(placed, pr)
 		innerCell.Y += row.GetHeight(provider, &innerCell)
 	}
-	sort.SliceStable(placed, func(i, j int) bool {
-		return placed[i].layer < placed[j].layer
+	// Stable: rows sharing a layer must keep their document order.
+	slices.SortStableFunc(placed, func(a, b placedRow) int {
+		return cmp.Compare(a.layer, b.layer)
 	})
 	for _, pr := range placed {
 		pr.row.Render(provider, pr.cell)

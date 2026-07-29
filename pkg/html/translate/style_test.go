@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -128,7 +127,7 @@ func TestStylesheet_PrintMediaWidthQueriesUseConfiguredContentWidth(t *testing.T
 </style></head><body><p>body</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc, WithContentWidth(80))
+	rows, err := Translate(t.Context(), doc, WithContentWidth(80))
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"narrow body"}, richTextValues(rows))

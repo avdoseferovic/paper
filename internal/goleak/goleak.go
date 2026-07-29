@@ -7,7 +7,7 @@ import (
 	"maps"
 	"os"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -95,12 +95,9 @@ func isIgnored(stack string) bool {
 		"testing.(*T).Parallel(",
 		"testing.runTests",
 	}
-	for _, pattern := range ignored {
-		if strings.Contains(stack, pattern) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(ignored, func(pattern string) bool {
+		return strings.Contains(stack, pattern)
+	})
 }
 
 func diff(current, base stackSet) []string {
@@ -112,6 +109,6 @@ func diff(current, base stackSet) []string {
 			}
 		}
 	}
-	sort.Strings(extras)
+	slices.Sort(extras)
 	return extras
 }

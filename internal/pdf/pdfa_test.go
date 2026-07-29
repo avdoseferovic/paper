@@ -7,6 +7,8 @@ import (
 )
 
 func TestSetPdfAEmitsMetadataAndOutputIntent(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetTitle("PDF/A Title", false)
 	f.SetPdfA(ConformanceConfig{Level: ConformanceA2B})
@@ -29,6 +31,8 @@ func TestSetPdfAEmitsMetadataAndOutputIntent(t *testing.T) {
 }
 
 func TestSetPdfALevelAEnablesTaggedOutput(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetPdfA(ConformanceConfig{Level: ConformanceA1A})
 	f.AddPage()
@@ -45,6 +49,8 @@ func TestSetPdfALevelAEnablesTaggedOutput(t *testing.T) {
 }
 
 func TestSetPdfAOverridesCustomXmpWithSingleMetadataRef(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetXmpMetadata([]byte(`<x:xmpmeta xmlns:x="adobe:ns:meta/"></x:xmpmeta>`))
 	f.SetPdfA(ConformanceConfig{Level: ConformanceA3B})

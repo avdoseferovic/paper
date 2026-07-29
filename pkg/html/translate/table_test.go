@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -282,7 +281,7 @@ func TestTranslate_TableRowStyle_Integration(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(context.Background(), doc)
+		rows, err := Translate(t.Context(), doc)
 		require.NoError(t, err)
 		assert.Len(t, rows, 1)
 	})
@@ -294,7 +293,7 @@ func TestTranslate_TableWidthAndAlignOptions(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><table style="width:34mm;text-align:right"><tr><td>Ja</td><td>Nein</td></tr></table></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -319,7 +318,7 @@ func TestTranslate_TableAutoWidthUsesAbsoluteColgroupSum(t *testing.T) {
 	</table></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -341,7 +340,7 @@ func TestTranslate_TableBorderSpacingOption(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><table style="width:28mm;border-spacing:2mm 1mm"><tr><td>Ja</td><td>Nein</td></tr></table></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -366,7 +365,7 @@ func TestTranslate_TableWidthResolvesAgainstParentContext(t *testing.T) {
 	</style></head><body><div class="wrap"><table class="inner"><tr><td>A</td></tr></table></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc, WithContentWidth(170))
+	rows, err := Translate(t.Context(), doc, WithContentWidth(170))
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -392,7 +391,7 @@ func TestTranslate_TableColgroupWidths(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(context.Background(), doc)
+		rows, err := Translate(t.Context(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 
@@ -417,7 +416,7 @@ func TestTranslate_TableColgroupWidths(t *testing.T) {
 		</table></body></html>`)
 		require.NoError(t, err)
 
-		rows, err := Translate(context.Background(), doc)
+		rows, err := Translate(t.Context(), doc)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 

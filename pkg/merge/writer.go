@@ -3,8 +3,9 @@ package merge
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 )
 
@@ -91,12 +92,7 @@ func shouldSkipObject(document *pdfDocument, objectID int) bool {
 }
 
 func sortedObjectIDs(objects map[int]pdfObject) []int {
-	ids := make([]int, 0, len(objects))
-	for id := range objects {
-		ids = append(ids, id)
-	}
-	sort.Ints(ids)
-	return ids
+	return slices.Sorted(maps.Keys(objects))
 }
 
 func rewriteObjectReferences(content []byte, source int, objectMap map[objectKey]int) []byte {

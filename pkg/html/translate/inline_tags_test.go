@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"strings"
 	"testing"
 
@@ -17,9 +18,7 @@ func parseInlineRuns(t *testing.T, htmlStr string) []runEntry {
 	var target *dom.Node
 	doc.Walk(func(n *dom.Node) bool {
 		if n.Tag() == "p" {
-			if target == nil {
-				target = n
-			}
+			target = cmp.Or(target, n)
 		}
 		return true
 	})

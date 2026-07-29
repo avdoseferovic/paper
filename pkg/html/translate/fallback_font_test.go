@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -20,7 +19,7 @@ func TestLoadFallbackFont_WhenBodyHasNonWinAnsiText_LoadsThroughResolver(t *test
 
 	var requested string
 	tr := &translator{fallbackFontPath: "fonts/fallback.ttf"}
-	tr.loadFallbackFontIfNeeded(context.Background(), body, func(path string) ([]byte, error) {
+	tr.loadFallbackFontIfNeeded(t.Context(), body, func(path string) ([]byte, error) {
 		requested = path
 		return []byte("font bytes"), nil
 	})
@@ -42,7 +41,7 @@ func TestLoadFallbackFont_WhenTextIsWinAnsi_DoesNotLoad(t *testing.T) {
 
 	called := false
 	tr := &translator{fallbackFontPath: "fonts/fallback.ttf"}
-	tr.loadFallbackFontIfNeeded(context.Background(), body, func(string) ([]byte, error) {
+	tr.loadFallbackFontIfNeeded(t.Context(), body, func(string) ([]byte, error) {
 		called = true
 		return []byte("font bytes"), nil
 	})
@@ -65,7 +64,7 @@ func TestLoadFallbackFont_WhenResolverFails_ReportsStrictAssetError(t *testing.T
 		fallbackFontPath: "missing.ttf",
 		strictAssets:     true,
 	}
-	tr.loadFallbackFontIfNeeded(context.Background(), body, func(string) ([]byte, error) {
+	tr.loadFallbackFontIfNeeded(t.Context(), body, func(string) ([]byte, error) {
 		return nil, wantErr
 	})
 

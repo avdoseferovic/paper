@@ -25,6 +25,8 @@ func newAbsorbTestPDF(t *testing.T) *PDF {
 // document-catalog features, which are written once for the whole document, are
 // reported.
 func TestPagesAbsorbable_AcceptsPageLevelFeatures(t *testing.T) {
+	t.Parallel()
+
 	spliceable := map[string]func(f *PDF){
 		"a plain page": func(f *PDF) {
 			f.SetFont("arial", "", 12)
@@ -53,6 +55,7 @@ func TestPagesAbsorbable_AcceptsPageLevelFeatures(t *testing.T) {
 
 	for name, draw := range spliceable {
 		t.Run(name+" is spliceable", func(t *testing.T) {
+			t.Parallel()
 			f := newAbsorbTestPDF(t)
 			draw(f)
 
@@ -81,6 +84,8 @@ func TestPagesAbsorbable_AcceptsPageLevelFeatures(t *testing.T) {
 // source document that uses an unspliceable feature, instead of silently
 // producing a document that has lost it.
 func TestAbsorbPages_RejectsUnspliceableSource(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 
 	src := newAbsorbTestPDF(t)
@@ -94,6 +99,8 @@ func TestAbsorbPages_RejectsUnspliceableSource(t *testing.T) {
 // TestAbsorbPages_AppendsPagesAndSharesFonts checks the happy path: pages are
 // appended in order and a font both documents use is not duplicated.
 func TestAbsorbPages_AppendsPagesAndSharesFonts(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 	dst.SetFont("arial", "", 12)
 	dst.Text(10, 10, "first")
@@ -124,6 +131,8 @@ func TestAbsorbPages_AppendsPagesAndSharesFonts(t *testing.T) {
 // links hold no page reference, so nothing needs rewriting — but the entries do
 // need carrying across, which the previous implementation did not do.
 func TestAbsorbPages_CarriesExternalLinks(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 
 	src := newAbsorbTestPDF(t)
@@ -167,6 +176,8 @@ func assertSingleExternalLink(t *testing.T, pageLinks [][]linkType, page int, wa
 // were placed on after that page has moved to its position in the merged
 // document.
 func TestAbsorbPages_ShiftsOutlinePages(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 	dst.SetFont("arial", "", 12)
 	dst.Bookmark("Chapter 1", 0, 10)
@@ -199,6 +210,8 @@ func TestAbsorbPages_ShiftsOutlinePages(t *testing.T) {
 // destination in the merged link table, and the destination must point at the
 // page's new position.
 func TestAbsorbPages_RewritesInternalLinkIndices(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 	dstLink := dst.AddLink()
 	dst.SetLink(dstLink, 30, 1)
@@ -236,6 +249,8 @@ func TestAbsorbPages_RewritesInternalLinkIndices(t *testing.T) {
 // workers, so neither document can resolve the link on its own. The shared name
 // is what lets the two reservations collapse into one resolved destination.
 func TestAbsorbPages_ReconcilesNamedLinksAcrossDocuments(t *testing.T) {
+	t.Parallel()
+
 	// The worker that drew the clickable area only reserved the destination.
 	source := newAbsorbTestPDF(t)
 	sourceLink := source.AddNamedLink("chapter-2")
@@ -266,6 +281,8 @@ func TestAbsorbPages_ReconcilesNamedLinksAcrossDocuments(t *testing.T) {
 // absorption order: the destination is already resolved when the reservation
 // arrives, so the reservation must not overwrite it.
 func TestAbsorbPages_ReconcilesNamedLinksWhenTargetAbsorbedFirst(t *testing.T) {
+	t.Parallel()
+
 	target := newAbsorbTestPDF(t)
 	targetLink := target.AddNamedLink("chapter-2")
 	target.SetLink(targetLink, 25, 1)
@@ -287,6 +304,8 @@ func TestAbsorbPages_ReconcilesNamedLinksWhenTargetAbsorbedFirst(t *testing.T) {
 // TestAddNamedLink_ReusesTheSameReservation pins the identity contract the
 // splice reconciliation relies on.
 func TestAddNamedLink_ReusesTheSameReservation(t *testing.T) {
+	t.Parallel()
+
 	f := newAbsorbTestPDF(t)
 
 	first := f.AddNamedLink("intro")
@@ -305,6 +324,8 @@ func TestAddNamedLink_ReusesTheSameReservation(t *testing.T) {
 // makes graphics state merge like fonts do: shared definitions collapse and
 // distinct ones are all carried across.
 func TestAbsorbPages_UnionsGradientsAndBlendModes(t *testing.T) {
+	t.Parallel()
+
 	dst := newAbsorbTestPDF(t)
 	dst.SetAlpha(0.5, "Normal")
 	dst.LinearGradient(10, 10, 50, 50, 255, 0, 0, 0, 0, 255, 0, 0, 1, 1)
@@ -344,6 +365,8 @@ func TestAbsorbPages_UnionsGradientsAndBlendModes(t *testing.T) {
 // side of content-hash naming: drawing the same gradient repeatedly used to
 // embed one shading object per call.
 func TestGradients_DeduplicateWithinOneDocument(t *testing.T) {
+	t.Parallel()
+
 	f := newAbsorbTestPDF(t)
 	for range 10 {
 		f.LinearGradient(10, 10, 50, 50, 255, 0, 0, 0, 0, 255, 0, 0, 1, 1)
@@ -358,6 +381,8 @@ func TestGradients_DeduplicateWithinOneDocument(t *testing.T) {
 // on: two independent documents drawing the same state name it identically, and
 // a different state gets a different name.
 func TestGraphicsStateNames_AreContentDerived(t *testing.T) {
+	t.Parallel()
+
 	first := newAbsorbTestPDF(t)
 	first.SetAlpha(0.5, "Normal")
 	first.LinearGradient(10, 10, 50, 50, 255, 0, 0, 0, 0, 255, 0, 0, 1, 1)

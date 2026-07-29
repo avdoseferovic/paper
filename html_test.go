@@ -36,7 +36,7 @@ func TestFromHTML_WhenTopLevelHeaderFooter_ShouldRepeatOnEveryPage(t *testing.T)
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML(context.Background(), multiPageHeaderHTML(), cfg)
+	doc, err := paper.FromHTML(t.Context(), multiPageHeaderHTML(), cfg)
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -51,7 +51,7 @@ func TestFromHTML_WhenHeaderNestedInArticle_ShouldStayInline(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML(context.Background(), "<article><header><p>INLINE-HEADER</p></header><p>body</p></article>", cfg)
+	doc, err := paper.FromHTML(t.Context(), "<article><header><p>INLINE-HEADER</p></header><p>body</p></article>", cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, bytes.Count(doc.GetBytes(), []byte("INLINE-HEADER")), "nested header renders inline exactly once")
@@ -71,7 +71,7 @@ func TestFromHTML_WhenCSSHardBreaks_ShouldCreateSingleNewPage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			doc, err := paper.FromHTML(context.Background(), html, cfg)
+			doc, err := paper.FromHTML(t.Context(), html, cfg)
 
 			require.NoError(t, err)
 			assert.Equal(t, 2, pdfPageCount(t, doc.GetBytes()), name)
@@ -83,7 +83,7 @@ func TestFromHTML_WhenCSSHardBreakAtTop_ShouldNotCreateLeadingBlankPage(t *testi
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML(context.Background(), `<p style="page-break-before: always">ONLY PAGE</p>`, cfg)
+	doc, err := paper.FromHTML(t.Context(), `<p style="page-break-before: always">ONLY PAGE</p>`, cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, pdfPageCount(t, doc.GetBytes()))
@@ -94,7 +94,7 @@ func TestFromHTML_WhenConsecutiveCSSHardBreaks_ShouldCollapseAtPageTop(t *testin
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
 	doc, err := paper.FromHTML(
-		context.Background(),
+		t.Context(),
 		`<p style="page-break-after: always">PAGE ONE</p><p style="page-break-before: always">PAGE TWO</p>`,
 		cfg,
 	)
@@ -107,7 +107,7 @@ func TestFromHTML_WhenModernBreakValueIsCaseAndWhitespaceInsensitive(t *testing.
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
-	doc, err := paper.FromHTML(context.Background(), `<p>PAGE ONE</p><p style="break-before: Page ">PAGE TWO</p>`, cfg)
+	doc, err := paper.FromHTML(t.Context(), `<p>PAGE ONE</p><p style="break-before: Page ">PAGE TWO</p>`, cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, pdfPageCount(t, doc.GetBytes()))
@@ -123,7 +123,7 @@ func TestFromHTML_WhenHeaderTallerThanPage_ShouldReturnError(t *testing.T) {
 	}
 	sb.WriteString("</header><p>body</p>")
 
-	_, err := paper.FromHTML(context.Background(), sb.String())
+	_, err := paper.FromHTML(t.Context(), sb.String())
 
 	require.ErrorIs(t, err, paper.ErrHeaderHeightIsGreaterThanUsefulArea)
 }
@@ -134,7 +134,7 @@ func TestAddHTML_WhenDocumentAlreadyHasRows_ShouldRejectTopLevelHeader(t *testin
 	m := paper.New()
 	m.AddAutoRow(col.New(12).Add(text.New("existing content", props.Text{})))
 
-	err := m.AddHTML(context.Background(), "<header><p>late header</p></header><p>body</p>")
+	err := m.AddHTML(t.Context(), "<header><p>late header</p></header><p>body</p>")
 
 	require.ErrorIs(t, err, paper.ErrHTMLHeaderAfterContent)
 }
@@ -145,7 +145,7 @@ func TestAddHTML_WhenHeaderAlreadyRegistered_ShouldRejectTopLevelHeader(t *testi
 	m := paper.New()
 	require.NoError(t, m.RegisterHeader(row.New(10).Add(col.New(12).Add(text.New("registered", props.Text{})))))
 
-	err := m.AddHTML(context.Background(), "<header><p>late header</p></header><p>body</p>")
+	err := m.AddHTML(t.Context(), "<header><p>late header</p></header><p>body</p>")
 
 	require.ErrorIs(t, err, paper.ErrHTMLHeaderAfterContent)
 }
@@ -153,7 +153,7 @@ func TestAddHTML_WhenHeaderAlreadyRegistered_ShouldRejectTopLevelHeader(t *testi
 func TestHTMLFromString_WhenTopLevelHeader_ShouldKeepLegacyInlineBehavior(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(), "<header><p>legacy inline</p></header><p>body</p>")
+	rows, err := html.FromString(t.Context(), "<header><p>legacy inline</p></header><p>body</p>")
 
 	require.NoError(t, err)
 	assert.Len(t, rows, 2, "rows-only API keeps header inline as a normal row")
@@ -176,10 +176,10 @@ body { font-family: helvetica; font-size: 10pt; }
 .flag-icon { font-family: "ArialUnicode"; font-size:5.7pt; margin-right:3px; }
 </style>` + body.String()
 
-	rows, err := html.FromString(context.Background(), htmlStr, html.WithStylesheetBaseDir(fontDir))
+	rows, err := html.FromString(t.Context(), htmlStr, html.WithStylesheetBaseDir(fontDir))
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	m := paper.New(config.NewBuilder().WithCompression(false).Build())
 	m.AddRows(rows...)
@@ -195,7 +195,7 @@ const pageRuleHTML = `<style>@page { size: A5; margin: 10mm }</style><p>content<
 func TestFromHTML_WhenPageRuleAndNoConfig_ShouldApplySizeAndMargins(t *testing.T) {
 	t.Parallel()
 
-	doc, err := paper.FromHTML(context.Background(), pageRuleHTML)
+	doc, err := paper.FromHTML(t.Context(), pageRuleHTML)
 	require.NoError(t, err)
 	_ = doc
 
@@ -228,7 +228,7 @@ func TestFromHTML_WhenExplicitConfigGiven_ShouldIgnorePageRule(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.NewBuilder().WithPageSize(pagesize.A4).WithCompression(false).Build()
-	doc, err := paper.FromHTML(context.Background(), pageRuleHTML, cfg)
+	doc, err := paper.FromHTML(t.Context(), pageRuleHTML, cfg)
 
 	require.NoError(t, err)
 	pdf := string(doc.GetBytes())
@@ -238,7 +238,7 @@ func TestFromHTML_WhenExplicitConfigGiven_ShouldIgnorePageRule(t *testing.T) {
 func TestFromHTMLReader_WhenPageRule_ShouldApplyLikeFromHTML(t *testing.T) {
 	t.Parallel()
 
-	doc, err := paper.FromHTMLReader(context.Background(), strings.NewReader(pageRuleHTML))
+	doc, err := paper.FromHTMLReader(t.Context(), strings.NewReader(pageRuleHTML))
 
 	require.NoError(t, err)
 	w, h := pagesize.GetDimensions(pagesize.A5)
@@ -247,7 +247,7 @@ func TestFromHTMLReader_WhenPageRule_ShouldApplyLikeFromHTML(t *testing.T) {
 
 func mustPDFString(t *testing.T, html string) string {
 	t.Helper()
-	doc, err := paper.FromHTML(context.Background(), html)
+	doc, err := paper.FromHTML(t.Context(), html)
 	require.NoError(t, err)
 	return string(doc.GetBytes())
 }

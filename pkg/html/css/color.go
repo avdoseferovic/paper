@@ -283,24 +283,11 @@ func parseFloat(s string) (float64, bool) {
 }
 
 func clamp255(v float64) int {
-	i := int(math.Round(v))
-	if i < 0 {
-		return 0
-	}
-	if i > 255 {
-		return 255
-	}
-	return i
+	return min(max(int(math.Round(v)), 0), 255)
 }
 
 func clamp01(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
+	return min(max(v, 0), 1)
 }
 
 func stripTrailingParen(s string) string {

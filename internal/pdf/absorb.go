@@ -3,6 +3,7 @@ package pdf
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // ErrAbsorbUnsupported reports that a source document uses a feature whose
@@ -145,8 +146,7 @@ func (f *PDF) mergeLink(destination intLinkType) int {
 // identifiers through translation. External links carry a URL rather than an
 // identifier and need no rewriting.
 func remapPageLinks(pageLinks []linkType, translation []int) []linkType {
-	absorbed := make([]linkType, len(pageLinks))
-	copy(absorbed, pageLinks)
+	absorbed := slices.Clone(pageLinks)
 	for i := range absorbed {
 		if absorbed[i].link != 0 {
 			absorbed[i].link = translation[absorbed[i].link]

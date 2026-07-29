@@ -1,6 +1,7 @@
 package props
 
 import (
+	"cmp"
 	"strconv"
 	"strings"
 
@@ -108,21 +109,13 @@ func (p *PageNumber) GetPageString(current, total int) string {
 
 // WithFont apply font if not defined before.
 func (p *PageNumber) WithFont(font *Font) {
-	if p.Color == nil {
-		p.Color = font.Color
-	}
+	p.Color = cmp.Or(p.Color, font.Color)
 
-	if p.Size == 0 {
-		p.Size = font.Size
-	}
+	p.Size = cmp.Or(p.Size, font.Size)
 
-	if p.Style == "" {
-		p.Style = font.Style
-	}
+	p.Style = cmp.Or(p.Style, font.Style)
 
-	if p.Family == "" {
-		p.Family = font.Family
-	}
+	p.Family = cmp.Or(p.Family, font.Family)
 }
 
 // AppendMap appends the font fields to a map.

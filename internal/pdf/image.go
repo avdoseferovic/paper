@@ -2,6 +2,7 @@ package pdf
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 	"io"
 	"math"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/avdoseferovic/paper/internal/pngcodec"
@@ -380,7 +381,7 @@ func (f *PDF) putimages() {
 	}
 
 	if f.catalogSort {
-		sort.SliceStable(keyList, func(i, j int) bool { return f.images[keyList[i]].w < f.images[keyList[j]].w })
+		slices.SortStableFunc(keyList, func(a, b string) int { return cmp.Compare(f.images[a].w, f.images[b].w) })
 	}
 
 	insertedImages := map[string]int{}

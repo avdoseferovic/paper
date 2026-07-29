@@ -600,22 +600,24 @@ func matchNth(expression string, index int) bool {
 		value, err := strconv.Atoi(expression)
 		return err == nil && index == value
 	}
-	parts := strings.SplitN(expression, "n", 2)
+	// The guard above already established that "n" is present, so the trailing
+	// segment is always defined and the found flag adds nothing.
+	before, after, _ := strings.Cut(expression, "n")
 	coefficient := 1
-	switch parts[0] {
+	switch before {
 	case "", "+":
 	case "-":
 		coefficient = -1
 	default:
-		value, err := strconv.Atoi(parts[0])
+		value, err := strconv.Atoi(before)
 		if err != nil {
 			return false
 		}
 		coefficient = value
 	}
 	offset := 0
-	if parts[1] != "" {
-		value, err := strconv.Atoi(parts[1])
+	if after != "" {
+		value, err := strconv.Atoi(after)
 		if err != nil {
 			return false
 		}

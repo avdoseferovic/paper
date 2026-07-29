@@ -6,12 +6,15 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestCustomUTF8FontPDFContainsCIDObjects(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -49,6 +52,8 @@ func TestCustomUTF8FontPDFContainsCIDObjects(t *testing.T) {
 }
 
 func TestAddUTF8FontFromBytesAcceptsWOFF1(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -80,6 +85,8 @@ func TestAddUTF8FontFromBytesAcceptsWOFF1(t *testing.T) {
 }
 
 func TestAddPageAfterLateUTF8FontStyleFallbackReturns(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -113,6 +120,8 @@ func TestAddPageAfterLateUTF8FontStyleFallbackReturns(t *testing.T) {
 }
 
 func TestUTF8FontSemiboldStyleFallbacksToRegisteredFace(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -137,6 +146,8 @@ func TestUTF8FontSemiboldStyleFallbacksToRegisteredFace(t *testing.T) {
 }
 
 func TestOutputReturnsErrorWhenUTF8FontSubsettingFails(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -166,6 +177,8 @@ func TestOutputReturnsErrorWhenUTF8FontSubsettingFails(t *testing.T) {
 }
 
 func TestAliasNbPagesUTF8FontRendersDigits(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -216,6 +229,8 @@ func TestAliasNbPagesUTF8FontRendersDigits(t *testing.T) {
 }
 
 func TestUTF8FontSubsettingOutputIsDeterministic(t *testing.T) {
+	t.Parallel()
+
 	fontBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "assets", "fonts", "arial-unicode-ms.ttf"))
 	if err != nil {
 		t.Fatalf("read custom font fixture: %v", err)
@@ -253,6 +268,8 @@ func TestUTF8FontSubsettingOutputIsDeterministic(t *testing.T) {
 }
 
 func TestUTF8FontFileGlyphDataRejectsOneByteGlyph(t *testing.T) {
+	t.Parallel()
+
 	utf := &utf8FontFile{}
 
 	_, ok := utf.glyphData([]byte{0x80}, 0, 1)
@@ -266,6 +283,8 @@ func TestUTF8FontFileGlyphDataRejectsOneByteGlyph(t *testing.T) {
 }
 
 func TestUTF8FontFileCompositeGlyphRejectsTruncatedComponent(t *testing.T) {
+	t.Parallel()
+
 	utf := &utf8FontFile{}
 	data := []byte{
 		0x80, 0x00,
@@ -308,7 +327,7 @@ func makeWOFF1FromSFNT(t *testing.T, sfnt []byte, compressTables bool) []byte {
 		if offset < 0 || offset > len(sfnt) || offset+length > len(sfnt) {
 			t.Fatalf("sfnt table %d exceeds font data", i)
 		}
-		tableData := append([]byte(nil), sfnt[offset:offset+length]...)
+		tableData := slices.Clone(sfnt[offset : offset+length])
 		compData := tableData
 		if compressTables {
 			var buf bytes.Buffer
@@ -324,12 +343,12 @@ func makeWOFF1FromSFNT(t *testing.T, sfnt []byte, compressTables bool) []byte {
 			}
 		}
 		tables = append(tables, table{
-			tag:        append([]byte(nil), record[0:4]...),
-			checksum:   append([]byte(nil), record[4:8]...),
+			tag:        slices.Clone(record[0:4]),
+			checksum:   slices.Clone(record[4:8]),
 			offset:     offset,
 			length:     length,
 			data:       tableData,
-			compData:   append([]byte(nil), compData...),
+			compData:   slices.Clone(compData),
 			compLength: len(compData),
 		})
 	}

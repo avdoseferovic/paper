@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -15,7 +14,7 @@ func translateHTML(t *testing.T, htmlStr string) []string {
 	t.Helper()
 	doc, err := dom.Parse(htmlStr)
 	require.NoError(t, err)
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	return richTextValues(rows)
 }

@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -193,7 +192,7 @@ func TestTranslate_BlockHorizontalMarginsWrapGenericRows(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><div style="margin-left:4mm;margin-right:6mm"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -141,13 +142,9 @@ func (m *TimeMetric) String() string {
 }
 
 func (m *TimeMetric) hasGreaterThan1000(times []*Time) bool {
-	for _, time := range times {
-		if time.Value > 1000.0 {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(times, func(time *Time) bool {
+		return time.Value > 1000.0
+	})
 }
 
 // SizeMetric is a size metric.

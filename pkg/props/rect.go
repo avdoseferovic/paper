@@ -74,13 +74,9 @@ func NormalizeRect(r Rect) Rect {
 		r.Top = 0
 	}
 
-	if r.Left < minValue {
-		r.Left = minValue
-	}
+	r.Left = max(r.Left, minValue)
 
-	if r.Top < minValue {
-		r.Top = minValue
-	}
+	r.Top = max(r.Top, minValue)
 
 	return r
 }

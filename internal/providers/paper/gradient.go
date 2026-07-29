@@ -2,6 +2,7 @@ package paper
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -79,12 +80,8 @@ func (gr *GradientRenderer) DrawGradient(cell *entity.Cell, g *props.Gradient, w
 func gradientRasterDimensions(g *props.Gradient, widthMM, heightMM float64) (int, int) {
 	pxW := int(math.Round(widthMM * gradientDPI / 25.4))
 	pxH := int(math.Round(heightMM * gradientDPI / 25.4))
-	if pxW < 1 {
-		pxW = 1
-	}
-	if pxH < 1 {
-		pxH = 1
-	}
+	pxW = max(pxW, 1)
+	pxH = max(pxH, 1)
 	if isHorizontalLinearGradient(g) {
 		pxH = 1
 	}
@@ -138,10 +135,7 @@ func rasteriseLinear(img *image.RGBA, g *props.Gradient, w, h int) {
 	dx := math.Sin(rad)
 	dy := -math.Cos(rad)
 	minProj, maxProj := linearGradientProjectionBounds(dx, dy, w, h)
-	span := maxProj - minProj
-	if span == 0 {
-		span = 1
-	}
+	span := cmp.Or(maxProj-minProj, 1)
 
 	for py := range h {
 		for px := range w {
@@ -167,12 +161,8 @@ func linearGradientProjectionBounds(dx, dy float64, w, h int) (float64, float64)
 	}
 	minProj, maxProj := projections[0], projections[0]
 	for _, p := range projections[1:] {
-		if p < minProj {
-			minProj = p
-		}
-		if p > maxProj {
-			maxProj = p
-		}
+		minProj = min(minProj, p)
+		maxProj = max(maxProj, p)
 	}
 	return minProj, maxProj
 }
@@ -185,10 +175,7 @@ func rasteriseRadial(img *image.RGBA, g *props.Gradient, w, h int) {
 			dx := nx - g.CX
 			dy := ny - g.CY
 			// Normalise by the half-size so the gradient reaches the edge.
-			maxR := math.Sqrt(g.CX*g.CX + g.CY*g.CY)
-			if maxR == 0 {
-				maxR = 0.5
-			}
+			maxR := cmp.Or(math.Sqrt(g.CX*g.CX+g.CY*g.CY), 0.5)
 			r := math.Sqrt(dx*dx+dy*dy) / maxR
 			t := clamp01(r)
 			c := interpolateStops(g.Stops, t)
@@ -268,11 +255,5 @@ func toColorByte(v int) byte {
 }
 
 func clamp01(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
+	return min(max(v, 0), 1)
 }

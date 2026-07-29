@@ -2,11 +2,13 @@ package forms
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -95,7 +97,7 @@ func (ff *FormFiller) Bytes() []byte {
 	if ff == nil {
 		return nil
 	}
-	return append([]byte(nil), ff.data...)
+	return slices.Clone(ff.data)
 }
 
 // SaveTo writes the current PDF bytes to path.
@@ -154,9 +156,7 @@ func (ff *FormFiller) SetCheckbox(fieldName string, checked bool) error {
 	state := formOffState
 	if checked {
 		state = field.exportName
-		if state == "" {
-			state = defaultCheckboxExportName
-		}
+		state = cmp.Or(state, defaultCheckboxExportName)
 	}
 	updated, err := setFormDictionaryEntry(field.content, "V", "/"+state)
 	if err != nil {
@@ -320,11 +320,7 @@ func (ff *FormFiller) fields() ([]formFieldObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]int, 0, len(objects))
-	for id := range objects {
-		ids = append(ids, id)
-	}
-	sort.Ints(ids)
+	ids := slices.Sorted(maps.Keys(objects))
 
 	fields := make([]formFieldObject, 0)
 	for _, id := range ids {
@@ -376,7 +372,7 @@ func parseFormPDFInfo(data []byte) (formPDFInfo, error) {
 		return formPDFInfo{}, err
 	}
 	return formPDFInfo{
-		data:            append([]byte(nil), data...),
+		data:            slices.Clone(data),
 		objects:         objects,
 		rootObjNum:      rootObjNum,
 		prevXref:        prevXref,
@@ -399,10 +395,8 @@ func parseFormObjects(data []byte) (map[int]formObject, int, error) {
 		if err != nil {
 			return nil, 0, fmt.Errorf("forms: invalid object number: %w", err)
 		}
-		if number > maxObjNum {
-			maxObjNum = number
-		}
-		objects[number] = formObject{content: append([]byte(nil), match[2]...)}
+		maxObjNum = max(maxObjNum, number)
+		objects[number] = formObject{content: slices.Clone(match[2])}
 	}
 	return objects, maxObjNum, nil
 }
@@ -410,7 +404,7 @@ func parseFormObjects(data []byte) (map[int]formObject, int, error) {
 func cloneFormObjects(objects map[int]formObject) map[int]formObject {
 	cloned := make(map[int]formObject, len(objects))
 	for id, object := range objects {
-		cloned[id] = formObject{content: append([]byte(nil), object.content...)}
+		cloned[id] = formObject{content: slices.Clone(object.content)}
 	}
 	return cloned
 }
@@ -676,14 +670,12 @@ func writeFormFullRewrite(info formPDFInfo, objects map[int]formObject, omit map
 	ids := make([]int, 0, len(objects))
 	maxObjNum := 0
 	for id := range objects {
-		if id > maxObjNum {
-			maxObjNum = id
-		}
+		maxObjNum = max(maxObjNum, id)
 		if !omit[id] {
 			ids = append(ids, id)
 		}
 	}
-	sort.Ints(ids)
+	slices.Sort(ids)
 
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "%%PDF-%s\n", parseFormPDFVersion(info.data))
@@ -728,9 +720,7 @@ func parseFormPDFVersion(data []byte) string {
 func maxFormObjectNumber(objects map[int]formObject) int {
 	maxObjNum := 0
 	for id := range objects {
-		if id > maxObjNum {
-			maxObjNum = id
-		}
+		maxObjNum = max(maxObjNum, id)
 	}
 	return maxObjNum
 }

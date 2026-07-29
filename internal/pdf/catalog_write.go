@@ -1,9 +1,10 @@
 package pdf
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ func (f *PDF) SetViewerPreferences(prefs ViewerPreferences) {
 // SetPageLabels defines the page label ranges shown by viewers instead of
 // physical page numbers. PageIndex is zero-based.
 func (f *PDF) SetPageLabels(labels ...PageLabelRange) {
-	f.pageLabels = append([]PageLabelRange(nil), labels...)
+	f.pageLabels = slices.Clone(labels)
 }
 
 // SetAttachments embeds the given files in the document (/EmbeddedFiles name
@@ -30,7 +31,7 @@ func (f *PDF) SetPageLabels(labels ...PageLabelRange) {
 func (f *PDF) SetAttachments(attachments ...FileAttachment) {
 	clones := make([]FileAttachment, len(attachments))
 	for i, attachment := range attachments {
-		attachment.Data = append([]byte(nil), attachment.Data...)
+		attachment.Data = slices.Clone(attachment.Data)
 		clones[i] = attachment
 	}
 	f.attachments = clones
@@ -40,7 +41,7 @@ func (f *PDF) SetAttachments(attachments ...FileAttachment) {
 // the /Dests name tree. Destinations with empty names or out-of-range page
 // indexes are skipped at output time.
 func (f *PDF) SetNamedDestinations(destinations ...NamedDestination) {
-	f.namedDests = append([]NamedDestination(nil), destinations...)
+	f.namedDests = slices.Clone(destinations)
 }
 
 // SetPageAnnotations adds page-level annotations (links, text notes, and
@@ -57,7 +58,7 @@ func (f *PDF) SetPageAnnotations(annotations ...PageAnnotation) {
 			color := *annotation.Color
 			annotation.Color = &color
 		}
-		annotation.QuadPoints = append([][8]float64(nil), annotation.QuadPoints...)
+		annotation.QuadPoints = slices.Clone(annotation.QuadPoints)
 		clones[i] = annotation
 	}
 	f.pageAnnotations = clones
@@ -82,14 +83,13 @@ func cloneBoxPtr(box *[4]float64) *[4]float64 {
 	if box == nil {
 		return nil
 	}
-	clone := *box
-	return &clone
+	return new(*box)
 }
 
 // SetFileID sets an explicit trailer /ID. It takes precedence over the
 // derived deterministic ID and the encryption ID.
 func (f *PDF) SetFileID(id []byte) {
-	f.fileID = append([]byte(nil), id...)
+	f.fileID = slices.Clone(id)
 }
 
 // SetDeterministic makes repeated builds of the same document byte-identical:
@@ -175,10 +175,7 @@ func (f *PDF) serializeAnnotation(annotation PageAnnotation) string {
 		if annotation.Contents != "" {
 			fmt.Fprintf(&b, " /Contents %s", f.textstring(annotation.Contents))
 		}
-		icon := annotation.Name
-		if icon == "" {
-			icon = "Note"
-		}
+		icon := cmp.Or(annotation.Name, "Note")
 		fmt.Fprintf(&b, " /Name /%s", pdfNameEscape(icon))
 		if annotation.Open {
 			b.WriteString(" /Open true")
@@ -228,10 +225,7 @@ func (f *PDF) putAttachmentObjects() {
 		if mime == "" {
 			mime = "application/octet-stream"
 		}
-		relationship := attachment.AFRelationship
-		if relationship == "" {
-			relationship = "Unspecified"
-		}
+		relationship := cmp.Or(attachment.AFRelationship, "Unspecified")
 
 		f.newobj()
 		streamRef := f.n
@@ -289,7 +283,7 @@ func (f *PDF) validNamedDestinations() []NamedDestination {
 		}
 		valid = append(valid, dest)
 	}
-	sort.Slice(valid, func(i, j int) bool { return valid[i].Name < valid[j].Name })
+	slices.SortStableFunc(valid, func(a, b NamedDestination) int { return cmp.Compare(a.Name, b.Name) })
 	return valid
 }
 
@@ -318,8 +312,8 @@ func (f *PDF) putCatalogNames() {
 		f.out(b.String())
 	}
 	if len(f.attachmentRefs) > 0 {
-		refs := append([]attachmentFileSpecRef(nil), f.attachmentRefs...)
-		sort.Slice(refs, func(i, j int) bool { return refs[i].name < refs[j].name })
+		refs := slices.Clone(f.attachmentRefs)
+		slices.SortStableFunc(refs, func(a, b attachmentFileSpecRef) int { return cmp.Compare(a.name, b.name) })
 		var b strings.Builder
 		b.WriteString("/EmbeddedFiles << /Names [")
 		for i, ref := range refs {
@@ -351,8 +345,8 @@ func (f *PDF) putPageLabels() {
 	if len(f.pageLabels) == 0 {
 		return
 	}
-	labels := append([]PageLabelRange(nil), f.pageLabels...)
-	sort.SliceStable(labels, func(i, j int) bool { return labels[i].PageIndex < labels[j].PageIndex })
+	labels := slices.Clone(f.pageLabels)
+	slices.SortStableFunc(labels, func(a, b PageLabelRange) int { return cmp.Compare(a.PageIndex, b.PageIndex) })
 	var b strings.Builder
 	b.WriteString("/PageLabels << /Nums [")
 	for i, label := range labels {
@@ -391,10 +385,11 @@ func (f *PDF) putViewerPreferences() {
 	if prefs.PageMode != "" {
 		f.outf("/PageMode /%s", pdfNameEscape(prefs.PageMode))
 	}
-	flags := []struct {
+	type viewerPrefFlag struct {
 		name string
 		set  bool
-	}{
+	}
+	flags := []viewerPrefFlag{
 		{"HideToolbar", prefs.HideToolbar},
 		{"HideMenubar", prefs.HideMenubar},
 		{"HideWindowUI", prefs.HideWindowUI},
@@ -402,13 +397,7 @@ func (f *PDF) putViewerPreferences() {
 		{"CenterWindow", prefs.CenterWindow},
 		{"DisplayDocTitle", prefs.DisplayDocTitle},
 	}
-	hasFlag := false
-	for _, flag := range flags {
-		if flag.set {
-			hasFlag = true
-			break
-		}
-	}
+	hasFlag := slices.ContainsFunc(flags, func(flag viewerPrefFlag) bool { return flag.set })
 	if hasFlag {
 		f.out("/ViewerPreferences <<")
 		for _, flag := range flags {

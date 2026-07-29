@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -159,12 +160,8 @@ func resolveRichTextRuns(runs []props.RichRun, defaultFamily string, defaultSize
 	resolved := make([]resolvedRun, len(runs))
 	for i, r := range runs {
 		rr := r
-		if rr.Family == "" {
-			rr.Family = defaultFamily
-		}
-		if rr.Size == 0 {
-			rr.Size = defaultSize
-		}
+		rr.Family = cmp.Or(rr.Family, defaultFamily)
+		rr.Size = cmp.Or(rr.Size, defaultSize)
 		if rr.SizeScale > 0 {
 			rr.Size *= rr.SizeScale
 		}
@@ -178,9 +175,7 @@ func (s *Text) richTextLineMetrics(resolved []resolvedRun, prop *props.RichText)
 	lineHeight := 0.0
 	for _, run := range resolved {
 		h := s.font.GetHeight(run.Family, run.styleWithUnderline(), run.Size)
-		if h > lineHeight {
-			lineHeight = h
-		}
+		lineHeight = max(lineHeight, h)
 	}
 	if lineHeight <= 0 {
 		lineHeight = 1
@@ -214,9 +209,7 @@ func maxRichRunInlineBoxPillHeight(runs []resolvedRun, lineHeight float64) float
 			continue
 		}
 		h := richRunInlineBoxLineHeight(r, lineHeight) + 2*(r.BgPadY+r.inlineBorderWidth())
-		if h > maxHeight {
-			maxHeight = h
-		}
+		maxHeight = max(maxHeight, h)
 	}
 	return maxHeight
 }
@@ -233,9 +226,7 @@ func richTextLineCount(tokens []rtToken) int {
 		if t.skip {
 			continue
 		}
-		if t.lineY > maxLine {
-			maxLine = t.lineY
-		}
+		maxLine = max(maxLine, t.lineY)
 	}
 	return maxLine + 1
 }
@@ -279,9 +270,7 @@ func maxRichRunImageHeight(runs []resolvedRun) float64 {
 		if run.Image != nil && run.Image.Height > maxHeight {
 			maxHeight = run.Image.Height
 		}
-		if run.InlineBoxHeight > maxHeight {
-			maxHeight = run.InlineBoxHeight
-		}
+		maxHeight = max(maxHeight, run.InlineBoxHeight)
 	}
 	return maxHeight
 }

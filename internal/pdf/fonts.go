@@ -2,13 +2,15 @@ package pdf
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -440,9 +442,7 @@ func (f *PDF) SetFont(familyStr, styleStr string, size float64) {
 
 	familyStr = f.normalizedFontFamily(familyStr)
 	styleStr = f.normalizedFontStyle(styleStr)
-	if size == 0.0 {
-		size = f.fontSizePt
-	}
+	size = cmp.Or(size, f.fontSizePt)
 
 	familyStr, styleStr, fontKey, ok := f.resolveFont(familyStr, styleStr)
 	if !ok {
@@ -703,7 +703,7 @@ func (f *PDF) sortedFontFileKeys() []string {
 		fileList = append(fileList, file)
 	}
 	if f.catalogSort {
-		sort.SliceStable(fileList, func(i, j int) bool { return fileList[i] < fileList[j] })
+		slices.Sort(fileList)
 	}
 	return fileList
 }
@@ -787,7 +787,7 @@ func (f *PDF) sortedFontKeys() []string {
 		keyList = append(keyList, key)
 	}
 	if f.catalogSort {
-		sort.SliceStable(keyList, func(i, j int) bool { return keyList[i] < keyList[j] })
+		slices.Sort(keyList)
 	}
 	return keyList
 }
@@ -1075,7 +1075,7 @@ func buildToUnicodeCMap(usedRunes map[int]int) string {
 	b.write("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n")
 	b.write("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n")
 
-	cids := keySortInt(usedRunes)
+	cids := sortedKeys(usedRunes)
 	const chunkSize = 100
 	for start := 0; start < len(cids); {
 		end := min(start+chunkSize, len(cids))
@@ -1428,35 +1428,9 @@ func putUint32(dst []byte, n int) {
 	binary.BigEndian.PutUint16(dst[2:4], uint16(n&0xFFFF))
 }
 
-func keySortStrings(s map[string][]byte) []string {
-	keys := make([]string, len(s))
-	i := 0
-	for key := range s {
-		keys[i] = key
-		i++
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func keySortInt(s map[int]int) []int {
-	keys := make([]int, len(s))
-	i := 0
-	for key := range s {
-		keys[i] = key
-		i++
-	}
-	sort.Ints(keys)
-	return keys
-}
-
-func keySortArrayRangeMap(s map[int][]int) []int {
-	keys := make([]int, len(s))
-	i := 0
-	for key := range s {
-		keys[i] = key
-		i++
-	}
-	sort.Ints(keys)
-	return keys
+// sortedKeys returns the map's keys in ascending order. Font tables are
+// emitted in key order so that the same document always produces the same
+// bytes.
+func sortedKeys[K cmp.Ordered, V any](s map[K]V) []K {
+	return slices.Sorted(maps.Keys(s))
 }

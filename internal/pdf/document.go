@@ -1,11 +1,12 @@
 package pdf
 
 import (
+	"cmp"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -33,9 +34,7 @@ func (f *PDF) SetDisplayMode(zoomStr, layoutStr string) {
 	if f.err != nil {
 		return
 	}
-	if layoutStr == "" {
-		layoutStr = displayModeDefault
-	}
+	layoutStr = cmp.Or(layoutStr, displayModeDefault)
 	switch zoomStr {
 	case "fullpage", "fullwidth", "real", displayModeDefault:
 		f.zoomMode = zoomStr
@@ -125,9 +124,7 @@ func (f *PDF) SetLanguage(lang string) {
 //
 // See the example for AddPage() for a demonstration of this method.
 func (f *PDF) AliasNbPages(aliasStr string) {
-	if aliasStr == "" {
-		aliasStr = "{nb}"
-	}
+	aliasStr = cmp.Or(aliasStr, "{nb}")
 	f.aliasNbPagesStr = aliasStr
 }
 
@@ -671,7 +668,7 @@ func (f *PDF) putxobjectdict() {
 		keyList = append(keyList, key)
 	}
 	if f.catalogSort {
-		sort.SliceStable(keyList, func(i, j int) bool { return f.images[keyList[i]].i < f.images[keyList[j]].i })
+		slices.SortStableFunc(keyList, func(a, b string) int { return cmp.Compare(f.images[a].i, f.images[b].i) })
 	}
 	for _, key := range keyList {
 		image = f.images[key]
@@ -690,7 +687,7 @@ func (f *PDF) putresourcedict() {
 			keyList = append(keyList, key)
 		}
 		if f.catalogSort {
-			sort.SliceStable(keyList, func(i, j int) bool { return f.fonts[keyList[i]].i < f.fonts[keyList[j]].i })
+			slices.SortStableFunc(keyList, func(a, b string) int { return cmp.Compare(f.fonts[a].i, f.fonts[b].i) })
 		}
 		for _, key = range keyList {
 			font = f.fonts[key]

@@ -11,6 +11,7 @@ import (
 	_ "image/jpeg" // registered with image.DecodeConfig so this format can be inspected
 	_ "image/png"  // registered with image.DecodeConfig so this format can be inspected
 	"os"
+	"slices"
 
 	_ "golang.org/x/image/tiff" // registered with image.DecodeConfig so this format can be inspected
 	_ "golang.org/x/image/webp" // registered with image.DecodeConfig so this format can be inspected
@@ -101,7 +102,7 @@ func (img *Image) Bytes() []byte {
 	if img == nil {
 		return nil
 	}
-	return append([]byte(nil), img.data...)
+	return slices.Clone(img.data)
 }
 
 // Extension returns the image format.
@@ -194,7 +195,7 @@ func newImage(data []byte, ext extension.Type) (*Image, error) {
 		return nil, fmt.Errorf("%w: %dx%d", ErrInvalidDimensions, cfg.Width, cfg.Height)
 	}
 	return &Image{
-		data:      append([]byte(nil), data...),
+		data:      slices.Clone(data),
 		extension: ext,
 		width:     cfg.Width,
 		height:    cfg.Height,

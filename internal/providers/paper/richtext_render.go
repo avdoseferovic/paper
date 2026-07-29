@@ -199,9 +199,7 @@ func (s *Text) drawRunBackground(r resolvedRun, x, yTop, w, lineHeight float64) 
 
 func richRunInlineBoxLineHeight(r resolvedRun, lineHeight float64) float64 {
 	boxLineHeight := lineHeight
-	if r.InlineBoxHeight > boxLineHeight {
-		boxLineHeight = r.InlineBoxHeight
-	}
+	boxLineHeight = max(boxLineHeight, r.InlineBoxHeight)
 	if r.LineHeight <= 0 {
 		return boxLineHeight
 	}
@@ -289,9 +287,7 @@ func (s *Text) drawRunShadowBox(x, y, w, h, radius float64, r, g, b int, alpha f
 	if w <= 0 || h <= 0 || alpha <= 0 {
 		return
 	}
-	if alpha > 1 {
-		alpha = 1
-	}
+	alpha = min(alpha, 1)
 	s.pdf.SetFillColor(r, g, b)
 	s.pdf.SetAlpha(alpha, "Normal")
 	if radius > 0 {

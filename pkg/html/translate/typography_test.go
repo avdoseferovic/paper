@@ -1,7 +1,7 @@
 package translate
 
 import (
-	"context"
+	"cmp"
 	"encoding/base64"
 	"strings"
 	"testing"
@@ -26,9 +26,7 @@ func runsFromHTML(t *testing.T, htmlStr string) []props.RichRun {
 	var target *dom.Node
 	doc.Walk(func(n *dom.Node) bool {
 		if n.Tag() == "p" || n.Tag() == "span" {
-			if target == nil {
-				target = n
-			}
+			target = cmp.Or(target, n)
 		}
 		return true
 	})
@@ -569,7 +567,7 @@ h2::before { content:"Section " counter(section) ": " }
 </style></head><body><h2>Intro</h2><h2>Usage</h2></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Section 1: Intro", "Section 2: Usage"}, richTextValues(rows))
@@ -584,7 +582,7 @@ p::before { counter-increment: note; content: counter(note, decimal-leading-zero
 </style></head><body><p>First</p><p>Second</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"01. First", "02. Second"}, richTextValues(rows))
@@ -605,7 +603,7 @@ p.item::before { content: counter(section) "." counter(item) " " }
 </body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
@@ -678,7 +676,7 @@ func TestTypography_RichTextLayoutPropsMappedFromCSS(t *testing.T) {
 two</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -702,7 +700,7 @@ func TestTypography_PreDefaultsPreserveWhitespaceAndUseMonospace(t *testing.T) {
   two</pre></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -734,7 +732,7 @@ func TestTypography_TextAlignJustifyMappedFromCSS(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><p style="text-align:justify">one two three</p></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 

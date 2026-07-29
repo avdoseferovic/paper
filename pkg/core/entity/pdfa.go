@@ -1,5 +1,7 @@
 package entity
 
+import "slices"
+
 // PdfALevel identifies the requested PDF/A part and conformance profile.
 type PdfALevel int
 
@@ -61,7 +63,7 @@ func ClonePdfAConfig(config *PdfAConfig) *PdfAConfig {
 		return nil
 	}
 	clone := *config
-	clone.ICCProfile = append([]byte(nil), config.ICCProfile...)
+	clone.ICCProfile = slices.Clone(config.ICCProfile)
 	clone.XMPSchemas = cloneXMPSchemas(config.XMPSchemas)
 	clone.XMPProperties = cloneXMPPropertyBlocks(config.XMPProperties)
 	return &clone
@@ -74,7 +76,7 @@ func cloneXMPSchemas(schemas []XMPSchema) []XMPSchema {
 	clones := make([]XMPSchema, len(schemas))
 	for i, schema := range schemas {
 		clones[i] = schema
-		clones[i].Properties = append([]XMPSchemaProperty(nil), schema.Properties...)
+		clones[i].Properties = slices.Clone(schema.Properties)
 	}
 	return clones
 }
@@ -86,7 +88,7 @@ func cloneXMPPropertyBlocks(blocks []XMPPropertyBlock) []XMPPropertyBlock {
 	clones := make([]XMPPropertyBlock, len(blocks))
 	for i, block := range blocks {
 		clones[i] = block
-		clones[i].Properties = append([]XMPProperty(nil), block.Properties...)
+		clones[i].Properties = slices.Clone(block.Properties)
 	}
 	return clones
 }

@@ -4,6 +4,7 @@
 package pdf
 
 import (
+	"cmp"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -13,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 )
 
 // Advisory bitflag constants that control document activities
@@ -84,7 +86,7 @@ func (p *protectType) encryptBytes(n uint32, data []byte) ([]byte, error) {
 		return p.aesEncrypt(n, data)
 	}
 
-	buf := append([]byte(nil), data...)
+	buf := slices.Clone(data)
 	p.rc4(n, &buf)
 	return buf, nil
 }
@@ -95,6 +97,9 @@ func (p *protectType) aesEncrypt(n uint32, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("create AES cipher: %w", err)
 	}
 
+	// Left in explicit form: gosec proves padLen is in byte range from these
+	// bounds, but cannot see through cmp.Or, and this repo keeps every integer
+	// conversion provably in range rather than suppressing G115.
 	padLen := aes.BlockSize - len(data)%aes.BlockSize
 	if padLen == 0 {
 		padLen = aes.BlockSize
@@ -136,7 +141,7 @@ func oValueGenRevision3(userPass, ownerPass []byte, keyLen int) []byte {
 	}
 
 	key := digest[:keyLen]
-	v := append([]byte(nil), userPass...)
+	v := slices.Clone(userPass)
 	rc4Crypt(v, key)
 	for i := 1; i <= 19; i++ {
 		rc4Crypt(v, xorKey(key, byte(i)))
@@ -160,7 +165,7 @@ func (p *protectType) uValueGenRevision3() []byte {
 	buf = append(buf, p.fileID...)
 	sum := md5.Sum(buf)
 
-	v := append([]byte(nil), sum[:]...)
+	v := slices.Clone(sum[:])
 	rc4Crypt(v, p.encryptionKey)
 	for i := 1; i <= 19; i++ {
 		rc4Crypt(v, xorKey(p.encryptionKey, byte(i)))
@@ -279,7 +284,7 @@ func encryptionKeyRevision3(userPass, ownerValue []byte, privFlag byte, fileID [
 		digest = next[:]
 	}
 
-	return append([]byte(nil), digest[:keyLen]...)
+	return slices.Clone(digest[:keyLen])
 }
 
 func rc4Crypt(data, key []byte) {
@@ -296,10 +301,7 @@ func xorKey(key []byte, x byte) []byte {
 }
 
 func (p *protectType) readRandom(buf []byte) error {
-	reader := p.random
-	if reader == nil {
-		reader = cryptoRand.Reader
-	}
+	reader := cmp.Or(p.random, cryptoRand.Reader)
 	_, err := io.ReadFull(reader, buf)
 	if err != nil {
 		return errProtectRandom

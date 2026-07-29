@@ -3,11 +3,12 @@ package dependency_test
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,8 @@ type moduleSpec struct {
 }
 
 func TestDependencyGraphsUseOnlyApprovedModules(t *testing.T) {
+	t.Parallel()
+
 	root := repositoryRoot(t)
 	for _, spec := range []moduleSpec{
 		{name: "root", dir: root, pattern: "./..."},
@@ -41,6 +44,7 @@ func TestDependencyGraphsUseOnlyApprovedModules(t *testing.T) {
 		{name: "examples", dir: filepath.Join(root, "examples"), pattern: "./..."},
 	} {
 		t.Run(spec.name, func(t *testing.T) {
+			t.Parallel()
 			packages := listPackages(t, spec.dir, "-deps", spec.pattern)
 			for _, pkg := range packages {
 				if allowedPackageModule(pkg.Standard, modulePath(pkg.Module)) {
@@ -53,6 +57,8 @@ func TestDependencyGraphsUseOnlyApprovedModules(t *testing.T) {
 }
 
 func TestPaperSourceImportsUseOnlyApprovedExternalPackages(t *testing.T) {
+	t.Parallel()
+
 	root := repositoryRoot(t)
 	for _, spec := range []moduleSpec{
 		{name: "root", dir: root, pattern: "./..."},
@@ -60,6 +66,7 @@ func TestPaperSourceImportsUseOnlyApprovedExternalPackages(t *testing.T) {
 		{name: "examples", dir: filepath.Join(root, "examples"), pattern: "./..."},
 	} {
 		t.Run(spec.name, func(t *testing.T) {
+			t.Parallel()
 			packages := listPackages(t, spec.dir, spec.pattern)
 			for _, pkg := range packages {
 				if !isPaperSourcePackage(pkg) {
@@ -76,6 +83,8 @@ func TestPaperSourceImportsUseOnlyApprovedExternalPackages(t *testing.T) {
 }
 
 func TestAllowedPackageModule(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		standard bool
@@ -95,6 +104,7 @@ func TestAllowedPackageModule(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			if got := allowedPackageModule(test.standard, test.module); got != test.want {
 				t.Fatalf("allowedPackageModule(%t, %q) = %t, want %t", test.standard, test.module, got, test.want)
 			}
@@ -103,6 +113,8 @@ func TestAllowedPackageModule(t *testing.T) {
 }
 
 func TestAllowedSourceImport(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		importPath string
 		want       bool
@@ -117,6 +129,7 @@ func TestAllowedSourceImport(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.importPath, func(t *testing.T) {
+			t.Parallel()
 			if got := allowedSourceImport(test.importPath); got != test.want {
 				t.Fatalf("allowedSourceImport(%q) = %t, want %t", test.importPath, got, test.want)
 			}
@@ -169,12 +182,7 @@ func packageImports(pkg listedPackage) []string {
 			imports[importPath] = struct{}{}
 		}
 	}
-	result := make([]string, 0, len(imports))
-	for importPath := range imports {
-		result = append(result, importPath)
-	}
-	sort.Strings(result)
-	return result
+	return slices.Sorted(maps.Keys(imports))
 }
 
 func modulePath(module *listedModule) string {

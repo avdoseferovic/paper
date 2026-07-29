@@ -20,12 +20,8 @@ func ApplyCellMargins(cell entity.Cell, style *props.Cell) entity.Cell {
 	cell.Y += top
 	cell.Width -= left + right
 	cell.Height -= top + bottom
-	if cell.Width < 0 {
-		cell.Width = 0
-	}
-	if cell.Height < 0 {
-		cell.Height = 0
-	}
+	cell.Width = max(cell.Width, 0)
+	cell.Height = max(cell.Height, 0)
 	return cell
 }
 
@@ -39,8 +35,5 @@ func VerticalCellMargins(style *props.Cell) float64 {
 }
 
 func nonNegative(value float64) float64 {
-	if value < 0 {
-		return 0
-	}
-	return value
+	return max(value, 0)
 }

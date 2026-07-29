@@ -1,0 +1,57 @@
+version: 2
+
+updates:
+  # Workflow actions are SHA-pinned, so Dependabot is the mechanism that keeps
+  # them current: without it a pinned SHA silently rots.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  # DEVELOPMENT.md requires prior discussion before any new runtime dependency,
+  # and the root module deliberately carries no third-party test dependencies.
+  # These are grouped and limited so Dependabot proposes version bumps to
+  # existing dependencies rather than a stream of individual PRs.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      go-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: gomod
+    directory: /docs
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      go-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: gomod
+    directory: /examples
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      go-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: gomod
+    directory: /tools
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      go-tools:
+        patterns:
+          - '*'

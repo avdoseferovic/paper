@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"slices"
 )
 
 var errInvalidQR = errors.New("invalid QR code")
@@ -105,7 +106,7 @@ func qrByteDataCodewords(data []byte, version int) ([]byte, error) {
 	for bits.len()%8 != 0 {
 		bits.append(0, 1)
 	}
-	result := append([]byte(nil), bits.bytes...)
+	result := slices.Clone(bits.bytes)
 	for pad := byte(0xEC); len(result) < capacity; pad ^= 0xEC ^ 0x11 {
 		result = append(result, pad)
 	}
@@ -147,7 +148,7 @@ func qrAddErrorCorrection(data []byte, version int) []byte {
 		if block >= numShortBlocks {
 			dataLen++
 		}
-		blockData := append([]byte(nil), data[position:position+dataLen]...)
+		blockData := slices.Clone(data[position : position+dataLen])
 		position += dataLen
 		ecc := qrReedSolomonRemainder(blockData, divisor)
 		if block < numShortBlocks {

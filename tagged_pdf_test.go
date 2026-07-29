@@ -2,7 +2,6 @@ package paper_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -23,7 +22,7 @@ func TestGenerate_WithTaggedPDF_ShouldEmitStructureTreeAndMarkedContent(t *testi
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Tagged content")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -44,7 +43,7 @@ func TestGenerate_TaggedPDFDisabledByDefault(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Untagged content")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -60,7 +59,7 @@ func TestGenerate_WithRuntimeSetTagged_ShouldEmitTaggedPDF(t *testing.T) {
 	doc.SetTagged(true)
 	doc.AddAutoRow(col.New(12).Add(text.New("Runtime tagged content")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, bytes.Contains(pdf.GetBytes(), []byte("/Marked true")))
@@ -77,7 +76,7 @@ func TestGenerate_WithTaggedPDFAndParallelPagesMode_ShouldKeepCatalogEntries(t *
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Tagged content")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, bytes.Contains(pdf.GetBytes(), []byte("/StructTreeRoot")))

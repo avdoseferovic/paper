@@ -2,12 +2,14 @@ package translate
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	goimage "image"
 	_ "image/jpeg" // registered with image.DecodeConfig to size JPEG images
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -301,9 +303,7 @@ func (tr *translator) pictureRowWithStyle(n *dom.Node, style *css.ComputedStyle)
 	if img == nil {
 		return nil
 	}
-	if style == nil {
-		style = tr.rootStyle
-	}
+	style = cmp.Or(style, tr.rootStyle)
 	src := tr.pictureSelectedSource(n, img)
 	if src == "" {
 		src = tr.selectedImageSource(img)
@@ -941,14 +941,7 @@ func imageCols(widthMM, cellWidth float64, gridSize int) int {
 	if mmPerCol <= 0 {
 		return gridSize
 	}
-	cols := int(widthMM/mmPerCol + 0.5)
-	if cols < 1 {
-		return 1
-	}
-	if cols > gridSize {
-		return gridSize
-	}
-	return cols
+	return min(max(int(widthMM/mmPerCol+0.5), 1), gridSize)
 }
 
 // parseImageDimension parses a CSS length string (px/pt/mm/cm) into mm.
@@ -959,13 +952,9 @@ func parseImageDimension(s string) float64 {
 		return 0
 	}
 	// If the value is unit-less (e.g. width="20"), treat it as px.
-	hasUnit := false
-	for _, u := range []string{"px", "pt", "mm", "cm"} {
-		if strings.HasSuffix(s, u) {
-			hasUnit = true
-			break
-		}
-	}
+	hasUnit := slices.ContainsFunc([]string{"px", "pt", "mm", "cm"}, func(u string) bool {
+		return strings.HasSuffix(s, u)
+	})
 	if !hasUnit {
 		s += "px"
 	}

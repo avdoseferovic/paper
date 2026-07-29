@@ -1,7 +1,6 @@
 package forms_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,7 +42,7 @@ func TestFormFillerSaveTo(t *testing.T) {
 	cfg := config.NewBuilder().WithCompression(false).WithAcroForm(form).Build()
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("SaveTo test")))
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	r, err := reader.Parse(pdf.GetBytes())

@@ -156,9 +156,7 @@ func (r *Row) getBiggestCol(provider core.Provider, cell *entity.Cell) float64 {
 	greaterHeight := 0.0
 	for _, col := range r.cols {
 		height := col.GetHeight(provider, cell)
-		if greaterHeight < height {
-			greaterHeight = height
-		}
+		greaterHeight = max(greaterHeight, height)
 	}
 	return greaterHeight
 }

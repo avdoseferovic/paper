@@ -8,6 +8,8 @@ import (
 )
 
 func TestRepo(t *testing.T) {
+	t.Parallel()
+
 	path := Repo("go.mod")
 
 	data, err := os.ReadFile(path)
@@ -20,6 +22,8 @@ func TestRepo(t *testing.T) {
 }
 
 func TestModule(t *testing.T) {
+	t.Parallel()
+
 	path := Module("go.mod")
 
 	data, err := os.ReadFile(path)
@@ -32,6 +36,8 @@ func TestModule(t *testing.T) {
 }
 
 func TestEnsureParent(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(t.TempDir(), "nested", "file.txt")
 
 	if err := EnsureParent(path); err != nil {
@@ -44,7 +50,7 @@ func TestEnsureParent(t *testing.T) {
 }
 
 func containsLine(data []byte, want string) bool {
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		if strings.TrimSpace(line) == want {
 			return true
 		}

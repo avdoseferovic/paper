@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/reader"
@@ -169,29 +170,26 @@ func buildStream(data []byte) []byte {
 
 func (d *DSS) addCert(der []byte) {
 	if len(der) > 0 && !containsBytes(d.Certs, der) {
-		d.Certs = append(d.Certs, append([]byte(nil), der...))
+		d.Certs = append(d.Certs, slices.Clone(der))
 	}
 }
 
 func (d *DSS) addOCSP(der []byte) {
 	if len(der) > 0 && !containsBytes(d.OCSPs, der) {
-		d.OCSPs = append(d.OCSPs, append([]byte(nil), der...))
+		d.OCSPs = append(d.OCSPs, slices.Clone(der))
 	}
 }
 
 func (d *DSS) addCRL(der []byte) {
 	if len(der) > 0 && !containsBytes(d.CRLs, der) {
-		d.CRLs = append(d.CRLs, append([]byte(nil), der...))
+		d.CRLs = append(d.CRLs, slices.Clone(der))
 	}
 }
 
 func containsBytes(slice [][]byte, item []byte) bool {
-	for _, existing := range slice {
-		if bytes.Equal(existing, item) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(slice, func(existing []byte) bool {
+		return bytes.Equal(existing, item)
+	})
 }
 
 func computeVRIKey(sigContents []byte) string {

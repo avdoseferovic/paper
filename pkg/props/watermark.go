@@ -1,6 +1,8 @@
 package props
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
 
@@ -52,12 +54,8 @@ func NormalizeWatermark(w Watermark) Watermark {
 	if w.Alpha <= 0 {
 		w.Alpha = DefaultWatermarkAlpha
 	}
-	if w.Alpha > 1 {
-		w.Alpha = 1
-	}
-	if w.Angle == 0 {
-		w.Angle = DefaultWatermarkAngle
-	}
+	w.Alpha = min(w.Alpha, 1)
+	w.Angle = cmp.Or(w.Angle, DefaultWatermarkAngle)
 	w.Color = CloneColor(w.Color)
 	return w
 }

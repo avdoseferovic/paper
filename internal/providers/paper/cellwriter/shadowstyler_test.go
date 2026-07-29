@@ -49,8 +49,6 @@ func (s *shadowPDFStub) SetXY(x, y float64) {
 	s.xyCalls = append(s.xyCalls, [2]float64{x, y})
 }
 
-func floatPtr(v float64) *float64 { return &v }
-
 func TestNewShadowStyler(t *testing.T) {
 	t.Parallel()
 	// Act
@@ -109,7 +107,7 @@ func TestShadowStyler_Apply(t *testing.T) {
 				OffsetX: 2,
 				OffsetY: 3,
 				Spread:  1,
-				Color:   &props.Color{Red: 10, Green: 20, Blue: 30, Alpha: floatPtr(0.6)},
+				Color:   &props.Color{Red: 10, Green: 20, Blue: 30, Alpha: new(0.6)},
 			}},
 		}
 		stub := &shadowPDFStub{x: 5, y: 7}
@@ -229,7 +227,7 @@ func TestShadowStyler_Apply(t *testing.T) {
 		prop := &props.Cell{
 			BoxShadow: []props.Shadow{{
 				Inset: true,
-				Color: &props.Color{Alpha: floatPtr(0.9)},
+				Color: &props.Color{Alpha: new(0.9)},
 			}},
 		}
 		stub := &shadowPDFStub{}

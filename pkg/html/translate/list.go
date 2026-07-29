@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
+	"golang.org/x/net/html"
 )
 
 // listRows converts <ul>/<ol> into a single row containing an HTMLList component.
@@ -201,10 +203,7 @@ func hasAttr(n *dom.Node, name string) bool {
 	if n == nil || n.RawNode() == nil {
 		return false
 	}
-	for _, attr := range n.RawNode().Attr {
-		if attr.Key == name {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(n.RawNode().Attr, func(attr html.Attribute) bool {
+		return attr.Key == name
+	})
 }

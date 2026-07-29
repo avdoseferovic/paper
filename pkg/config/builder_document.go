@@ -1,6 +1,9 @@
 package config
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
@@ -54,7 +57,7 @@ func (b *CfgBuilder) WithOrientation(pageOrientation consts.Orientation) Builder
 
 // WithCustomFonts add custom fonts.
 func (b *CfgBuilder) WithCustomFonts(customFonts []entity.CustomFont) Builder {
-	b.customFonts = append([]entity.CustomFont(nil), customFonts...)
+	b.customFonts = slices.Clone(customFonts)
 	return b
 }
 
@@ -178,9 +181,7 @@ func (b *CfgBuilder) setFirstPageForegroundImage(image *entity.Image) {
 }
 
 func (b *CfgBuilder) addFirstPageForegroundImage(image *entity.Image) {
-	if b.firstPageForegroundImage == nil {
-		b.firstPageForegroundImage = image
-	}
+	b.firstPageForegroundImage = cmp.Or(b.firstPageForegroundImage, image)
 	b.firstPageForegroundImages = append(b.firstPageForegroundImages, image)
 }
 
@@ -254,7 +255,7 @@ func (b *CfgBuilder) addFirstPageFinalForegroundImage(image *entity.Image) {
 
 func newConfigImage(bytes []byte, ext extension.Type) *entity.Image {
 	return &entity.Image{
-		Bytes:     append([]byte(nil), bytes...),
+		Bytes:     slices.Clone(bytes),
 		Extension: ext,
 	}
 }

@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -21,7 +20,7 @@ func TestBlockContainer_DivWithBackground_ProducesSingleStyledRow(t *testing.T) 
 	doc, err := dom.Parse(`<html><body><div style="background-color:#eaf1fb; padding:5mm"><p>A</p><p>B</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	require.Len(t, rows, 1, "div with bg+padding should collapse to one wrapper row")
@@ -53,7 +52,7 @@ func TestBlockContainer_DivWithGradientOnly_ProducesStyledRow(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><div style="background-image:linear-gradient(to right, red, blue)"><p>A</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	require.Len(t, rows, 1, "div with gradient should collapse to one wrapper row")
@@ -72,7 +71,7 @@ func TestBlockContainer_PlainDivStillFlattens(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><div><p>a</p><p>b</p></div></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	// No styling → keep flat behaviour, 2 rows
 	assert.Len(t, rows, 2)
@@ -161,7 +160,7 @@ func TestBuiltinCSS_ListMargins(t *testing.T) {
 	doc, err := dom.Parse(`<html><body><h2>PAYMENT</h2><ol><li>One</li></ol></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 

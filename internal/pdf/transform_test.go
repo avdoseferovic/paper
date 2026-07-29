@@ -6,6 +6,8 @@ import (
 )
 
 func TestTransformBeginEndNesting(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.TransformBegin()
 	if f.transformNest != 1 {
@@ -21,6 +23,8 @@ func TestTransformBeginEndNesting(t *testing.T) {
 }
 
 func TestTransformEndOutOfSequenceErrors(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.TransformEnd()
 	if !f.Err() {
@@ -29,6 +33,8 @@ func TestTransformEndOutOfSequenceErrors(t *testing.T) {
 }
 
 func TestTransformWithoutActiveContextErrors(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Transform(TransformMatrix{A: 1, D: 1})
 	if !f.Err() {
@@ -37,6 +43,8 @@ func TestTransformWithoutActiveContextErrors(t *testing.T) {
 }
 
 func TestTransformVariantsRunWithinContext(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.TransformBegin()
 	f.TransformScale(150, 80, 10, 10)
@@ -68,6 +76,8 @@ func TestTransformVariantsRunWithinContext(t *testing.T) {
 }
 
 func TestTransformScaleZeroFactorErrors(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.TransformBegin()
 	f.TransformScale(0, 100, 10, 10)
@@ -77,6 +87,8 @@ func TestTransformScaleZeroFactorErrors(t *testing.T) {
 }
 
 func TestTransformSkewOutOfRangeErrors(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct{ ax, ay float64 }{
 		{90, 0},
 		{-90, 0},

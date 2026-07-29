@@ -4,7 +4,8 @@
 package layout
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"github.com/avdoseferovic/paper/pkg/consts/pagesize"
 )
@@ -64,12 +65,14 @@ func Hamilton(weights []float64, total int) []int {
 	for i, e := range exact {
 		fracs[i] = indexFrac{idx: i, frac: e - float64(floors[i])}
 	}
-	sort.Slice(fracs, func(a, b int) bool {
-		return fracs[a].frac > fracs[b].frac
+	// Stable: equal remainders are common (equal weights round identically) and
+	// the tie decides which column receives the spare unit, so an unstable sort
+	// would make the layout depend on the sort implementation.
+	slices.SortStableFunc(fracs, func(a, b indexFrac) int {
+		return cmp.Compare(b.frac, a.frac)
 	})
 
-	result := make([]int, len(weights))
-	copy(result, floors)
+	result := slices.Clone(floors)
 	for i := range remainder {
 		result[fracs[i].idx]++
 	}
@@ -97,7 +100,7 @@ type ManualPlan struct {
 // reports what it found, without changing the sizes.
 func ManualUnits(units []int, gridSize int) ManualPlan {
 	plan := ManualPlan{
-		Units:    append([]int(nil), units...),
+		Units:    slices.Clone(units),
 		GridSize: NormalizeGridSize(gridSize),
 	}
 	for i, unit := range units {
@@ -130,7 +133,7 @@ func BumpZerosWithoutOverflow(sizes []int, _ int) []int {
 	if len(sizes) == 0 {
 		return []int{}
 	}
-	out := append([]int(nil), sizes...)
+	out := slices.Clone(sizes)
 	for i := range out {
 		if out[i] != 0 {
 			continue

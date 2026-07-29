@@ -2,6 +2,7 @@
 package dom
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -52,20 +53,14 @@ func (d *Document) Walk(fn func(*Node) bool) {
 // WalkWithLimits performs a depth-first traversal starting from the document
 // body while enforcing DOM resource limits.
 func (d *Document) WalkWithLimits(l htmllimits.Limits, fn func(*Node) bool) error {
-	body := findTag(d.root, "body")
-	if body == nil {
-		body = d.root
-	}
+	body := cmp.Or(findTag(d.root, "body"), d.root)
 	_, err := walkNode(body, 1, 0, htmllimits.Normalize(l), fn)
 	return err
 }
 
 // ValidateLimits checks DOM depth and node count without invoking a callback.
 func (d *Document) ValidateLimits(l htmllimits.Limits) error {
-	body := findTag(d.root, "body")
-	if body == nil {
-		body = d.root
-	}
+	body := cmp.Or(findTag(d.root, "body"), d.root)
 	_, err := walkNode(body, 1, 0, htmllimits.Normalize(l), nil)
 	return err
 }

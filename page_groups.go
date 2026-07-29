@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"sync"
@@ -27,9 +28,7 @@ func processPageGroupsConcurrently[T any](
 	if err != nil {
 		return nil, err
 	}
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount = max(workerCount, 1)
 	workerCount = min(workerCount, len(pageGroups))
 
 	results := make([]T, len(pageGroups))
@@ -40,9 +39,7 @@ func processPageGroupsConcurrently[T any](
 	var firstErr error
 	recordErr := func(err error) {
 		errMu.Lock()
-		if firstErr == nil {
-			firstErr = err
-		}
+		firstErr = cmp.Or(firstErr, err)
 		errMu.Unlock()
 	}
 	failed := func() bool {
@@ -51,10 +48,8 @@ func processPageGroupsConcurrently[T any](
 		return firstErr != nil
 	}
 
-	wg.Add(workerCount)
 	for range workerCount {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for {
 				select {
 				case <-done:
@@ -72,7 +67,7 @@ func processPageGroupsConcurrently[T any](
 					runPageGroupJob(ctx, index, pageGroups, processor, results, recordErr)
 				}
 			}
-		}()
+		})
 	}
 
 	for index := range pageGroups {

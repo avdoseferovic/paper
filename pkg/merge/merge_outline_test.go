@@ -2,7 +2,6 @@ package merge_test
 
 import (
 	"bytes"
-	"context"
 	"regexp"
 	"strconv"
 	"testing"
@@ -26,7 +25,7 @@ func outlinePDF(t *testing.T, titlesAndLevels map[string]int, order []string) []
 			Outline: &props.Outline{Level: titlesAndLevels[title]},
 		})))
 	}
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 	return doc.GetBytes()
 }
@@ -36,7 +35,7 @@ func plainPDF(t *testing.T, content string) []byte {
 	cfg := config.NewBuilder().WithCompression(false).Build()
 	m := paper.New(cfg)
 	m.AddAutoRow(col.New(12).Add(text.New(content, props.Text{})))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 	return doc.GetBytes()
 }
@@ -72,7 +71,7 @@ func TestBytes_WhenSourcesHaveOutlines_ShouldMergeOutlineTrees(t *testing.T) {
 	doc1 := outlinePDF(t, map[string]int{"One": 0, "One-Sub": 1}, []string{"One", "One-Sub"})
 	doc2 := outlinePDF(t, map[string]int{"Two": 0}, []string{"Two"})
 
-	merged, err := merge.Bytes(context.Background(), doc1, doc2)
+	merged, err := merge.Bytes(t.Context(), doc1, doc2)
 	require.NoError(t, err)
 
 	objects := mergedObjects(t, merged)
@@ -137,7 +136,7 @@ func TestBytes_WhenOnlyOneSourceHasOutlines_ShouldKeepThatOutline(t *testing.T) 
 	doc1 := plainPDF(t, "no bookmarks here")
 	doc2 := outlinePDF(t, map[string]int{"Solo": 0}, []string{"Solo"})
 
-	merged, err := merge.Bytes(context.Background(), doc1, doc2)
+	merged, err := merge.Bytes(t.Context(), doc1, doc2)
 	require.NoError(t, err)
 
 	objects := mergedObjects(t, merged)
@@ -151,7 +150,7 @@ func TestBytes_WhenOnlyOneSourceHasOutlines_ShouldKeepThatOutline(t *testing.T) 
 func TestBytes_WhenNoSourceHasOutlines_ShouldNotEmitOutlines(t *testing.T) {
 	t.Parallel()
 
-	merged, err := merge.Bytes(context.Background(), plainPDF(t, "a"), plainPDF(t, "b"))
+	merged, err := merge.Bytes(t.Context(), plainPDF(t, "a"), plainPDF(t, "b"))
 	require.NoError(t, err)
 
 	objects := mergedObjects(t, merged)
@@ -167,7 +166,7 @@ func TestBytes_WhenSourceOutlineRootIsMalformed_ShouldDropThatOutlineGracefully(
 	corrupted := bytes.Replace(doc1, []byte("/Type /Outlines /First"), []byte("/Type /Outlines /Frst "), 1)
 	require.False(t, bytes.Equal(doc1, corrupted), "fixture must actually corrupt the outline root")
 
-	merged, err := merge.Bytes(context.Background(), corrupted, plainPDF(t, "ok"))
+	merged, err := merge.Bytes(t.Context(), corrupted, plainPDF(t, "ok"))
 
 	require.NoError(t, err, "malformed outline must not fail the merge")
 	objects := mergedObjects(t, merged)

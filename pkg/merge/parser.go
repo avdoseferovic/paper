@@ -3,10 +3,11 @@ package merge
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -153,8 +154,11 @@ func parseXrefTable(data []byte, xrefOffset int) ([]xrefEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].offset < entries[j].offset
+	// Stable: a malformed or linearized xref can repeat an offset, and the
+	// original order of those duplicates is the one the rest of the parser
+	// already assumes.
+	slices.SortStableFunc(entries, func(a, b xrefEntry) int {
+		return cmp.Compare(a.offset, b.offset)
 	})
 	return entries, nil
 }

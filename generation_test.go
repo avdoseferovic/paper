@@ -2,7 +2,6 @@ package paper_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestGenerate_WhenTextHasOutlineProp_ShouldEmitPDFOutline(t *testing.T) {
 		Outline: &props.Outline{Level: 1, Title: "First Section"},
 	})))
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -45,7 +44,7 @@ func TestFromHTML_WhenOutlineFromHeadingsEnabled_ShouldEmitOutlineFromHeadings(t
 		WithOutlineFromHeadings(true).
 		Build()
 
-	doc, err := paper.FromHTML(context.Background(),
+	doc, err := paper.FromHTML(t.Context(),
 		"<h1>Alpha</h1><p>prose</p><h2>Beta</h2><h1 hidden>Skipped</h1><h2><strong>Bold</strong> Title</h2>", cfg)
 
 	require.NoError(t, err)
@@ -62,7 +61,7 @@ func TestFromHTML_WhenOutlineFromHeadingsDisabled_ShouldNotEmitOutline(t *testin
 
 	cfg := config.NewBuilder().WithCompression(false).Build()
 
-	doc, err := paper.FromHTML(context.Background(), "<h1>Alpha</h1><h2>Beta</h2>", cfg)
+	doc, err := paper.FromHTML(t.Context(), "<h1>Alpha</h1><h2>Beta</h2>", cfg)
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without the option")
@@ -99,7 +98,7 @@ func assertOutlineSurvivesGeneration(t *testing.T, cfg *entity.Config) {
 		m.AddRow(250, col.New(12).Add(text.New("filler", props.Text{})))
 	}
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -115,7 +114,7 @@ func assertOutlineSurvivesGeneration(t *testing.T, cfg *entity.Config) {
 // Engine outline titles for non-UTF8 docs are written as literal strings.
 func outlineTitleCount(pdfBytes []byte, title string) int {
 	count := 0
-	for _, chunk := range bytes.Split(pdfBytes, []byte("obj")) {
+	for chunk := range bytes.SplitSeq(pdfBytes, []byte("obj")) {
 		if bytes.Contains(chunk, []byte("/Title")) && bytes.Contains(chunk, []byte(title)) {
 			count++
 		}
@@ -130,7 +129,7 @@ func TestGenerate_WhenNoOutlineProps_ShouldNotEmitPDFOutline(t *testing.T) {
 	m := paper.New(cfg)
 	m.AddAutoRow(col.New(12).Add(text.New("Plain text", props.Text{})))
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("/Outlines")), "no outline without props")
@@ -150,7 +149,7 @@ func TestGenerate_WhenWatermarkConfigured_ShouldStampEveryPage(t *testing.T) {
 		m.AddRow(250, col.New(12).Add(text.New("page filler", props.Text{})))
 	}
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
@@ -165,7 +164,7 @@ func TestGenerate_WhenNoWatermark_ShouldNotStamp(t *testing.T) {
 	m := paper.New(cfg)
 	m.AddRow(20, col.New(12).Add(text.New("plain", props.Text{})))
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	assert.False(t, bytes.Contains(doc.GetBytes(), []byte("DRAFT")))
@@ -182,7 +181,7 @@ func TestGenerate_WhenWatermarkOnSmallCustomPage_ShouldScaleDownAndRender(t *tes
 	m := paper.New(cfg)
 	m.AddRow(20, col.New(12).Add(text.New("content", props.Text{})))
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()

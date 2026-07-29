@@ -35,13 +35,7 @@ func (f *FillColorStyler) Apply(width, height float64, config *entity.Config, pr
 
 // clampAlpha clamps an alpha value to [0, 1].
 func clampAlpha(a float64) float64 {
-	if a < 0 {
-		return 0
-	}
-	if a > 1 {
-		return 1
-	}
-	return a
+	return min(max(a, 0), 1)
 }
 
 // effectiveAlpha returns the minimum of fill and border color alphas, or 1

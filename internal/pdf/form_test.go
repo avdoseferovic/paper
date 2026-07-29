@@ -7,6 +7,8 @@ import (
 )
 
 func TestAcroFormTextFieldEmitted(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetAcroFormFields(FormField{
 		Name:      "name",
@@ -36,6 +38,8 @@ func TestAcroFormTextFieldEmitted(t *testing.T) {
 }
 
 func TestAcroFormCheckboxAndRadioObjectNumbering(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.AddPage()
 	f.SetAcroFormFields(
@@ -72,6 +76,8 @@ func TestAcroFormCheckboxAndRadioObjectNumbering(t *testing.T) {
 }
 
 func TestNoAcroFormWithoutFields(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	out := mustOutput(t, f)
 	if bytes.Contains(out, []byte("/AcroForm")) {

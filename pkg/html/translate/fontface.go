@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -46,10 +47,7 @@ func (f *fontRegistration) Render(provider core.Provider, _ *entity.Cell) {
 		return
 	}
 	if lfp, ok := provider.(core.LateFontProvider); ok {
-		style := f.font.style
-		if style == "" {
-			style = fontstyle.Normal
-		}
+		style := cmp.Or(f.font.style, fontstyle.Normal)
 		lfp.RegisterFont(f.font.family, style, f.font.bytes)
 		f.done = true
 	}

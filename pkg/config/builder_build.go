@@ -1,6 +1,8 @@
 package config
 
 import (
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -26,7 +28,7 @@ func (b *CfgBuilder) Build() *entity.Config {
 		Protection:                     cloneProtection(b.protection),
 		Compression:                    b.compression,
 		Metadata:                       cloneMetadata(b.metadata),
-		CustomFonts:                    append([]entity.CustomFont(nil), b.customFonts...),
+		CustomFonts:                    slices.Clone(b.customFonts),
 		BackgroundImage:                cloneImage(b.backgroundImage),
 		FirstPageBackgroundImage:       cloneImage(b.firstPageBackgroundImage),
 		FirstPageForegroundImage:       cloneImage(b.firstPageForegroundImage),
@@ -43,10 +45,10 @@ func (b *CfgBuilder) Build() *entity.Config {
 		TaggedPDF:                      b.taggedPDF,
 		Language:                       b.language,
 		ViewerPreferences:              cloneViewerPreferences(b.viewerPreferences),
-		PageLabels:                     append([]entity.PageLabelRange(nil), b.pageLabels...),
+		PageLabels:                     slices.Clone(b.pageLabels),
 		Attachments:                    entity.CloneAttachments(b.attachments),
-		NamedDestinations:              append([]entity.NamedDestination(nil), b.namedDestinations...),
-		FileID:                         append([]byte(nil), b.fileID...),
+		NamedDestinations:              slices.Clone(b.namedDestinations),
+		FileID:                         slices.Clone(b.fileID),
 		Deterministic:                  b.deterministic,
 	}
 }
@@ -55,24 +57,21 @@ func cloneViewerPreferences(prefs *entity.ViewerPreferences) *entity.ViewerPrefe
 	if prefs == nil {
 		return nil
 	}
-	clone := *prefs
-	return &clone
+	return new(*prefs)
 }
 
 func cloneDimensions(dimensions *entity.Dimensions) *entity.Dimensions {
 	if dimensions == nil {
 		return nil
 	}
-	clone := *dimensions
-	return &clone
+	return new(*dimensions)
 }
 
 func cloneMargins(margins *entity.Margins) *entity.Margins {
 	if margins == nil {
 		return nil
 	}
-	clone := *margins
-	return &clone
+	return new(*margins)
 }
 
 func cloneFont(font *props.Font) *props.Font {
@@ -95,8 +94,7 @@ func cloneProtection(protection *entity.Protection) *entity.Protection {
 	if protection == nil {
 		return nil
 	}
-	clone := *protection
-	return &clone
+	return new(*protection)
 }
 
 func cloneMetadata(metadata *entity.Metadata) *entity.Metadata {
@@ -121,8 +119,7 @@ func cloneUTF8Text(text *entity.Utf8Text) *entity.Utf8Text {
 	if text == nil {
 		return nil
 	}
-	clone := *text
-	return &clone
+	return new(*text)
 }
 
 func cloneImage(image *entity.Image) *entity.Image {
@@ -130,7 +127,7 @@ func cloneImage(image *entity.Image) *entity.Image {
 		return nil
 	}
 	clone := *image
-	clone.Bytes = append([]byte(nil), image.Bytes...)
+	clone.Bytes = slices.Clone(image.Bytes)
 	clone.Dimensions = cloneDimensions(image.Dimensions)
 	clone.PageCell = cloneCell(image.PageCell)
 	return &clone
@@ -151,6 +148,5 @@ func cloneCell(cell *entity.Cell) *entity.Cell {
 	if cell == nil {
 		return nil
 	}
-	clone := *cell
-	return &clone
+	return new(*cell)
 }

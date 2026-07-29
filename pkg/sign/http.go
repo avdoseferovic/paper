@@ -2,6 +2,7 @@ package sign
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -41,9 +42,7 @@ func postDER(client *http.Client, url, contentType string, body []byte, timeout 
 	}
 	req.Header.Set("Content-Type", contentType)
 
-	if client == nil {
-		client = http.DefaultClient
-	}
+	client = cmp.Or(client, http.DefaultClient)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("sign: HTTP request: %w", err)

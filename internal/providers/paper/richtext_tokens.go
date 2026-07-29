@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -217,11 +218,11 @@ func tokenisePreservedText(text string, runIdx int) []rtToken {
 }
 
 func hasTextOnCurrentLine(tokens []rtToken) bool {
-	for i := len(tokens) - 1; i >= 0; i-- {
-		if tokens[i].isBreak {
+	for _, token := range slices.Backward(tokens) {
+		if token.isBreak {
 			return false
 		}
-		if tokens[i].text != "" {
+		if token.text != "" {
 			return true
 		}
 	}

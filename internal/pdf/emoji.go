@@ -2,6 +2,7 @@ package pdf
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
@@ -234,14 +235,8 @@ func (f *PDF) renderBitmapGlyph(glyphID uint16, glyph *bitmapGlyphImage, x, base
 	if glyph == nil || len(glyph.data) == 0 || glyph.width == 0 || glyph.height == 0 {
 		return ""
 	}
-	ppemX := glyph.ppemX
-	if ppemX == 0 {
-		ppemX = glyph.width
-	}
-	ppemY := glyph.ppemY
-	if ppemY == 0 {
-		ppemY = glyph.height
-	}
+	ppemX := cmp.Or(glyph.ppemX, glyph.width)
+	ppemY := cmp.Or(glyph.ppemY, glyph.height)
 
 	scaleX := f.fontSize / float64(ppemX)
 	scaleY := f.fontSize / float64(ppemY)

@@ -1,7 +1,9 @@
 package pdf
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -56,7 +58,7 @@ func clonePDFFormFields(fields []FormField) []FormField {
 func clonePDFFormField(field FormField) FormField {
 	field.BGColor = clonePDFColorTriple(field.BGColor)
 	field.BorderColor = clonePDFColorTriple(field.BorderColor)
-	field.Options = append([]string(nil), field.Options...)
+	field.Options = slices.Clone(field.Options)
 	field.Children = clonePDFFormFields(field.Children)
 	return field
 }
@@ -65,8 +67,7 @@ func clonePDFColorTriple(color *[3]float64) *[3]float64 {
 	if color == nil {
 		return nil
 	}
-	clone := *color
-	return &clone
+	return new(*color)
 }
 
 func (f *PDF) prepareAcroForm(pageCount int) {
@@ -377,10 +378,7 @@ func formFieldPDFType(fieldType FormFieldType) string {
 }
 
 func formDefaultAppearance(field FormField) string {
-	fontName := strings.TrimSpace(field.FontName)
-	if fontName == "" {
-		fontName = "Helv"
-	}
+	fontName := cmp.Or(strings.TrimSpace(field.FontName), "Helv")
 	return fmt.Sprintf("/%s %s Tf %s %s %s rg",
 		pdfNameEscape(fontName),
 		formatFormNumber(field.FontSize),

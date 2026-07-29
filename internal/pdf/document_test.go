@@ -10,6 +10,8 @@ import (
 )
 
 func TestXYGettersAndSetters(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetXY(30, 40)
 	x, y := f.GetXY()
@@ -32,6 +34,8 @@ func TestXYGettersAndSetters(t *testing.T) {
 }
 
 func TestNegativeXYResolvesFromPageEdges(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetX(-20)
 	if f.GetX() <= 0 {
@@ -44,6 +48,8 @@ func TestNegativeXYResolvesFromPageEdges(t *testing.T) {
 }
 
 func TestGetConversionRatio(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "pt"})
 	if got := f.GetConversionRatio(); got != 1 {
 		t.Fatalf("conversion ratio for pt = %v, want 1", got)
@@ -51,6 +57,8 @@ func TestGetConversionRatio(t *testing.T) {
 }
 
 func TestDocumentMetadataSetters(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetTitle("My Title", true)
 	f.SetSubject("Subject", false)
@@ -69,6 +77,8 @@ func TestDocumentMetadataSetters(t *testing.T) {
 }
 
 func TestXmpMetadataEmitsStream(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	xmp := []byte(`<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"></x:xmpmeta><?xpacket end="w"?>`)
 	f.SetXmpMetadata(xmp)
@@ -79,6 +89,8 @@ func TestXmpMetadataEmitsStream(t *testing.T) {
 }
 
 func TestInfoDatesIncludeTimezoneOffset(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCreationDate(time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC))
 	f.SetModificationDate(time.Date(2021, 2, 3, 4, 5, 6, 0, time.FixedZone("IST", 5*3600+30*60)))
@@ -94,6 +106,8 @@ func TestInfoDatesIncludeTimezoneOffset(t *testing.T) {
 }
 
 func TestInfoDatesNegativeOffset(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCreationDate(time.Date(2020, 1, 2, 3, 4, 5, 0, time.FixedZone("EST", -5*3600)))
 	out := mustOutput(t, f)
@@ -104,6 +118,8 @@ func TestInfoDatesNegativeOffset(t *testing.T) {
 }
 
 func TestXmpMetadataReferencedFromCatalog(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetXmpMetadata([]byte(`<x:xmpmeta xmlns:x="adobe:ns:meta/"></x:xmpmeta>`))
 	out := mustOutput(t, f)
@@ -122,6 +138,8 @@ func TestXmpMetadataReferencedFromCatalog(t *testing.T) {
 }
 
 func TestSetLanguageEmitsLangInCatalog(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetLanguage("en-US")
 	out := mustOutput(t, f)
@@ -131,6 +149,8 @@ func TestSetLanguageEmitsLangInCatalog(t *testing.T) {
 }
 
 func TestAliasNbPagesReplacedInOutput(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "mm"})
 	f.AliasNbPages("")
 	f.AddPage()
@@ -145,6 +165,8 @@ func TestAliasNbPagesReplacedInOutput(t *testing.T) {
 }
 
 func TestRTLAndLTRToggle(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RTL()
 	f.Cell(40, 10, "rtl")
@@ -157,6 +179,8 @@ func TestRTLAndLTRToggle(t *testing.T) {
 }
 
 func TestSetCatalogSortAndJavascript(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCatalogSort(true)
 	f.SetJavascript("app.alert('hi');")
@@ -167,6 +191,8 @@ func TestSetCatalogSortAndJavascript(t *testing.T) {
 }
 
 func TestRegisterAliasReplacement(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RegisterAlias("{author}", "Jane Doe")
 	f.Cell(40, 10, "By {author}")
@@ -177,6 +203,8 @@ func TestRegisterAliasReplacement(t *testing.T) {
 }
 
 func TestRawWriteStrAndBuf(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RawWriteStr("% raw comment\n")
 	f.RawWriteBuf(bytes.NewBufferString("% raw buffer\n"))
@@ -187,6 +215,8 @@ func TestRawWriteStrAndBuf(t *testing.T) {
 }
 
 func TestOutputAndCloseWritesAll(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Cell(40, 10, "close me")
 	var buf bytes.Buffer
@@ -200,6 +230,8 @@ func TestOutputAndCloseWritesAll(t *testing.T) {
 }
 
 func TestOutputFileAndClose(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Cell(40, 10, "to file")
 	path := filepath.Join(t.TempDir(), "out.pdf")

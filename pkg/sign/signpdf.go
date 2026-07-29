@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -206,7 +207,7 @@ func parsePDFInfo(pdfBytes []byte) (parsedPDFInfo, error) {
 		return parsedPDFInfo{}, fmt.Errorf("%w: %d", errRootObjectMissing, rootObjNum)
 	}
 	return parsedPDFInfo{
-		data:            append([]byte(nil), pdfBytes...),
+		data:            slices.Clone(pdfBytes),
 		objects:         objects,
 		rootObjNum:      rootObjNum,
 		rootContent:     root.content,
@@ -230,11 +231,9 @@ func parseRawObjects(data []byte) (map[int]rawPDFObject, int, error) {
 		if err != nil {
 			return nil, 0, fmt.Errorf("sign: invalid object number: %w", err)
 		}
-		if number > maxObjNum {
-			maxObjNum = number
-		}
+		maxObjNum = max(maxObjNum, number)
 		objects[number] = rawPDFObject{
-			content: append([]byte(nil), match[2]...),
+			content: slices.Clone(match[2]),
 		}
 	}
 	return objects, maxObjNum, nil

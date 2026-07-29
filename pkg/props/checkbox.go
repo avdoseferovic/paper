@@ -46,13 +46,9 @@ func NormalizeCheckbox(c Checkbox) Checkbox {
 		c.Size = 5.0
 	}
 
-	if c.Top < 0 {
-		c.Top = 0
-	}
+	c.Top = max(c.Top, 0)
 
-	if c.Left < 0 {
-		c.Left = 0
-	}
+	c.Left = max(c.Left, 0)
 
 	return c
 }

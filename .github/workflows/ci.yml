@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  schedule:
+    # New vulnerability advisories land without any code change, so the
+    # govulncheck job has to run on a timer rather than only on push/PR.
+    - cron: '0 6 * * 1'
 
 permissions:
   contents: read
@@ -14,14 +18,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Actions are pinned to commit SHAs: a floating major tag is a mutable ref, and
+# these workflows run with repository credentials. The trailing comment records
+# the human-readable version each SHA corresponds to.
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.x'
           cache-dependency-path: |
@@ -31,34 +38,36 @@ jobs:
 
       # The config in .golangci.yml is shared by all three modules in the
       # workspace, and contains no inline suppressions: every exception is
-      # declared there with a rationale.
+      # declared there with a rationale. It is addressed through
+      # github.workspace because golangci-lint-action v8+ resolves paths
+      # absolutely when working-directory is set.
       - name: Lint root module
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.10.1
-          args: --config .golangci.yml ./...
+          args: --config ${{ github.workspace }}/.golangci.yml ./...
 
       - name: Lint examples module
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.10.1
           working-directory: examples
-          args: --config ../.golangci.yml ./...
+          args: --config ${{ github.workspace }}/.golangci.yml ./...
 
       - name: Lint docs module
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.10.1
           working-directory: docs
-          args: --config ../.golangci.yml ./...
+          args: --config ${{ github.workspace }}/.golangci.yml ./...
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.x'
           cache-dependency-path: |
@@ -70,12 +79,101 @@ jobs:
         run: go vet ./...
 
       - name: Test root module
-        run: go test -race ./...
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Report coverage
+        run: go tool cover -func=coverage.out | tail -1
 
       - name: Test examples module
-        run: go test ./...
+        run: go test -race ./...
         working-directory: examples
 
       - name: Test docs examples
-        run: go test ./assets/examples/...
+        run: go test -race ./assets/examples/...
         working-directory: docs
+
+  # The fuzz targets cover the parsers that consume untrusted input: PDF bytes
+  # (pkg/reader), SVG documents (pkg/svg), CSS values (pkg/html/css) and whole
+  # HTML documents (pkg/html). `go test` alone only replays the seed corpus, so
+  # a short active fuzzing budget runs here to explore beyond it.
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: go.sum
+
+      - name: Fuzz untrusted-input parsers
+        run: |
+          set -euo pipefail
+          fuzz() {
+            echo "::group::$2 ($1)"
+            go test -run '^$' -fuzz "$2" -fuzztime=60s "$1"
+            echo "::endgroup::"
+          }
+          fuzz ./pkg/reader/ FuzzParse
+          fuzz ./pkg/svg/ FuzzParseBytes
+          fuzz ./pkg/svg/ FuzzRasterizeWithLimit
+          fuzz ./pkg/html/css/ FuzzParseValues
+          fuzz ./pkg/html/ FuzzFromString
+
+      # A crashing input is the whole point of the job, so persist it rather
+      # than leaving it in the runner's scratch space.
+      - name: Upload crashers
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crashers
+          path: '**/testdata/fuzz/**'
+          if-no-files-found: ignore
+
+  vuln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            docs/go.sum
+
+      # Run per module rather than across the workspace: govulncheck reports
+      # against the toolchain the module actually selects, and that drift is
+      # exactly what this job exists to catch.
+      - name: govulncheck (root)
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: govulncheck (examples)
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: examples
+
+      - name: govulncheck (docs)
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: docs
+
+  # Windows exercises the paths this library is most likely to get wrong: font
+  # loading, os.OpenRoot sandboxing and filesystem path handling. It is
+  # advisory until its first runs have been triaged, so a Windows-only failure
+  # does not block merges before anyone has looked at it.
+  test-windows:
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: go.sum
+
+      - name: Test root module
+        run: go test ./...
