@@ -2,7 +2,6 @@ package paper_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -26,7 +25,7 @@ func TestGenerate_WithPdfA2B_ShouldEmitMetadataAndOutputIntent(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("PDF/A foundation")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -51,7 +50,7 @@ func TestGenerate_WithPdfA1B_ShouldUsePDF14(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("PDF/A-1 foundation")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, bytes.HasPrefix(pdf.GetBytes(), []byte("%PDF-1.4")))
@@ -67,7 +66,7 @@ func TestGenerate_WithPdfA2A_ShouldEnableTaggedPDF(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Tagged PDF/A foundation")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -90,7 +89,7 @@ func TestGenerate_WithPdfAOutputCondition(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Custom output intent")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -131,7 +130,7 @@ func TestGenerate_WithPdfACustomXMPExtensions(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Factur-X PDF/A metadata")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -157,7 +156,7 @@ func TestGenerate_WithRuntimeSetPdfAAndParallelPagesMode_ShouldKeepCatalogEntrie
 	doc.SetPdfA(entity.PdfAConfig{Level: entity.PdfA2B})
 	doc.AddAutoRow(col.New(12).Add(text.New("Runtime PDF/A foundation")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, bytes.Contains(pdf.GetBytes(), []byte("/OutputIntents [")))

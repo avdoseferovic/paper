@@ -177,6 +177,8 @@ func TestCode_GenQr(t *testing.T) {
 }
 
 func TestMatrixCodeCurrentDimensions(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		name  string
 		gen   func(*code.Code, string) (*entity.Image, error)
@@ -186,6 +188,8 @@ func TestMatrixCodeCurrentDimensions(t *testing.T) {
 		{name: "DataMatrix", gen: (*code.Code).GenDataMatrix, sizes: map[string]float64{"HELLO WORLD": 16, strings.Repeat("a", 50): 32}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			for input, size := range tt.sizes {
 				image, err := tt.gen(code.New(), input)
 				if err != nil {

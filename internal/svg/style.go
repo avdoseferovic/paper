@@ -93,13 +93,13 @@ func applySVGState(parent svgRenderState, attrs []xml.Attr, classes map[string]m
 }
 
 func clampUnit(value float64) float64 {
-	if math.IsNaN(value) || value < 0 {
+	// The NaN check must stay separate: min/max propagate NaN rather than
+	// folding it into the lower bound the way the original comparison did.
+	if math.IsNaN(value) {
 		return 0
 	}
-	if value > 1 {
-		return 1
-	}
-	return value
+
+	return min(max(value, 0), 1)
 }
 
 func withOpacity(value color.RGBA, opacity float64) color.RGBA {

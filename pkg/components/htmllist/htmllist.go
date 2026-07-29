@@ -2,6 +2,9 @@
 package htmllist
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -78,18 +81,12 @@ func New(items []Item, ps ...Prop) *HTMLList {
 	if len(ps) > 0 {
 		prop = ps[0]
 	}
-	if prop.Style == "" {
-		prop.Style = Bullet
-	}
-	if prop.Indent == 0 {
-		prop.Indent = 5
-	}
-	if prop.MarkerPadding == 0 {
-		prop.MarkerPadding = 1
-	}
+	prop.Style = cmp.Or(prop.Style, Bullet)
+	prop.Indent = cmp.Or(prop.Indent, 5)
+	prop.MarkerPadding = cmp.Or(prop.MarkerPadding, 1)
 	prop.MarkerBackground = props.CloneColor(prop.MarkerBackground)
 	prop.MarkerTextColor = props.CloneColor(prop.MarkerTextColor)
-	return &HTMLList{items: append([]Item(nil), items...), prop: prop}
+	return &HTMLList{items: slices.Clone(items), prop: prop}
 }
 
 // SetConfig propagates Paper config to all item components.
@@ -247,9 +244,7 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 	// without stealing horizontal space from the list item.
 	diameter := cell.Width
 	lineDiameter := cell.Height * 1.28
-	if lineDiameter < diameter {
-		diameter = lineDiameter
-	}
+	diameter = min(diameter, lineDiameter)
 	circleCell := &entity.Cell{
 		X:      cell.X + (cell.Width-diameter)/2,
 		Y:      cell.Y + (cell.Height-diameter)/2,
@@ -271,9 +266,7 @@ func (l *HTMLList) renderMarker(provider core.Provider, label string, cell *enti
 		Size:   tp.Size,
 	})
 	tp.Top = (circleCell.Height - fontH) / 2
-	if tp.Top < 0 {
-		tp.Top = 0
-	}
+	tp.Top = max(tp.Top, 0)
 	if l.prop.MarkerTextColor != nil {
 		tp.Color = l.prop.MarkerTextColor
 	} else {
@@ -304,9 +297,7 @@ func (l *HTMLList) gutterWidth(provider core.Provider) float64 {
 				continue
 			}
 			w := rtp.MeasureString(m, l.itemMarkerTextProp(l.items[i].Marker))
-			if w > textWidth {
-				textWidth = w
-			}
+			textWidth = max(textWidth, w)
 		}
 	}
 	if l.prop.Style == DecimalCircle {

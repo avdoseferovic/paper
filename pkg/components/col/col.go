@@ -109,9 +109,7 @@ func (c *Col) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	greaterHeight := 0.0
 	for _, component := range c.components {
 		height := component.GetHeight(provider, &contentCell)
-		if greaterHeight < height {
-			greaterHeight = height
-		}
+		greaterHeight = max(greaterHeight, height)
 	}
 	return greaterHeight + layout.VerticalCellMargins(c.style)
 }

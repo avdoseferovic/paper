@@ -1,7 +1,6 @@
 package reader_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 
 func writeTestPDF(t *testing.T, dir, name, content string) string {
 	t.Helper()
-	doc, err := paper.FromHTML(context.Background(), "<p>"+content+"</p>")
+	doc, err := paper.FromHTML(t.Context(), "<p>"+content+"</p>")
 	require.NoError(t, err)
 	path := filepath.Join(dir, name)
 	require.NoError(t, os.WriteFile(path, doc.GetBytes(), 0o600))

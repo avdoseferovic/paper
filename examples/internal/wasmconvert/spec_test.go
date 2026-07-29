@@ -1,7 +1,6 @@
 package wasmconvert_test
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"strings"
@@ -30,8 +29,10 @@ func assertPDF(t *testing.T, b64 string) {
 }
 
 func TestSpecToBase64_MinimalText_ReturnsPDF(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[{"cols":[{"span":12,"type":"text","style":"h1","value":"Hi"}]}]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,8 +40,10 @@ func TestSpecToBase64_MinimalText_ReturnsPDF(t *testing.T) {
 }
 
 func TestSpecToBase64_Empty_ReturnsErrEmptySpec(t *testing.T) {
+	t.Parallel()
+
 	for _, in := range []string{"", "   ", "\n\t "} {
-		_, err := wasmconvert.SpecToBase64(context.Background(), in, "A4")
+		_, err := wasmconvert.SpecToBase64(t.Context(), in, "A4")
 		if !errors.Is(err, wasmconvert.ErrEmptySpec) {
 			t.Fatalf("input %q: expected ErrEmptySpec, got %v", in, err)
 		}
@@ -48,7 +51,9 @@ func TestSpecToBase64_Empty_ReturnsErrEmptySpec(t *testing.T) {
 }
 
 func TestSpecToBase64_InvalidJSON_ReturnsError(t *testing.T) {
-	_, err := wasmconvert.SpecToBase64(context.Background(), `{not json`, "A4")
+	t.Parallel()
+
+	_, err := wasmconvert.SpecToBase64(t.Context(), `{not json`, "A4")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
@@ -58,8 +63,10 @@ func TestSpecToBase64_InvalidJSON_ReturnsError(t *testing.T) {
 }
 
 func TestSpecToBase64_LetterPageSize_ReturnsPDF(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[{"cols":[{"span":12,"type":"text","value":"Letter sized"}]}]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "Letter")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "Letter")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -67,12 +74,14 @@ func TestSpecToBase64_LetterPageSize_ReturnsPDF(t *testing.T) {
 }
 
 func TestSpecToBase64_LineAndUnknownType_NoPanic(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[
 		{"cols":[{"span":12,"type":"line","soft":true}]},
 		{"cols":[{"span":12,"type":"image","value":"placeholder"}]},
 		{"cols":[{"span":12,"type":"text","value":"after"}]}
 	]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -82,6 +91,8 @@ func TestSpecToBase64_LineAndUnknownType_NoPanic(t *testing.T) {
 // A degenerate spec (huge spans, negatives, deep nesting) must never panic the
 // caller — SpecToBase64 recovers and returns a doc or an error.
 func TestSpecToBase64_DegenerateSpec_DoesNotPanic(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[{"cols":[
 		{"span":9999,"type":"text","value":"big span"},
 		{"span":-3,"type":"line"}
@@ -91,6 +102,8 @@ func TestSpecToBase64_DegenerateSpec_DoesNotPanic(t *testing.T) {
 }
 
 func TestSpecToBase64_AllComponentTypes_ReturnsPDF(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[
 		{"cols":[{"span":12,"type":"text","style":"h1","value":"Everything"}]},
 		{"cols":[{"span":12,"type":"line"}]},
@@ -104,7 +117,7 @@ func TestSpecToBase64_AllComponentTypes_ReturnsPDF(t *testing.T) {
 		{"cols":[{"span":12,"type":"pagenumber","value":"Page {n} of {t}"}]},
 		{"cols":[{"span":12,"type":"footer","value":"footer text"}]}
 	]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -112,10 +125,12 @@ func TestSpecToBase64_AllComponentTypes_ReturnsPDF(t *testing.T) {
 }
 
 func TestSpecToBase64_TableWithColAlign_ReturnsPDF(t *testing.T) {
+	t.Parallel()
+
 	spec := `{"rows":[{"cols":[{"span":12,"type":"table",
 		"head":["Description","Qty","Amount"],"colAlign":["","c","r"],
 		"rows":[["Item one","1","$10"],["Item two","2","$20"],["Item three","3","$30"]]}]}]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,6 +138,8 @@ func TestSpecToBase64_TableWithColAlign_ReturnsPDF(t *testing.T) {
 }
 
 func TestSpecToBase64_MalformedTable_DoesNotPanic(t *testing.T) {
+	t.Parallel()
+
 	// Ragged rows (differing column counts) must not panic.
 	spec := `{"rows":[{"cols":[{"span":12,"type":"table",
 		"head":["A","B","C"],"rows":[["1"],["1","2","3","4","5"]]}]}]}`
@@ -132,6 +149,8 @@ func TestSpecToBase64_MalformedTable_DoesNotPanic(t *testing.T) {
 // The three component-grid presets shipped in the Paper Playground design must
 // each generate a real PDF.
 func TestSpecToBase64_DesignPresets_Generate(t *testing.T) {
+	t.Parallel()
+
 	presets := map[string]string{
 		"invoice": `{
   "rows": [
@@ -200,7 +219,8 @@ func TestSpecToBase64_DesignPresets_Generate(t *testing.T) {
 	}
 	for name, spec := range presets {
 		t.Run(name, func(t *testing.T) {
-			b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+			t.Parallel()
+			b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 			if err != nil {
 				t.Fatalf("preset %s: unexpected error: %v", name, err)
 			}
@@ -210,9 +230,11 @@ func TestSpecToBase64_DesignPresets_Generate(t *testing.T) {
 }
 
 func TestPlainText_BrBecomesNewline(t *testing.T) {
+	t.Parallel()
+
 	// <br> in a value should yield a multi-line string (2 lines).
 	spec := `{"rows":[{"cols":[{"span":12,"type":"text","value":"line one<br>line two"}]}]}`
-	b64, err := wasmconvert.SpecToBase64(context.Background(), spec, "A4")
+	b64, err := wasmconvert.SpecToBase64(t.Context(), spec, "A4")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

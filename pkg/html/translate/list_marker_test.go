@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -35,7 +34,7 @@ li::marker { color: #00ff00; font-size: 20pt }
 </style></head><body><ul><li>Item</li></ul></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	setMarkerTestConfig(rows[0])
@@ -61,7 +60,7 @@ li::marker { content: "→ " }
 </style></head><body><ul><li>Item</li></ul></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	setMarkerTestConfig(rows[0])
@@ -80,7 +79,7 @@ li::marker { content: none }
 </style></head><body><ol><li>Item</li></ol></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	setMarkerTestConfig(rows[0])
@@ -102,7 +101,7 @@ li::marker { content: counter(c, upper-roman) ". " }
 </style></head><body><ol><li>One</li><li>Two</li></ol></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	setMarkerTestConfig(rows[0])
@@ -124,7 +123,7 @@ li::marker { content: counters(item, ".") ". " }
 </style></head><body><ol><li>Alpha<ol><li>Beta</li></ol></li><li>Delta</li></ol></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	setMarkerTestConfig(rows[0])

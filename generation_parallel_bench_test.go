@@ -1,7 +1,6 @@
 package paper_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -72,15 +71,19 @@ func benchmarkGeneration(b *testing.B, cfg *entity.Config, rows []core.Row) {
 	b.Helper()
 	b.ReportAllocs()
 
-	for range b.N {
+	var size benchSizeReporter
+	for b.Loop() {
 		m := paper.New(cfg)
 		m.AddRows(rows...)
-		doc, err := m.Generate(context.Background())
+		doc, err := m.Generate(b.Context())
 		if err != nil {
 			b.Fatalf("generate: %v", err)
 		}
-		if len(doc.GetBytes()) == 0 {
+		pdfBytes := doc.GetBytes()
+		if len(pdfBytes) == 0 {
 			b.Fatal("generated empty PDF")
 		}
+		size.add(len(pdfBytes))
 	}
+	size.report(b)
 }

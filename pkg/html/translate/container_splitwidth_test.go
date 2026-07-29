@@ -31,6 +31,8 @@ func (r widthRecordingRow) GetHeight(_ core.Provider, cell *entity.Cell) float64
 // handed in by the page builder, NOT at a stale cached width (which previously
 // could be 0 → fall back to 10000, packing an over-tall chunk that overflowed).
 func TestSplitAtMeasuresChildrenAtRenderWidth(t *testing.T) {
+	t.Parallel()
+
 	var widths []float64
 	rows := []core.Row{
 		widthRecordingRow{&widths},

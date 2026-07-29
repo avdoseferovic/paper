@@ -137,7 +137,7 @@ func TestFromHTML(t *testing.T) {
 	t.Run("generates a PDF document from HTML", func(t *testing.T) {
 		t.Parallel()
 
-		doc, err := paper.FromHTML(context.Background(), `<h1>Hello</h1><p>World</p>`)
+		doc, err := paper.FromHTML(t.Context(), `<h1>Hello</h1><p>World</p>`)
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -153,7 +153,7 @@ func TestFromHTML(t *testing.T) {
 			WithMaxGridSize(20).
 			Build()
 
-		doc, err := paper.FromHTML(context.Background(), `<div style="display:flex"><p>A</p><p>B</p><p>C</p></div>`, cfg)
+		doc, err := paper.FromHTML(t.Context(), `<div style="display:flex"><p>A</p><p>B</p><p>C</p></div>`, cfg)
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -168,7 +168,7 @@ func TestFromHTML(t *testing.T) {
 			WithHTMLLimits(coreentity.HTMLLimits{MaxDOMDepth: 4}).
 			Build()
 
-		doc, err := paper.FromHTML(context.Background(), `<div><div><div><div><div>too deep</div></div></div></div></div>`, cfg)
+		doc, err := paper.FromHTML(t.Context(), `<div><div><div><div><div>too deep</div></div></div></div></div>`, cfg)
 
 		assert.ErrorIs(t, err, paperhtml.ErrDOMTooDeep)
 		assert.Nil(t, doc)
@@ -178,7 +178,7 @@ func TestFromHTML(t *testing.T) {
 func TestFromHTML_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	doc, err := paper.FromHTML(ctx, `<p>cancelled</p>`)
@@ -193,7 +193,7 @@ func TestFromHTMLReader(t *testing.T) {
 	t.Run("generates a PDF document from a reader", func(t *testing.T) {
 		t.Parallel()
 
-		doc, err := paper.FromHTMLReader(context.Background(), strings.NewReader(`<p>reader input</p>`))
+		doc, err := paper.FromHTMLReader(t.Context(), strings.NewReader(`<p>reader input</p>`))
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) {
@@ -206,7 +206,7 @@ func TestFromHTMLReader(t *testing.T) {
 
 		wantErr := errors.New("read failed")
 
-		doc, err := paper.FromHTMLReader(context.Background(), errorReader{err: wantErr})
+		doc, err := paper.FromHTMLReader(t.Context(), errorReader{err: wantErr})
 
 		assert.Nil(t, doc)
 		assert.ErrorIs(t, err, wantErr)
@@ -216,7 +216,7 @@ func TestFromHTMLReader(t *testing.T) {
 func TestFromHTMLReader_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	doc, err := paper.FromHTMLReader(ctx, strings.NewReader(`<p>cancelled</p>`))
@@ -225,7 +225,7 @@ func TestFromHTMLReader_ReturnsContextError(t *testing.T) {
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
-func TestMaroto_AddRow(t *testing.T) {
+func TestPaper_AddRow(t *testing.T) {
 	t.Parallel()
 	t.Run("When row height and available sapacing are equals, should add row in current page", func(t *testing.T) {
 		t.Parallel()
@@ -292,7 +292,7 @@ func TestMaroto_AddRow(t *testing.T) {
 	})
 }
 
-func TestMaroto_AddRows(t *testing.T) {
+func TestPaper_AddRows(t *testing.T) {
 	t.Parallel()
 	t.Run("when col is not sent, should empty col is set", func(t *testing.T) {
 		t.Parallel()
@@ -357,7 +357,7 @@ func TestMaroto_AddRows(t *testing.T) {
 	})
 }
 
-func TestMaroto_AddAutoRow(t *testing.T) {
+func TestPaper_AddAutoRow(t *testing.T) {
 	t.Parallel()
 	t.Run("When 100 automatic rows are sent, it should create 2 pages", func(t *testing.T) {
 		t.Parallel()
@@ -374,7 +374,7 @@ func TestMaroto_AddAutoRow(t *testing.T) {
 	})
 }
 
-func TestMaroto_AddPages(t *testing.T) {
+func TestPaper_AddPages(t *testing.T) {
 	t.Parallel()
 	t.Run("when a new page is created, should add a page", func(t *testing.T) {
 		t.Parallel()
@@ -426,8 +426,11 @@ func TestMaroto_AddPages(t *testing.T) {
 	})
 }
 
-func TestMaroto_Generate(t *testing.T) {
+func TestPaper_Generate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("when one row is sent, should generate one row", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		sut := paper.New()
 
@@ -435,11 +438,12 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRow(10, col.New(12))
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
 	t.Run("when two row are sent, should generate two row", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		sut := paper.New()
 
@@ -448,11 +452,12 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRow(10, col.New(12))
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
 	t.Run("when rows do not fit on the current page, should generate two pages", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		sut := paper.New()
 
@@ -462,11 +467,12 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
 	t.Run("when rows do not fit on the current page and parallel pages mode is active, should render in parallel", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithParallelPagesMode(7).
@@ -480,11 +486,12 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
 	t.Run("when protection and parallel pages mode are active, should generate protected PDF bytes", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithParallelPagesMode(7).
@@ -499,13 +506,14 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		if assert.NotNil(t, doc) {
 			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
 		}
 	})
 	t.Run("when AES-128 protection is active, should generate AESV2 PDF bytes", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithProtection(protection.None, "user", "owner").
@@ -516,7 +524,7 @@ func TestMaroto_Generate(t *testing.T) {
 		sut.AddRows(text.NewRow(10, "aes protected"))
 
 		// Act
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 
 		// Assert
 		assert.Nil(t, err)
@@ -525,6 +533,7 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 	})
 	t.Run("when two pages are sent and low memory mode is active, should executed in low memory mode", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithSequentialLowMemoryMode(10).
@@ -538,11 +547,12 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		assert.NotNil(t, doc)
 	})
 	t.Run("when protection and sequential low memory mode are active, should generate protected PDF bytes", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithSequentialLowMemoryMode(10).
@@ -557,13 +567,14 @@ func TestMaroto_Generate(t *testing.T) {
 		}
 
 		// Assert
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 		assert.Nil(t, err)
 		if assert.NotNil(t, doc) {
 			assert.True(t, bytes.HasPrefix(doc.GetBytes(), []byte("%PDF-")))
 		}
 	})
 	t.Run("when two pages are sent and sequential generation is active, should executed in sequential generation mode", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithSequentialMode().
@@ -580,6 +591,7 @@ func TestMaroto_Generate(t *testing.T) {
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_sequential.json")
 	})
 	t.Run("when two pages are sent and sequential low memory is active, should executed in sequential low memory mode", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithSequentialLowMemoryMode(10).
@@ -596,6 +608,7 @@ func TestMaroto_Generate(t *testing.T) {
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_sequential_low_memory.json")
 	})
 	t.Run("when two pages are sent and parallel pages mode is active, should render in parallel", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithParallelPagesMode(10).
@@ -611,32 +624,8 @@ func TestMaroto_Generate(t *testing.T) {
 		// Assert
 		test.New(t).Assert(sut.GetStructure()).Equals("paper_parallel_pages.json")
 	})
-	t.Run("goroutines do not leak after multiple generate calls in parallel pages mode", func(t *testing.T) {
-		// The leak check polls with backoff for goroutines to settle and compares
-		// against the package-level test baseline.
-		defer goleak.VerifyNone(t)
-
-		// Arrange
-		cfg := config.NewBuilder().
-			WithParallelPagesMode(10).
-			Build()
-
-		sut := paper.New(cfg)
-
-		// Act
-		for range 30 {
-			sut.AddRow(10, col.New(12))
-		}
-		_, err1 := sut.Generate(context.Background())
-		_, err2 := sut.Generate(context.Background())
-		_, err3 := sut.Generate(context.Background())
-
-		// Assert
-		assert.Nil(t, err1)
-		assert.Nil(t, err2)
-		assert.Nil(t, err3)
-	})
 	t.Run("when two pages are sent and page number is active, should add page number", func(t *testing.T) {
+		t.Parallel()
 		// Arrange
 		cfg := config.NewBuilder().
 			WithPageNumber().
@@ -674,7 +663,7 @@ func TestPaper_GetStructureBeforeGenerateDoesNotAddBlankPage(t *testing.T) {
 	sut.AddRow(10, col.New(12))
 
 	structurePages := structurePageCount(sut.GetStructure())
-	doc, err := sut.Generate(context.Background())
+	doc, err := sut.Generate(t.Context())
 
 	assert.NoError(t, err)
 	if assert.NotNil(t, doc) {
@@ -727,7 +716,7 @@ func TestPaper_GenerateReturnsContextError(t *testing.T) {
 			sut := paper.New(cfg)
 			sut.AddRow(10, col.New(12))
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 
 			doc, err := sut.Generate(ctx)
@@ -739,12 +728,40 @@ func TestPaper_GenerateReturnsContextError(t *testing.T) {
 	}
 }
 
+// Deliberately not parallel: goleak.VerifyNone inspects the whole process
+// goroutine set, so a concurrently running test's workers read as leaks. Go
+// finishes every sequential test before resuming the parallel ones, so keeping
+// the leak checks at top level and non-parallel is what isolates them.
+func TestPaper_GenerateParallelPagesDoesNotLeakGoroutines(t *testing.T) {
+	// The leak check polls with backoff for goroutines to settle and compares
+	// against the package-level test baseline.
+	defer goleak.VerifyNone(t)
+
+	cfg := config.NewBuilder().
+		WithParallelPagesMode(10).
+		Build()
+
+	sut := paper.New(cfg)
+
+	for range 30 {
+		sut.AddRow(10, col.New(12))
+	}
+	_, err1 := sut.Generate(t.Context())
+	_, err2 := sut.Generate(t.Context())
+	_, err3 := sut.Generate(t.Context())
+
+	assert.Nil(t, err1)
+	assert.Nil(t, err2)
+	assert.Nil(t, err3)
+}
+
+// Deliberately not parallel: see the comment above.
 func TestPaper_GenerateParallelPagesCancellationDoesNotLeak(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	cfg := config.NewBuilder().WithParallelPagesMode(2).Build()
 	sut := paper.New(cfg)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	for range 8 {
 		sut.AddRow(10, col.New(12))
 	}
@@ -765,13 +782,13 @@ func assertRepeatedGenerateStable(t *testing.T, cfg *coreentity.Config) {
 		sut.AddRow(10, col.New(12))
 	}
 
-	first, err := sut.Generate(context.Background())
+	first, err := sut.Generate(t.Context())
 	assert.NoError(t, err)
 	if !assert.NotNil(t, first) {
 		return
 	}
 
-	second, err := sut.Generate(context.Background())
+	second, err := sut.Generate(t.Context())
 	assert.NoError(t, err)
 	if !assert.NotNil(t, second) {
 		return
@@ -808,11 +825,14 @@ func pdfPageCount(t *testing.T, pdfBytes []byte) int {
 }
 
 func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sequential generation reports image fallback issue", func(t *testing.T) {
+		t.Parallel()
 		sut := paper.New()
 		sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
 
-		doc, err := sut.Generate(context.Background())
+		doc, err := sut.Generate(t.Context())
 
 		assert.NoError(t, err)
 		if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
@@ -825,15 +845,17 @@ func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 	})
 
 	t.Run("parallel pages and low memory generation aggregate image fallback issues", func(t *testing.T) {
+		t.Parallel()
 		for name, cfg := range map[string]*coreentity.Config{
 			"parallel_pages": config.NewBuilder().WithParallelPagesMode(2).Build(),
 			"low-memory":     config.NewBuilder().WithSequentialLowMemoryMode(2).Build(),
 		} {
 			t.Run(name, func(t *testing.T) {
+				t.Parallel()
 				sut := paper.New(cfg)
 				sut.AddRow(20, componentimage.NewFromFileCol(12, "missing-image.png"))
 
-				doc, err := sut.Generate(context.Background())
+				doc, err := sut.Generate(t.Context())
 
 				assert.NoError(t, err)
 				if assert.NotNil(t, doc) && assert.NotNil(t, doc.GetReport()) {
@@ -845,7 +867,7 @@ func TestPaper_GenerateReportsProviderFallbackIssues(t *testing.T) {
 	})
 }
 
-func TestMaroto_FitInCurrentPage(t *testing.T) {
+func TestPaper_FitInCurrentPage(t *testing.T) {
 	t.Parallel()
 	t.Run("when component is smaller should available size, should return false", func(t *testing.T) {
 		t.Parallel()
@@ -892,7 +914,7 @@ func TestMaroto_FitInCurrentPage(t *testing.T) {
 		})
 }
 
-func TestMaroto_GetCurrentConfig(t *testing.T) {
+func TestPaper_GetCurrentConfig(t *testing.T) {
 	t.Parallel()
 	t.Run("When GetCurrentConfig is called, should return the current settings", func(t *testing.T) {
 		t.Parallel()
@@ -923,10 +945,10 @@ func TestPaper_InvalidCallerSuppliedMaxGridSizeDoesNotBreakHTMLOrFinalization(t 
 	cfg.MaxGridSize = 0
 	sut := paper.New(cfg)
 
-	err := sut.AddHTML(context.Background(), `<div style="display:flex"><p>A</p><p>B</p></div>`)
+	err := sut.AddHTML(t.Context(), `<div style="display:flex"><p>A</p><p>B</p></div>`)
 	assert.NoError(t, err)
 
-	doc, err := sut.Generate(context.Background())
+	doc, err := sut.Generate(t.Context())
 	assert.NoError(t, err)
 	if assert.NotNil(t, doc) {
 		assert.Equal(t, 1, pdfPageCount(t, doc.GetBytes()))
@@ -937,7 +959,7 @@ func TestPaper_InvalidCallerSuppliedMaxGridSizeDoesNotBreakHTMLOrFinalization(t 
 func TestPaper_AddHTMLReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	sut := paper.New()
 
@@ -947,7 +969,7 @@ func TestPaper_AddHTMLReturnsContextError(t *testing.T) {
 	assert.Equal(t, 1, structurePageCount(sut.GetStructure()))
 }
 
-func TestMaroto_RegisterHeader(t *testing.T) {
+func TestPaper_RegisterHeader(t *testing.T) {
 	t.Parallel()
 	t.Run("when header size is greater than useful area, should return error", func(t *testing.T) {
 		t.Parallel()
@@ -1024,7 +1046,7 @@ func TestMaroto_RegisterHeader(t *testing.T) {
 	})
 }
 
-func TestMaroto_RegisterFooter(t *testing.T) {
+func TestPaper_RegisterFooter(t *testing.T) {
 	t.Parallel()
 	t.Run("when footer size is greater than useful area, should return error", func(t *testing.T) {
 		t.Parallel()

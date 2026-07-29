@@ -1,6 +1,8 @@
 package props
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
@@ -49,17 +51,11 @@ func (f *Font) MakeValid(defaultFamily string) {
 
 // NormalizeFont returns a defaulted copy of f.
 func NormalizeFont(f Font, defaultFamily string) Font {
-	if f.Family == "" {
-		f.Family = defaultFamily
-	}
+	f.Family = cmp.Or(f.Family, defaultFamily)
 
-	if f.Style == "" {
-		f.Style = fontstyle.Normal
-	}
+	f.Style = cmp.Or(f.Style, fontstyle.Normal)
 
-	if f.Size == 0.0 {
-		f.Size = defaultFontSize
-	}
+	f.Size = cmp.Or(f.Size, defaultFontSize)
 
 	f.Color = CloneColor(f.Color)
 	return f

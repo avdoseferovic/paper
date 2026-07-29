@@ -2,7 +2,6 @@ package forms_test
 
 import (
 	"bytes"
-	"context"
 	"strings"
 	"testing"
 
@@ -89,7 +88,7 @@ func TestAcroFormRuntimeSetterClonesInput(t *testing.T) {
 	field.Value = "Grace"
 	doc.AddAutoRow(col.New(12).Add(text.New("Runtime form")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := pdf.GetBytes()
 
@@ -112,7 +111,7 @@ func TestAcroFormForcesWholeDocumentGeneration(t *testing.T) {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Concurrent mode should be bypassed")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, bytes.Contains(pdf.GetBytes(), []byte("/AcroForm")))
@@ -224,7 +223,7 @@ func generateFormPDF(t *testing.T, form *forms.AcroForm) []byte {
 	doc := paper.New(cfg)
 	doc.AddAutoRow(col.New(12).Add(text.New("Form document")))
 
-	pdf, err := doc.Generate(context.Background())
+	pdf, err := doc.Generate(t.Context())
 	require.NoError(t, err)
 	return pdf.GetBytes()
 }

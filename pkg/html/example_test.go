@@ -2,7 +2,6 @@ package html_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper"
@@ -32,14 +31,14 @@ func TestExample_FromString_GeneratesPDF(t *testing.T) {
 </body>
 </html>`
 
-	rows, err := html.FromString(context.Background(), htmlInput)
+	rows, err := html.FromString(t.Context(), htmlInput)
 	require.NoError(t, err)
 	assert.NotEmpty(t, rows)
 
 	m := paper.New()
-	require.NoError(t, m.AddHTML(context.Background(), htmlInput))
+	require.NoError(t, m.AddHTML(t.Context(), htmlInput))
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	pdfBytes := doc.GetBytes()
@@ -52,13 +51,13 @@ func TestExample_InlineCSSReachesPDF(t *testing.T) {
 	t.Parallel()
 	htmlInput := `<p style="color:#ff0000">red text</p><p style="border:1px solid #00ff00">bordered</p>`
 
-	rows, err := html.FromString(context.Background(), htmlInput)
+	rows, err := html.FromString(t.Context(), htmlInput)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 
 	m := paper.New()
-	require.NoError(t, m.AddHTML(context.Background(), htmlInput))
-	doc, err := m.Generate(context.Background())
+	require.NoError(t, m.AddHTML(t.Context(), htmlInput))
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 	pdfBytes := doc.GetBytes()
 	assert.True(t, bytes.HasPrefix(pdfBytes, []byte("%PDF-")))

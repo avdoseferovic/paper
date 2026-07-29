@@ -1,6 +1,7 @@
 package css
 
 import (
+	"cmp"
 	"strconv"
 	"strings"
 )
@@ -36,10 +37,7 @@ func (s *ComputedStyle) applyFontProperty(ctx computedPropertyContext) bool {
 // the inherited size is preserved instead of collapsing to 0.
 func parseFontSize(value string, parentFontSize float64) (float64, bool) {
 	value = strings.ToLower(strings.TrimSpace(value))
-	base := parentFontSize
-	if base == 0 {
-		base = defaultRemMM
-	}
+	base := cmp.Or(parentFontSize, defaultRemMM)
 	if frac, ok := ParsePercentage(value); ok {
 		return base * frac, frac > 0
 	}
@@ -86,13 +84,7 @@ func parseLineHeight(value string, fontSize, parentFontSize float64) (float64, b
 	if err == nil {
 		return unitless, unitless > 0
 	}
-	base := fontSize
-	if base == 0 {
-		base = parentFontSize
-	}
-	if base == 0 {
-		base = defaultRemMM
-	}
+	base := cmp.Or(fontSize, parentFontSize, defaultRemMM)
 	length := ParseLength(value, base)
 	if length <= 0 {
 		return 0, false

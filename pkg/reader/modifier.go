@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/avdoseferovic/paper/internal/pdfscan"
@@ -59,7 +59,7 @@ func (m *Modifier) ReorderPages(order []int) error {
 	}
 	out, err := merge.BytesSelected(context.Background(), merge.PageSelection{
 		PDF:   m.Bytes(),
-		Pages: append([]int(nil), order...),
+		Pages: slices.Clone(order),
 	})
 	if err != nil {
 		return err
@@ -145,11 +145,9 @@ func rewriteReaderPDF(original []byte, objects map[int]pdfObject, rootID int) ([
 	maxID := 0
 	for id := range objects {
 		ids = append(ids, id)
-		if id > maxID {
-			maxID = id
-		}
+		maxID = max(maxID, id)
 	}
-	sort.Ints(ids)
+	slices.Sort(ids)
 
 	var out bytes.Buffer
 	fmt.Fprintf(&out, "%%PDF-%s\n", parseVersion(original))

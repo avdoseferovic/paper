@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"strconv"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -204,10 +205,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 	height := explicitTableCellHeight(cellStyle, rowStyle)
 
 	// Propagate row-level color to runs that have no own color.
-	effectiveColor := cellStyle.Color
-	if effectiveColor == nil {
-		effectiveColor = rowStyle.Color
-	}
+	effectiveColor := cmp.Or(cellStyle.Color, rowStyle.Color)
 	if effectiveColor != nil {
 		op := effectiveOpacity(cellStyle)
 		for i := range runs {

@@ -2,6 +2,7 @@ package entity
 
 import (
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -56,7 +57,7 @@ func CloneAttachments(attachments []FileAttachment) []FileAttachment {
 	}
 	clones := make([]FileAttachment, len(attachments))
 	for i, attachment := range attachments {
-		attachment.Data = append([]byte(nil), attachment.Data...)
+		attachment.Data = slices.Clone(attachment.Data)
 		clones[i] = attachment
 	}
 	return clones

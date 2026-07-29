@@ -15,6 +15,8 @@ func loadUTF8FontFile(t *testing.T) *utf8FontFile {
 }
 
 func TestParseGlyphOutlineProducesContours(t *testing.T) {
+	t.Parallel()
+
 	utf := loadUTF8FontFile(t)
 	if len(utf.symbolPosition) == 0 {
 		t.Skip("font has no glyf symbol positions")
@@ -24,10 +26,7 @@ func TestParseGlyphOutlineProducesContours(t *testing.T) {
 	emittedPath := false
 	// Walk a bounded range of glyph IDs; many will be simple glyphs, and
 	// composite glyphs (numContours < 0) are exercised opportunistically.
-	limit := len(utf.symbolPosition) - 1
-	if limit > 2000 {
-		limit = 2000
-	}
+	limit := min(len(utf.symbolPosition)-1, 2000)
 	for gid := range limit {
 		outline := utf.parseGlyphOutline(uint16(gid))
 		if outline == nil {
@@ -52,6 +51,8 @@ func TestParseGlyphOutlineProducesContours(t *testing.T) {
 }
 
 func TestParseGlyphOutlineOutOfRangeReturnsNil(t *testing.T) {
+	t.Parallel()
+
 	utf := loadUTF8FontFile(t)
 	if got := utf.parseGlyphOutline(uint16((len(utf.symbolPosition) + 100) & 0xFFFF)); got != nil {
 		t.Fatal("expected nil outline for out-of-range glyph id")
@@ -59,6 +60,8 @@ func TestParseGlyphOutlineOutOfRangeReturnsNil(t *testing.T) {
 }
 
 func TestParseGlyphDataRejectsTruncatedHeader(t *testing.T) {
+	t.Parallel()
+
 	utf := loadUTF8FontFile(t)
 	if got := utf.parseGlyphData([]byte{0, 1, 2}, nil); got != nil {
 		t.Fatal("expected nil for truncated glyph header (<10 bytes)")
@@ -66,6 +69,8 @@ func TestParseGlyphDataRejectsTruncatedHeader(t *testing.T) {
 }
 
 func TestGlyphOutlineToPDFPathEmptyOutline(t *testing.T) {
+	t.Parallel()
+
 	if got := glyphOutlineToPDFPath(nil, 0, 0, 1, 1); got != "" {
 		t.Fatalf("expected empty path for nil outline, got %q", got)
 	}
@@ -75,12 +80,16 @@ func TestGlyphOutlineToPDFPathEmptyOutline(t *testing.T) {
 }
 
 func TestContourToPDFOpsTooFewPoints(t *testing.T) {
+	t.Parallel()
+
 	if got := contourToPDFOps(glyphContour{{x: 1, y: 1, onCurve: true}}, 0, 0, 1, 1); got != "" {
 		t.Fatalf("expected empty ops for single-point contour, got %q", got)
 	}
 }
 
 func TestRead2Dot14(t *testing.T) {
+	t.Parallel()
+
 	// 0x4000 == 1.0 in F2Dot14 fixed-point.
 	if got := read2Dot14([]byte{0x40, 0x00}); !floatNear(got, 1.0, 1e-9) {
 		t.Fatalf("read2Dot14(0x4000) = %v, want 1.0", got)

@@ -34,9 +34,7 @@ func writeIncrementalUpdate(info parsedPDFInfo, objects []incrementalObject) []b
 	offsets := make([]offsetEntry, 0, len(objects))
 	maxObjectNumber := info.maxObjectNumber
 	for _, object := range objects {
-		if object.number > maxObjectNumber {
-			maxObjectNumber = object.number
-		}
+		maxObjectNumber = max(maxObjectNumber, object.number)
 		offsets = append(offsets, offsetEntry{objNum: object.number, offset: buf.Len()})
 		fmt.Fprintf(&buf, "%d 0 obj\n", object.number)
 		buf.Write(bytes.TrimSpace(object.content))

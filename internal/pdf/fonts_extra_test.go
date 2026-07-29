@@ -60,6 +60,8 @@ func synthFontDefJSON(t *testing.T, tp, name, file, diff string, size1, size2, o
 }
 
 func TestAddFontFromBytesEmbeddedTrueType(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetCompression(false)
 
@@ -102,6 +104,8 @@ func TestAddFontFromBytesEmbeddedTrueType(t *testing.T) {
 }
 
 func TestAddFontFromReaderType1LoadsFontFileFromDisk(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	// PFB layout: 6-byte header + length1 (10) bytes + 6-byte header +
 	// length2 (30) bytes = 52 bytes minimum.
@@ -140,6 +144,8 @@ func TestAddFontFromReaderType1LoadsFontFileFromDisk(t *testing.T) {
 }
 
 func TestAddFontLoadsDefinitionFromFontDirectory(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetFontLocation(filepath.Join("embedded", "fonts"))
 	f.AddFont("MyHelv", "", "helvetica.json")
@@ -154,6 +160,8 @@ func TestAddFontLoadsDefinitionFromFontDirectory(t *testing.T) {
 }
 
 func TestAddFontMissingDefinitionFileSetsError(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.AddFont("No Such Font", "B", "")
 	if !f.Err() {
@@ -162,6 +170,8 @@ func TestAddFontMissingDefinitionFileSetsError(t *testing.T) {
 }
 
 func TestAddUTF8FontMissingFontFileSetsError(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.AddUTF8Font("No Such Font", "", "")
 	if !f.Err() {
@@ -170,6 +180,8 @@ func TestAddUTF8FontMissingFontFileSetsError(t *testing.T) {
 }
 
 func TestAddUTF8FontLoadsFromFontDirectory(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetFontLocation(filepath.Join("..", "..", "docs", "assets", "fonts"))
 	f.AddUTF8Font("ArialUni", "", "arial-unicode-ms.ttf")
@@ -217,6 +229,8 @@ func (l plainFontLoader) Open(name string) (io.Reader, error) {
 }
 
 func TestSetFontLoaderLoadsDefinitionAndFallsBackToDisk(t *testing.T) {
+	t.Parallel()
+
 	helv, err := os.ReadFile(filepath.Join("embedded", "fonts", "helvetica.json"))
 	if err != nil {
 		t.Fatalf("read helvetica definition fixture: %v", err)
@@ -246,6 +260,8 @@ func TestSetFontLoaderLoadsDefinitionAndFallsBackToDisk(t *testing.T) {
 }
 
 func TestOutputLoadsEmbeddedFontFileFromLoader(t *testing.T) {
+	t.Parallel()
+
 	zBytes := bytes.Repeat([]byte{0xCD}, 25)
 
 	for name, loader := range map[string]FontLoader{
@@ -253,6 +269,7 @@ func TestOutputLoadsEmbeddedFontFileFromLoader(t *testing.T) {
 		"nonCloser": plainFontLoader{files: map[string][]byte{"fromloader.z": zBytes}},
 	} {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 			f.SetCompression(false)
 			f.SetFontLoader(loader)
@@ -276,6 +293,8 @@ func TestOutputLoadsEmbeddedFontFileFromLoader(t *testing.T) {
 }
 
 func TestAddFontFromReaderDeduplicatesAndRegistersDiff(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	jsonBytes := synthFontDefJSON(t, "TrueType", "DiffTT", "", "32 /space", 0, 0, 0)
 	f.AddFontFromReader("DiffTT", "", bytes.NewReader(jsonBytes))
@@ -306,6 +325,8 @@ func TestAddFontFromReaderDeduplicatesAndRegistersDiff(t *testing.T) {
 }
 
 func TestPutFontFileObjectType1SegmentBounds(t *testing.T) {
+	t.Parallel()
+
 	// A Type1 PFB layout: 6-byte segment header, length1 bytes of clear text,
 	// another 6-byte header, length2 bytes of binary data, then a trailer.
 	const length1, length2 = 10, 4
@@ -337,6 +358,8 @@ func TestPutFontFileObjectType1SegmentBounds(t *testing.T) {
 }
 
 func TestPutFontFileObjectType1MalformedLengthsSetError(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.fontFiles["bad.pfb"] = fontFileType{}
 	f.putFontFileObject("bad.pfb", fontFileType{
@@ -351,6 +374,8 @@ func TestPutFontFileObjectType1MalformedLengthsSetError(t *testing.T) {
 }
 
 func TestOutputFailsWhenFontFileMissingFromDisk(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{OrientationStr: "P", UnitStr: "mm", SizeStr: "A4"})
 	f.SetFontLocation(t.TempDir())
 

@@ -1,6 +1,10 @@
 package paper
 
-import "github.com/avdoseferovic/paper/pkg/core/entity"
+import (
+	"slices"
+
+	"github.com/avdoseferovic/paper/pkg/core/entity"
+)
 
 // SetAcroForm attaches interactive form fields to the generated PDF. The
 // form is cloned so later mutations of the input do not leak into the
@@ -33,7 +37,7 @@ func (m *Paper) SetViewerPreferences(prefs entity.ViewerPreferences) {
 // SetPageLabels defines the labels viewers show instead of physical page
 // numbers.
 func (m *Paper) SetPageLabels(labels ...entity.PageLabelRange) {
-	m.config.PageLabels = append([]entity.PageLabelRange(nil), labels...)
+	m.config.PageLabels = slices.Clone(labels)
 }
 
 // AddAttachment embeds a file in the generated PDF.
@@ -48,7 +52,7 @@ func (m *Paper) AddNamedDestination(destination entity.NamedDestination) {
 
 // SetFileID sets an explicit trailer /ID for the generated PDF.
 func (m *Paper) SetFileID(id []byte) {
-	m.config.FileID = append([]byte(nil), id...)
+	m.config.FileID = slices.Clone(id)
 }
 
 // SetDeterministic makes repeated builds of the same document byte-identical.

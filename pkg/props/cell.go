@@ -1,6 +1,9 @@
 package props
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/border"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
@@ -121,7 +124,7 @@ func cloneCellBackgroundImage(image *CellBackgroundImage) *CellBackgroundImage {
 		return nil
 	}
 	clone := *image
-	clone.Bytes = append([]byte(nil), image.Bytes...)
+	clone.Bytes = slices.Clone(image.Bytes)
 	return &clone
 }
 
@@ -175,22 +178,10 @@ func (c *Cell) EffectiveRadii() (float64, float64, float64, float64) {
 	if c == nil {
 		return 0, 0, 0, 0
 	}
-	tl := c.BorderRadiusTopLeft
-	if tl == 0 {
-		tl = c.BorderRadius
-	}
-	tr := c.BorderRadiusTopRight
-	if tr == 0 {
-		tr = c.BorderRadius
-	}
-	br := c.BorderRadiusBottomRight
-	if br == 0 {
-		br = c.BorderRadius
-	}
-	bl := c.BorderRadiusBottomLeft
-	if bl == 0 {
-		bl = c.BorderRadius
-	}
+	tl := cmp.Or(c.BorderRadiusTopLeft, c.BorderRadius)
+	tr := cmp.Or(c.BorderRadiusTopRight, c.BorderRadius)
+	br := cmp.Or(c.BorderRadiusBottomRight, c.BorderRadius)
+	bl := cmp.Or(c.BorderRadiusBottomLeft, c.BorderRadius)
 	return tl, tr, br, bl
 }
 

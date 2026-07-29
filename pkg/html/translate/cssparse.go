@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"slices"
+
 	"github.com/avdoseferovic/paper/internal/cssparse"
 	"github.com/avdoseferovic/paper/internal/htmllimits"
 )
@@ -56,7 +58,7 @@ func adaptCSSRule(rule *cssparse.Rule) *cssRule {
 		kind:      qualifiedRule,
 		name:      rule.Name,
 		prelude:   rule.Prelude,
-		selectors: append([]string(nil), rule.Selectors...),
+		selectors: slices.Clone(rule.Selectors),
 	}
 	if rule.Kind == cssparse.AtRule {
 		adapted.kind = atRule

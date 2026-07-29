@@ -1,6 +1,9 @@
 package props
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
@@ -125,18 +128,10 @@ func (r *RichText) MakeValid(font *Font) {
 
 // NormalizeRichText returns a defaulted copy of r.
 func NormalizeRichText(r RichText, _ ...*Font) RichText {
-	if r.Align == "" {
-		r.Align = consts.AlignLeft
-	}
-	if r.LineHeight == 0 {
-		r.LineHeight = 1.0
-	}
-	if r.BreakLineStrategy == "" {
-		r.BreakLineStrategy = consts.BreakLineEmptySpace
-	}
-	if r.WhiteSpace == "" {
-		r.WhiteSpace = "normal"
-	}
+	r.Align = cmp.Or(r.Align, consts.AlignLeft)
+	r.LineHeight = cmp.Or(r.LineHeight, 1.0)
+	r.BreakLineStrategy = cmp.Or(r.BreakLineStrategy, consts.BreakLineEmptySpace)
+	r.WhiteSpace = cmp.Or(r.WhiteSpace, "normal")
 	return r
 }
 
@@ -144,15 +139,9 @@ func NormalizeRichText(r RichText, _ ...*Font) RichText {
 func NormalizeRichRun(run RichRun, font *Font) RichRun {
 	if font != nil {
 		normalizedFont := NormalizeFont(*font, "")
-		if run.Family == "" {
-			run.Family = normalizedFont.Family
-		}
-		if run.Style == "" {
-			run.Style = normalizedFont.Style
-		}
-		if run.Size == 0 {
-			run.Size = normalizedFont.Size
-		}
+		run.Family = cmp.Or(run.Family, normalizedFont.Family)
+		run.Style = cmp.Or(run.Style, normalizedFont.Style)
+		run.Size = cmp.Or(run.Size, normalizedFont.Size)
 	}
 	run.Color = CloneColor(run.Color)
 	run.Background = CloneColor(run.Background)
@@ -160,7 +149,7 @@ func NormalizeRichRun(run RichRun, font *Font) RichRun {
 	run.BoxShadows = cloneShadows(run.BoxShadows)
 	if run.Image != nil {
 		image := *run.Image
-		image.Bytes = append([]byte(nil), run.Image.Bytes...)
+		image.Bytes = slices.Clone(run.Image.Bytes)
 		run.Image = &image
 	}
 	if run.Hyperlink != nil {

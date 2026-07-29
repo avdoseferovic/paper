@@ -20,7 +20,9 @@ func decode(t *testing.T, b64 string) []byte {
 }
 
 func TestHTMLToBase64_ValidHTML_ReturnsPDFDocument(t *testing.T) {
-	b64, err := wasmconvert.HTMLToBase64(context.Background(), "<h1>Hello</h1><p>World</p>")
+	t.Parallel()
+
+	b64, err := wasmconvert.HTMLToBase64(t.Context(), "<h1>Hello</h1><p>World</p>")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,8 +41,10 @@ func TestHTMLToBase64_ValidHTML_ReturnsPDFDocument(t *testing.T) {
 }
 
 func TestHTMLToBase64_EmptyHTML_ReturnsErrEmptyHTML(t *testing.T) {
+	t.Parallel()
+
 	for _, in := range []string{"", "   ", "\n\t  "} {
-		_, err := wasmconvert.HTMLToBase64(context.Background(), in)
+		_, err := wasmconvert.HTMLToBase64(t.Context(), in)
 		if !errors.Is(err, wasmconvert.ErrEmptyHTML) {
 			t.Fatalf("input %q: expected ErrEmptyHTML, got %v", in, err)
 		}
@@ -48,7 +52,9 @@ func TestHTMLToBase64_EmptyHTML_ReturnsErrEmptyHTML(t *testing.T) {
 }
 
 func TestHTMLToBase64_CanceledContext_ReturnsError(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	_, err := wasmconvert.HTMLToBase64(ctx, "<p>x</p>")
@@ -60,6 +66,8 @@ func TestHTMLToBase64_CanceledContext_ReturnsError(t *testing.T) {
 // Pathological / adversarial HTML must never panic the caller — HTMLToBase64
 // recovers and returns a doc or an error, keeping the wasm goroutine alive.
 func TestHTMLToBase64_PathologicalHTML_DoesNotPanic(t *testing.T) {
+	t.Parallel()
+
 	for _, in := range []string{
 		"<table><tr><td colspan=\"99999\">x</td></tr>",
 		"<p style=\"width:-1px\">" + strings.Repeat("<b>", 500),
@@ -71,11 +79,13 @@ func TestHTMLToBase64_PathologicalHTML_DoesNotPanic(t *testing.T) {
 }
 
 func TestHTMLToBase64_FilePathImage_DoesNotPanic(t *testing.T) {
+	t.Parallel()
+
 	// The default image resolver refuses file-path src values (no filesystem
 	// access), so an <img> pointing at a file must be handled gracefully:
 	// it must never panic. It may either succeed (image dropped / alt text)
 	// or return a descriptive error.
-	b64, err := wasmconvert.HTMLToBase64(context.Background(), `<img src="logo.png"><p>hi</p>`)
+	b64, err := wasmconvert.HTMLToBase64(t.Context(), `<img src="logo.png"><p>hi</p>`)
 	if err != nil {
 		return // a descriptive error is acceptable
 	}

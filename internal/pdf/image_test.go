@@ -6,6 +6,8 @@ import (
 )
 
 func TestImageTypeFromMime(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	cases := map[string]string{
 		"image/jpeg": "jpg",
@@ -20,6 +22,8 @@ func TestImageTypeFromMime(t *testing.T) {
 }
 
 func TestImageTypeFromMimeUnknownErrors(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	f.ImageTypeFromMime("application/octet-stream")
 	if !f.Err() {
@@ -28,6 +32,8 @@ func TestImageTypeFromMimeUnknownErrors(t *testing.T) {
 }
 
 func TestRegisterAndRenderPNG(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	info := f.RegisterImageOptionsReader("logo", ImageOptions{ImageType: "png"}, bytes.NewReader(pngImageBytes(t)))
 	if f.Err() {
@@ -48,6 +54,8 @@ func TestRegisterAndRenderPNG(t *testing.T) {
 }
 
 func TestRegisterAndRenderJPEG(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RegisterImageReader("photo", "jpg", bytes.NewReader(jpegImageBytes(t)))
 	if f.Err() {
@@ -61,6 +69,8 @@ func TestRegisterAndRenderJPEG(t *testing.T) {
 }
 
 func TestRegisterAndRenderGIF(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RegisterImageReader("anim", "gif", bytes.NewReader(gifImageBytes(t)))
 	if f.Err() {
@@ -74,6 +84,8 @@ func TestRegisterAndRenderGIF(t *testing.T) {
 }
 
 func TestImageWithFlowAdvancesCursor(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RegisterImageReader("flow", "png", bytes.NewReader(pngImageBytes(t)))
 	yBefore := f.GetY()
@@ -84,6 +96,8 @@ func TestImageWithFlowAdvancesCursor(t *testing.T) {
 }
 
 func TestGetImageInfoUnknownReturnsNil(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	if got := f.GetImageInfo("does-not-exist"); got != nil {
 		t.Fatalf("expected nil for unknown image, got %+v", got)
@@ -91,6 +105,8 @@ func TestGetImageInfoUnknownReturnsNil(t *testing.T) {
 }
 
 func TestRegisterImageOptionsReaderRequiresTypeForCustomReader(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	// With no explicit type, a custom reader cannot be auto-detected.
 	f.RegisterImageOptionsReader("auto", ImageOptions{}, bytes.NewReader(pngImageBytes(t)))

@@ -3,6 +3,7 @@ package merge
 import (
 	"bytes"
 	"regexp"
+	"slices"
 )
 
 // inheritablePageAttrNames are the page-tree attributes that PDF 32000-1
@@ -126,7 +127,7 @@ func scanBalancedDict(value []byte) ([]byte, bool) {
 // mergeInheritedAttrs layers a /Pages node's inheritable attributes over the
 // ones collected from farther ancestors; nearer nodes win.
 func mergeInheritedAttrs(inherited []pageAttr, pagesContent []byte) []pageAttr {
-	merged := append([]pageAttr(nil), inherited...)
+	merged := slices.Clone(inherited)
 	for _, name := range inheritablePageAttrNames {
 		value, ok := dictNameValue(pagesContent, name)
 		if !ok {

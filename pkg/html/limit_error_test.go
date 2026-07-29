@@ -1,7 +1,6 @@
 package html_test
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -14,7 +13,7 @@ import (
 func TestLimitErrorFromMaxElements(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(context.Background(), repeatedSpans(20), html.WithMaxElements(10))
+	_, err := html.FromString(t.Context(), repeatedSpans(20), html.WithMaxElements(10))
 
 	var le *html.LimitError
 	require.True(t, errors.As(err, &le), "expected *html.LimitError")
@@ -26,7 +25,7 @@ func TestLimitErrorFromMaxElements(t *testing.T) {
 func TestLimitErrorFromMaxDepth(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(context.Background(), nestedDivs(20), html.WithMaxDepth(5))
+	_, err := html.FromString(t.Context(), nestedDivs(20), html.WithMaxDepth(5))
 
 	var le *html.LimitError
 	require.True(t, errors.As(err, &le), "expected *html.LimitError")
@@ -38,7 +37,7 @@ func TestLimitErrorFromMaxDepth(t *testing.T) {
 func TestLimitErrorFromStyleRuleLimit(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(context.Background(), manyStyleRules(20), html.WithLimits(html.Limits{MaxStyleRules: 5}))
+	_, err := html.FromString(t.Context(), manyStyleRules(20), html.WithLimits(html.Limits{MaxStyleRules: 5}))
 
 	var le *html.LimitError
 	require.True(t, errors.As(err, &le), "expected *html.LimitError")

@@ -3,6 +3,7 @@ package css
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -192,10 +193,8 @@ func isLengthToken(tok string) bool {
 		return true
 	}
 	suffixes := []string{"mm", "cm", "in", "pt", "px", "em", "rem", "%"}
-	for _, sfx := range suffixes {
-		if strings.HasSuffix(tok, sfx) {
-			return true
-		}
-	}
-	return false
+
+	return slices.ContainsFunc(suffixes, func(sfx string) bool {
+		return strings.HasSuffix(tok, sfx)
+	})
 }

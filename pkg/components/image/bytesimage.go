@@ -2,6 +2,8 @@
 package image
 
 import (
+	"slices"
+
 	"github.com/avdoseferovic/paper/pkg/tree/node"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -29,7 +31,7 @@ func NewFromBytes(bytes []byte, extension extension.Type, ps ...props.Rect) core
 	prop.MakeValid()
 
 	return &BytesImage{
-		bytes:     append([]byte(nil), bytes...),
+		bytes:     slices.Clone(bytes),
 		prop:      prop,
 		extension: extension,
 	}

@@ -1,6 +1,8 @@
 package table
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -39,13 +41,9 @@ func (t *Table) passOne(provider core.Provider, cell *entity.Cell) []float64 {
 					needed = h
 				}
 			}
-			if needed > heights[r] {
-				heights[r] = needed
-			}
+			heights[r] = max(heights[r], needed)
 		}
-		if heights[r] == 0 {
-			heights[r] = defH
-		}
+		heights[r] = cmp.Or(heights[r], defH)
 	}
 	return heights
 }
@@ -107,12 +105,8 @@ func paddedTableCell(x, y, width, height float64, style *props.Cell) entity.Cell
 	inner.Y += style.PaddingTop
 	inner.Width -= style.PaddingLeft + style.PaddingRight
 	inner.Height -= style.PaddingTop + style.PaddingBottom
-	if inner.Width < 0 {
-		inner.Width = 0
-	}
-	if inner.Height < 0 {
-		inner.Height = 0
-	}
+	inner.Width = max(inner.Width, 0)
+	inner.Height = max(inner.Height, 0)
 	return inner
 }
 

@@ -1,7 +1,6 @@
 package html_test
 
 import (
-	"context"
 	"errors"
 	"io/fs"
 	"testing"
@@ -14,7 +13,7 @@ import (
 func TestWithStrictAssets_DefaultFalsePreservesWarnAndContinue(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><body><img src="missing.png" alt="fallback"><p>ok</p></body></html>`,
 		html.WithImageBaseDir(t.TempDir()),
 	)
@@ -26,7 +25,7 @@ func TestWithStrictAssets_DefaultFalsePreservesWarnAndContinue(t *testing.T) {
 func TestWithStrictAssets_BadStylesheetReturnsAssetError(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="missing.css"></head><body><p>ok</p></body></html>`,
 		html.WithStylesheetBaseDir(t.TempDir()),
 		html.WithStrictAssets(),
@@ -41,7 +40,7 @@ func TestWithStrictAssets_BadStylesheetReturnsAssetError(t *testing.T) {
 func TestWithStrictAssets_BadFontFaceReturnsAssetError(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><head><style>@font-face{font-family:"Missing";src:url("missing.ttf") format("truetype")}</style></head><body><p>ok</p></body></html>`,
 		html.WithStylesheetBaseDir(t.TempDir()),
 		html.WithStrictAssets(),
@@ -56,7 +55,7 @@ func TestWithStrictAssets_BadFontFaceReturnsAssetError(t *testing.T) {
 func TestWithStrictAssets_BadImageReturnsAssetError(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><body><img src="missing.png" alt="fallback"><p>ok</p></body></html>`,
 		html.WithImageBaseDir(t.TempDir()),
 		html.WithStrictAssets(),
@@ -71,7 +70,7 @@ func TestWithStrictAssets_BadImageReturnsAssetError(t *testing.T) {
 func TestWithStrictAssets_BadBackgroundImageReturnsAssetError(t *testing.T) {
 	t.Parallel()
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><body><div style="background-image:url('missing-bg.png')">ok</div></body></html>`,
 		html.WithImageBaseDir(t.TempDir()),
 		html.WithStrictAssets(),
@@ -86,7 +85,7 @@ func TestWithStrictAssets_BadBackgroundImageReturnsAssetError(t *testing.T) {
 func TestWithStrictAssets_CollectsMultipleAssetErrors(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(context.Background(),
+	_, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="missing.css"></head><body><img src="missing.png" alt="fallback"></body></html>`,
 		html.WithStylesheetBaseDir(t.TempDir()),
 		html.WithImageBaseDir(t.TempDir()),

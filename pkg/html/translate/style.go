@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"maps"
 	"strconv"
 	"strings"
@@ -20,10 +21,7 @@ func computeNodeStyleRooted(sheet *stylesheet, n *dom.Node, root *css.ComputedSt
 }
 
 func (tr *translator) computeBlockStyle(n *dom.Node, parent *css.ComputedStyle) *css.ComputedStyle {
-	effectiveParent := parent
-	if effectiveParent == nil {
-		effectiveParent = tr.rootStyle
-	}
+	effectiveParent := cmp.Or(parent, tr.rootStyle)
 	ctxWidth := tr.availableContentWidth()
 	if effectiveParent != nil && effectiveParent.Width > 0 {
 		ctxWidth = effectiveParent.Width
@@ -146,8 +144,7 @@ func cloneCSSColor(c *css.RGBColor) *css.RGBColor {
 	if c == nil {
 		return nil
 	}
-	clone := *c
-	return &clone
+	return new(*c)
 }
 
 func cloneCSSShadow(s *css.Shadow) *css.Shadow {
@@ -193,13 +190,7 @@ func effectiveOpacity(style *css.ComputedStyle) float64 {
 	if style == nil {
 		return 1.0
 	}
-	if style.Opacity < 0 {
-		return 0
-	}
-	if style.Opacity > 1 {
-		return 1
-	}
-	return style.Opacity
+	return min(max(style.Opacity, 0), 1)
 }
 
 // blockCellStyle converts a ComputedStyle's background and border fields into a
@@ -354,13 +345,12 @@ func effectiveUniformRadius(style *css.ComputedStyle) float64 {
 	if style.BorderRadius > 0 {
 		return style.BorderRadius
 	}
-	r := style.BorderRadiusTopLeft
-	for _, c := range []float64{style.BorderRadiusTopRight, style.BorderRadiusBottomRight, style.BorderRadiusBottomLeft} {
-		if c > r {
-			r = c
-		}
-	}
-	return r
+	return max(
+		style.BorderRadiusTopLeft,
+		style.BorderRadiusTopRight,
+		style.BorderRadiusBottomRight,
+		style.BorderRadiusBottomLeft,
+	)
 }
 
 func inlineBorderWidth(style *css.ComputedStyle) float64 {
@@ -586,12 +576,8 @@ func applyInlineBackgroundBoxStyle(style *css.ComputedStyle, run *props.RichRun)
 	if run.BgPadX == 0 && style.PaddingLeft == style.PaddingRight {
 		run.BgPadX = style.PaddingLeft
 	}
-	if run.BgPadLeft == 0 {
-		run.BgPadLeft = style.PaddingLeft
-	}
-	if run.BgPadRight == 0 {
-		run.BgPadRight = style.PaddingRight
-	}
+	run.BgPadLeft = cmp.Or(run.BgPadLeft, style.PaddingLeft)
+	run.BgPadRight = cmp.Or(run.BgPadRight, style.PaddingRight)
 	if run.BgPadY == 0 {
 		run.BgPadY = max(style.PaddingTop, style.PaddingBottom)
 	}

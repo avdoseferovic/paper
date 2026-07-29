@@ -32,6 +32,8 @@ func TestUTF8ToUTF16SupplementaryPlaneUsesSurrogatePair(t *testing.T) {
 }
 
 func TestAddUTF8FontFromBytesRecordsParseErrorWithoutStdout(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
@@ -54,6 +56,8 @@ func TestAddUTF8FontFromBytesRecordsParseErrorWithoutStdout(t *testing.T) {
 }
 
 func TestAddUTF8FontFromBytesTruncatedTrueTypeDoesNotPanicOrWriteStdout(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
@@ -109,6 +113,8 @@ func captureStdout(t *testing.T, fn func()) string {
 }
 
 func TestRoundHandlesNegativeAndHalfValues(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		in   float64
 		want int
@@ -130,6 +136,8 @@ func TestRoundHandlesNegativeAndHalfValues(t *testing.T) {
 }
 
 func TestIntIfSelectsBranch(t *testing.T) {
+	t.Parallel()
+
 	if got := intIf(true, 7, 9); got != 7 {
 		t.Errorf("intIf(true) = %d, want 7", got)
 	}
@@ -139,6 +147,8 @@ func TestIntIfSelectsBranch(t *testing.T) {
 }
 
 func TestStrIfSelectsBranch(t *testing.T) {
+	t.Parallel()
+
 	if got := strIf(true, "a", "b"); got != "a" {
 		t.Errorf("strIf(true) = %q, want a", got)
 	}
@@ -148,12 +158,16 @@ func TestStrIfSelectsBranch(t *testing.T) {
 }
 
 func TestDoNothingReturnsInput(t *testing.T) {
+	t.Parallel()
+
 	if got := doNothing("unchanged"); got != "unchanged" {
 		t.Errorf("doNothing = %q", got)
 	}
 }
 
 func TestIsChineseDetectsCJKRange(t *testing.T) {
+	t.Parallel()
+
 	if !isChinese('中') {
 		t.Error("expected 中 to be detected as Chinese")
 	}
@@ -166,12 +180,16 @@ func TestIsChineseDetectsCJKRange(t *testing.T) {
 }
 
 func TestFontFamilyEscapeReplacesSpaces(t *testing.T) {
+	t.Parallel()
+
 	if got := fontFamilyEscape("Times New Roman"); got != "Times#20New#20Roman" {
 		t.Errorf("fontFamilyEscape = %q", got)
 	}
 }
 
 func TestSliceCompressRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := []byte(strings.Repeat("paper pdf round trip ", 50))
 	compressed := sliceCompress(original)
 	if len(compressed) == 0 {
@@ -187,12 +205,16 @@ func TestSliceCompressRoundTrip(t *testing.T) {
 }
 
 func TestSliceUncompressRejectsGarbage(t *testing.T) {
+	t.Parallel()
+
 	if _, err := sliceUncompress([]byte("not zlib data"), 0); err == nil {
 		t.Fatal("expected error decompressing garbage")
 	}
 }
 
 func TestUtf8toutf16WithAndWithoutBOM(t *testing.T) {
+	t.Parallel()
+
 	withBOM := utf8toutf16("A")
 	if len(withBOM) != 4 || withBOM[0] != 0xFE || withBOM[1] != 0xFF {
 		t.Fatalf("expected BOM prefix, got % x", withBOM)
@@ -204,6 +226,8 @@ func TestUtf8toutf16WithAndWithoutBOM(t *testing.T) {
 }
 
 func TestUnicodeTranslatorMapsHighGlyphs(t *testing.T) {
+	t.Parallel()
+
 	// One valid mapping line: glyph 0x80 -> U+20AC (euro sign).
 	rep, err := UnicodeTranslator(strings.NewReader("!80 U+20AC Euro\n"))
 	if err != nil {
@@ -220,6 +244,8 @@ func TestUnicodeTranslatorMapsHighGlyphs(t *testing.T) {
 }
 
 func TestUnicodeTranslatorUnmappedRuneBecomesDot(t *testing.T) {
+	t.Parallel()
+
 	rep, err := UnicodeTranslator(strings.NewReader(""))
 	if err != nil {
 		t.Fatalf("UnicodeTranslator: %v", err)
@@ -231,6 +257,8 @@ func TestUnicodeTranslatorUnmappedRuneBecomesDot(t *testing.T) {
 }
 
 func TestUnicodeTranslatorMalformedLineReturnsError(t *testing.T) {
+	t.Parallel()
+
 	_, err := UnicodeTranslator(strings.NewReader("this is not a valid map line\n"))
 	if err == nil {
 		t.Fatal("expected parse error for malformed line")
@@ -238,6 +266,8 @@ func TestUnicodeTranslatorMalformedLineReturnsError(t *testing.T) {
 }
 
 func TestUnicodeTranslatorFromDescriptorUsesEmbeddedMap(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	rep := f.UnicodeTranslatorFromDescriptor("cp1252")
 	if f.Err() {
@@ -254,6 +284,8 @@ func TestUnicodeTranslatorFromDescriptorUsesEmbeddedMap(t *testing.T) {
 }
 
 func TestPointTypeTransformOffsets(t *testing.T) {
+	t.Parallel()
+
 	p := PointType{X: 1, Y: 2}.Transform(3, 4)
 	if p.X != 4 || p.Y != 6 {
 		t.Fatalf("Transform = %+v", p)
@@ -261,6 +293,8 @@ func TestPointTypeTransformOffsets(t *testing.T) {
 }
 
 func TestSizeTypeOrientation(t *testing.T) {
+	t.Parallel()
+
 	landscape := SizeType{Wd: 10, Ht: 5}
 	if landscape.Orientation() != "L" {
 		t.Errorf("expected L, got %q", landscape.Orientation())
@@ -280,6 +314,8 @@ func TestSizeTypeOrientation(t *testing.T) {
 }
 
 func TestSizeTypeScaling(t *testing.T) {
+	t.Parallel()
+
 	s := SizeType{Wd: 10, Ht: 20}
 	if got := s.ScaleBy(2); got.Wd != 20 || got.Ht != 40 {
 		t.Errorf("ScaleBy = %+v", got)

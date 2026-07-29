@@ -59,6 +59,5 @@ func cloneBox(box *[4]float64) *[4]float64 {
 	if box == nil {
 		return nil
 	}
-	clone := *box
-	return &clone
+	return new(*box)
 }

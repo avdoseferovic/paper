@@ -56,9 +56,7 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	right := min(textProp.Right, cell.Width)
 
 	width := cell.Width - left - right
-	if width < 0 {
-		width = 0
-	}
+	width = max(width, 0)
 
 	x := cell.X + left
 	y := cell.Y + top

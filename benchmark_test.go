@@ -1,7 +1,6 @@
 package paper_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -25,7 +24,27 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
-var benchmarkPDFBytes int
+// benchSizeReporter accumulates generated PDF sizes so a benchmark can report
+// output size per operation. Size regressions are invisible to ns/op and B/op,
+// which measure the work done rather than the bytes produced.
+type benchSizeReporter struct {
+	total int
+	ops   int
+}
+
+func (r *benchSizeReporter) add(n int) {
+	r.total += n
+	r.ops++
+}
+
+func (r *benchSizeReporter) report(b *testing.B) {
+	b.Helper()
+
+	if r.ops == 0 {
+		return
+	}
+	b.ReportMetric(float64(r.total)/float64(r.ops), "pdfbytes/op")
+}
 
 func BenchmarkPDFGeneration(b *testing.B) {
 	htmlBody := mustReadString(b, "examples/cmd/html-demo/assets/body.html")
@@ -34,70 +53,81 @@ func BenchmarkPDFGeneration(b *testing.B) {
 
 	b.Run("HTMLDemoFull", func(b *testing.B) {
 		b.ReportAllocs()
-		for range b.N {
+		var size benchSizeReporter
+		for b.Loop() {
 			doc := generateHTMLDemoDocument(b, htmlBody, cfg)
-			consumeBenchmarkDocument(b, doc)
+			size.add(consumeBenchmarkDocument(b, doc))
 		}
+		size.report(b)
 	})
 
 	b.Run("HTMLDemoTranslateOnly", func(b *testing.B) {
 		b.ReportAllocs()
-		b.ResetTimer()
-		for range b.N {
+		for b.Loop() {
 			rows := benchmarkHTMLRows(b, htmlBody, cfg)
 			if len(rows) == 0 {
 				b.Fatal("translated no HTML rows")
 			}
-			benchmarkPDFBytes += len(rows)
 		}
 	})
 
 	b.Run("TextHeavy", func(b *testing.B) {
 		b.ReportAllocs()
-		for range b.N {
+		var size benchSizeReporter
+		for b.Loop() {
 			m := paper.New(cfg)
 			m.AddRows(benchmarkTextRows(180)...)
 
-			doc, err := m.Generate(context.Background())
+			doc, err := m.Generate(b.Context())
 			if err != nil {
 				b.Fatalf("generate text-heavy document: %v", err)
 			}
-			consumeBenchmarkDocument(b, doc)
+			size.add(consumeBenchmarkDocument(b, doc))
 		}
+		size.report(b)
 	})
 
 	b.Run("MixedComponents", func(b *testing.B) {
 		b.ReportAllocs()
-		for range b.N {
+		var size benchSizeReporter
+		for b.Loop() {
 			m := paper.New(cfg)
 			m.AddRows(benchmarkMixedRows(imageBytes, 40)...)
 
-			doc, err := m.Generate(context.Background())
+			doc, err := m.Generate(b.Context())
 			if err != nil {
 				b.Fatalf("generate mixed document: %v", err)
 			}
-			consumeBenchmarkDocument(b, doc)
+			size.add(consumeBenchmarkDocument(b, doc))
 		}
+		size.report(b)
 	})
 }
 
 // BenchmarkPDFScaling sweeps document size to expose the per-row cost curve.
-// Each sub-benchmark generates a text document with N body rows so the marginal
-// cost of a row (and page breaks) can be read off as the slope of ns/op vs N.
+// Each sub-benchmark generates a text document with N body rows and reports
+// ns/row directly, so the marginal cost of a row (and page breaks) can be read
+// off without comparing slopes across sub-benchmarks by hand.
 func BenchmarkPDFScaling(b *testing.B) {
 	cfg := benchmarkConfig()
 	for _, rowCount := range []int{10, 50, 100, 500, 1000} {
 		b.Run(fmt.Sprintf("Rows=%d", rowCount), func(b *testing.B) {
 			b.ReportAllocs()
-			for range b.N {
+			var size benchSizeReporter
+			for b.Loop() {
 				m := paper.New(cfg)
 				m.AddRows(benchmarkTextRows(rowCount)...)
 
-				doc, err := m.Generate(context.Background())
+				doc, err := m.Generate(b.Context())
 				if err != nil {
 					b.Fatalf("generate %d-row document: %v", rowCount, err)
 				}
-				consumeBenchmarkDocument(b, doc)
+				size.add(consumeBenchmarkDocument(b, doc))
+			}
+			size.report(b)
+			if size.ops > 0 {
+				nsPerRow := float64(b.Elapsed().Nanoseconds()) / float64(size.ops*rowCount)
+				b.ReportMetric(nsPerRow, "ns/row")
 			}
 		})
 	}
@@ -110,7 +140,7 @@ func generateHTMLDemoDocument(b *testing.B, htmlBody string, cfg *entity.Config)
 	m.AddRows(benchmarkHeader()...)
 	m.AddRows(benchmarkHTMLRows(b, htmlBody, cfg)...)
 
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(b.Context())
 	if err != nil {
 		b.Fatalf("generate HTML demo document: %v", err)
 	}
@@ -130,7 +160,7 @@ func benchmarkHTMLRows(b *testing.B, htmlBody string, cfg *entity.Config) []core
 	b.Helper()
 
 	contentWidth := cfg.Dimensions.Width - cfg.Margins.Left - cfg.Margins.Right
-	rows, err := html.FromString(context.Background(), htmlBody,
+	rows, err := html.FromString(b.Context(), htmlBody,
 		html.WithGridSize(cfg.MaxGridSize),
 		html.WithContentWidth(contentWidth),
 		html.WithImageBaseDir("cmd/html-demo/assets"),
@@ -209,14 +239,18 @@ func benchmarkMixedRows(imageBytes []byte, groups int) []core.Row {
 	return rows
 }
 
-func consumeBenchmarkDocument(b *testing.B, doc core.Document) {
+// consumeBenchmarkDocument serialises the document and returns its size.
+// b.Loop keeps the call from being optimised away, so no sink variable is
+// needed to hold the result alive.
+func consumeBenchmarkDocument(b *testing.B, doc core.Document) int {
 	b.Helper()
 
 	pdfBytes := doc.GetBytes()
 	if len(pdfBytes) == 0 {
 		b.Fatal("generated empty PDF")
 	}
-	benchmarkPDFBytes += len(pdfBytes)
+
+	return len(pdfBytes)
 }
 
 func mustReadString(b *testing.B, path string) string {

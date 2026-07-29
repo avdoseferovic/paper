@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -159,12 +160,9 @@ func (m *Mock) find(method string, args Arguments) *Call {
 }
 
 func (m *Mock) wasCalled(method string, args Arguments) bool {
-	for _, call := range m.calls {
-		if call.method == method && matchArgs(args, call.args) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(m.calls, func(call recordedCall) bool {
+		return call.method == method && matchArgs(args, call.args)
+	})
 }
 
 func (m *Mock) failf(format string, args ...any) {
@@ -243,15 +241,7 @@ func (c *Call) matches(actual Arguments) bool {
 }
 
 func matchArgs(expected, actual Arguments) bool {
-	if len(expected) != len(actual) {
-		return false
-	}
-	for i := range expected {
-		if !matchArg(expected[i], actual[i]) {
-			return false
-		}
-	}
-	return true
+	return slices.EqualFunc(expected, actual, matchArg)
 }
 
 type matcher interface {

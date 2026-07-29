@@ -2,9 +2,10 @@ package paper_test
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -44,7 +45,7 @@ func generateDocument(t *testing.T, cfg *entity.Config, rows []core.Row) *core.P
 
 	m := paper.New(cfg)
 	m.AddRows(rows...)
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
@@ -110,7 +111,7 @@ func countPages(pdfBytes []byte) int {
 func generateHTMLDocument(t *testing.T, cfg *entity.Config, htmlStr string) *core.Pdf {
 	t.Helper()
 
-	doc, err := paper.FromHTML(context.Background(), htmlStr, cfg)
+	doc, err := paper.FromHTML(t.Context(), htmlStr, cfg)
 	if err != nil {
 		t.Fatalf("generate from html: %v", err)
 	}
@@ -191,6 +192,8 @@ func outlineEntries(pdfBytes []byte) []outlineEntry {
 // same order, across the same number of pages as sequential generation, and
 // must still parse as a valid PDF.
 func TestParallelPages_MatchesSequentialOutput(t *testing.T) {
+	t.Parallel()
+
 	for _, rowCount := range []int{50, 200, 1000} {
 		rows := parallelTestRows(rowCount)
 
@@ -265,7 +268,7 @@ func documentDrawOps(pdfBytes []byte) []drawOp {
 	for _, m := range showTextOpRe.FindAllIndex(pdfBytes, -1) {
 		tokens = append(tokens, token{index: m[0], shownTextValue: string(pdfBytes[m[0]:m[1]])})
 	}
-	sort.Slice(tokens, func(i, j int) bool { return tokens[i].index < tokens[j].index })
+	slices.SortFunc(tokens, func(a, b token) int { return cmp.Compare(a.index, b.index) })
 
 	var ops []drawOp
 	var currentFont, currentSize string
@@ -291,6 +294,8 @@ func documentDrawOps(pdfBytes []byte) []drawOp {
 // effect at each draw. TestParallelPages_SingleWorkerIsByteIdentical covers the
 // one case where byte equality does hold.
 func TestParallelPages_RendersSameContentAsSequential(t *testing.T) {
+	t.Parallel()
+
 	for _, rowCount := range []int{1, 50, 600} {
 		rows := parallelTestRows(rowCount)
 
@@ -335,6 +340,8 @@ func TestParallelPages_RendersSameContentAsSequential(t *testing.T) {
 // splicing must reproduce sequential output exactly: a single worker renders the
 // whole document as one chunk, so there is no chunk boundary to differ at.
 func TestParallelPages_SingleWorkerIsByteIdentical(t *testing.T) {
+	t.Parallel()
+
 	for _, rowCount := range []int{1, 50, 600} {
 		rows := parallelTestRows(rowCount)
 
@@ -354,6 +361,8 @@ func TestParallelPages_SingleWorkerIsByteIdentical(t *testing.T) {
 // same font registered independently by every worker into one embedded object,
 // rather than one per worker.
 func TestParallelPages_FontsDeduplicated(t *testing.T) {
+	t.Parallel()
+
 	rows := parallelTestRows(500)
 
 	sequential := generateWith(t, config.NewBuilder().WithCompression(false).WithSequentialMode().Build(), rows)
@@ -369,9 +378,13 @@ func TestParallelPages_FontsDeduplicated(t *testing.T) {
 // TestParallelPages_ReportsTheModeItUsed pins the signal every other test in
 // this file relies on to tell a real parallel render from a silent fallback.
 func TestParallelPages_ReportsTheModeItUsed(t *testing.T) {
-	rows := parallelTestRows(300)
+	t.Parallel()
 
+	// Each subtest builds its own rows: AddRows calls Row.SetConfig, so sharing
+	// one slice across parallel subtests would be a write race on the fixture.
 	t.Run("a spliceable document reports parallel pages", func(t *testing.T) {
+		t.Parallel()
+		rows := parallelTestRows(300)
 		doc := generateDocument(t, config.NewBuilder().WithParallelPagesMode(4).Build(), rows)
 
 		if got := doc.GetReport().GenerationMode; got != consts.GenerationParallelPages {
@@ -383,12 +396,14 @@ func TestParallelPages_ReportsTheModeItUsed(t *testing.T) {
 	// document, so chunked generation cannot reproduce it and the configured
 	// mode is overridden.
 	t.Run("a document-catalog feature reports the sequential fallback", func(t *testing.T) {
+		t.Parallel()
+		rows := parallelTestRows(300)
 		cfg := config.NewBuilder().WithParallelPagesMode(4).Build()
 		m := paper.New(cfg)
 		m.SetTagged(true)
 		m.AddRows(rows...)
 
-		doc, err := m.Generate(context.Background())
+		doc, err := m.Generate(t.Context())
 		if err != nil {
 			t.Fatalf("generate: %v", err)
 		}
@@ -403,6 +418,8 @@ func TestParallelPages_ReportsTheModeItUsed(t *testing.T) {
 // entirely. External links carry a URL rather than a page index, so splicing
 // only has to carry the annotations across.
 func TestParallelPages_RendersExternalLinksInParallel(t *testing.T) {
+	t.Parallel()
+
 	target := "https://example.com/invoice"
 	rows := make([]core.Row, 0, 300)
 	for i := range 300 {
@@ -440,6 +457,8 @@ func TestParallelPages_RendersExternalLinksInParallel(t *testing.T) {
 // reason documents used to fall back. Bookmarks store an absolute page number,
 // which splicing shifts by the pages already in the document.
 func TestParallelPages_RendersOutlinesInParallel(t *testing.T) {
+	t.Parallel()
+
 	rows := make([]core.Row, 0, 320)
 	for chapter := range 8 {
 		rows = append(rows, text.NewRow(12, "Chapter "+itoa(chapter), props.Text{
@@ -487,6 +506,8 @@ func TestParallelPages_RendersOutlinesInParallel(t *testing.T) {
 // rendered by different workers, so neither worker's document can resolve the
 // link on its own.
 func TestParallelPages_ResolvesInternalLinksAcrossChunks(t *testing.T) {
+	t.Parallel()
+
 	var page strings.Builder
 	page.WriteString(`<p><a href="#the-end">jump to the end</a></p>`)
 	for i := range 400 {
@@ -537,6 +558,8 @@ func TestParallelPages_ResolvesInternalLinksAcrossChunks(t *testing.T) {
 // how watermarks draw. Their PDF name used to be their position in the graphics
 // state list, so two workers would disagree on what /GS1 meant.
 func TestParallelPages_RendersWatermarksInParallel(t *testing.T) {
+	t.Parallel()
+
 	const sentinel = "XWMKSENTINEL"
 	rows := parallelTestRows(300)
 
@@ -573,7 +596,9 @@ func TestParallelPages_RendersWatermarksInParallel(t *testing.T) {
 // TestParallelPages_Cancellation verifies the worker pool honours context
 // cancellation instead of running to completion.
 func TestParallelPages_Cancellation(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	m := paper.New(config.NewBuilder().WithParallelPagesMode(4).Build())

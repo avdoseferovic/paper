@@ -1,6 +1,7 @@
 package paper
 
 import (
+	"cmp"
 	"math"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -147,9 +148,7 @@ func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeig
 		return false
 	}
 	if first == nil {
-		if rest == nil {
-			rest = row
-		}
+		rest = cmp.Or(rest, row)
 		if b.isAtTopOfUsablePage() {
 			b.appendOversizedRow(rest)
 			return true
@@ -397,10 +396,8 @@ func (b *pageBuilder) effectiveCellHeight() float64 {
 		return height
 	}
 	height += b.config.Margins.Top - *b.currentControl.TopMargin
-	if height < 0 {
-		return 0
-	}
-	return height
+
+	return max(height, 0)
 }
 
 func (b *pageBuilder) appendPage(p core.Page, numbered, counted bool) {

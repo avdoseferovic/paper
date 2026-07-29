@@ -1,9 +1,11 @@
 package paper
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/avdoseferovic/paper/internal/cache"
 	"github.com/avdoseferovic/paper/pkg/consts"
@@ -88,10 +90,7 @@ func (m *Paper) generateSequentially(ctx context.Context) (*core.Pdf, error) {
 // chunkedPageGroups splits the built pages into ChunkWorkers groups of equal
 // size (the last group takes the remainder), aborting on context cancellation.
 func (m *Paper) chunkedPageGroups(ctx context.Context) ([][]core.Page, error) {
-	chunks := len(m.pageBuilder.pages) / m.config.ChunkWorkers
-	if chunks == 0 {
-		chunks = 1
-	}
+	chunks := cmp.Or(len(m.pageBuilder.pages)/m.config.ChunkWorkers, 1)
 	pageGroups := make([][]core.Page, 0)
 	for i := 0; i < len(m.pageBuilder.pages); i += chunks {
 		if err := generationCanceled(ctx); err != nil {
@@ -195,7 +194,7 @@ func collectRenderIssues(provider core.Provider) []metrics.RenderIssue {
 func newReport(mode consts.GenerationMode, issues []metrics.RenderIssue) *metrics.Report {
 	return &metrics.Report{
 		GenerationMode: mode,
-		RenderIssues:   append([]metrics.RenderIssue(nil), issues...),
+		RenderIssues:   slices.Clone(issues),
 	}
 }
 

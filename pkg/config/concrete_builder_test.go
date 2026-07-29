@@ -74,6 +74,9 @@ func TestBuildCopiesCallerOwnedFontColorAndBackgroundBytes(t *testing.T) {
 	assert.Equal(t, []byte{7, 8, 9}, cfg.FirstPageForegroundImage.Bytes)
 }
 
+// Deliberately not parallel: this test mutates the props.BlackColor package
+// global to prove the builder does not alias it, so it cannot run alongside
+// any other test that reads that global.
 func TestNewCfgBuilderDefaultFontDoesNotShareMutableColorGlobal(t *testing.T) {
 	original := props.BlackColor
 	defer func() {

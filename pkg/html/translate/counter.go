@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -34,8 +35,7 @@ func (c *counterState) exit(pushed []string) {
 	if c == nil {
 		return
 	}
-	for i := len(pushed) - 1; i >= 0; i-- {
-		name := pushed[i]
+	for _, name := range slices.Backward(pushed) {
 		stack := c.values[name]
 		if len(stack) <= 1 {
 			delete(c.values, name)
@@ -89,9 +89,7 @@ func (c *counterState) allValues(name string) []int {
 	if len(stack) == 0 {
 		return []int{0}
 	}
-	out := make([]int, len(stack))
-	copy(out, stack)
-	return out
+	return slices.Clone(stack)
 }
 
 func parseCounterMutations(value string, defaultValue int) []counterMutation {

@@ -337,7 +337,7 @@ func parseTransformLength(value string, fontSize, context float64) float64 {
 		}
 		out := parseTransformLength(parts[0], fontSize, context)
 		for _, part := range parts[1:] {
-			out = math.Min(out, parseTransformLength(part, fontSize, context))
+			out = min(out, parseTransformLength(part, fontSize, context))
 		}
 		return out
 	case transformFuncMax:
@@ -346,7 +346,7 @@ func parseTransformLength(value string, fontSize, context float64) float64 {
 		}
 		out := parseTransformLength(parts[0], fontSize, context)
 		for _, part := range parts[1:] {
-			out = math.Max(out, parseTransformLength(part, fontSize, context))
+			out = max(out, parseTransformLength(part, fontSize, context))
 		}
 		return out
 	case transformFuncClamp:
@@ -356,7 +356,7 @@ func parseTransformLength(value string, fontSize, context float64) float64 {
 		lo := parseTransformLength(parts[0], fontSize, context)
 		mid := parseTransformLength(parts[1], fontSize, context)
 		hi := parseTransformLength(parts[2], fontSize, context)
-		return math.Max(lo, math.Min(mid, hi))
+		return max(lo, min(mid, hi))
 	default:
 		return css.ParseLengthCtx(value, fontSize, context)
 	}
@@ -432,7 +432,7 @@ func minTransformValue(parts []string, parse func(string) float64) float64 {
 	}
 	out := parse(parts[0])
 	for _, part := range parts[1:] {
-		out = math.Min(out, parse(part))
+		out = min(out, parse(part))
 	}
 	return out
 }
@@ -443,7 +443,7 @@ func maxTransformValue(parts []string, parse func(string) float64) float64 {
 	}
 	out := parse(parts[0])
 	for _, part := range parts[1:] {
-		out = math.Max(out, parse(part))
+		out = max(out, parse(part))
 	}
 	return out
 }
@@ -455,7 +455,7 @@ func clampTransformValue(parts []string, parse func(string) float64) float64 {
 	lo := parse(parts[0])
 	mid := parse(parts[1])
 	hi := parse(parts[2])
-	return math.Max(lo, math.Min(mid, hi))
+	return max(lo, min(mid, hi))
 }
 
 func evalTransformCalc(value string, parseLeaf func(string) float64) (float64, bool) {

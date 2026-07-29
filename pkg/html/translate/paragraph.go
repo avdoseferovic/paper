@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -200,12 +201,8 @@ func applyBlockStyling(n *dom.Node, runs []props.RichRun) {
 	}
 	if size, ok := headingSizes[tag]; ok {
 		for i := range runs {
-			if runs[i].Size == 0 {
-				runs[i].Size = size
-			}
-			if runs[i].Style == "" {
-				runs[i].Style = fontstyle.Bold
-			}
+			runs[i].Size = cmp.Or(runs[i].Size, size)
+			runs[i].Style = cmp.Or(runs[i].Style, fontstyle.Bold)
 		}
 	}
 }

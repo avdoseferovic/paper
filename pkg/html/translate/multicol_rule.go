@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/avdoseferovic/paper/internal/layout"
@@ -25,9 +26,7 @@ func newColumnRuleRow(child core.Row, columnCount, gapCols int, ruleWidth float6
 	if child == nil || columnCount <= 1 || ruleWidth <= 0 || isColumnRuleSuppressed(ruleStyle) {
 		return child
 	}
-	if ruleStyle == "" {
-		ruleStyle = "solid"
-	}
+	ruleStyle = cmp.Or(ruleStyle, "solid")
 	return &columnRuleRow{
 		child:       child,
 		columnCount: columnCount,

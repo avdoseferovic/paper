@@ -14,10 +14,7 @@ type Outline struct {
 
 // NormalizedLevel returns the outline level clamped to >= 0.
 func (o *Outline) NormalizedLevel() int {
-	if o.Level < 0 {
-		return 0
-	}
-	return o.Level
+	return max(o.Level, 0)
 }
 
 // ResolveTitle returns the explicit title, or fallback when no title is set.
@@ -45,6 +42,5 @@ func CloneOutline(o *Outline) *Outline {
 	if o == nil {
 		return nil
 	}
-	clone := *o
-	return &clone
+	return new(*o)
 }

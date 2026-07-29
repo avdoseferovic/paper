@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -237,13 +238,13 @@ func unpackWOFF1Font(data []byte) ([]byte, error) {
 		case compLength > origLength:
 			return nil, fmt.Errorf("%w: WOFF table %d compressed length exceeds original length", errUTF8Font, i)
 		default:
-			tableBytes = append([]byte(nil), tableBytes...)
+			tableBytes = slices.Clone(tableBytes)
 		}
 		if len(tableBytes) != origLength {
 			return nil, fmt.Errorf("%w: WOFF table %d length = %d, want %d", errUTF8Font, i, len(tableBytes), origLength)
 		}
 		tables = append(tables, woffTable{
-			tag:        append([]byte(nil), entry[0:4]...),
+			tag:        slices.Clone(entry[0:4]),
 			checksum:   int(binary.BigEndian.Uint32(entry[16:20])),
 			origLength: origLength,
 			data:       tableBytes,
@@ -511,8 +512,14 @@ func (utf *utf8FontFile) splice(stream []byte, offset int, value []byte) []byte 
 		utf.setErrorf("font table splice offset %d is out of range", offset)
 		return stream
 	}
-	stream = append([]byte{}, stream...)
-	return append(append(stream[:offset], value...), stream[offset+len(value):]...)
+	// Overwrite in place on a copy. The previous double-append re-sliced the
+	// freshly copied backing array, which only happened to be correct because
+	// the replacement is exactly as long as the range it covers.
+	out := make([]byte, len(stream))
+	copy(out, stream)
+	copy(out[offset:], value)
+
+	return out
 }
 
 func (utf *utf8FontFile) insertUint16(stream []byte, offset, value int) []byte {
@@ -1431,7 +1438,7 @@ func (utf *utf8FontFile) cbdtGlyphImage(glyphID int, sizePt float64) *bitmapGlyp
 		return nil
 	}
 	return &bitmapGlyphImage{
-		data:      append([]byte(nil), pngData...),
+		data:      slices.Clone(pngData),
 		imageType: "png",
 		width:     metrics.width,
 		height:    metrics.height,
@@ -1550,7 +1557,7 @@ func (utf *utf8FontFile) sbixGlyphImage(glyphID int, sizePt float64) *bitmapGlyp
 		return nil
 	}
 	return &bitmapGlyphImage{
-		data:          append([]byte(nil), imageData...),
+		data:          slices.Clone(imageData),
 		imageType:     imageType,
 		width:         width,
 		height:        height,
@@ -1681,7 +1688,7 @@ func (utf *utf8FontFile) generateCMAP() map[int][]int {
 func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[int]int, map[int]int, []int) {
 	symbolCollection := map[int]int{0: 0}
 	charSymbolPairCollection := make(map[int]int)
-	usedRuneCIDs := keySortInt(usedRunes)
+	usedRuneCIDs := sortedKeys(usedRunes)
 	for _, cid := range usedRuneCIDs {
 		char := usedRunes[cid]
 		glyphID, ok := utf.charSymbolDictionary[char]
@@ -1694,7 +1701,7 @@ func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[i
 	begin := utf.tableDescriptions["glyf"].position
 
 	symbolArray := make(map[int]int)
-	symbolCollectionKeys := keySortInt(symbolCollection)
+	symbolCollectionKeys := sortedKeys(symbolCollection)
 
 	symbolCounter := 0
 	maxRune := 0
@@ -1703,14 +1710,14 @@ func (utf *utf8FontFile) parseSymbols(usedRunes map[int]int) (map[int]int, map[i
 		symbolArray[oldSymbolIndex] = symbolCounter
 		symbolCounter++
 	}
-	charSymbolPairCollectionKeys := keySortInt(charSymbolPairCollection)
+	charSymbolPairCollectionKeys := sortedKeys(charSymbolPairCollection)
 	runeSymbolPairCollection := make(map[int]int)
 	for _, runa := range charSymbolPairCollectionKeys {
 		runeSymbolPairCollection[runa] = symbolArray[charSymbolPairCollection[runa]]
 	}
 	utf.codeSymbolDictionary = runeSymbolPairCollection
 
-	symbolCollectionKeys = keySortInt(symbolCollection)
+	symbolCollectionKeys = sortedKeys(symbolCollection)
 	for _, oldSymbolIndex := range symbolCollectionKeys {
 		symbolArray, symbolCollection, symbolCollectionKeys = utf.getSymbols(
 			oldSymbolIndex,
@@ -1747,7 +1754,7 @@ func (utf *utf8FontFile) addSymbol(
 }
 
 func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, numSymbols int) []byte {
-	cidSymbolPairCollectionKeys := keySortInt(cidSymbolPairCollection)
+	cidSymbolPairCollectionKeys := sortedKeys(cidSymbolPairCollection)
 	cidID := 0
 	cidArray := make(map[int][]int)
 	prevCid := -2
@@ -1766,7 +1773,7 @@ func (utf *utf8FontFile) generateCMAPTable(cidSymbolPairCollection map[int]int, 
 		prevCid = cid
 		prevSymbol = cidSymbolPairCollection[cid]
 	}
-	cidArrayKeys := keySortArrayRangeMap(cidArray)
+	cidArrayKeys := sortedKeys(cidArray)
 	segCount := len(cidArray) + 1
 
 	searchRange := 1
@@ -2402,7 +2409,7 @@ func (utf *utf8FontFile) assembleTables() []byte {
 	answer = append(answer, packHeader(0x00010000, tablesCount, findSize, writer, rOffset)...)
 
 	tables := utf.outTablesData
-	tablesNames := keySortStrings(tables)
+	tablesNames := sortedKeys(tables)
 
 	offset := 12 + tablesCount*16
 	begin := 0
@@ -2420,7 +2427,7 @@ func (utf *utf8FontFile) assembleTables() []byte {
 	}
 
 	for _, key := range tablesNames {
-		data := append([]byte{}, tables[key]...)
+		data := slices.Clone(tables[key])
 		data = append(data, []byte{0, 0, 0}...)
 		answer = append(answer, data[:(len(data)&^3)]...)
 	}

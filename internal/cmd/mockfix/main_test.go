@@ -8,6 +8,8 @@ import (
 )
 
 func TestRewriteDir_WhenMocksImportTestify_ShouldRewriteToMocktest(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	src := `package mocks
 
@@ -41,6 +43,8 @@ var _ = mock.Anything
 }
 
 func TestRewriteDir_WhenFileAlreadyRewritten_ShouldLeaveUntouched(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	src := `package mocks
 
@@ -71,6 +75,8 @@ var _ = mock.Anything
 }
 
 func TestRewriteDir_WhenDirMissing_ShouldReturnError(t *testing.T) {
+	t.Parallel()
+
 	_, err := rewriteDir(filepath.Join(t.TempDir(), "does-not-exist"))
 	if err == nil {
 		t.Fatal("expected error for missing directory, got nil")

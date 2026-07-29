@@ -36,7 +36,7 @@ func TestWithUnsafeNoLimits_AllowsInputBeyondDefaultCaps(t *testing.T) {
 	}
 	b.WriteString("</body></html>")
 
-	rows, err := html.FromString(context.Background(), b.String(), html.WithUnsafeNoLimits())
+	rows, err := html.FromString(t.Context(), b.String(), html.WithUnsafeNoLimits())
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, rows)
@@ -46,7 +46,7 @@ func TestWithOutlineFromHeadings_TranslatesAllHeadingLevels(t *testing.T) {
 	t.Parallel()
 
 	input := "<h1>a</h1><h2>b</h2><h3>c</h3><h4>d</h4><h5>e</h5><h6>f</h6><p>body</p>"
-	rows, err := html.FromString(context.Background(), input, html.WithOutlineFromHeadings())
+	rows, err := html.FromString(t.Context(), input, html.WithOutlineFromHeadings())
 
 	require.NoError(t, err)
 	assert.Len(t, rows, 7)
@@ -61,7 +61,7 @@ func TestWithImageBaseDir(t *testing.T) {
 
 	t.Run("loads image inside base dir", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString(context.Background(),
+		rows, err := html.FromString(t.Context(),
 			`<html><body><img src="pic.png" alt="fallback"></body></html>`,
 			html.WithImageBaseDir(dir),
 		)
@@ -72,7 +72,7 @@ func TestWithImageBaseDir(t *testing.T) {
 	t.Run("escaping path falls back to alt text", func(t *testing.T) {
 		t.Parallel()
 		var unsupported []string
-		rows, err := html.FromString(context.Background(),
+		rows, err := html.FromString(t.Context(),
 			`<html><body><img src="../pic.png" alt="fallback"></body></html>`,
 			html.WithImageBaseDir(dir),
 			html.WithUnsupportedHandler(func(thing, _ string) {
@@ -91,7 +91,7 @@ func TestWithStylesheetBaseDir_LoadsLinkedCSS(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "style.css"), []byte("p{color:#ff0000}"), 0o600))
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="style.css"></head><body><p>x</p></body></html>`,
 		html.WithStylesheetBaseDir(dir),
 	)
@@ -102,7 +102,7 @@ func TestWithStylesheetBaseDir_LoadsLinkedCSS(t *testing.T) {
 
 func TestDocumentFromString_EmptyInputReturnsEmptyDocument(t *testing.T) {
 	t.Parallel()
-	doc, err := html.DocumentFromString(context.Background(), "")
+	doc, err := html.DocumentFromString(t.Context(), "")
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 	assert.Empty(t, doc.Rows)
@@ -112,7 +112,7 @@ func TestDocumentFromString_EmptyInputReturnsEmptyDocument(t *testing.T) {
 func TestDocumentFromString_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	doc, err := html.DocumentFromString(ctx, "<p>hi</p>")
@@ -124,7 +124,7 @@ func TestDocumentFromString_ReturnsContextError(t *testing.T) {
 func TestDocumentFromReader_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	doc, err := html.DocumentFromReader(ctx, strings.NewReader("<p>hi</p>"))
@@ -142,7 +142,7 @@ func (failingReader) Read([]byte) (int, error) {
 
 func TestFromReader_ReadErrorIsWrapped(t *testing.T) {
 	t.Parallel()
-	rows, err := html.FromReader(context.Background(), failingReader{})
+	rows, err := html.FromReader(t.Context(), failingReader{})
 	assert.Nil(t, rows)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading input")
@@ -150,7 +150,7 @@ func TestFromReader_ReadErrorIsWrapped(t *testing.T) {
 
 func TestDocumentFromReader_ReadErrorIsWrapped(t *testing.T) {
 	t.Parallel()
-	doc, err := html.DocumentFromReader(context.Background(), failingReader{})
+	doc, err := html.DocumentFromReader(t.Context(), failingReader{})
 	assert.Nil(t, doc)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading input")

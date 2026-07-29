@@ -1,6 +1,9 @@
 package entity
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // AnnotationType identifies a PDF annotation subtype supported by Paper.
 type AnnotationType string
@@ -90,7 +93,7 @@ func CloneAnnotations(annotations []PageAnnotation) []PageAnnotation {
 			destPage := *annotation.DestPage
 			clones[i].DestPage = &destPage
 		}
-		clones[i].QuadPoints = append([][8]float64(nil), annotation.QuadPoints...)
+		clones[i].QuadPoints = slices.Clone(annotation.QuadPoints)
 	}
 	return clones
 }

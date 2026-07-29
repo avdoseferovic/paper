@@ -2,7 +2,28 @@ GO_FILES = $(shell find . '(' -path '*/.*' -o -path './vendor' ')' -prune -o -na
 GO_PATHS =  $(shell go list -f '{{ .Dir }}' ./... | grep -E -v 'docs|cmd|mocks')
 EXAMPLES_PATHS = $(shell cd examples && go list -f '{{ .Dir }}' ./...)
 DOCS_PATHS = $(shell cd docs && go list -f '{{ .Dir }}' ./...)
-GOIMPORTS ?= $(shell if command -v goimports >/dev/null 2>&1; then command -v goimports; else echo "go run golang.org/x/tools/cmd/goimports@latest"; fi)
+# Dev tools are pinned in tools/go.mod via Go 1.24 tool directives, so `make
+# fmt` and CI cannot disagree because someone's goimports or gofumpt drifted.
+#
+# tools/ is deliberately NOT in go.work: workspace resolution applies MVS
+# across every listed module, so a tool's dependency could quietly raise the
+# version the library itself compiles against. GOWORK=off keeps the two apart.
+#
+# The tools are installed to ./.tools rather than invoked with `go -C tools
+# tool`, because that form would run them with tools/ as the working directory
+# and every path handed to them here is relative to the repo root.
+TOOLBIN = $(CURDIR)/.tools
+
+.PHONY: tools
+tools:
+	@GOWORK=off GOBIN=$(TOOLBIN) go -C $(CURDIR)/tools install tool
+
+GOIMPORTS ?= $(TOOLBIN)/goimports
+GOFUMPT ?= $(TOOLBIN)/gofumpt
+GODOC ?= $(TOOLBIN)/godoc
+DEADCODE ?= $(TOOLBIN)/deadcode
+GOVULNCHECK ?= $(TOOLBIN)/govulncheck
+MOCKERY ?= $(TOOLBIN)/mockery
 GOLANGCI_LINT ?= $(shell if command -v golangci-lint >/dev/null 2>&1; then command -v golangci-lint; else echo "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1"; fi)
 
 .PHONY: dod
@@ -20,9 +41,9 @@ test:
 	cd docs && go test ./assets/examples/...
 
 .PHONY: fmt
-fmt:
+fmt: tools
 	gofmt -s -w ${GO_FILES}
-	gofumpt -l -w ${GO_FILES}
+	$(GOFUMPT) -l -w ${GO_FILES}
 	$(GOIMPORTS) -w ${GO_PATHS} ${EXAMPLES_PATHS} ${DOCS_PATHS}
 
 .PHONY: lint
@@ -49,14 +70,25 @@ docs:
 	docsify serve docs/
 
 .PHONY: godoc
-godoc:
-	godoc -http=127.0.0.1:6060
+godoc: tools
+	$(GODOC) -http=127.0.0.1:6060
 
+# govulncheck reports against the toolchain each module selects, so it runs per
+# module rather than once across the workspace.
+.PHONY: vuln
+vuln: tools
+	$(GOVULNCHECK) ./...
+	cd examples && $(GOVULNCHECK) ./...
+	cd docs && $(GOVULNCHECK) ./...
+
+.PHONY: deadcode
+deadcode: tools
+	$(DEADCODE) -test ./...
 
 .PHONY: mocks
-mocks:
+mocks: tools
 	find internal/mocks -type f -name '*.go' -delete
-	go run github.com/vektra/mockery/v2@v2.53.6
+	$(MOCKERY)
 	go run ./internal/cmd/mockfix internal/mocks
 	make fmt
 

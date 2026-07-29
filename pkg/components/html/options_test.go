@@ -2,7 +2,6 @@ package html_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -67,7 +66,7 @@ func TestWithUnsupportedHandler_FiresForRefusedLocalImage(t *testing.T) {
 	handler := func(thing, _ string) { things = append(things, thing) }
 
 	// Act
-	component, err := htmlcomponent.New(context.Background(),
+	component, err := htmlcomponent.New(t.Context(),
 		`<img src="local.png" alt="fallback">`,
 		htmlcomponent.WithUnsupportedHandler(handler),
 	)
@@ -88,7 +87,7 @@ func TestWithImageBaseDir_RefusesPathEscapeViaHandler(t *testing.T) {
 	handler := func(thing, value string) { reports = append(reports, [2]string{thing, value}) }
 
 	// Act
-	component, err := htmlcomponent.New(context.Background(),
+	component, err := htmlcomponent.New(t.Context(),
 		`<img src="../escape.png" alt="fallback">`,
 		htmlcomponent.WithImageBaseDir(dir),
 		htmlcomponent.WithUnsupportedHandler(handler),
@@ -123,7 +122,7 @@ func TestWithStylesheetBaseDir_RefusesPathEscapeViaHandler(t *testing.T) {
 	handler := func(thing, value string) { reports = append(reports, [2]string{thing, value}) }
 
 	// Act
-	component, err := htmlcomponent.New(context.Background(),
+	component, err := htmlcomponent.New(t.Context(),
 		`<head><link rel="stylesheet" href="../x.css"></head><body><p>hi</p></body>`,
 		htmlcomponent.WithStylesheetBaseDir(dir),
 		htmlcomponent.WithUnsupportedHandler(handler),
@@ -149,9 +148,9 @@ func TestWithGridSize_QuantisesImageColumnToCustomGrid(t *testing.T) {
 	htmlStr := fmt.Sprintf(`<img src=%q width="85mm" height="20mm" alt="x">`, pngDataURI(t))
 
 	// Act
-	defaultComponent, err := htmlcomponent.New(context.Background(), htmlStr)
+	defaultComponent, err := htmlcomponent.New(t.Context(), htmlStr)
 	require.NoError(t, err)
-	customComponent, err := htmlcomponent.New(context.Background(), htmlStr, htmlcomponent.WithGridSize(24))
+	customComponent, err := htmlcomponent.New(t.Context(), htmlStr, htmlcomponent.WithGridSize(24))
 	require.NoError(t, err)
 
 	// Assert: half-width image spans half the grid in either grid size.
@@ -172,9 +171,9 @@ func TestWithContentWidth_ChangesImageColumnQuantisation(t *testing.T) {
 	htmlStr := fmt.Sprintf(`<img src=%q width="85mm" height="20mm" alt="x">`, pngDataURI(t))
 
 	// Act
-	defaultComponent, err := htmlcomponent.New(context.Background(), htmlStr)
+	defaultComponent, err := htmlcomponent.New(t.Context(), htmlStr)
 	require.NoError(t, err)
-	narrowComponent, err := htmlcomponent.New(context.Background(), htmlStr, htmlcomponent.WithContentWidth(85))
+	narrowComponent, err := htmlcomponent.New(t.Context(), htmlStr, htmlcomponent.WithContentWidth(85))
 	require.NoError(t, err)
 
 	// Assert

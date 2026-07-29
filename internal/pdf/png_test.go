@@ -10,6 +10,8 @@ import (
 )
 
 func TestPNGMalformedCompressionAndFilterErrorsDoNotStartWithQuote(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		compression byte
@@ -30,6 +32,7 @@ func TestPNGMalformedCompressionAndFilterErrorsDoNotStartWithQuote(t *testing.T)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			f := NewCustom(&InitType{})
 
 			f.parsepngstream(bytes.NewBuffer(malformedPNGHeader(tt.compression, tt.filter)), false)
@@ -49,6 +52,8 @@ func TestPNGMalformedCompressionAndFilterErrorsDoNotStartWithQuote(t *testing.T)
 }
 
 func TestPNGParseKeepsFirstError(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	first := errors.New("first error")
 	f.SetError(first)
@@ -61,6 +66,8 @@ func TestPNGParseKeepsFirstError(t *testing.T) {
 }
 
 func TestPNGShortTransparencyChunkReturnsErrorWithoutPanic(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 
 	recovered := recoverPNGParse(f, pngWithChunks(0, pngChunk("tRNS", []byte{0}), pngChunk("IEND", nil)))
@@ -74,6 +81,8 @@ func TestPNGShortTransparencyChunkReturnsErrorWithoutPanic(t *testing.T) {
 }
 
 func TestPNGShortPhysicalChunkReturnsErrorWithoutPanic(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 
 	recovered := recoverPNGParse(f, pngWithChunks(2, pngChunk("pHYs", nil), pngChunk("IEND", nil)))
@@ -87,6 +96,8 @@ func TestPNGShortPhysicalChunkReturnsErrorWithoutPanic(t *testing.T) {
 }
 
 func TestPNGShortAlphaDataReturnsErrorWithoutPanic(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 
 	recovered := recoverPNGParse(f, pngWithChunks(6, pngChunk("IDAT", zlibData([]byte{0})), pngChunk("IEND", nil)))
@@ -100,6 +111,8 @@ func TestPNGShortAlphaDataReturnsErrorWithoutPanic(t *testing.T) {
 }
 
 func TestTransformKeepsFirstError(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	first := errors.New("first error")
 	f.SetError(first)

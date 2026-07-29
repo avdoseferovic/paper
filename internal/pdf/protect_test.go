@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rc4"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -99,7 +100,7 @@ func TestProtectionAES128EncryptsWithIVAndPKCS7Padding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cipher: %v", err)
 	}
-	decrypted := append([]byte(nil), encrypted[aes.BlockSize:]...)
+	decrypted := slices.Clone(encrypted[aes.BlockSize:])
 	cipher.NewCBCDecrypter(block, encrypted[:aes.BlockSize]).CryptBlocks(decrypted, decrypted)
 	unpadded, ok := stripPKCS7(decrypted)
 	if !ok {

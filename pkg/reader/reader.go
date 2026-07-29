@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -180,7 +181,7 @@ func ParseWithOptions(data []byte, opts ReadOptions) (*PdfReader, error) {
 	}
 
 	r := &PdfReader{
-		data:        append([]byte(nil), trimmed...),
+		data:        slices.Clone(trimmed),
 		version:     parseVersion(trimmed),
 		objects:     objects,
 		rootID:      rootID,
@@ -199,7 +200,7 @@ func (r *PdfReader) RawBytes() []byte {
 	if r == nil {
 		return nil
 	}
-	return append([]byte(nil), r.data...)
+	return slices.Clone(r.data)
 }
 
 // Version returns the PDF version from the header.
@@ -293,7 +294,7 @@ func (m *Modifier) Bytes() []byte {
 	if m == nil {
 		return nil
 	}
-	return append([]byte(nil), m.data...)
+	return slices.Clone(m.data)
 }
 
 // PageCount returns the expected page count for the modified PDF.
@@ -366,7 +367,7 @@ func ExtractPages(r *PdfReader, pageIndexes ...int) (*Modifier, error) {
 	}
 	out, err := merge.BytesSelected(context.Background(), merge.PageSelection{
 		PDF:   r.RawBytes(),
-		Pages: append([]int(nil), pageIndexes...),
+		Pages: slices.Clone(pageIndexes),
 	})
 	if err != nil {
 		return nil, err
@@ -414,7 +415,7 @@ func parseObjects(data []byte) (map[int]pdfObject, error) {
 		objects[number] = pdfObject{
 			number:       number,
 			generation:   generation,
-			content:      append([]byte(nil), data[contentStart:contentEnd]...),
+			content:      slices.Clone(data[contentStart:contentEnd]),
 			contentStart: contentStart,
 			contentEnd:   contentEnd,
 		}
@@ -625,7 +626,7 @@ func (r *PdfReader) decodeStream(objectContent []byte) ([]byte, error) {
 
 	filter := parseFilter(objectContent[:start])
 	if filter == "" {
-		return append([]byte(nil), data...), nil
+		return slices.Clone(data), nil
 	}
 	if strings.Contains(filter, "FlateDecode") {
 		decoded, err := flateDecode(data)
@@ -637,7 +638,7 @@ func (r *PdfReader) decodeStream(objectContent []byte) ([]byte, error) {
 	if r.strictness == StrictnessStrict {
 		return nil, fmt.Errorf("%w: stream filter %s", ErrUnsupportedPDF, filter)
 	}
-	return append([]byte(nil), data...), nil
+	return slices.Clone(data), nil
 }
 
 func streamDataBounds(objectContent []byte) (int, int, error) {

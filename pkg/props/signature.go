@@ -1,6 +1,8 @@
 package props
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
@@ -71,25 +73,15 @@ func (s *Signature) MakeValid(defaultFontFamily string) {
 
 // NormalizeSignature returns a defaulted copy of s.
 func NormalizeSignature(s Signature, defaultFontFamily string) Signature {
-	if s.FontFamily == "" {
-		s.FontFamily = defaultFontFamily
-	}
+	s.FontFamily = cmp.Or(s.FontFamily, defaultFontFamily)
 
-	if s.FontStyle == "" {
-		s.FontStyle = fontstyle.Bold
-	}
+	s.FontStyle = cmp.Or(s.FontStyle, fontstyle.Bold)
 
-	if s.FontSize == 0.0 {
-		s.FontSize = 8.0
-	}
+	s.FontSize = cmp.Or(s.FontSize, 8.0)
 
-	if s.LineStyle == "" {
-		s.LineStyle = consts.LineStyleSolid
-	}
+	s.LineStyle = cmp.Or(s.LineStyle, consts.LineStyleSolid)
 
-	if s.LineThickness == 0 {
-		s.LineThickness = consts.DefaultLineThickness
-	}
+	s.LineThickness = cmp.Or(s.LineThickness, consts.DefaultLineThickness)
 	if s.SafePadding <= 0 {
 		s.SafePadding = 1.5
 	}

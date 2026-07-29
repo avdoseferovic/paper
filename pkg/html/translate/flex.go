@@ -4,8 +4,9 @@
 package translate
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -64,24 +65,17 @@ func (tr *translator) sortedFlexItems(
 	for i, c := range children {
 		styles[i] = computeNodeStyle(tr.sheet, c, containerStyle)
 	}
-	sort.SliceStable(ordered, func(a, b int) bool {
-		oa := styles[ordered[a].domIndex].Order
-		ob := styles[ordered[b].domIndex].Order
-		if oa != ob {
-			return oa < ob
+	slices.SortStableFunc(ordered, func(a, b orderedFlexChild) int {
+		if c := cmp.Compare(styles[a.domIndex].Order, styles[b.domIndex].Order); c != 0 {
+			return c
 		}
-		return ordered[a].domIndex < ordered[b].domIndex
+
+		return cmp.Compare(a.domIndex, b.domIndex)
 	})
 	if containerStyle.FlexDirection == "row-reverse" {
-		reverseOrderedFlexChildren(ordered)
+		slices.Reverse(ordered)
 	}
 	return orderedFlexItems(ordered, styles)
-}
-
-func reverseOrderedFlexChildren(children []orderedFlexChild) {
-	for i, j := 0, len(children)-1; i < j; i, j = i+1, j-1 {
-		children[i], children[j] = children[j], children[i]
-	}
 }
 
 func orderedFlexItems(
@@ -442,12 +436,8 @@ func (tr *translator) gapCols(gapMM float64, gridSize, itemCount int) int {
 	}
 	cols := int(gapMM/mmPerCol + 0.5)
 	maxGap := gridSize / 2
-	if cols > maxGap {
-		cols = maxGap
-	}
-	if cols < 0 {
-		cols = 0
-	}
+	cols = min(cols, maxGap)
+	cols = max(cols, 0)
 	return cols
 }
 
@@ -483,10 +473,9 @@ func (tr *translator) flexColumnRows(ctx context.Context, n *dom.Node, container
 }
 
 func reverseNodes(nodes []*dom.Node) []*dom.Node {
-	reversed := make([]*dom.Node, len(nodes))
-	for i, n := range nodes {
-		reversed[len(nodes)-1-i] = n
-	}
+	reversed := slices.Clone(nodes)
+	slices.Reverse(reversed)
+
 	return reversed
 }
 

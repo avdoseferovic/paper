@@ -116,9 +116,7 @@ func (r *horizontalMarginRow) SplitAt(provider core.Provider, remainingHeight, w
 	innerWidth := width
 	if innerWidth > 0 {
 		innerWidth -= r.marginLeft + r.marginRight
-		if innerWidth < 0 {
-			innerWidth = 0
-		}
+		innerWidth = max(innerWidth, 0)
 	}
 	first, rest, didSplit := splittable.SplitAt(provider, remainingHeight, innerWidth)
 	if !didSplit {
@@ -142,9 +140,7 @@ func (r *horizontalMarginRow) innerCell(cell *entity.Cell) entity.Cell {
 	inner := cell.Copy()
 	inner.X += r.marginLeft
 	inner.Width -= r.marginLeft + r.marginRight
-	if inner.Width < 0 {
-		inner.Width = 0
-	}
+	inner.Width = max(inner.Width, 0)
 	return inner
 }
 
@@ -193,12 +189,8 @@ func (m *marginBox) innerCell(cell *entity.Cell) entity.Cell {
 	inner.Y += m.marginTop
 	inner.Width -= m.marginLeft + m.marginRight
 	inner.Height -= m.marginTop + m.marginBottom
-	if inner.Width < 0 {
-		inner.Width = 0
-	}
-	if inner.Height < 0 {
-		inner.Height = 0
-	}
+	inner.Width = max(inner.Width, 0)
+	inner.Height = max(inner.Height, 0)
 	return inner
 }
 
@@ -234,9 +226,7 @@ func (b *blockContainer) GetHeight(provider core.Provider, cell *entity.Cell) fl
 	}
 	inner := cell.Copy()
 	inner.Width = cell.Width - b.paddingLeft - b.paddingRight
-	if inner.Width < 0 {
-		inner.Width = 0
-	}
+	inner.Width = max(inner.Width, 0)
 	total := b.paddingTop + b.paddingBottom
 	for _, r := range b.rows {
 		total += r.GetHeight(provider, &inner)
@@ -275,9 +265,7 @@ func (b *blockContainer) Render(provider core.Provider, cell *entity.Cell) {
 	innerCell.X += b.paddingLeft
 	innerCell.Y += b.paddingTop
 	innerCell.Width = cell.Width - b.paddingLeft - b.paddingRight
-	if innerCell.Width < 0 {
-		innerCell.Width = 0
-	}
+	innerCell.Width = max(innerCell.Width, 0)
 	for _, r := range b.rows {
 		h := r.GetHeight(provider, &innerCell)
 		innerCell.Height = h
@@ -430,9 +418,7 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	// Greedy split: accumulate rows until they no longer fit.
 	padding := s.container.paddingTop + s.container.paddingBottom
 	available := remainingHeight - padding
-	if available < 0 {
-		available = 0
-	}
+	available = max(available, 0)
 
 	var firstRows, restRows []core.Row
 	cumHeight := 0.0

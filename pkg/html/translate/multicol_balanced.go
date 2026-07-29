@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"slices"
+
 	"github.com/avdoseferovic/paper/internal/layout"
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/row"
@@ -26,8 +28,8 @@ func newBalancedMultiColumnRow(columnCount, gapCols int, columnSizes []int, rows
 	return &balancedMultiColumnRow{
 		columnCount: columnCount,
 		gapCols:     gapCols,
-		columnSizes: append([]int(nil), columnSizes...),
-		rows:        append([]core.Row(nil), rows...),
+		columnSizes: slices.Clone(columnSizes),
+		rows:        slices.Clone(rows),
 	}
 }
 

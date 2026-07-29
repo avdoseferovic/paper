@@ -1,6 +1,8 @@
 package props
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 )
@@ -116,9 +118,7 @@ func NormalizeText(t Text, font *Font) Text {
 	if font != nil {
 		defaultFamily = font.Family
 		defaultStyle = font.Style
-		if defaultStyle == "" {
-			defaultStyle = fontstyle.Normal
-		}
+		defaultStyle = cmp.Or(defaultStyle, fontstyle.Normal)
 		defaultSize = font.Size
 		if defaultSize == undefinedValue {
 			defaultSize = defaultFontSize
@@ -126,13 +126,9 @@ func NormalizeText(t Text, font *Font) Text {
 		defaultColor = font.Color
 	}
 
-	if t.Family == "" {
-		t.Family = defaultFamily
-	}
+	t.Family = cmp.Or(t.Family, defaultFamily)
 
-	if t.Style == "" {
-		t.Style = defaultStyle
-	}
+	t.Style = cmp.Or(t.Style, defaultStyle)
 
 	if t.Size == undefinedValue {
 		t.Size = defaultSize
@@ -144,33 +140,19 @@ func NormalizeText(t Text, font *Font) Text {
 		t.Color = CloneColor(t.Color)
 	}
 
-	if t.Align == "" {
-		t.Align = consts.AlignLeft
-	}
+	t.Align = cmp.Or(t.Align, consts.AlignLeft)
 
-	if t.Top < minValue {
-		t.Top = minValue
-	}
+	t.Top = max(t.Top, minValue)
 
-	if t.Bottom < minValue {
-		t.Bottom = minValue
-	}
+	t.Bottom = max(t.Bottom, minValue)
 
-	if t.Left < minValue {
-		t.Left = minValue
-	}
+	t.Left = max(t.Left, minValue)
 
-	if t.Right < minValue {
-		t.Right = minValue
-	}
+	t.Right = max(t.Right, minValue)
 
-	if t.VerticalPadding < 0 {
-		t.VerticalPadding = 0
-	}
+	t.VerticalPadding = max(t.VerticalPadding, 0)
 
-	if t.BreakLineStrategy == "" {
-		t.BreakLineStrategy = consts.BreakLineEmptySpace
-	}
+	t.BreakLineStrategy = cmp.Or(t.BreakLineStrategy, consts.BreakLineEmptySpace)
 
 	t.Outline = CloneOutline(t.Outline)
 

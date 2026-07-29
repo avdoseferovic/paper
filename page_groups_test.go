@@ -63,7 +63,7 @@ func TestProcessPageGroupsConcurrentlyPreservesInputOrder(t *testing.T) {
 	// index to finish before completing, so jobs complete n-1, n-2, ..., 0.
 	// This deterministically proves results map back to their input index
 	// regardless of completion order (no time.Sleep, no scheduling guesswork).
-	results, err := processPageGroupsConcurrently(context.Background(), n, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
+	results, err := processPageGroupsConcurrently(t.Context(), n, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
 		idx := len(group) - 1
 		if idx < n-1 {
 			<-completed[idx+1]
@@ -89,38 +89,37 @@ func TestProcessPageGroupsConcurrentlyRespectsWorkerLimit(t *testing.T) {
 		make([]core.Page, 4),
 	}
 
-	var active int64
-	var maxActive int64
+	var active, maxActive atomic.Int64
 	// The barrier only releases once `workers` jobs are in-flight together, so
 	// the test deterministically observes concurrency at the limit (it would
 	// deadlock if the pool ran fewer than `workers` at a time), while the
 	// atomic maxActive check proves it never exceeds the limit.
 	b := newBarrier(workers)
 
-	results, err := processPageGroupsConcurrently(context.Background(), workers, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
-		current := atomic.AddInt64(&active, 1)
+	results, err := processPageGroupsConcurrently(t.Context(), workers, pageGroups, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
+		current := active.Add(1)
 		for {
-			observed := atomic.LoadInt64(&maxActive)
-			if current <= observed || atomic.CompareAndSwapInt64(&maxActive, observed, current) {
+			observed := maxActive.Load()
+			if current <= observed || maxActive.CompareAndSwap(observed, current) {
 				break
 			}
 		}
 		b.wait()
-		atomic.AddInt64(&active, -1)
+		active.Add(-1)
 		return pageProcessResult{bytes: []byte{byte(len(group) & 0xFF)}}, nil
 	})
 
 	require.NoError(t, err)
 	pdfs, _ := splitPageProcessResults(results)
 	assert.Equal(t, [][]byte{{1}, {2}, {3}, {4}}, pdfs)
-	assert.Equal(t, int64(workers), maxActive)
+	assert.Equal(t, int64(workers), maxActive.Load())
 }
 
 func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("process page group")
-	_, err := processPageGroupsConcurrently(context.Background(), 3, [][]core.Page{
+	_, err := processPageGroupsConcurrently(t.Context(), 3, [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
 	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
@@ -136,7 +135,7 @@ func TestProcessPageGroupsConcurrentlyReturnsProcessorError(t *testing.T) {
 func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
 	t.Parallel()
 
-	results, err := processPageGroupsConcurrently(context.Background(), 3, [][]core.Page{
+	results, err := processPageGroupsConcurrently(t.Context(), 3, [][]core.Page{
 		make([]core.Page, 1),
 		make([]core.Page, 2),
 	}, func(_ context.Context, group []core.Page) (pageProcessResult, error) {
@@ -154,7 +153,7 @@ func TestProcessPageGroupsConcurrentlyRecoversWorkerPanic(t *testing.T) {
 func TestProcessPageGroupsConcurrentlyReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	results, err := processPageGroupsConcurrently(ctx, 3, [][]core.Page{
@@ -186,7 +185,7 @@ func TestProcessPageGroupsConcurrentlyStopsAfterFirstError(t *testing.T) {
 
 	// One worker so ordering is deterministic: the first group fails, and every
 	// later group must be skipped.
-	_, err := processPageGroupsConcurrently(context.Background(), 1, pageGroups,
+	_, err := processPageGroupsConcurrently(t.Context(), 1, pageGroups,
 		func(_ context.Context, _ []core.Page) (pageProcessResult, error) {
 			if processed.Add(1) == 1 {
 				return pageProcessResult{}, expectedErr

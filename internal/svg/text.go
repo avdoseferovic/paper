@@ -27,14 +27,36 @@ import (
 // into gigabytes of masks. Text this large is already far off-canvas.
 const maxFontSizeCanvasFactor = 2
 
-var (
-	fontsOnce sync.Once
-	errFonts  error
-	regular   *opentype.Font
-	bold      *opentype.Font
-	mono      *opentype.Font
-	monoBold  *opentype.Font
-)
+// builtinFonts holds the four Go faces the SVG text renderer can select from.
+type builtinFonts struct {
+	regular  *opentype.Font
+	bold     *opentype.Font
+	mono     *opentype.Font
+	monoBold *opentype.Font
+}
+
+// loadBuiltinFonts parses the embedded Go fonts once per process, memoising the
+// error alongside the value so every caller observes a parse failure.
+var loadBuiltinFonts = sync.OnceValues(func() (builtinFonts, error) {
+	var fonts builtinFonts
+	for _, entry := range []struct {
+		target **opentype.Font
+		data   []byte
+	}{
+		{&fonts.regular, goregular.TTF},
+		{&fonts.bold, gobold.TTF},
+		{&fonts.mono, gomono.TTF},
+		{&fonts.monoBold, gomonobold.TTF},
+	} {
+		parsed, err := opentype.Parse(entry.data)
+		if err != nil {
+			return builtinFonts{}, err
+		}
+		*entry.target = parsed
+	}
+
+	return fonts, nil
+})
 
 type textStyle struct {
 	fill       color.RGBA
@@ -61,11 +83,11 @@ func drawText(renderer *svgRenderer, svgBytes []byte) {
 		if strings.TrimSpace(run.content) == "" || run.style.fontSize <= 0 || run.style.fill.A == 0 {
 			continue
 		}
-		size := run.style.fontSize * math.Max(scaleX, scaleY)
+		size := run.style.fontSize * max(scaleX, scaleY)
 		if math.IsNaN(size) || size <= 0 {
 			continue
 		}
-		size = math.Min(size, sizeLimit)
+		size = min(size, sizeLimit)
 		if !renderer.spend(textCost(size, run.content, canvasArea)) {
 			return
 		}
@@ -108,13 +130,8 @@ func clampDot(value float64) int {
 	if math.IsNaN(value) {
 		return 0
 	}
-	if value < -limit {
-		return -limit
-	}
-	if value > limit {
-		return limit
-	}
-	return int(value)
+
+	return int(min(max(value, -limit), limit))
 }
 
 func parseTextRuns(svgBytes []byte, styles map[string]map[string]string) []textRun {
@@ -190,29 +207,18 @@ func resolveTextStyle(attrs []xml.Attr, styles map[string]map[string]string) tex
 }
 
 func fontFace(style textStyle, size float64) (font.Face, error) {
-	fontsOnce.Do(func() {
-		regular, errFonts = opentype.Parse(goregular.TTF)
-		if errFonts == nil {
-			bold, errFonts = opentype.Parse(gobold.TTF)
-		}
-		if errFonts == nil {
-			mono, errFonts = opentype.Parse(gomono.TTF)
-		}
-		if errFonts == nil {
-			monoBold, errFonts = opentype.Parse(gomonobold.TTF)
-		}
-	})
-	if errFonts != nil {
-		return nil, fmt.Errorf("load svg fonts: %w", errFonts)
+	fonts, err := loadBuiltinFonts()
+	if err != nil {
+		return nil, fmt.Errorf("load svg fonts: %w", err)
 	}
-	selected := regular
+	selected := fonts.regular
 	if strings.Contains(style.fontFamily, "mono") {
-		selected = mono
+		selected = fonts.mono
 	}
 	if isBold(style.fontWeight) {
-		selected = bold
+		selected = fonts.bold
 		if strings.Contains(style.fontFamily, "mono") {
-			selected = monoBold
+			selected = fonts.monoBold
 		}
 	}
 	face, err := opentype.NewFace(selected, &opentype.FaceOptions{Size: size, DPI: 72, Hinting: font.HintingFull})

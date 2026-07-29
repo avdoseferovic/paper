@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -28,7 +27,7 @@ func TestTranslate_FormControlsRenderVisualRows(t *testing.T) {
 		<textarea>Notes</textarea>
 	</body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
@@ -52,7 +51,7 @@ func TestTranslate_HiddenInputsAreSkippedAndPlaceholdersRender(t *testing.T) {
 		<textarea placeholder="Message"></textarea>
 	</body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Email", "Message"}, richTextValues(rows))
@@ -63,7 +62,7 @@ func TestTranslate_FormControlsRenderInsideParagraphs(t *testing.T) {
 
 	doc := parseInternalDoc(t, `<html><body><p>Name <input value="Ada"> <button>Save</button></p></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 3)
 
@@ -75,7 +74,7 @@ func TestTranslate_FormAndLabelRenderChildControls(t *testing.T) {
 
 	doc := parseInternalDoc(t, `<html><body><form><label>Name <input value="Ada"></label> <button>Go</button></form></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -90,7 +89,7 @@ func TestTranslate_FieldsetRendersBorderedContainerWithLegend(t *testing.T) {
 		<p>Name: <input value="John"></p>
 	</fieldset></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	assertDefaultFieldsetMargins(t, rows)
 
@@ -110,7 +109,7 @@ func TestTranslate_FieldsetLegendDefaultsMatchFolio(t *testing.T) {
 
 	doc := parseInternalDoc(t, `<html><body><fieldset><legend>Personal Info</legend></fieldset></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	assertDefaultFieldsetMargins(t, rows)
 	setBlockTagTestConfig(rows)
@@ -132,7 +131,7 @@ func TestTranslate_FieldsetLegendCSSOverridesDefaults(t *testing.T) {
 		legend { font-weight: normal; padding-bottom: 0 }
 	</style></head><body><fieldset><legend>Login</legend></fieldset></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	setBlockTagTestConfig(rows)
 
@@ -153,7 +152,7 @@ func TestTranslate_FieldsetCSSOverridesDefaultChrome(t *testing.T) {
 		fieldset { border: 2mm solid #ff0000; border-radius: 4mm; padding: 5mm; }
 	</style></head><body><fieldset><legend>Login</legend></fieldset></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	fieldset := requireFieldsetContainer(t, rows)
@@ -177,7 +176,7 @@ func TestTranslate_SelectUsesSelectedOptionInsideOptgroup(t *testing.T) {
 		</optgroup>
 	</select></body></html>`)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Two ▾"}, richTextValues(rows))

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"slices"
 )
 
 var errInvalidDataMatrix = errors.New("invalid Data Matrix code")
@@ -53,7 +54,7 @@ func dataMatrixSymbolFor(codewords int) (dataMatrixSymbol, bool) {
 }
 
 func dataMatrixPad(data []byte, capacity int) []byte {
-	result := append([]byte(nil), data...)
+	result := slices.Clone(data)
 	if len(result) < capacity {
 		result = append(result, 129)
 	}
@@ -79,7 +80,7 @@ func dataMatrixAddErrorCorrection(data []byte, symbol dataMatrixSymbol) []byte {
 		if block < symbol.dataCodewords%blocks {
 			length++
 		}
-		dataBlocks[block] = append([]byte(nil), data[position:position+length]...)
+		dataBlocks[block] = slices.Clone(data[position : position+length])
 		position += length
 		eccBlocks[block] = dataMatrixReedSolomonRemainder(dataBlocks[block], divisor)
 	}

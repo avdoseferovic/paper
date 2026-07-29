@@ -1,6 +1,10 @@
 package props
 
-import "github.com/avdoseferovic/paper/pkg/consts"
+import (
+	"cmp"
+
+	"github.com/avdoseferovic/paper/pkg/consts"
+)
 
 // Line represents properties from a Line inside a cell.
 type Line struct {
@@ -60,33 +64,21 @@ func (l *Line) MakeValid() {
 
 // NormalizeLine returns a defaulted copy of l.
 func NormalizeLine(l Line) Line {
-	if l.Style == "" {
-		l.Style = consts.LineStyleSolid
-	}
+	l.Style = cmp.Or(l.Style, consts.LineStyleSolid)
 
-	if l.Thickness == 0 {
-		l.Thickness = consts.DefaultLineThickness
-	}
+	l.Thickness = cmp.Or(l.Thickness, consts.DefaultLineThickness)
 
-	if l.Orientation == "" {
-		l.Orientation = consts.OrientationHorizontal
-	}
+	l.Orientation = cmp.Or(l.Orientation, consts.OrientationHorizontal)
 
-	if l.OffsetPercent < 5 {
-		l.OffsetPercent = 5
-	}
+	l.OffsetPercent = max(l.OffsetPercent, 5)
 
-	if l.OffsetPercent > 95 {
-		l.OffsetPercent = 95
-	}
+	l.OffsetPercent = min(l.OffsetPercent, 95)
 
 	if l.SizePercent <= 0 {
 		l.SizePercent = 90
 	}
 
-	if l.SizePercent > 100 {
-		l.SizePercent = 100
-	}
+	l.SizePercent = min(l.SizePercent, 100)
 
 	l.Color = CloneColor(l.Color)
 	return l

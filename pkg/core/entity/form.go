@@ -1,6 +1,9 @@
 package entity
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // FieldType identifies the kind of interactive AcroForm field.
 type FieldType int
@@ -176,7 +179,7 @@ func NewDropdown(name string, rect [4]float64, pageIndex int, options []string) 
 		Type:        FieldDropdown,
 		Rect:        rect,
 		PageIndex:   pageIndex,
-		Options:     append([]string(nil), options...),
+		Options:     slices.Clone(options),
 		Flags:       FlagCombo,
 		FontSize:    12,
 		FontName:    "Helv",
@@ -191,7 +194,7 @@ func NewListBox(name string, rect [4]float64, pageIndex int, options []string) *
 		Type:        FieldListBox,
 		Rect:        rect,
 		PageIndex:   pageIndex,
-		Options:     append([]string(nil), options...),
+		Options:     slices.Clone(options),
 		FontSize:    12,
 		FontName:    "Helv",
 		BorderWidth: 1,
@@ -277,7 +280,7 @@ func CloneField(field *Field) *Field {
 	clone := *field
 	clone.BGColor = cloneColorTriple(field.BGColor)
 	clone.BorderColor = cloneColorTriple(field.BorderColor)
-	clone.Options = append([]string(nil), field.Options...)
+	clone.Options = slices.Clone(field.Options)
 	clone.children = make([]*Field, 0, len(field.children))
 	for _, child := range field.children {
 		clone.children = append(clone.children, CloneField(child))
@@ -289,8 +292,7 @@ func cloneColorTriple(color *[3]float64) *[3]float64 {
 	if color == nil {
 		return nil
 	}
-	clone := *color
-	return &clone
+	return new(*color)
 }
 
 func appendAcroFormMap(form *AcroForm, m map[string]any) map[string]any {

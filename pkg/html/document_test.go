@@ -1,7 +1,6 @@
 package html_test
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -16,9 +15,9 @@ func TestDocumentFromString_WhenNoPageRule_ShouldMatchFromStringRows(t *testing.
 
 	input := "<h1>Title</h1><p>Some paragraph</p>"
 
-	rows, err := html.FromString(context.Background(), input)
+	rows, err := html.FromString(t.Context(), input)
 	require.NoError(t, err)
-	doc, err := html.DocumentFromString(context.Background(), input)
+	doc, err := html.DocumentFromString(t.Context(), input)
 	require.NoError(t, err)
 
 	assert.Nil(t, doc.Page)
@@ -35,7 +34,7 @@ func TestDocumentFromString_WhenNoPageRule_ShouldMatchFromStringRows(t *testing.
 func TestDocumentFromString_WhenPageRule_ShouldExposePageOptions(t *testing.T) {
 	t.Parallel()
 
-	doc, err := html.DocumentFromString(context.Background(), `<style>@page { size: A5; margin: 12mm }</style><p>x</p>`)
+	doc, err := html.DocumentFromString(t.Context(), `<style>@page { size: A5; margin: 12mm }</style><p>x</p>`)
 
 	require.NoError(t, err)
 	require.NotNil(t, doc.Page)
@@ -48,7 +47,7 @@ func TestDocumentFromReader_WhenPageRule_ShouldMatchDocumentFromString(t *testin
 
 	input := `<style>@page { size: letter }</style><p>x</p>`
 
-	doc, err := html.DocumentFromReader(context.Background(), strings.NewReader(input))
+	doc, err := html.DocumentFromReader(t.Context(), strings.NewReader(input))
 
 	require.NoError(t, err)
 	require.NotNil(t, doc.Page)
@@ -59,7 +58,7 @@ func TestDocumentFromString_WhenPseudoPageRule_ShouldNotifyUnsupportedHandler(t 
 	t.Parallel()
 
 	var got []string
-	_, err := html.DocumentFromString(context.Background(),
+	_, err := html.DocumentFromString(t.Context(),
 		`<style>@page :first { margin: 0 }</style><p>x</p>`,
 		html.WithUnsupportedHandler(func(thing, value string) {
 			got = append(got, thing+"="+value)

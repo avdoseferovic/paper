@@ -26,22 +26,33 @@ linters:
     - makezero
     - mirror
     - misspell
+    - modernize
     - nakedret
     - nestif
     - nilerr
     - noctx
+    - paralleltest
     - perfsprint
     - predeclared
     - reassign
     - recvcheck
     - revive
     - staticcheck
+    # Deliberately NOT enabled: testableexamples. Every example in
+    # example_test.go already carries the `// Output:` marker it would ask for,
+    # so it has nothing left to catch here. Enabling it as a fourth extra
+    # analyzer on top of modernize/usetesting/paralleltest tips golangci-lint
+    # into a state where staticcheck loses its "t.Fatal terminates" facts and
+    # reports 21 bogus SA5011 nil-dereferences in tests; dropping any one of the
+    # four clears them. Keeping SA5011 working is worth more than re-checking
+    # markers that are already present.
     - testifylint
     - thelper
     - tparallel
     - unconvert
     - unused
     - usestdlibvars
+    - usetesting
     - wastedassign
 
   settings:
@@ -200,6 +211,19 @@ linters:
         linters:
           - errcheck
         text: "^Error return value is not checked$"
+      # Four tests must stay sequential, and each one says so in a comment at
+      # the declaration. testing.AllocsPerRun pins GOMAXPROCS to 1 and panics
+      # outright when called from a parallel test; goleak.VerifyNone inspects
+      # the whole-process goroutine set, so a concurrently running test's
+      # workers read as leaks; and the builder test mutates the
+      # props.BlackColor package global to prove the builder does not alias it.
+      - linters:
+          - paralleltest
+        text: >-
+          TestRepClosure_ASCIIInputDoesNotAllocate|
+          TestPaper_GenerateParallelPagesDoesNotLeakGoroutines|
+          TestPaper_GenerateParallelPagesCancellationDoesNotLeak|
+          TestNewCfgBuilderDefaultFontDoesNotShareMutableColorGlobal
 
 issues:
   max-issues-per-linter: 0

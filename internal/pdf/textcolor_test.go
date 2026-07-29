@@ -7,7 +7,10 @@ import "testing"
 // the very first assignment must still produce an operator string even when the
 // requested color is black (the zero value of the cached components).
 func TestSetTextColor_CachesOnlyIdenticalColors(t *testing.T) {
+	t.Parallel()
+
 	t.Run("black on a fresh document still emits an operator", func(t *testing.T) {
+		t.Parallel()
 		f := &PDF{}
 		f.setTextColor(0, 0, 0)
 
@@ -20,6 +23,7 @@ func TestSetTextColor_CachesOnlyIdenticalColors(t *testing.T) {
 	})
 
 	t.Run("changing color updates the operator", func(t *testing.T) {
+		t.Parallel()
 		f := &PDF{}
 		f.setTextColor(0, 0, 0)
 		first := f.color.text.str
@@ -34,6 +38,7 @@ func TestSetTextColor_CachesOnlyIdenticalColors(t *testing.T) {
 	})
 
 	t.Run("repeating a color keeps the same operator", func(t *testing.T) {
+		t.Parallel()
 		f := &PDF{}
 		f.setTextColor(12, 34, 56)
 		want := f.color.text.str
@@ -45,6 +50,7 @@ func TestSetTextColor_CachesOnlyIdenticalColors(t *testing.T) {
 	})
 
 	t.Run("colorFlag tracks a fill change even when text is unchanged", func(t *testing.T) {
+		t.Parallel()
 		f := &PDF{}
 		f.setTextColor(10, 20, 30)
 		f.setFillColor(10, 20, 30)

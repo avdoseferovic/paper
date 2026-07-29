@@ -2,10 +2,10 @@ package merge_test
 
 import (
 	"bytes"
-	"context"
+	"maps"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -34,16 +34,16 @@ func TestBytes(t *testing.T) {
 		// Arrange
 		m1 := paper.New()
 		m1.AddRows(text.NewRow(10, "text1"))
-		doc1, _ := m1.Generate(context.Background())
+		doc1, _ := m1.Generate(t.Context())
 		doc1Bytes := doc1.GetBytes()
 
 		m2 := paper.New()
 		m2.AddRows(text.NewRow(10, "text2"))
-		doc2, _ := m2.Generate(context.Background())
+		doc2, _ := m2.Generate(t.Context())
 		doc2Bytes := doc2.GetBytes()
 
 		// Act
-		result, err := merge.Bytes(context.Background(), doc1Bytes, doc2Bytes)
+		result, err := merge.Bytes(t.Context(), doc1Bytes, doc2Bytes)
 
 		// Assert
 		require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestBytes(t *testing.T) {
 		invalidPDF := []byte("not a valid pdf")
 
 		// Act
-		result, err := merge.Bytes(context.Background(), invalidPDF, invalidPDF)
+		result, err := merge.Bytes(t.Context(), invalidPDF, invalidPDF)
 
 		// Assert
 		assert.Nil(t, result)
@@ -73,7 +73,7 @@ func TestBytes(t *testing.T) {
 			generateTextPDF(t, "compressed text", config.NewBuilder().WithCompression(true).Build()),
 		}
 
-		result, err := merge.Bytes(context.Background(), pdfs...)
+		result, err := merge.Bytes(t.Context(), pdfs...)
 
 		require.NoError(t, err)
 		assertPDFPageGraph(t, result, len(pdfs))
@@ -85,7 +85,7 @@ func generateTextPDF(t *testing.T, value string, cfg ...*entity.Config) []byte {
 
 	m := paper.New(cfg...)
 	m.AddRows(text.NewRow(10, value))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	return doc.GetBytes()
@@ -99,7 +99,7 @@ func generateImagePDF(t *testing.T) []byte {
 
 	m := paper.New()
 	m.AddRow(30, image.NewFromBytesCol(12, img, extension.Png, props.Rect{Center: true, Percent: 80}))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	return doc.GetBytes()
@@ -118,7 +118,7 @@ func generateGradientPDF(t *testing.T) []byte {
 	}
 	m := paper.New()
 	m.AddRow(20, text.NewCol(12, "gradient")).WithStyle(&props.Cell{BackgroundGradient: gradient})
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	return doc.GetBytes()
@@ -130,7 +130,7 @@ func generateLinkedPDF(t *testing.T) []byte {
 	link := "https://example.com"
 	m := paper.New()
 	m.AddRows(text.NewRow(10, "linked text", props.Text{Hyperlink: &link, Align: consts.AlignCenter}))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	return doc.GetBytes()
@@ -151,7 +151,7 @@ func generateCustomFontPDF(t *testing.T) []byte {
 		Build()
 	m := paper.New(cfg)
 	m.AddRows(text.NewRow(10, "custom font"))
-	doc, err := m.Generate(context.Background())
+	doc, err := m.Generate(t.Context())
 	require.NoError(t, err)
 
 	return doc.GetBytes()
@@ -209,12 +209,7 @@ func parseTestObjects(t *testing.T, pdf []byte) map[int][]byte {
 func findTestObject(t *testing.T, objects map[int][]byte, pattern *regexp.Regexp) int {
 	t.Helper()
 
-	ids := make([]int, 0, len(objects))
-	for id := range objects {
-		ids = append(ids, id)
-	}
-	sort.Ints(ids)
-	for _, id := range ids {
+	for _, id := range slices.Sorted(maps.Keys(objects)) {
 		if pattern.Match(objects[id]) {
 			return id
 		}

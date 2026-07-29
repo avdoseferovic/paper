@@ -6,6 +6,8 @@ import (
 )
 
 func TestCIDWidthRunsFormatEqualWidthInterval(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(12, map[int]int{
 		10: 500,
 		11: 500,
@@ -20,6 +22,8 @@ func TestCIDWidthRunsFormatEqualWidthInterval(t *testing.T) {
 }
 
 func TestCIDWidthRunsFormatMixedWidthArray(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(12, map[int]int{
 		10: 500,
 		11: 520,
@@ -34,6 +38,8 @@ func TestCIDWidthRunsFormatMixedWidthArray(t *testing.T) {
 }
 
 func TestCIDWidthRunsMergeAdjacentShortRuns(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(13, map[int]int{
 		10: 500,
 		11: 500,
@@ -49,6 +55,8 @@ func TestCIDWidthRunsMergeAdjacentShortRuns(t *testing.T) {
 }
 
 func TestCIDWidthRunsKeepLongIntervalSeparate(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(14, map[int]int{
 		10: 500,
 		11: 500,
@@ -65,6 +73,8 @@ func TestCIDWidthRunsKeepLongIntervalSeparate(t *testing.T) {
 }
 
 func TestCIDWidthRunsFiltersHighCIDsByUsedRunes(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(258, map[int]int{
 		250: 300,
 		256: 400,
@@ -80,6 +90,8 @@ func TestCIDWidthRunsFiltersHighCIDsByUsedRunes(t *testing.T) {
 }
 
 func TestCIDWidthRunsMapsMissingWidthSentinelToZero(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(20, map[int]int{20: 65535}, nil)
 
 	got := formatCIDWidthRuns(font, 20)
@@ -90,6 +102,8 @@ func TestCIDWidthRunsMapsMissingWidthSentinelToZero(t *testing.T) {
 }
 
 func TestCIDWidthRunsSparseRanges(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(12, map[int]int{10: 500, 12: 520}, nil)
 
 	got := formatCIDWidthRuns(font, 12)
@@ -100,6 +114,8 @@ func TestCIDWidthRunsSparseRanges(t *testing.T) {
 }
 
 func TestCIDWidthRunsHonorsLastRuneBoundary(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(11, map[int]int{10: 500, 11: 520}, nil)
 
 	got := formatCIDWidthRuns(font, 10)
@@ -110,6 +126,8 @@ func TestCIDWidthRunsHonorsLastRuneBoundary(t *testing.T) {
 }
 
 func TestCIDWidthRunsUsesOriginalRuneWidthForRemappedCID(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(0xE000, map[int]int{0x1F600: 900}, map[int]int{0xE000: 0x1F600})
 
 	got := formatCIDWidthRuns(font, 0xE000)
@@ -120,6 +138,8 @@ func TestCIDWidthRunsUsesOriginalRuneWidthForRemappedCID(t *testing.T) {
 }
 
 func TestGenerateCIDFontMapWritesWidthObjectEntry(t *testing.T) {
+	t.Parallel()
+
 	font := cidWidthTestFont(10, map[int]int{10: 500}, nil)
 	f := &PDF{}
 
@@ -132,6 +152,8 @@ func TestGenerateCIDFontMapWritesWidthObjectEntry(t *testing.T) {
 }
 
 func TestBuildToUnicodeCMapMapsRemappedEmojiCID(t *testing.T) {
+	t.Parallel()
+
 	got := buildToUnicodeCMap(map[int]int{0xE000: 0x1F600})
 	if !strings.Contains(got, "<E000> <D83DDE00>") {
 		t.Fatalf("expected remapped emoji CID in ToUnicode CMap, got %q", got)

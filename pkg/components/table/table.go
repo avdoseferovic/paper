@@ -3,6 +3,7 @@ package table
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -99,7 +100,7 @@ func (t *Table) ColumnWidths() []float64 {
 	if len(t.columnWidths) == 0 {
 		return nil
 	}
-	return append([]float64(nil), t.columnWidths...)
+	return slices.Clone(t.columnWidths)
 }
 
 // SetConfig propagates Paper config to all cell components.
@@ -126,7 +127,7 @@ func (t *Table) GetStructure() *node.Node[core.Structure] {
 		},
 	}
 	if len(t.columnWidths) > 0 {
-		str.Details["column_widths"] = append([]float64(nil), t.columnWidths...)
+		str.Details["column_widths"] = slices.Clone(t.columnWidths)
 	}
 	if t.preferredWidth > 0 {
 		str.Details["preferred_width"] = t.preferredWidth

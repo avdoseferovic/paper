@@ -104,12 +104,8 @@ func (s *ComputedStyle) applyOpacity(val string) {
 	if strings.HasSuffix(trimmed, "%") {
 		v /= 100.0
 	}
-	if v < 0 {
-		v = 0
-	}
-	if v > 1 {
-		v = 1
-	}
+	v = max(v, 0)
+	v = min(v, 1)
 	s.Opacity = v
 }
 

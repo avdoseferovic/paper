@@ -20,21 +20,21 @@ func TestFromString(t *testing.T) {
 
 	t.Run("returns rows for simple html", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString(context.Background(), "<p>hello</p>")
+		rows, err := html.FromString(t.Context(), "<p>hello</p>")
 		require.NoError(t, err)
 		assert.NotEmpty(t, rows)
 	})
 
 	t.Run("handles malformed html without error", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString(context.Background(), "<p>unclosed")
+		rows, err := html.FromString(t.Context(), "<p>unclosed")
 		require.NoError(t, err) // golang.org/x/net/html is permissive
 		assert.NotEmpty(t, rows)
 	})
 
 	t.Run("empty string returns empty rows", func(t *testing.T) {
 		t.Parallel()
-		rows, err := html.FromString(context.Background(), "")
+		rows, err := html.FromString(t.Context(), "")
 		require.NoError(t, err)
 		_ = rows // may be nil or empty
 	})
@@ -43,7 +43,7 @@ func TestFromString(t *testing.T) {
 func TestFromReader(t *testing.T) {
 	t.Parallel()
 	r := strings.NewReader("<p>hi</p>")
-	rows, err := html.FromReader(context.Background(), r)
+	rows, err := html.FromReader(t.Context(), r)
 	require.NoError(t, err)
 	assert.NotEmpty(t, rows)
 }
@@ -51,7 +51,7 @@ func TestFromReader(t *testing.T) {
 func TestFromString_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	rows, err := html.FromString(ctx, "<p>hi</p>")
@@ -63,7 +63,7 @@ func TestFromString_ReturnsContextError(t *testing.T) {
 func TestFromReader_ReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	rows, err := html.FromReader(ctx, strings.NewReader("<p>hi</p>"))
@@ -86,7 +86,7 @@ func TestFromString_RejectsOversizeImagePixels(t *testing.T) {
 	t.Parallel()
 
 	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngHeaderWithDimensions(40_000, 40_000))
-	_, err := html.FromString(context.Background(), `<html><body><img src="`+uri+`"></body></html>`)
+	_, err := html.FromString(t.Context(), `<html><body><img src="`+uri+`"></body></html>`)
 
 	require.ErrorIs(t, err, html.ErrImageTooLarge)
 }
@@ -95,7 +95,7 @@ func TestFromString_RejectsOversizeImageBytes(t *testing.T) {
 	t.Parallel()
 
 	uri := "data:image/png;base64," + strings.Repeat("A", 24)
-	_, err := html.FromString(context.Background(),
+	_, err := html.FromString(t.Context(),
 		`<html><body><img src="`+uri+`"></body></html>`,
 		html.WithLimits(html.Limits{MaxImageBytes: 10}),
 	)
@@ -117,7 +117,7 @@ func TestFromString_RejectsDeepDOM(t *testing.T) {
 	}
 	b.WriteString("</body></html>")
 
-	_, err := html.FromString(context.Background(), b.String())
+	_, err := html.FromString(t.Context(), b.String())
 
 	require.ErrorIs(t, err, html.ErrDOMTooDeep)
 }
@@ -132,7 +132,7 @@ func TestFromString_RejectsLargeDOM(t *testing.T) {
 	}
 	b.WriteString("</body></html>")
 
-	_, err := html.FromString(context.Background(), b.String(), html.WithLimits(html.Limits{MaxDOMNodes: 10}))
+	_, err := html.FromString(t.Context(), b.String(), html.WithLimits(html.Limits{MaxDOMNodes: 10}))
 
 	require.ErrorIs(t, err, html.ErrDOMTooLarge)
 }
@@ -149,7 +149,7 @@ func TestFromString_RejectsTooManyStyleRules(t *testing.T) {
 	}
 	b.WriteString("</style></head><body><p>ok</p></body></html>")
 
-	_, err := html.FromString(context.Background(), b.String(), html.WithLimits(html.Limits{MaxStyleRules: 5}))
+	_, err := html.FromString(t.Context(), b.String(), html.WithLimits(html.Limits{MaxStyleRules: 5}))
 
 	require.ErrorIs(t, err, html.ErrStyleRulesTooLarge)
 }
@@ -157,7 +157,7 @@ func TestFromString_RejectsTooManyStyleRules(t *testing.T) {
 func TestFromString_RejectsOversizeSVG(t *testing.T) {
 	t.Parallel()
 
-	_, err := html.FromString(context.Background(),
+	_, err := html.FromString(t.Context(),
 		`<html><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><rect width="10" height="10"/></svg></body></html>`,
 		html.WithLimits(html.Limits{MaxSVGPixels: 100}),
 	)
@@ -209,13 +209,13 @@ func TestFromHTML_DropsUnsafeLinkSchemes(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			rows, err := html.FromString(context.Background(), `<p><a href="`+tc.href+`">click</a></p>`)
+			rows, err := html.FromString(t.Context(), `<p><a href="`+tc.href+`">click</a></p>`)
 			require.NoError(t, err)
 			require.NotEmpty(t, rows)
 
 			doc := paper.New()
 			doc.AddRows(rows...)
-			generated, err := doc.Generate(context.Background())
+			generated, err := doc.Generate(t.Context())
 			require.NoError(t, err)
 
 			found := bytes.Contains(generated.GetBytes(), []byte(tc.href))

@@ -1,6 +1,8 @@
 package paper
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -266,13 +268,8 @@ func lineWidths(tokens []rtToken) map[int]float64 {
 		if t.isBreak || t.skip {
 			continue
 		}
-		right := t.right
-		if right == 0 {
-			right = t.x + t.width
-		}
-		if right > lineWidths[t.lineY] {
-			lineWidths[t.lineY] = right
-		}
+		right := cmp.Or(t.right, t.x+t.width)
+		lineWidths[t.lineY] = max(lineWidths[t.lineY], right)
 	}
 	return lineWidths
 }
@@ -306,9 +303,7 @@ func lastRenderableLine(tokens []rtToken) int {
 		if t.isBreak || t.skip {
 			continue
 		}
-		if t.lineY > last {
-			last = t.lineY
-		}
+		last = max(last, t.lineY)
 	}
 	return last
 }

@@ -2,6 +2,7 @@ package pdf
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"maps"
 	"strings"
@@ -41,15 +42,9 @@ func pdfNew(orientationStr, unitStr, sizeStr, fontDirStr string, size SizeType) 
 	} else {
 		orientationStr = strings.ToLower(orientationStr)
 	}
-	if unitStr == "" {
-		unitStr = "mm"
-	}
-	if sizeStr == "" {
-		sizeStr = "A4"
-	}
-	if fontDirStr == "" {
-		fontDirStr = "."
-	}
+	unitStr = cmp.Or(unitStr, "mm")
+	sizeStr = cmp.Or(sizeStr, "A4")
+	fontDirStr = cmp.Or(fontDirStr, ".")
 	f.page = 0
 	f.n = 2
 	f.pages = make([]*bytes.Buffer, 0, 8)

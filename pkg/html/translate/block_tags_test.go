@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -16,7 +15,7 @@ func translateRows(t *testing.T, htmlStr string) int {
 	t.Helper()
 	doc, err := dom.Parse(htmlStr)
 	require.NoError(t, err)
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	return len(rows)
 }
@@ -46,7 +45,7 @@ func TestBlockTag_StyledHrHeightAndWidth(t *testing.T) {
 	doc, err := dom.Parse(`<hr style="height:4mm;border-top:1pt solid #888">`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, 4.0, rows[0].GetHeight(nil, nil))
@@ -76,7 +75,7 @@ func TestBlockTag_TableColgroup_DoesNotLogUnsupported(t *testing.T) {
 	var unsupported []string
 	doc, err := dom.Parse(`<table><colgroup><col width="20%"></colgroup><tr><td>X</td></tr></table>`)
 	require.NoError(t, err)
-	_, err = Translate(context.Background(), doc, WithUnsupportedHandler(func(thing, value string) {
+	_, err = Translate(t.Context(), doc, WithUnsupportedHandler(func(thing, value string) {
 		unsupported = append(unsupported, thing+":"+value)
 	}))
 	require.NoError(t, err)
@@ -90,7 +89,7 @@ func TestBlockTag_ListStyleTypeNone(t *testing.T) {
 	doc, err := dom.Parse(`<html><head><style>ul.clean{list-style-type:none}</style></head><body><ul class="clean"><li>A</li></ul></body></html>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
@@ -109,7 +108,7 @@ func TestBlockTag_OrderedListStartAndReversed(t *testing.T) {
 	doc, err := dom.Parse(`<ol start="7" reversed><li>A</li><li>B</li></ol>`)
 	require.NoError(t, err)
 
-	rows, err := Translate(context.Background(), doc)
+	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 

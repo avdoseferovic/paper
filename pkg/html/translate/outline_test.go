@@ -1,7 +1,6 @@
 package translate_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/assert"
@@ -14,7 +13,7 @@ func translateOutlineDetails(t *testing.T, html string, opts ...translate.Option
 	t.Helper()
 	doc, err := dom.Parse(html)
 	require.NoError(t, err)
-	rows, err := translate.Translate(context.Background(), doc, opts...)
+	rows, err := translate.Translate(t.Context(), doc, opts...)
 	require.NoError(t, err)
 
 	var details []map[string]any
@@ -53,7 +52,7 @@ func TestFromDOM_WhenTopLevelHeader_ShouldExtractHeaderRows(t *testing.T) {
 	doc, err := dom.Parse("<header><p>band</p></header><p>content</p>")
 	require.NoError(t, err)
 
-	document, err := translate.FromDOM(context.Background(), doc)
+	document, err := translate.FromDOM(t.Context(), doc)
 
 	require.NoError(t, err)
 	assert.Len(t, document.HeaderRows, 1)

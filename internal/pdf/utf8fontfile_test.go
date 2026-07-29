@@ -2,6 +2,7 @@ package pdf
 
 import (
 	"bytes"
+	"slices"
 	"testing"
 )
 
@@ -157,7 +158,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImage(t *testing.T) {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{
@@ -197,7 +198,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImageFormat18(t *testing.T) {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{
@@ -233,7 +234,7 @@ func TestUTF8FontFileCBDTBitmapGlyphImageFormat19(t *testing.T) {
 	cbdt := appendUint32(nil, 0x00030000)
 	cbdt = append(cbdt, glyphData...)
 
-	data := append(append([]byte(nil), cblc...), cbdt...)
+	data := append(slices.Clone(cblc), cbdt...)
 	utf := &utf8FontFile{
 		fileReader: &fileReader{array: data},
 		tableDescriptions: map[string]*tableDescription{

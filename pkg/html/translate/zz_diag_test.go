@@ -7,6 +7,8 @@ import (
 )
 
 func TestDiag_ChipRunBackground(t *testing.T) {
+	t.Parallel()
+
 	html := `<html><head><style>` +
 		`.r2{--n100:#e9ecef;--rf:9999px}` +
 		`.r2 .q-chip{background:var(--n100);border-radius:var(--rf);padding:3px 9px;color:#46535f}` +

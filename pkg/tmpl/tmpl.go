@@ -7,6 +7,7 @@ package tmpl
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -140,9 +141,7 @@ func renderHTML(
 }
 
 func execute(templateStr, name string, data any, opts *Options) (string, error) {
-	if name == "" {
-		name = "paper"
-	}
+	name = cmp.Or(name, "paper")
 
 	t, err := newTemplate(name, opts)
 	if err != nil {

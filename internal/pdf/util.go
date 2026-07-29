@@ -3,6 +3,7 @@ package pdf
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"compress/zlib"
 	"fmt"
 	"io"
@@ -298,9 +299,7 @@ func (f *PDF) UnicodeTranslatorFromDescriptor(cpStr string) func(string) string 
 	if f.err != nil {
 		return doNothing
 	}
-	if cpStr == "" {
-		cpStr = "cp1252"
-	}
+	cpStr = cmp.Or(cpStr, "cp1252")
 
 	if cached, hit := codepageMapCache.Load(cpStr); hit {
 		if m, valid := cached.(map[rune]byte); valid {

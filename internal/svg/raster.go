@@ -96,11 +96,7 @@ func RasterizeWithLimit(svgBytes []byte, widthMM, heightMM float64, maxPixels in
 }
 
 func pxFromMM(mm float64) int {
-	px := int(mm / 25.4 * DPIForRaster)
-	if px < 1 {
-		return 1
-	}
-	return px
+	return max(int(mm/25.4*DPIForRaster), 1)
 }
 
 func targetPixels(viewBox svgViewBox, widthMM, heightMM float64) (int, int) {

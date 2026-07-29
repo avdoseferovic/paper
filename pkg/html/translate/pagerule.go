@@ -125,9 +125,7 @@ func parsePageMarginShorthand(opts *PageOptions, value string) bool {
 	values := make([]float64, 0, len(fields))
 	for _, field := range fields {
 		v := css.ParseLength(field, 0)
-		if v < 0 {
-			v = 0
-		}
+		v = max(v, 0)
 		values = append(values, v)
 	}
 	switch len(values) {
@@ -150,9 +148,7 @@ func parsePageMarginShorthand(opts *PageOptions, value string) bool {
 
 func setPageMargin(target *float64, value string) bool {
 	v := css.ParseLength(strings.TrimSpace(value), 0)
-	if v < 0 {
-		v = 0
-	}
+	v = max(v, 0)
 	*target = v
 	return true
 }

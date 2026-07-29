@@ -8,6 +8,8 @@ import (
 )
 
 func TestBuildShowcaseDocument(t *testing.T) {
+	t.Parallel()
+
 	doc, err := buildShowcaseDocument()
 	if err != nil {
 		t.Fatalf("build showcase document: %v", err)
@@ -18,6 +20,8 @@ func TestBuildShowcaseDocument(t *testing.T) {
 }
 
 func TestBuildShowcasePaper_IncludesDesignHandoffSections(t *testing.T) {
+	t.Parallel()
+
 	m, err := buildShowcasePaper()
 	if err != nil {
 		t.Fatalf("build showcase paper: %v", err)

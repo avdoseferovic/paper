@@ -184,7 +184,7 @@ func (path *svgPath) render(paint svgPaint) {
 	if stroke.A == 0 || paint.strokeWidth <= 0 {
 		return
 	}
-	width := paint.strokeWidth * math.Max(math.Abs(path.renderer.scaleX), math.Abs(path.renderer.scaleY))
+	width := paint.strokeWidth * max(math.Abs(path.renderer.scaleX), math.Abs(path.renderer.scaleY))
 	path.stroke(width, stroke)
 }
 

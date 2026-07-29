@@ -8,6 +8,8 @@ import (
 )
 
 func TestColorSettersAndGetters(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetDrawColor(10, 20, 30)
 	if r, g, b := f.GetDrawColor(); r != 10 || g != 20 || b != 30 {
@@ -24,6 +26,8 @@ func TestColorSettersAndGetters(t *testing.T) {
 }
 
 func TestAlphaSetAndGet(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetAlpha(0.5, "Multiply")
 	if f.Err() {
@@ -36,6 +40,8 @@ func TestAlphaSetAndGet(t *testing.T) {
 }
 
 func TestSetAlphaEmptyBlendModeNormalizesToNormal(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetAlpha(0.5, "")
 	if f.Err() {
@@ -54,6 +60,8 @@ func TestSetAlphaEmptyBlendModeNormalizesToNormal(t *testing.T) {
 }
 
 func TestClipTextUTF8FontWritesCIDs(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetCompression(false)
 	f.isCurrentUTF8 = true
@@ -70,6 +78,8 @@ func TestClipTextUTF8FontWritesCIDs(t *testing.T) {
 }
 
 func TestSetAlphaOutOfRangeErrors(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetAlpha(1.5, "Normal")
 	if !f.Err() {
@@ -78,6 +88,8 @@ func TestSetAlphaOutOfRangeErrors(t *testing.T) {
 }
 
 func TestLineWidthSetAndGet(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetLineWidth(2.5)
 	if got := f.GetLineWidth(); got != 2.5 {
@@ -86,6 +98,8 @@ func TestLineWidthSetAndGet(t *testing.T) {
 }
 
 func TestLineCapAndJoinStyles(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	for _, s := range []string{"butt", "round", "square", "unknown"} {
 		f.SetLineCapStyle(s)
@@ -108,6 +122,8 @@ func TestLineCapAndJoinStyles(t *testing.T) {
 }
 
 func TestDashPattern(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.SetDashPattern([]float64{2, 1}, 0)
 	f.Line(10, 10, 50, 50)
@@ -119,6 +135,8 @@ func TestDashPattern(t *testing.T) {
 }
 
 func TestPrimitiveShapes(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Line(10, 10, 100, 10)
 	f.Rect(10, 20, 50, 30, "D")
@@ -136,6 +154,8 @@ func TestPrimitiveShapes(t *testing.T) {
 }
 
 func TestEllipseClosesFullArcBeforePainting(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Circle(40, 40, 10, "D")
 
@@ -146,6 +166,8 @@ func TestEllipseClosesFullArcBeforePainting(t *testing.T) {
 }
 
 func TestPartialArcStaysOpen(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Arc(40, 40, 10, 10, 0, 0, 180, "D")
 
@@ -156,6 +178,8 @@ func TestPartialArcStaysOpen(t *testing.T) {
 }
 
 func TestFillOnlyEllipseClosesFullPath(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Circle(40, 40, 10, "F")
 
@@ -166,6 +190,8 @@ func TestFillOnlyEllipseClosesFullPath(t *testing.T) {
 }
 
 func TestPathMoveAndLineUseFiveDecimalPrecision(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.MoveTo(10.1234, 20.5678)
 	f.LineTo(30.2345, 20.5678)
@@ -180,6 +206,8 @@ func TestPathMoveAndLineUseFiveDecimalPrecision(t *testing.T) {
 }
 
 func TestPolygonAndBeziergon(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	pts := []PointType{{X: 10, Y: 10}, {X: 60, Y: 10}, {X: 35, Y: 50}}
 	f.Polygon(pts, "DF")
@@ -194,6 +222,8 @@ func TestPolygonAndBeziergon(t *testing.T) {
 }
 
 func TestRoundedRectVariants(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RoundedRect(10, 10, 60, 40, 5, "1234", "D")
 	f.RoundedRectExt(10, 60, 60, 40, 3, 6, 9, 12, "FD")
@@ -204,6 +234,8 @@ func TestRoundedRectVariants(t *testing.T) {
 }
 
 func TestRoundedRectBalancesGraphicsState(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RoundedRect(10, 10, 60, 40, 5, "1234", "F")
 	f.RoundedRectExt(10, 60, 60, 40, 3, 6, 9, 12, "FD")
@@ -219,6 +251,8 @@ func TestRoundedRectBalancesGraphicsState(t *testing.T) {
 }
 
 func TestRoundedRectClosesPathBeforePainting(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.RoundedRect(10, 10, 60, 20, 10, "1234", "FD")
 
@@ -231,7 +265,7 @@ func TestRoundedRectClosesPathBeforePainting(t *testing.T) {
 // graphicsStateOpCounts counts the PDF graphics-state save ("q") and restore
 // ("Q") operators in a content stream.
 func graphicsStateOpCounts(content string) (saves, restores int) {
-	for _, field := range strings.Fields(content) {
+	for field := range strings.FieldsSeq(content) {
 		switch field {
 		case "q":
 			saves++
@@ -243,6 +277,8 @@ func graphicsStateOpCounts(content string) (saves, restores int) {
 }
 
 func TestPathDrawingAPI(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.MoveTo(10, 10)
 	f.LineTo(60, 10)
@@ -258,6 +294,8 @@ func TestPathDrawingAPI(t *testing.T) {
 }
 
 func TestGradients(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.LinearGradient(10, 10, 80, 40, 255, 0, 0, 0, 0, 255, 0, 0, 1, 0)
 	f.RadialGradient(10, 60, 80, 40, 255, 255, 0, 0, 0, 255, 0.5, 0.5, 0.5, 0.5, 1)
@@ -268,6 +306,8 @@ func TestGradients(t *testing.T) {
 }
 
 func TestClippingRegions(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 
 	f.ClipRect(10, 10, 50, 50, true)
@@ -301,6 +341,8 @@ func TestClippingRegions(t *testing.T) {
 }
 
 func TestClipEndOutOfSequenceErrors(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.ClipEnd()
 	if !f.Err() {

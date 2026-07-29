@@ -294,17 +294,7 @@ func nearlyEqual(a, b float64) bool {
 }
 
 func clampRadius(r, w, h float64) float64 {
-	maxR := w / 2
-	if h/2 < maxR {
-		maxR = h / 2
-	}
-	if r > maxR {
-		return maxR
-	}
-	if r < 0 {
-		return 0
-	}
-	return r
+	return min(max(r, 0), min(w/2, h/2))
 }
 
 // baseBorderThickness picks the thickness for the rounded stroke: BorderThickness

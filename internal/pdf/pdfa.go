@@ -1,14 +1,16 @@
 package pdf
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 )
 
 // SetPdfA configures PDF/A identification metadata and output intents.
 func (f *PDF) SetPdfA(config ConformanceConfig) {
 	clone := config
-	clone.ICCProfile = append([]byte(nil), config.ICCProfile...)
+	clone.ICCProfile = slices.Clone(config.ICCProfile)
 	clone.XMPSchemas = cloneXMPSchemas(config.XMPSchemas)
 	clone.XMPProperties = cloneXMPPropertyBlocks(config.XMPProperties)
 	f.pdfA = &clone
@@ -86,14 +88,8 @@ func (f *PDF) buildPdfAXMP() string {
 	conf := pdfAConformance(level)
 	created := timeOrNow(f.creationDate).Format("2006-01-02T15:04:05Z07:00")
 	modified := timeOrNow(f.modDate).Format("2006-01-02T15:04:05Z07:00")
-	creator := f.creator
-	if creator == "" {
-		creator = "Paper"
-	}
-	producer := f.producer
-	if producer == "" {
-		producer = "Paper"
-	}
+	creator := cmp.Or(f.creator, "Paper")
+	producer := cmp.Or(f.producer, "Paper")
 
 	var b strings.Builder
 	b.WriteString(`<?xpacket begin="` + "\xef\xbb\xbf" + `" id="W5M0MpCehiHzreSzNTczkc9d"?>` + "\n")
@@ -215,7 +211,7 @@ func cloneXMPSchemas(schemas []XMPSchema) []XMPSchema {
 	clones := make([]XMPSchema, len(schemas))
 	for i, schema := range schemas {
 		clones[i] = schema
-		clones[i].Properties = append([]XMPSchemaProperty(nil), schema.Properties...)
+		clones[i].Properties = slices.Clone(schema.Properties)
 	}
 	return clones
 }
@@ -227,7 +223,7 @@ func cloneXMPPropertyBlocks(blocks []XMPPropertyBlock) []XMPPropertyBlock {
 	clones := make([]XMPPropertyBlock, len(blocks))
 	for i, block := range blocks {
 		clones[i] = block
-		clones[i].Properties = append([]XMPProperty(nil), block.Properties...)
+		clones[i].Properties = slices.Clone(block.Properties)
 	}
 	return clones
 }
@@ -241,10 +237,7 @@ func (f *PDF) putPdfAOutputIntent() {
 	if len(profile) == 0 {
 		profile = srgbICCProfile()
 	}
-	condition := f.pdfA.OutputCondition
-	if condition == "" {
-		condition = "sRGB IEC61966-2.1"
-	}
+	condition := cmp.Or(f.pdfA.OutputCondition, "sRGB IEC61966-2.1")
 
 	f.newobj()
 	profileRef := f.n

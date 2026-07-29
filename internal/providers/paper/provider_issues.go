@@ -1,10 +1,14 @@
 package paper
 
-import "github.com/avdoseferovic/paper/pkg/metrics"
+import (
+	"slices"
+
+	"github.com/avdoseferovic/paper/pkg/metrics"
+)
 
 // RenderIssues returns the render fallback issues recorded by the provider.
 func (g *provider) RenderIssues() []metrics.RenderIssue {
-	return append([]metrics.RenderIssue(nil), g.issues...)
+	return slices.Clone(g.issues)
 }
 
 func (g *provider) recordRenderIssue(operation, message string, err error) {

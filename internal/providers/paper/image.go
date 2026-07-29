@@ -2,10 +2,10 @@ package paper
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"math"
 	"strconv"
 	"strings"
 
@@ -194,14 +194,12 @@ func objectImageRect(fit, position string, imageWidth, imageHeight, boxX, boxY, 
 
 func objectImageSize(fit string, imageWidth, imageHeight, boxWidth, boxHeight float64) (float64, float64) {
 	fit = strings.ToLower(strings.TrimSpace(fit))
-	if fit == "" {
-		fit = "contain"
-	}
+	fit = cmp.Or(fit, "contain")
 	switch fit {
 	case "fill":
 		return boxWidth, boxHeight
 	case "cover":
-		scale := math.Max(boxWidth/imageWidth, boxHeight/imageHeight)
+		scale := max(boxWidth/imageWidth, boxHeight/imageHeight)
 		return imageWidth * scale, imageHeight * scale
 	case "none":
 		return imageWidth, imageHeight
@@ -212,16 +210,14 @@ func objectImageSize(fit string, imageWidth, imageHeight, boxWidth, boxHeight fl
 		}
 		return containW, containH
 	default:
-		scale := math.Min(boxWidth/imageWidth, boxHeight/imageHeight)
+		scale := min(boxWidth/imageWidth, boxHeight/imageHeight)
 		return imageWidth * scale, imageHeight * scale
 	}
 }
 
 func objectImagePosition(value string, boxX, boxY, boxWidth, boxHeight, imageWidth, imageHeight float64) (float64, float64) {
 	value = strings.ToLower(strings.TrimSpace(value))
-	if value == "" {
-		value = "center"
-	}
+	value = cmp.Or(value, "center")
 	tokens := strings.Fields(value)
 	spaceX := boxWidth - imageWidth
 	spaceY := boxHeight - imageHeight

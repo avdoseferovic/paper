@@ -3,6 +3,8 @@ package pdf
 import "testing"
 
 func TestMarginsGetSet(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "mm"})
 	f.SetMargins(15, 20, 25)
 	f.SetLeftMargin(11)
@@ -15,6 +17,8 @@ func TestMarginsGetSet(t *testing.T) {
 }
 
 func TestCellMarginGetSet(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	f.SetCellMargin(3.5)
 	if got := f.GetCellMargin(); got != 3.5 {
@@ -23,6 +27,8 @@ func TestCellMarginGetSet(t *testing.T) {
 }
 
 func TestGetPageSizeReflectsOrientation(t *testing.T) {
+	t.Parallel()
+
 	p := NewCustom(&InitType{OrientationStr: "P", UnitStr: "pt", SizeStr: "A4"})
 	pw, ph := p.GetPageSize()
 	if pw >= ph {
@@ -36,6 +42,8 @@ func TestGetPageSizeReflectsOrientation(t *testing.T) {
 }
 
 func TestAutoPageBreakGetSet(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	f.SetAutoPageBreak(true, 17)
 	auto, margin := f.GetAutoPageBreak()
@@ -45,6 +53,8 @@ func TestAutoPageBreakGetSet(t *testing.T) {
 }
 
 func TestPageCountAndNo(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	f.AddPage()
 	f.AddPage()
@@ -57,6 +67,8 @@ func TestPageCountAndNo(t *testing.T) {
 }
 
 func TestSetPageMovesCurrentPage(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{})
 	f.AddPage()
 	f.AddPage()
@@ -70,6 +82,8 @@ func TestSetPageMovesCurrentPage(t *testing.T) {
 }
 
 func TestPageSizePerPage(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "pt"})
 	f.AddPageFormat("P", f.GetPageSizeStr("A5"))
 	w, h, _ := f.PageSize(1)
@@ -79,6 +93,8 @@ func TestPageSizePerPage(t *testing.T) {
 }
 
 func TestGetPageSizeStrKnownSize(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "pt"})
 	sz := f.GetPageSizeStr("A4")
 	if sz.Wd <= 0 || sz.Ht <= 0 {
@@ -87,6 +103,8 @@ func TestGetPageSizeStrKnownSize(t *testing.T) {
 }
 
 func TestSetPageBox(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "pt"})
 	f.AddPage()
 	f.SetPageBox("crop", 10, 10, 100, 100)
@@ -97,6 +115,8 @@ func TestSetPageBox(t *testing.T) {
 }
 
 func TestLnDefaultAndExplicit(t *testing.T) {
+	t.Parallel()
+
 	f := readyPDF(t)
 	f.Cell(40, 10, "line")
 	yBefore := f.GetY()
@@ -111,6 +131,8 @@ func TestLnDefaultAndExplicit(t *testing.T) {
 }
 
 func TestHeaderFooterFuncsInvoked(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{UnitStr: "mm"})
 	headerCalled := false
 	footerCalled := false

@@ -6,6 +6,8 @@ import (
 )
 
 func TestInitDataDefaultA4Size(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
@@ -20,6 +22,8 @@ func TestInitDataDefaultA4Size(t *testing.T) {
 }
 
 func TestInitDataCustomSizeOverride(t *testing.T) {
+	t.Parallel()
+
 	f := NewCustom(&InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
@@ -36,6 +40,8 @@ func TestInitDataCustomSizeOverride(t *testing.T) {
 }
 
 func TestInitDataStandardPageSizesAreCloned(t *testing.T) {
+	t.Parallel()
+
 	first := cloneStandardPageSizes()
 	first["a4"] = SizeType{Wd: 1, Ht: 1}
 
@@ -47,6 +53,8 @@ func TestInitDataStandardPageSizesAreCloned(t *testing.T) {
 }
 
 func TestInitDataCoreFontSetIsCloned(t *testing.T) {
+	t.Parallel()
+
 	first := cloneCoreFontSet()
 	delete(first, "helvetica")
 

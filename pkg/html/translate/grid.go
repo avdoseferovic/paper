@@ -227,12 +227,8 @@ func explicitGridPlacement(style *css.ComputedStyle, columnCount int, templateAr
 			span = style.GridColumnEnd
 		}
 	}
-	if span < 1 {
-		span = 1
-	}
-	if span > columnCount {
-		span = columnCount
-	}
+	span = max(span, 1)
+	span = min(span, columnCount)
 	if start >= columnCount {
 		start = columnCount - 1
 	}
@@ -269,9 +265,7 @@ func resolveGridArea(name string, areas [][]string) (int, int, int, bool) {
 }
 
 func nextGridAutoSlot(occupied [][]bool, span, columnCount int) (int, int) {
-	if span > columnCount {
-		span = columnCount
-	}
+	span = min(span, columnCount)
 	for row := 0; ; row++ {
 		for start := 0; start+span <= columnCount; start++ {
 			if gridSpanFits(occupied, row, start, span, columnCount) {

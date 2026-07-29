@@ -1,7 +1,6 @@
 package html_test
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -30,7 +29,7 @@ func TestWithRemoteAssetsLoadsRemoteStylesheet(t *testing.T) {
 	t.Parallel()
 
 	server := newAssetServer(t)
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="`+server.URL+`/style.css"></head><body><p>styled</p></body></html>`,
 		html.WithRemoteAssets(),
 	)
@@ -44,7 +43,7 @@ func TestWithURLPolicyBlocksFetches(t *testing.T) {
 
 	server := newAssetServer(t)
 	denied := errors.New("denied by policy")
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="`+server.URL+`/style.css"></head><body><p>ok</p></body></html>`,
 		html.WithRemoteAssets(),
 		html.WithURLPolicy(func(string) error { return denied }),
@@ -64,7 +63,7 @@ func TestWithHTTPClientIsUsedForFetches(t *testing.T) {
 		used = true
 		return http.DefaultTransport.RoundTrip(req)
 	})}
-	_, err := html.FromString(context.Background(),
+	_, err := html.FromString(t.Context(),
 		`<html><head><link rel="stylesheet" href="`+server.URL+`/style.css"></head><body><p>ok</p></body></html>`,
 		html.WithRemoteAssets(),
 		html.WithHTTPClient(client),
@@ -85,7 +84,7 @@ func TestWithFallbackFontPathRendersNonWinAnsiText(t *testing.T) {
 	_, statErr := os.Stat(fontPath)
 	require.NoError(t, statErr)
 
-	rows, err := html.FromString(context.Background(),
+	rows, err := html.FromString(t.Context(),
 		`<html><body><p>Zażółć gęślą jaźń</p></body></html>`,
 		html.WithFallbackFontPath(fontPath),
 	)

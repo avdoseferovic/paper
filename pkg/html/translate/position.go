@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"cmp"
+
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/css"
@@ -55,10 +57,7 @@ func (r *offsetRow) GetStructure() *node.Node[core.Structure] {
 }
 
 func (r *absoluteRow) GetStructure() *node.Node[core.Structure] {
-	position := r.position
-	if position == "" {
-		position = positionAbsolute
-	}
+	position := cmp.Or(r.position, positionAbsolute)
 	details := map[string]any{
 		"position":      position,
 		"x":             r.x,
@@ -233,10 +232,7 @@ func (r *absoluteRow) rightAlignedX(cell entity.Cell) float64 {
 	if r.relativeToCell {
 		minX = cell.X
 	}
-	if x < minX {
-		return minX
-	}
-	return x
+	return max(x, minX)
 }
 
 func (r *absoluteRow) remainingWidth(cell entity.Cell, targetX float64) float64 {
@@ -245,14 +241,8 @@ func (r *absoluteRow) remainingWidth(cell entity.Cell, targetX float64) float64 
 		startX = cell.X
 	}
 	used := targetX - startX
-	if used < 0 {
-		used = 0
-	}
-	width := cell.Width - used
-	if width < 0 {
-		return 0
-	}
-	return width
+	used = max(used, 0)
+	return max(cell.Width-used, 0)
 }
 
 func applyRelativePosition(style *css.ComputedStyle, rows []core.Row) []core.Row {
