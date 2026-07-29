@@ -38,14 +38,7 @@ linters:
     - recvcheck
     - revive
     - staticcheck
-    # Deliberately NOT enabled: testableexamples. Every example in
-    # example_test.go already carries the `// Output:` marker it would ask for,
-    # so it has nothing left to catch here. Enabling it as a fourth extra
-    # analyzer on top of modernize/usetesting/paralleltest tips golangci-lint
-    # into a state where staticcheck loses its "t.Fatal terminates" facts and
-    # reports 21 bogus SA5011 nil-dereferences in tests; dropping any one of the
-    # four clears them. Keeping SA5011 working is worth more than re-checking
-    # markers that are already present.
+    - testableexamples
     - testifylint
     - thelper
     - tparallel
@@ -211,6 +204,20 @@ linters:
         linters:
           - errcheck
         text: "^Error return value is not checked$"
+      # SA5011 needs staticcheck's "never returns" fact for testing.common.Fatal
+      # to see that `if x == nil { t.Fatal(...) }` guards the dereference below
+      # it. golangci-lint does not carry that fact into a linted package
+      # reliably: the same commit reports 23 guarded test dereferences on the CI
+      # runner and none locally with a cold cache, and toggling any unrelated
+      # analyzer flips the outcome, which is why testableexamples was held back
+      # until now. Every report so far has been one of those false positives, and
+      # a nil dereference that is real fails the test with a panic and a stack
+      # trace, so SA5011 is off in tests. Non-test code, which never calls
+      # t.Fatal, keeps it.
+      - path: _test\.go
+        linters:
+          - staticcheck
+        text: "SA5011"
       # Four tests must stay sequential, and each one says so in a comment at
       # the declaration. testing.AllocsPerRun pins GOMAXPROCS to 1 and panics
       # outright when called from a parallel test; goleak.VerifyNone inspects

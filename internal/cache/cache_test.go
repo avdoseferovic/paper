@@ -2,9 +2,7 @@ package cache_test
 
 import (
 	"fmt"
-	"os"
-	"path"
-	"strings"
+	"path/filepath"
 	"testing"
 
 	"github.com/avdoseferovic/paper/internal/cache"
@@ -94,22 +92,21 @@ func TestCache_LoadImage(t *testing.T) {
 		sut := cache.New()
 
 		// Act
-		err := sut.LoadImage(buildPath("/test/assets/images/biplane.jpg"), extension.Jpg)
+		err := sut.LoadImage(buildPath("test", "assets", "images", "biplane.jpg"), extension.Jpg)
 
 		// Assert
 		assert.Nil(t, err)
-		img, err := sut.GetImage(buildPath("/test/assets/images/biplane.jpg"), extension.Jpg)
+		img, err := sut.GetImage(buildPath("test", "assets", "images", "biplane.jpg"), extension.Jpg)
 		assert.Nil(t, err)
 		assert.NotNil(t, img)
 	})
 }
 
-func buildPath(file string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	dir = strings.ReplaceAll(dir, "internal/cache", "")
-	return path.Join(dir, file)
+// buildPath resolves a repository-relative asset path from this package's
+// directory, the way the font tests do. It used to strip the literal
+// "internal/cache" from the working directory, which matched nothing on Windows
+// and left the package directory in the path, and it joined with path.Join,
+// which builds slash-separated paths regardless of the platform.
+func buildPath(elem ...string) string {
+	return filepath.Join(append([]string{"..", ".."}, elem...)...)
 }
