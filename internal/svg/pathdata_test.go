@@ -136,6 +136,13 @@ func TestParsePathRejectsMalformedInput(t *testing.T) {
 		"vertical without point":   "V10",
 		"smooth cubic no current":  "S10 10 20 20",
 		"smooth quad no current":   "T10 10",
+		// Closepath takes no arguments, so a number after one cannot be an
+		// implicit repeat of it. Both of these used to loop forever: the second
+		// is the fuzz crasher from FuzzRasterizeWithLimit, which spun on a Z
+		// with no current point, and the first grew path.ops without bound
+		// because its close() had a current point to append.
+		"number after closepath":          "M0 0 L10 10 Z0 0",
+		"numbers after leading closepath": "Z0 0L10 10C1 2 3 4 5 6Z",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

@@ -25,10 +25,18 @@ func (path *svgPath) parse(data string) bool {
 		return false
 	}
 	for cursor.index < len(cursor.tokens) {
+		start := cursor.index
 		if !cursor.readCommand() {
 			return false
 		}
 		if !cursor.apply() {
+			return false
+		}
+		// Every iteration either consumes a command token or the operands of the
+		// command in effect, so the index always advances. This rejects the path
+		// rather than trusting that: a command that consumed nothing would spin
+		// here forever on input that comes from an untrusted document.
+		if cursor.index == start {
 			return false
 		}
 		// The command may have been rewritten (M implies L for the pairs that
@@ -39,11 +47,16 @@ func (path *svgPath) parse(data string) bool {
 }
 
 // readCommand consumes a command token when the cursor is on one. A number token
-// repeats the command in effect, which is only valid once one has been seen.
+// repeats the command in effect, which is only valid once one has been seen and
+// only for a command that takes operands to consume.
 func (cursor *pathCursor) readCommand() bool {
 	if cursor.tokens[cursor.index].command != 0 {
 		cursor.command = cursor.tokens[cursor.index].command
 		cursor.index++
+	} else if cursor.command == 'Z' || cursor.command == 'z' {
+		// Closepath takes no operands, so a number following one is not an
+		// implicit repeat of it but a malformed path.
+		return false
 	}
 	if cursor.command == 0 {
 		return false
