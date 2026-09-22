@@ -27,6 +27,7 @@ type pageBuilder struct {
 	footerHeight      float64
 	currentHeight     float64
 	currentControl    core.PageControl
+	automaticPageTop  bool
 }
 
 func newPageBuilder(config *entity.Config, provider core.Provider) *pageBuilder {
@@ -103,7 +104,14 @@ func (b *pageBuilder) addRow(r core.Row) {
 			b.fillPageToAddNew()
 			b.addHeader()
 		}
+		b.automaticPageTop = false
 		return
+	}
+	if b.automaticPageTop {
+		if spacer, ok := r.(core.AutomaticPageTopDiscarder); ok && spacer.DiscardAtAutomaticPageTop() {
+			return
+		}
+		b.automaticPageTop = false
 	}
 
 	if len(r.GetColumns()) == 0 {
@@ -132,6 +140,11 @@ func (b *pageBuilder) addRow(r core.Row) {
 	b.fillPageToAddNew()
 
 	b.addHeader()
+	b.automaticPageTop = true
+	if spacer, ok := r.(core.AutomaticPageTopDiscarder); ok && spacer.DiscardAtAutomaticPageTop() {
+		return
+	}
+	b.automaticPageTop = false
 
 	// AddRows row on the new page.
 	b.currentHeight += rowHeight
@@ -156,6 +169,7 @@ func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeig
 		b.fillPageToAddNew()
 		b.currentControl = continuationPageControl(splitControl)
 		b.addHeader()
+		b.automaticPageTop = true
 		b.addRow(rest)
 		return true
 	}
@@ -165,6 +179,7 @@ func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeig
 	b.fillPageToAddNew()
 	b.currentControl = continuationPageControl(splitControl)
 	b.addHeader()
+	b.automaticPageTop = true
 	if rest != nil {
 		b.addRow(rest)
 	}

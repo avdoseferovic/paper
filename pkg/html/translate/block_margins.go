@@ -144,6 +144,8 @@ type marginSpacerRow struct {
 	height float64
 }
 
+func (marginSpacerRow) DiscardAtAutomaticPageTop() bool { return true }
+
 func newMarginSpacer(h float64) marginSpacerRow {
 	return marginSpacerRow{Row: spacerRow(h), height: h}
 }

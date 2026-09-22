@@ -43,6 +43,39 @@ func TestPageBuilderPlacesAtomicSplittableRowOnFreshPage(t *testing.T) {
 	assert.Equal(t, oversized, builder.rows[0])
 }
 
+func TestPageBuilderDiscardsMarginAfterAutomaticBreak(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	content := fixedRow(20)
+	builder.addRow(fixedRow(95))
+	builder.addRow(&automaticBreakMarginRow{Row: fixedRow(10)})
+	builder.addRow(content)
+
+	require.Len(t, builder.pages, 1)
+	require.Len(t, builder.rows, 1)
+	assert.Equal(t, content, builder.rows[0])
+	assert.Equal(t, 20.0, builder.currentHeight)
+}
+
+func TestPageBuilderKeepsMarginAfterForcedBreak(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	margin := &automaticBreakMarginRow{Row: fixedRow(10)}
+	builder.addRow(fixedRow(95))
+	builder.addRow(translate.NewPageBreakRow())
+	builder.addRow(margin)
+	builder.addRow(fixedRow(20))
+
+	require.Len(t, builder.pages, 1)
+	require.Len(t, builder.rows, 2)
+	assert.Equal(t, core.Row(margin), builder.rows[0])
+	assert.Equal(t, 30.0, builder.currentHeight)
+}
+
 func TestPageBuilderPushesAtomicSplittableRowOnce(t *testing.T) {
 	t.Parallel()
 
@@ -440,6 +473,10 @@ func TestPageBuilderTreatsNilSplitResultAsAtomicRow(t *testing.T) {
 func fixedRow(height float64) core.Row {
 	return row.New(height).Add(col.New())
 }
+
+type automaticBreakMarginRow struct{ core.Row }
+
+func (*automaticBreakMarginRow) DiscardAtAutomaticPageTop() bool { return true }
 
 type atomicSplittableRow struct {
 	height   float64

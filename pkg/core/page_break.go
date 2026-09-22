@@ -11,3 +11,10 @@ type PageBreaker interface {
 	// IsPageBreak returns true when this row signals a hard page break.
 	IsPageBreak() bool
 }
+
+// AutomaticPageTopDiscarder marks flow spacing that should disappear when an
+// unforced page break places it at the top of the next page. Forced breaks keep
+// the spacing after the break.
+type AutomaticPageTopDiscarder interface {
+	DiscardAtAutomaticPageTop() bool
+}
