@@ -186,10 +186,9 @@ func (tr *translator) imageRowWithSourceAndStyle(n *dom.Node, src string, style 
 	return tr.imageRow(data, extType, widthMM, heightMM, style), true
 }
 
-// imageRow builds the block-level row for a decoded image. The col is sized to
-// approximate widthMM and the image fills it (Percent=100, Center=true); using a
-// small col instead of a full-width col with a tiny Percent avoids the image
-// getting visually squashed.
+// imageRow builds the block-level row for a decoded image. The col approximates
+// widthMM in grid units. Explicit object positioning also carries the resolved
+// content box dimensions so grid rounding does not change the rendered size.
 func (tr *translator) imageRow(
 	data []byte,
 	extType extension.Type,
@@ -204,6 +203,10 @@ func (tr *translator) imageRow(
 	if style != nil {
 		rect.ObjectFit = style.ObjectFit
 		rect.ObjectPosition = style.ObjectPosition
+		if rect.ObjectPosition != "" {
+			rect.BoxWidth = widthMM
+			rect.BoxHeight = heightMM
+		}
 	}
 	return row.New(heightMM).Add(col.New(imgCols).Add(imagecomp.NewFromBytes(data, extType, rect)))
 }

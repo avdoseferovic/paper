@@ -443,6 +443,43 @@ func TestImageRow_ObjectFitAndPositionMappedFromCSS(t *testing.T) {
 	assert.Equal(t, "right bottom", details["prop_object_position"])
 }
 
+func TestImageRow_PreservesExactContentBox(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><head><style>.mark { width: 86.6mm; height: 86.6mm; object-fit: contain; object-position: left top }</style></head><body><img class="mark" src="mark.png"></body></html>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc, WithImageResolver(func(string) ([]byte, string, error) {
+		return minimalPNG(t), "png", nil
+	}))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.InDelta(t, 86.6, details["prop_box_width"], 0.001)
+	assert.InDelta(t, 86.6, details["prop_box_height"], 0.001)
+}
+
+func TestImageRow_WithoutPositionKeepsGridSizing(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><head><style>.mark { width: 86.6mm; height: 86.6mm; object-fit: contain; margin: auto }</style></head><body><img class="mark" src="mark.png"></body></html>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc, WithImageResolver(func(string) ([]byte, string, error) {
+		return minimalPNG(t), "png", nil
+	}))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			_, hasWidth := s.Details["prop_box_width"]
+			assert.Equal(t, false, hasWidth)
+		}
+	})
+}
+
 func TestSVGElement_BlockRendersAsImageRow(t *testing.T) {
 	t.Parallel()
 

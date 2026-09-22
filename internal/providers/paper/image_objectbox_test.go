@@ -78,6 +78,19 @@ func TestImage_AddObjectImageToPdf(t *testing.T) {
 		assert.Equal(t, 1, stub.clipEnds)
 	})
 
+	t.Run("exact content box bypasses grid cell width", func(t *testing.T) {
+		t.Parallel()
+		stub := &objectBoxPDFStub{}
+		sut := NewImage(stub, nil)
+		cell := &entity.Cell{X: 3, Y: 4, Width: 88, Height: 87}
+		prop := &props.Rect{ObjectFit: "fill", BoxWidth: 86.6, BoxHeight: 86.6}
+		sut.addObjectImageToPdf("img", realImageInfo(t), cell, &entity.Margins{}, prop, false)
+		require.Len(t, stub.clipRects, 1)
+		assert.Equal(t, [4]float64{3, 4, 86.6, 86.6}, stub.clipRects[0])
+		require.Len(t, stub.images, 1)
+		assert.Equal(t, objectImageCall{"img", 3, 4, 86.6, 86.6}, stub.images[0])
+	})
+
 	t.Run("prop offsets shrink the object box", func(t *testing.T) {
 		t.Parallel()
 		stub := &objectBoxPDFStub{}
