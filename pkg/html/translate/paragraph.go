@@ -36,7 +36,7 @@ func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) 
 		}
 	}
 	cellStyle := tr.blockCellStyle(style)
-	if cellStyle == nil && len(runs) == 1 && runs[0].Image == nil && !runs[0].ForceBreak && runs[0].Text != "" {
+	if cellStyle == nil && len(runs) > 0 {
 		return newSplittableParagraphRow(runs, rtProp, tr.anchorReg)
 	}
 	rt := richtext.New(runs, rtProp)
