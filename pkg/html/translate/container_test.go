@@ -421,6 +421,25 @@ func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
 	assert.False(t, didSplit, "container that fits should not split")
 }
 
+func TestSplittableContainerRowSplitsNestedChild(t *testing.T) {
+	p := &cursorProvider{}
+	cfg := &entity.Config{MaxGridSize: 12}
+	child := newSplittableContainerRow(&blockContainer{rows: []core.Row{
+		buildFixedHeightRow(10), buildFixedHeightRow(10),
+	}})
+	parent := newSplittableContainerRow(&blockContainer{rows: []core.Row{child}})
+	parent.SetConfig(cfg)
+
+	first, rest, didSplit := parent.SplitAt(p, 15, 100)
+	require.True(t, didSplit)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	first.SetConfig(cfg)
+	rest.SetConfig(cfg)
+	assert.InDelta(t, 10.0, first.GetHeight(p, &entity.Cell{Width: 100}), 0.01)
+	assert.InDelta(t, 10.0, rest.GetHeight(p, &entity.Cell{Width: 100}), 0.01)
+}
+
 // buildFixedHeightRow creates a Row with a fixed pixel height for test purposes.
 func buildFixedHeightRow(heightMM float64) core.Row {
 	return row.New(heightMM).Add(col.New())

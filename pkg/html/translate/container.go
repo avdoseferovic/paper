@@ -406,6 +406,8 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	if totalHeight <= remainingHeight {
 		return nil, nil, false // fits — no split needed
 	}
+	childWidth := max(width-s.container.paddingLeft-s.container.paddingRight, 0)
+	dummyCell.Width = childWidth
 
 	// break-inside: avoid — never divide the box. Push it whole to the next
 	// page (atomic mode). If it is taller than a full page the page builder
@@ -423,15 +425,31 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	var firstRows, restRows []core.Row
 	cumHeight := 0.0
 	splitDone := false
-	for _, r := range s.container.rows {
+	for i, r := range s.container.rows {
 		rh := r.GetHeight(provider, dummyCell)
 		if !splitDone && cumHeight+rh <= available+0.001 {
 			firstRows = append(firstRows, r)
 			cumHeight += rh
-		} else {
-			restRows = append(restRows, r)
-			splitDone = true
+			continue
 		}
+		if !splitDone && available-cumHeight > 0 {
+			if child, ok := r.(core.Splittable); ok {
+				first, rest, didSplit := child.SplitAt(provider, available-cumHeight, childWidth)
+				if didSplit && first != nil {
+					firstRows = append(firstRows, first)
+					if rest != nil {
+						restRows = append(restRows, rest)
+					}
+					restRows = append(restRows, s.container.rows[i+1:]...)
+					break
+				}
+				if didSplit && rest != nil {
+					r = rest
+				}
+			}
+		}
+		restRows = append(restRows, r)
+		splitDone = true
 	}
 
 	if len(firstRows) == 0 {
