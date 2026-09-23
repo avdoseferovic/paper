@@ -147,6 +147,7 @@ func appendCollapsedTokens(
 	pendingSpaceRunIdx int,
 ) ([]rtToken, bool, int) {
 	var b strings.Builder
+	breakAfterSlash := false
 	flushWord := func() {
 		if b.Len() == 0 {
 			return
@@ -154,13 +155,15 @@ func appendCollapsedTokens(
 		if pendingSpace && hasTextOnCurrentLine(out) {
 			out = append(out, rtToken{text: " ", runIdx: pendingSpaceRunIdx, skipAtLineStart: true})
 		}
-		glue := !pendingSpace && endsInGlueableWord(out)
+		glue := !pendingSpace && !breakAfterSlash && endsInGlueableWord(out)
 		pendingSpace = false
 		pendingSpaceRunIdx = -1
 		out = append(out, rtToken{text: b.String(), runIdx: runIdx, gluePrev: glue})
 		b.Reset()
+		breakAfterSlash = false
 	}
-	for _, r := range text {
+	runes := []rune(text)
+	for index, r := range runes {
 		if r == '\n' && preserveNewlines {
 			flushWord()
 			out = append(out, rtToken{runIdx: runIdx, isBreak: true})
@@ -175,6 +178,10 @@ func appendCollapsedTokens(
 			continue
 		}
 		b.WriteRune(r)
+		if r == '/' && index > 0 && index+1 < len(runes) && unicode.IsLetter(runes[index-1]) && unicode.IsLetter(runes[index+1]) {
+			flushWord()
+			breakAfterSlash = true
+		}
 	}
 	flushWord()
 	return out, pendingSpace, pendingSpaceRunIdx

@@ -84,6 +84,26 @@ func TestTokeniseRuns_InterRunCollapsedSpaceKeepsSourceRun(t *testing.T) {
 	assert.Equal(t, 2, tokens[2].runIdx)
 }
 
+func TestTokeniseRuns_AllowsWrapAfterWordSlash(t *testing.T) {
+	tokens := tokeniseRuns([]resolvedRun{{RichRun: props.RichRun{Text: "Erkrankung/Behandlung"}}}, "normal")
+	require.Len(t, tokens, 2)
+	assert.Equal(t, "Erkrankung/", tokens[0].text)
+	assert.Equal(t, "Behandlung", tokens[1].text)
+	assert.False(t, tokens[1].gluePrev)
+
+	layout, _ := layoutRichTextTokens([]resolvedRun{{RichRun: props.RichRun{Text: "Erkrankung/Behandlung"}}}, richTextLayoutInput{
+		width: 11,
+		measure: func(_ resolvedRun, text string) (string, float64) {
+			return text, float64(len([]rune(text)))
+		},
+	})
+	assert.Equal(t, 0, layout[0].lineY)
+	assert.Equal(t, 1, layout[1].lineY)
+
+	url := tokeniseRuns([]resolvedRun{{RichRun: props.RichRun{Text: "https://example.test"}}}, "normal")
+	require.Len(t, url, 1)
+}
+
 func TestHasTextOnCurrentLine(t *testing.T) {
 	t.Parallel()
 
