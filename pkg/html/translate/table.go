@@ -49,8 +49,12 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 	if err != nil {
 		return out
 	}
-	c := col.New().Add(tbl)
-	out = append(out, row.New().Add(c))
+	if len(cells) == 1 {
+		out = append(out, newSplittableTableRow(tbl, cells[0], opts))
+	} else {
+		c := col.New().Add(tbl)
+		out = append(out, row.New().Add(c))
+	}
 	return out
 }
 

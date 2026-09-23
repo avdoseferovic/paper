@@ -123,6 +123,14 @@ func (b *pageBuilder) addRow(r core.Row) {
 	r.SetConfig(b.config)
 	rowHeight := r.GetHeight(b.provider, &b.cell)
 	sumHeight := rowHeight + b.currentHeight + b.effectiveFooterHeight()
+	if sp, ok := r.(core.Splittable); ok && sumHeight <= maxHeight {
+		if edge, ok := r.(core.PageBoundaryAllowance); ok {
+			allowance := edge.PageBoundaryAllowance()
+			if allowance > 0 && sumHeight+allowance > maxHeight && b.addSplittableRow(r, sp, maxHeight, allowance) {
+				return
+			}
+		}
+	}
 
 	// Row smaller than the remaining space on page.
 	if sumHeight <= maxHeight {
@@ -132,7 +140,7 @@ func (b *pageBuilder) addRow(r core.Row) {
 	}
 
 	// Row is too tall. Check if it implements Splittable for cross-page splitting.
-	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(r, sp, maxHeight) {
+	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(r, sp, maxHeight, 0) {
 		return
 	}
 
@@ -153,9 +161,9 @@ func (b *pageBuilder) addRow(r core.Row) {
 
 // addSplittableRow handles cross-page splitting for a row that implements
 // core.Splittable. Returns true when the split was performed (caller should return).
-func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeight float64) bool {
+func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeight, allowance float64) bool {
 	splitControl := clonePageControl(b.currentControl)
-	remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight()
+	remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - allowance
 	first, rest, didSplit := sp.SplitAt(b.provider, remaining, b.cell.Width)
 	if !didSplit {
 		return false

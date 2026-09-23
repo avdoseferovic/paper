@@ -51,6 +51,13 @@ type horizontalMarginRow struct {
 	marginRight float64
 }
 
+func (r *horizontalMarginRow) PageBoundaryAllowance() float64 {
+	if edge, ok := r.child.(core.PageBoundaryAllowance); ok {
+		return edge.PageBoundaryAllowance()
+	}
+	return 0
+}
+
 func (r *horizontalMarginRow) SetConfig(config *entity.Config) {
 	if r.child != nil {
 		r.child.SetConfig(config)

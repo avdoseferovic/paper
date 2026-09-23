@@ -43,6 +43,25 @@ func TestPageBuilderPlacesAtomicSplittableRowOnFreshPage(t *testing.T) {
 	assert.Equal(t, oversized, builder.rows[0])
 }
 
+func TestPageBuilderReservesPaintedTableEdgeBeforeSplit(t *testing.T) {
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	first := fixedRow(10)
+	rest := fixedRow(4)
+	builder.addRow(fixedRow(85))
+	builder.addRow(&edgeSplittingRow{
+		splittingRow: splittingRow{
+			atomicSplittableRow: atomicSplittableRow{height: 14},
+			first:               first, rest: rest,
+		},
+		allowance: 2,
+	})
+	require.Len(t, builder.pages, 1)
+	assert.Equal(t, first, builder.pages[0].GetRows()[1])
+	require.Len(t, builder.rows, 1)
+	assert.Equal(t, rest, builder.rows[0])
+}
+
 func TestPageBuilderDiscardsMarginAfterAutomaticBreak(t *testing.T) {
 	t.Parallel()
 
@@ -523,6 +542,13 @@ type splittingRow struct {
 	first core.Row
 	rest  core.Row
 }
+
+type edgeSplittingRow struct {
+	splittingRow
+	allowance float64
+}
+
+func (r *edgeSplittingRow) PageBoundaryAllowance() float64 { return r.allowance }
 
 func (r *splittingRow) SplitAt(_ core.Provider, _, _ float64) (core.Row, core.Row, bool) {
 	return r.first, r.rest, true
