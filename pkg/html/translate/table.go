@@ -3,6 +3,7 @@ package translate
 import (
 	"cmp"
 	"strconv"
+	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
@@ -213,7 +214,20 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
-	runs := tr.inlineRunsStyled(td, blockInlineStyle(cellStyle))
+	var nestedContent core.Component
+	if nested := soleNestedTable(td); nested != nil {
+		nestedStyle := computeNodeStyle(tr.sheet, nested, cellStyle)
+		rows := tr.tableRowsWithStyle(nested, nestedStyle)
+		if len(rows) == 1 {
+			if inner, ok := rows[0].(*splittableTableRow); ok {
+				nestedContent = inner.table
+			}
+		}
+	}
+	var runs []props.RichRun
+	if nestedContent == nil {
+		runs = tr.inlineRunsStyled(td, blockInlineStyle(cellStyle))
+	}
 	height := explicitTableCellHeight(cellStyle, rowStyle)
 
 	// Propagate row-level color to runs that have no own color.
@@ -231,10 +245,10 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 	rtProp.Top, rtProp.Right, rtProp.Bottom, rtProp.Left = 0, 0, 0, 0
 	rtProp.WrapTolerance = max(0, css.ParseLength(td.Attr("data-wrap-tolerance"), cellStyle.FontSize))
 
-	var content core.Component
+	content := nestedContent
 	if len(runs) > 0 {
 		content = richtext.New(runs, rtProp)
-	} else if height <= 0 {
+	} else if content == nil && height <= 0 {
 		content = richtext.New([]props.RichRun{{Text: ""}}, rtProp)
 	}
 
@@ -250,6 +264,20 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 		ContinuationPaddingTop:  max(0, css.ParseLength(td.Attr("data-continuation-padding-top"), cellStyle.FontSize)),
 		CarryContentNearPageEnd: max(0, css.ParseLength(td.Attr("data-carry-content-near-page-end"), cellStyle.FontSize)),
 	}
+}
+
+func soleNestedTable(cell *dom.Node) *dom.Node {
+	var nested *dom.Node
+	for _, child := range cell.Children() {
+		if child.Tag() == "" && strings.TrimSpace(child.TextContent()) == "" {
+			continue
+		}
+		if child.Tag() != "table" || nested != nil {
+			return nil
+		}
+		nested = child
+	}
+	return nested
 }
 
 func explicitTableCellHeight(cellStyle, rowStyle *css.ComputedStyle) float64 {
