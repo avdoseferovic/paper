@@ -51,6 +51,40 @@ type horizontalMarginRow struct {
 	marginRight float64
 }
 
+type boundaryAllowanceRow struct {
+	core.Row
+	allowance float64
+}
+
+func (r *boundaryAllowanceRow) PageBoundaryAllowance() float64 { return r.allowance }
+
+func (r *boundaryAllowanceRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
+	if splittable, ok := r.Row.(core.Splittable); ok {
+		first, rest, split := splittable.SplitAt(provider, remainingHeight, width)
+		if split {
+			return first, rest, true
+		}
+	}
+	if r.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight {
+		return nil, r, true
+	}
+	return nil, nil, false
+}
+
+func (r *boundaryAllowanceRow) NearBoundaryThreshold() float64 {
+	if near, ok := r.Row.(core.NearBoundarySplitter); ok {
+		return near.NearBoundaryThreshold()
+	}
+	return 0
+}
+
+func (r *boundaryAllowanceRow) KeepWithNext() bool {
+	if keep, ok := r.Row.(core.KeepWithNext); ok {
+		return keep.KeepWithNext()
+	}
+	return false
+}
+
 func (r *horizontalMarginRow) KeepWithNext() bool {
 	keep, ok := r.child.(core.KeepWithNext)
 	return ok && keep.KeepWithNext()

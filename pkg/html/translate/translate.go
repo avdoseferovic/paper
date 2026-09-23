@@ -341,6 +341,14 @@ func (tr *translator) decorateBlockRows(
 	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
 		rows[0] = wrapRowAnchorTarget(rows[0], id, tr.anchorReg)
 	}
+	if style != nil && len(rows) > 0 {
+		if allowance := css.ParseLength(n.Attr("data-page-boundary-allowance"), style.FontSize); allowance > 0 {
+			last := len(rows) - 1
+			if _, handled := rows[last].(core.PageBoundaryAllowance); !handled {
+				rows[last] = &boundaryAllowanceRow{Row: rows[last], allowance: allowance}
+			}
+		}
+	}
 	rows = applyBlockMargins(n, style, rows)
 	if hasControl {
 		rows = append([]core.Row{NewPageControlRow(control)}, rows...)

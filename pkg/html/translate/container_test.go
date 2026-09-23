@@ -10,6 +10,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
@@ -112,6 +113,25 @@ func TestFlexCellContent_RenderRestoresCursorForParentRowAdvance(t *testing.T) {
 
 	assert.Equal(t, 10.0, provider.x)
 	assert.Equal(t, 20.0, provider.y)
+}
+
+func TestPlainBlockReservesPageBoundaryAllowance(t *testing.T) {
+	doc, err := dom.Parse(`<div data-page-boundary-allowance="3pt" style="margin-left:5pt">Heading</div>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	allowance, ok := rows[0].(core.PageBoundaryAllowance)
+	require.True(t, ok)
+	assert.InDelta(t, css.ParseLength("3pt", 0), allowance.PageBoundaryAllowance(), 0.001)
+
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	rows[0].SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	height := rows[0].GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := rows[0].(core.Splittable).SplitAt(provider, height-css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	assert.True(t, first == nil)
+	assert.True(t, rest != nil)
 }
 
 func TestCSSCascade_ClassAndInline(t *testing.T) {

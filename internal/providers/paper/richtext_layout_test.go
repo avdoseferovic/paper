@@ -9,6 +9,26 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+func TestLayoutRichTextTokensAllowsSubPointMeasurementDrift(t *testing.T) {
+	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb"}}}
+	for _, check := range []struct {
+		width     float64
+		lastLineY int
+	}{
+		{width: 4.93, lastLineY: 0},
+		{width: 4.90, lastLineY: 1},
+	} {
+		tokens, _ := layoutRichTextTokens(runs, richTextLayoutInput{
+			width:      check.width,
+			whiteSpace: "normal",
+			measure: func(_ resolvedRun, text string) (string, float64) {
+				return text, float64(len(text))
+			},
+		})
+		assert.Equal(t, check.lastLineY, tokens[len(tokens)-1].lineY)
+	}
+}
+
 func TestLayoutRichTextTokensWrapsAndPreservesOrder(t *testing.T) {
 	t.Parallel()
 
