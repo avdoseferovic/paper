@@ -178,7 +178,9 @@ func appendCollapsedTokens(
 			continue
 		}
 		b.WriteRune(r)
-		if r == '/' && index > 0 && index+1 < len(runes) && unicode.IsLetter(runes[index-1]) && unicode.IsLetter(runes[index+1]) {
+		wordBeforeSlash := index > 0 && (unicode.IsLetter(runes[index-1]) ||
+			(runes[index-1] == '-' && index > 1 && unicode.IsLetter(runes[index-2])))
+		if r == '/' && wordBeforeSlash && index+1 < len(runes) && unicode.IsLetter(runes[index+1]) {
 			flushWord()
 			breakAfterSlash = true
 		}

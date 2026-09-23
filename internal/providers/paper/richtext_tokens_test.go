@@ -102,6 +102,12 @@ func TestTokeniseRuns_AllowsWrapAfterWordSlash(t *testing.T) {
 
 	url := tokeniseRuns([]resolvedRun{{RichRun: props.RichRun{Text: "https://example.test"}}}, "normal")
 	require.Len(t, url, 1)
+
+	hyphenated := tokeniseRuns([]resolvedRun{{RichRun: props.RichRun{Text: "Blasen-/Mastdarmstörung"}}}, "normal")
+	require.Len(t, hyphenated, 2)
+	assert.Equal(t, "Blasen-/", hyphenated[0].text)
+	assert.Equal(t, "Mastdarmstörung", hyphenated[1].text)
+	assert.False(t, hyphenated[1].gluePrev)
 }
 
 func TestHasTextOnCurrentLine(t *testing.T) {
