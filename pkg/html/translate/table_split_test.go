@@ -9,6 +9,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 )
@@ -49,6 +50,22 @@ func TestStyledTableCellContinuesWithStyle(t *testing.T) {
 		require.Len(t, runs, 1)
 		assert.Equal(t, fontstyle.Bold, runs[0].Style)
 	}
+}
+
+func TestTableCellUsesContinuationPaddingOnlyOnLaterFragment(t *testing.T) {
+	doc, err := dom.Parse(`<table><tr><td>label</td><td data-continuation-padding-top="4.6pt" style="padding-top: 2.2pt">one two three four five six</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	rows[0].SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	row := rows[0].(*splittableTableRow)
+	first, rest, split := row.SplitAt(provider, 2, 100)
+	require.True(t, split)
+	assert.InDelta(t, css.ParseLength("2.2pt", 0), row.cells[1].Style.PaddingTop, 0.001)
+	assert.InDelta(t, css.ParseLength("2.2pt", 0), first.(*splittableTableRow).cells[1].Style.PaddingTop, 0.001)
+	assert.InDelta(t, css.ParseLength("4.6pt", 0), rest.(*splittableTableRow).cells[1].Style.PaddingTop, 0.001)
 }
 
 func tableCellText(r core.Row, index int) string {

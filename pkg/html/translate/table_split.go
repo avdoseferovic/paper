@@ -163,5 +163,10 @@ func splitTableCellText(provider core.Provider, cell table.Cell, available, widt
 	firstRuns, restRuns := splitParagraphRuns(runs, cuts[low-1].run, cuts[low-1].offset)
 	first.Content = rt.CloneWithRuns(firstRuns)
 	rest.Content = rt.CloneWithRuns(restRuns)
+	if cell.ContinuationPaddingTop > 0 && rest.Style != nil {
+		style := *rest.Style
+		style.PaddingTop = cell.ContinuationPaddingTop
+		rest.Style = &style
+	}
 	return first, rest, true
 }

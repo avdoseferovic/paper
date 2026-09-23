@@ -26,6 +26,8 @@ type Cell struct {
 	Style         *props.Cell
 	Height        float64 // explicit outer cell height in mm; used as a row-height floor
 	VerticalAlign string
+	// ContinuationPaddingTop overrides top padding only after this cell splits.
+	ContinuationPaddingTop float64
 }
 
 // Option configures a Table.
