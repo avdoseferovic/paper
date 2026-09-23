@@ -376,8 +376,9 @@ func (tr *translator) buildContainerRow(style *css.ComputedStyle, childRows []co
 // renders identically to the pre-Plan-B output) and also exposes SplitAt so
 // paper.addRow() can split it across pages.
 type splittableContainerRow struct {
-	inner     core.Row        // row.New().Add(col.New().Add(container)) — handles Render/GetHeight
-	container *blockContainer // direct reference so SplitAt can introspect children
+	inner                 core.Row        // row.New().Add(col.New().Add(container)) — handles Render/GetHeight
+	container             *blockContainer // direct reference so SplitAt can introspect children
+	pageBoundaryAllowance float64
 }
 
 func newSplittableContainerRow(c *blockContainer) *splittableContainerRow {
@@ -393,6 +394,8 @@ func (s *splittableContainerRow) GetStructure() *node.Node[core.Structure] {
 func (s *splittableContainerRow) GetHeight(provider core.Provider, cell *entity.Cell) float64 {
 	return s.inner.GetHeight(provider, cell)
 }
+
+func (s *splittableContainerRow) PageBoundaryAllowance() float64 { return s.pageBoundaryAllowance }
 
 func (s *splittableContainerRow) Render(provider core.Provider, cell entity.Cell) {
 	s.inner.Render(provider, cell)

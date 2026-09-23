@@ -20,7 +20,7 @@ type Splittable interface {
 	SplitAt(provider Provider, remainingHeight float64, width float64) (first, rest Row, didSplit bool)
 }
 
-// PageBoundaryAllowance reserves painted space that is not part of a row's
+// PageBoundaryAllowance reserves trailing space that is not part of a row's
 // measured content height when deciding whether to split near a page edge.
 type PageBoundaryAllowance interface {
 	PageBoundaryAllowance() float64

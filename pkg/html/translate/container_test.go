@@ -421,6 +421,17 @@ func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
 	assert.False(t, didSplit, "container that fits should not split")
 }
 
+func TestUnbreakableContainerPageBoundaryAllowance(t *testing.T) {
+	doc, err := dom.Parse(`<div style="break-inside:avoid" data-page-boundary-allowance="15pt"><span>photo</span></div>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	allowance, ok := rows[0].(core.PageBoundaryAllowance)
+	require.True(t, ok)
+	assert.InDelta(t, 15*25.4/72, allowance.PageBoundaryAllowance(), 0.001)
+}
+
 type keepNextTestRow struct{ core.Row }
 
 func (keepNextTestRow) KeepWithNext() bool { return true }
