@@ -5,7 +5,6 @@ import (
 
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
-	"github.com/avdoseferovic/paper/pkg/components/table"
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -20,9 +19,9 @@ func TestTableCellRetainsSoleNestedTable(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	outer := rows[0].(*splittableTableRow)
-	inner, ok := outer.cells[0].Content.(*table.Table)
+	inner, ok := outer.cells[0].Content.(*nestedTableComponent)
 	require.True(t, ok)
-	assert.Equal(t, 2, inner.ColCount())
+	assert.Equal(t, 2, inner.Table.ColCount())
 	outer.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
 	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	assert.True(t, outer.GetHeight(provider, &entity.Cell{Width: 100}) > 0)

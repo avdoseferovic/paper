@@ -58,6 +58,91 @@ func TestSingleTableRowSplitsSpanningResultCell(t *testing.T) {
 	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: 100}) <= 2.001)
 }
 
+func TestSingleTableRowSplitsNestedResultTable(t *testing.T) {
+	doc, err := dom.Parse(`<table><tr><td>label</td><td><table><tr><td>one<br>two<br>three<br>four</td></tr></table></td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	outer := rows[0].(*splittableTableRow)
+	outer.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	height := outer.GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := outer.SplitAt(provider, height-1, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, "label", tableCellText(first, 0))
+	assert.Equal(t, "", tableCellText(rest, 0))
+	assert.NotNil(t, first.(*splittableTableRow).cells[1].Content)
+	assert.NotNil(t, rest.(*splittableTableRow).cells[1].Content)
+}
+
+func TestSingleTableRowCarriesNestedResultNearPageEnd(t *testing.T) {
+	doc, err := dom.Parse(`<table><tr><td>label</td><td data-carry-content-near-page-end="3.5pt"><table><tr><td>answer</td></tr></table></td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	outer := rows[0].(*splittableTableRow)
+	outer.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	height := outer.GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := outer.SplitAt(provider, height+css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, "label", tableCellText(first, 0))
+	assert.Equal(t, "", tableCellText(rest, 0))
+	assert.Nil(t, first.(*splittableTableRow).cells[1].Content)
+	assert.NotNil(t, rest.(*splittableTableRow).cells[1].Content)
+}
+
+func TestMultiRowTableCarriesNestedResultNearPageEnd(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1pt"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt"><table><tr><td>answer</td></tr></table></td></tr><tr><td>next</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	firstTwo, err := section.rebuild(section.cells[:2])
+	require.NoError(t, err)
+	available := firstTwo.GetHeight(provider, &entity.Cell{Width: 100}) + css.ParseLength("1pt", 0)
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	firstSection := first.(*splittableMultiTableRow)
+	restSection := rest.(*splittableMultiTableRow)
+	require.Len(t, firstSection.cells, 2)
+	require.Len(t, restSection.cells, 2)
+	assert.Equal(t, "label", richTextCellText(firstSection.cells[1][0]))
+	assert.Nil(t, firstSection.cells[1][1].Content)
+	assert.NotNil(t, restSection.cells[0][1].Content)
+}
+
+func TestMultiRowTableSplitsNestedExplicitResult(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1mm"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td><table><tr><td>one<br>two<br>three<br>four</td></tr></table></td></tr><tr><td>next</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	firstTwo, err := section.rebuild(section.cells[:2])
+	require.NoError(t, err)
+	available := firstTwo.GetHeight(provider, &entity.Cell{Width: 100}) + 0.2
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	require.Len(t, first.(*splittableMultiTableRow).cells, 2)
+	require.Len(t, rest.(*splittableMultiTableRow).cells, 2)
+	assert.NotNil(t, first.(*splittableMultiTableRow).cells[1][1].Content)
+	assert.NotNil(t, rest.(*splittableMultiTableRow).cells[0][1].Content)
+}
+
 func TestTableCellWidthsIncludeSpannedColumns(t *testing.T) {
 	widths, ok := tableCellWidths([]table.Cell{{}, {Colspan: 2}}, []float64{0.5, 0.3, 0.2}, 100)
 	require.True(t, ok)

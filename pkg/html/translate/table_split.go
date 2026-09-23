@@ -209,23 +209,30 @@ func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell,
 
 func tableCellsHaveExplicitLines(cells []table.Cell) bool {
 	for _, cell := range cells {
-		rt, ok := cell.Content.(*richtext.RichText)
-		if !ok {
-			continue
+		if contentHasThreeExplicitLines(cell.Content) {
+			return true
 		}
+	}
+	return false
+}
+
+func contentHasThreeExplicitLines(content core.Component) bool {
+	switch value := content.(type) {
+	case *richtext.RichText:
 		breaks := 0
-		for _, run := range rt.Runs() {
+		for _, run := range value.Runs() {
 			if run.ForceBreak {
 				breaks++
 			} else {
 				breaks += strings.Count(run.Text, "\n")
 			}
 		}
-		if breaks >= 2 {
-			return true
-		}
+		return breaks >= 2
+	case *nestedTableComponent:
+		return tableCellsHaveExplicitLines(value.row.cells)
+	default:
+		return false
 	}
-	return false
 }
 
 func tableCellWidths(cells []table.Cell, columnWidths []float64, width float64) ([]float64, bool) {
@@ -450,20 +457,11 @@ func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, rema
 	retained := false
 	for index, cell := range r.cells {
 		if cell.Content != nil {
-			rt, ok := cell.Content.(*richtext.RichText)
-			if !ok {
-				return nil, nil, false
-			}
-			for _, run := range rt.Runs() {
-				if run.ForceBreak || strings.Contains(run.Text, "\n") {
-					return nil, nil, false
-				}
-			}
 			cellWidth := cellWidths[index]
 			if cell.Style != nil {
 				cellWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
 			}
-			if cellWidth <= 0 || rt.GetHeight(provider, &entity.Cell{Width: cellWidth}) > rt.GetHeight(provider, &entity.Cell{Width: 10000})+0.001 {
+			if cellWidth <= 0 || !contentIsSingleLine(provider, cell.Content, cellWidth) {
 				return nil, nil, false
 			}
 		}
@@ -496,6 +494,38 @@ func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, rema
 	return first, rest, true
 }
 
+func contentIsSingleLine(provider core.Provider, content core.Component, width float64) bool {
+	switch value := content.(type) {
+	case *richtext.RichText:
+		for _, run := range value.Runs() {
+			if run.ForceBreak || strings.Contains(run.Text, "\n") {
+				return false
+			}
+		}
+		return value.GetHeight(provider, &entity.Cell{Width: width}) <= value.GetHeight(provider, &entity.Cell{Width: 10000})+0.001
+	case *nestedTableComponent:
+		cellWidths, ok := tableCellWidths(value.row.cells, value.Table.ColumnWidths(), width)
+		if !ok {
+			return false
+		}
+		for index, inner := range value.row.cells {
+			if inner.Content == nil {
+				continue
+			}
+			innerWidth := cellWidths[index]
+			if inner.Style != nil {
+				innerWidth -= inner.Style.PaddingLeft + inner.Style.PaddingRight
+			}
+			if innerWidth <= 0 || !contentIsSingleLine(provider, inner.Content, innerWidth) {
+				return false
+			}
+		}
+		return true
+	default:
+		return false
+	}
+}
+
 func (r *splittableTableRow) rebuild(cells []table.Cell) (*splittableTableRow, error) {
 	tbl, err := table.New([][]table.Cell{cells}, r.opts...)
 	if err != nil {
@@ -514,10 +544,6 @@ func splitTableCellText(provider core.Provider, cell table.Cell, available, widt
 	first, rest := cell, cell
 	rest.Content = nil
 	rest.Height = 0
-	rt, ok := cell.Content.(*richtext.RichText)
-	if !ok {
-		return first, rest, false
-	}
 	innerWidth := width
 	innerHeight := available
 	if cell.Style != nil {
@@ -526,6 +552,20 @@ func splitTableCellText(provider core.Provider, cell table.Cell, available, widt
 	}
 	if innerWidth <= 0 || innerHeight <= 0 {
 		return first, cell, false
+	}
+	if nested, ok := cell.Content.(*nestedTableComponent); ok {
+		firstContent, restContent, split := nested.splitAt(provider, innerHeight, innerWidth)
+		if !split {
+			return first, cell, false
+		}
+		first.Content = firstContent
+		rest.Content = restContent
+		setContinuationPadding(&rest, cell.ContinuationPaddingTop)
+		return first, rest, true
+	}
+	rt, ok := cell.Content.(*richtext.RichText)
+	if !ok {
+		return first, rest, false
 	}
 	measured := func(runs []props.RichRun) float64 {
 		candidate := rt.CloneWithRuns(runs)

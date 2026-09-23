@@ -220,7 +220,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 		rows := tr.tableRowsWithStyle(nested, nestedStyle)
 		if len(rows) == 1 {
 			if inner, ok := rows[0].(*splittableTableRow); ok {
-				nestedContent = inner.table
+				nestedContent = &nestedTableComponent{Table: inner.table, row: inner}
 			}
 		}
 	}
