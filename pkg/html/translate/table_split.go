@@ -123,14 +123,34 @@ func (r *splittableMultiTableRow) rebuild(cells [][]table.Cell) (*splittableMult
 // next page while keeping the cells in their original columns.
 type splittableTableRow struct {
 	core.Row
-	table        *table.Table
-	cells        []table.Cell
-	opts         []table.Option
-	config       *entity.Config
-	keepWithNext bool
+	table            *table.Table
+	cells            []table.Cell
+	opts             []table.Option
+	config           *entity.Config
+	keepWithNext     bool
+	pageBreakPreview bool
 }
 
 func (r *splittableTableRow) KeepWithNext() bool { return r.keepWithNext }
+
+func (r *splittableTableRow) PageBreakPreview(provider core.Provider, width float64) core.Row {
+	if !r.pageBreakPreview {
+		return nil
+	}
+	height := r.GetHeight(provider, &entity.Cell{Width: width})
+	cells := make([]table.Cell, len(r.cells))
+	for i, cell := range r.cells {
+		cells[i] = cell
+		cells[i].Content = nil
+		cells[i].Height = height
+	}
+	preview, err := r.rebuild(cells)
+	if err != nil {
+		return nil
+	}
+	preview.keepWithNext = false
+	return preview
+}
 
 func newSplittableTableRow(tbl *table.Table, cells []table.Cell, opts []table.Option) *splittableTableRow {
 	return &splittableTableRow{
@@ -359,6 +379,7 @@ func (r *splittableTableRow) rebuild(cells []table.Cell) (*splittableTableRow, e
 	}
 	fragment := newSplittableTableRow(tbl, cells, r.opts)
 	fragment.keepWithNext = r.keepWithNext
+	fragment.pageBreakPreview = r.pageBreakPreview
 	if r.config != nil {
 		fragment.SetConfig(r.config)
 	}

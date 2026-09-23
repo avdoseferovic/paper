@@ -129,6 +129,21 @@ func TestTableRowKeepsFollowingRowWhenRequested(t *testing.T) {
 	assert.True(t, rows[0].(*splittableTableRow).KeepWithNext())
 }
 
+func TestMarkedHeaderProvidesBlankPageBreakPreview(t *testing.T) {
+	doc, err := dom.Parse(`<table data-page-break-preview="true" style="break-after: avoid"><tr><th style="background-color:#005e7d" colspan="2">Next section</th></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	previewer, ok := rows[0].(core.PageBreakPreview)
+	require.True(t, ok)
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	rows[0].SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	preview := previewer.PageBreakPreview(provider, 100)
+	require.NotNil(t, preview)
+	assert.InDelta(t, rows[0].GetHeight(provider, &entity.Cell{Width: 100}), preview.GetHeight(provider, &entity.Cell{Width: 100}), 0.001)
+}
+
 func TestMarginWrappedTablePreservesKeepWithNext(t *testing.T) {
 	doc, err := dom.Parse(`<table style="margin-left: 5pt; break-after: avoid"><tr><th>Heading</th></tr></table>`)
 	require.NoError(t, err)

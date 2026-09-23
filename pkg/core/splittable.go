@@ -25,3 +25,9 @@ type Splittable interface {
 type PageBoundaryAllowance interface {
 	PageBoundaryAllowance() float64
 }
+
+// PageBreakPreview optionally paints a blank copy of a row on the current
+// page when the row itself moves with the following content.
+type PageBreakPreview interface {
+	PageBreakPreview(provider Provider, width float64) Row
+}

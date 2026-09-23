@@ -90,6 +90,15 @@ func (r *horizontalMarginRow) KeepWithNext() bool {
 	return ok && keep.KeepWithNext()
 }
 
+func (r *horizontalMarginRow) PageBreakPreview(provider core.Provider, width float64) core.Row {
+	previewer, ok := r.child.(core.PageBreakPreview)
+	if !ok {
+		return nil
+	}
+	innerWidth := max(width-r.marginLeft-r.marginRight, 0)
+	return r.wrapSplit(previewer.PageBreakPreview(provider, innerWidth))
+}
+
 func (r *horizontalMarginRow) NearBoundaryThreshold() float64 {
 	near, ok := r.child.(core.NearBoundarySplitter)
 	if ok {

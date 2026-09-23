@@ -115,6 +115,16 @@ func (b *pageBuilder) addRows(rows ...core.Row) {
 				}
 			}
 			if moveTogether {
+				if previewer, ok := row.(core.PageBreakPreview); ok && !moveForNear {
+					if preview := previewer.PageBreakPreview(b.provider, b.cell.Width); preview != nil {
+						preview.SetConfig(b.config)
+						previewHeight := preview.GetHeight(b.provider, &b.cell)
+						if b.currentHeight+previewHeight+b.effectiveFooterHeight() <= maxHeight+0.001 {
+							b.rows = append(b.rows, preview)
+							b.currentHeight += previewHeight
+						}
+					}
+				}
 				b.fillPageToAddNew()
 				b.addHeader()
 				b.automaticPageTop = true
