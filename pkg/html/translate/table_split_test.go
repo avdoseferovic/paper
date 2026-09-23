@@ -107,6 +107,78 @@ func TestMultiRowTableKeepsFirstHeadingWithAnswer(t *testing.T) {
 	assert.Equal(t, core.Row(section), rest)
 }
 
+func TestMultiRowTableSplitsExplicitLinesBeforePaintedEdge(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1mm"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td>one<br>two<br>three<br>four<br>five</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	firstTwo, err := section.rebuild(section.cells[:2])
+	require.NoError(t, err)
+	available := firstTwo.GetHeight(provider, &entity.Cell{Width: 100}) + 0.2
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	firstSection := first.(*splittableMultiTableRow)
+	restSection := rest.(*splittableMultiTableRow)
+	require.Len(t, firstSection.cells, 2)
+	require.Len(t, restSection.cells, 2)
+	firstResult := richTextCellText(firstSection.cells[1][1])
+	restResult := richTextCellText(restSection.cells[0][1])
+	assert.True(t, strings.Contains(firstResult, "four"))
+	assert.False(t, strings.Contains(firstResult, "five"))
+	assert.True(t, strings.Contains(restResult, "five"))
+}
+
+func TestMultiRowTableCarriesNearEdgeAnswerFromMiddleRow(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1pt"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	firstTwo, err := section.rebuild(section.cells[:2])
+	require.NoError(t, err)
+	available := firstTwo.GetHeight(provider, &entity.Cell{Width: 100}) + css.ParseLength("1pt", 0)
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	firstSection := first.(*splittableMultiTableRow)
+	restSection := rest.(*splittableMultiTableRow)
+	require.Len(t, firstSection.cells, 2)
+	require.Len(t, restSection.cells, 2)
+	assert.Equal(t, "label", richTextCellText(firstSection.cells[1][0]))
+	assert.Equal(t, "", richTextCellText(firstSection.cells[1][1]))
+	assert.Equal(t, "", richTextCellText(restSection.cells[0][0]))
+	assert.Equal(t, "answer", richTextCellText(restSection.cells[0][1]))
+}
+
+func TestMultiRowTableLeavesUnmarkedMiddleRowIntact(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	firstTwo, err := section.rebuild(section.cells[:2])
+	require.NoError(t, err)
+	available := firstTwo.GetHeight(provider, &entity.Cell{Width: 100}) + css.ParseLength("1pt", 0)
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, "answer", richTextCellText(first.(*splittableMultiTableRow).cells[1][1]))
+	assert.Equal(t, "next", richTextCellText(rest.(*splittableMultiTableRow).cells[0][0]))
+}
+
 func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
 	doc, err := dom.Parse(`<table><tr><td data-continuation-padding-top="30pt">Alpha one<br>Beta two<br>Gamma three</td></tr></table>`)
 	require.NoError(t, err)
@@ -455,7 +527,11 @@ func TestTableDoesNotCarryEveryCellNearBoundary(t *testing.T) {
 
 func tableCellText(r core.Row, index int) string {
 	fragment := r.(*splittableTableRow)
-	rt, ok := fragment.cells[index].Content.(*richtext.RichText)
+	return richTextCellText(fragment.cells[index])
+}
+
+func richTextCellText(cell table.Cell) string {
+	rt, ok := cell.Content.(*richtext.RichText)
 	if !ok {
 		return ""
 	}

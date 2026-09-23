@@ -57,6 +57,7 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 	} else if n.Attr("data-split-rows") == "true" {
 		row := newSplittableMultiTableRow(tbl, cells, opts)
 		row.keepFirstRowWithNext = n.Attr("data-keep-first-row-with-next") == "true"
+		row.rowFragmentEdge = max(0, css.ParseLength(n.Attr("data-row-fragment-edge"), tableStyle.FontSize))
 		out = append(out, row)
 	} else {
 		c := col.New().Add(tbl)

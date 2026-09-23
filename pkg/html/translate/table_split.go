@@ -22,6 +22,7 @@ type splittableMultiTableRow struct {
 	opts                 []table.Option
 	config               *entity.Config
 	keepFirstRowWithNext bool
+	rowFragmentEdge      float64
 }
 
 func newSplittableMultiTableRow(tbl *table.Table, cells [][]table.Cell, opts []table.Option) *splittableMultiTableRow {
@@ -130,19 +131,33 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 		partialRow.SetConfig(r.config)
 		// Keep shorter rows intact at a page edge. A tall wrapped row
 		// has enough content to leave a useful fragment on both pages.
-		if !tableCellsWrapAtLeastThreeLines(provider, r.cells[count], r.table.ColumnWidths(), width) {
+		// A marked short result can also move alone when its label fits near
+		// the page edge.
+		tall := tableCellsWrapAtLeastThreeLines(provider, r.cells[count], r.table.ColumnWidths(), width)
+		if r.rowFragmentEdge > 0 && !tall {
+			tall = tableCellsHaveExplicitLines(r.cells[count])
+		}
+		rowHeight := partialRow.GetHeight(provider, &entity.Cell{Width: width})
+		available := remainingHeight - prefixHeight
+		nearCarry := r.rowFragmentEdge > 0 && rowHeight <= available && partialRow.NearBoundaryThreshold() > available-rowHeight
+		if !tall && !nearCarry {
 			continue
 		}
-		if partialRow.GetHeight(provider, &entity.Cell{Width: width}) <= remainingHeight-prefixHeight {
+		edge := 0.0
+		if tall {
+			edge = r.rowFragmentEdge
+		}
+		partialAvailable := available - edge
+		if rowHeight <= partialAvailable && !nearCarry {
 			continue
 		}
-		first, rest, split := partialRow.SplitAt(provider, remainingHeight-prefixHeight, width)
+		first, rest, split := partialRow.SplitAt(provider, partialAvailable, width)
 		if !split || first == nil || rest == nil {
 			continue
 		}
 		firstCells := append(append([][]table.Cell{}, r.cells[:count]...), first.(*splittableTableRow).cells)
 		firstFragment, err := r.rebuild(firstCells)
-		if err != nil || firstFragment.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
+		if err != nil || firstFragment.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight-edge+0.001 {
 			continue
 		}
 		restCells := append([][]table.Cell{rest.(*splittableTableRow).cells}, r.cells[count+1:]...)
@@ -192,6 +207,27 @@ func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell,
 	return false
 }
 
+func tableCellsHaveExplicitLines(cells []table.Cell) bool {
+	for _, cell := range cells {
+		rt, ok := cell.Content.(*richtext.RichText)
+		if !ok {
+			continue
+		}
+		breaks := 0
+		for _, run := range rt.Runs() {
+			if run.ForceBreak {
+				breaks++
+			} else {
+				breaks += strings.Count(run.Text, "\n")
+			}
+		}
+		if breaks >= 2 {
+			return true
+		}
+	}
+	return false
+}
+
 func tableCellWidths(cells []table.Cell, columnWidths []float64, width float64) ([]float64, bool) {
 	columnCount := 0
 	for _, cell := range cells {
@@ -224,6 +260,7 @@ func (r *splittableMultiTableRow) rebuild(cells [][]table.Cell) (*splittableMult
 		return nil, err
 	}
 	fragment := newSplittableMultiTableRow(tbl, cells, r.opts)
+	fragment.rowFragmentEdge = r.rowFragmentEdge
 	if r.config != nil {
 		fragment.SetConfig(r.config)
 	}
