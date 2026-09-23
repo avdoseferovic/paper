@@ -25,7 +25,9 @@ func applyBlockMargins(n *dom.Node, style *css.ComputedStyle, rows []core.Row) [
 		rows = append([]core.Row{newMarginSpacer(style.MarginTop)}, rows...)
 	}
 	if style.MarginBottom > 0 {
-		rows = append(rows, newMarginSpacer(style.MarginBottom))
+		spacer := newMarginSpacer(style.MarginBottom)
+		spacer.preserveAtAutomaticPageTop = strings.EqualFold(strings.TrimSpace(n.Attr("data-preserve-overflow-margin")), "true")
+		rows = append(rows, spacer)
 	}
 	// CSS margins collapse: adjacent/last-child margins reduce to the larger,
 	// they do not sum. Merge touching margin spacers so stacked block margins
@@ -141,10 +143,11 @@ func cssVarDeclaredValue(style, parent *css.ComputedStyle, name string) (string,
 // adjacent ones (CSS margin collapsing).
 type marginSpacerRow struct {
 	core.Row
-	height float64
+	height                     float64
+	preserveAtAutomaticPageTop bool
 }
 
-func (marginSpacerRow) DiscardAtAutomaticPageTop() bool { return true }
+func (m marginSpacerRow) DiscardAtAutomaticPageTop() bool { return !m.preserveAtAutomaticPageTop }
 
 func newMarginSpacer(h float64) marginSpacerRow {
 	return marginSpacerRow{Row: spacerRow(h), height: h}
@@ -159,9 +162,12 @@ func collapseMarginSpacers(rows []core.Row) []core.Row {
 	for _, r := range rows {
 		if ms, ok := r.(marginSpacerRow); ok && len(out) > 0 {
 			if prev, prevOK := out[len(out)-1].(marginSpacerRow); prevOK {
+				preserve := prev.preserveAtAutomaticPageTop || ms.preserveAtAutomaticPageTop
 				if ms.height > prev.height {
-					out[len(out)-1] = ms
+					prev = ms
 				}
+				prev.preserveAtAutomaticPageTop = preserve
+				out[len(out)-1] = prev
 				continue
 			}
 		}
