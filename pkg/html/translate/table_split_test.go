@@ -113,6 +113,53 @@ func TestMultiRowTableSplitsFirstWrappedRow(t *testing.T) {
 	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: width}) <= available+0.001)
 }
 
+func TestMultiRowTableSplitsMiddleWrappedRow(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>middle label</td><td>one two three four five six seven eight nine ten eleven twelve</td></tr><tr><td>last</td><td>done</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableMultiTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &threeLineTableProvider{cursorProvider: &cursorProvider{}}
+	prefix, err := row.rebuild(row.cells[:1])
+	require.NoError(t, err)
+	middle, err := row.rebuild(row.cells[1:2])
+	require.NoError(t, err)
+	width := 100.0
+	available := prefix.GetHeight(provider, &entity.Cell{Width: width}) + middle.GetHeight(provider, &entity.Cell{Width: width})*0.6
+	first, rest, split := row.SplitAt(provider, available, width)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 2, len(first.(*splittableMultiTableRow).cells))
+	assert.Equal(t, 2, len(rest.(*splittableMultiTableRow).cells))
+	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: width}) <= available+0.001)
+}
+
+func TestMultiRowTableKeepsShortMiddleRowTogether(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>middle label</td><td>one two three four five six seven</td></tr><tr><td>last</td><td>done</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableMultiTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &threeLineTableProvider{cursorProvider: &cursorProvider{}}
+	prefix, err := row.rebuild(row.cells[:1])
+	require.NoError(t, err)
+	middle, err := row.rebuild(row.cells[1:2])
+	require.NoError(t, err)
+	width := 100.0
+	available := prefix.GetHeight(provider, &entity.Cell{Width: width}) + middle.GetHeight(provider, &entity.Cell{Width: width})*0.6
+	first, rest, split := row.SplitAt(provider, available, width)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 1, len(first.(*splittableMultiTableRow).cells))
+	assert.Equal(t, 2, len(rest.(*splittableMultiTableRow).cells))
+}
+
 func TestMultiRowTableKeepsRowspanTogether(t *testing.T) {
 	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td rowspan="2">shared</td><td>first</td></tr><tr><td>second</td></tr></table>`)
 	require.NoError(t, err)
@@ -245,6 +292,24 @@ func TestTableCarriesWrappedResultTailNearBoundary(t *testing.T) {
 }
 
 type widthAwareTableProvider struct{ *cursorProvider }
+
+type threeLineTableProvider struct{ *cursorProvider }
+
+func (p *threeLineTableProvider) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64 {
+	var words int
+	for _, run := range runs {
+		words += len(strings.Fields(run.Text))
+	}
+	if cell.Width < 1000 {
+		if words > 10 {
+			return 3 + prop.Top + prop.Bottom
+		}
+		if words > 5 {
+			return 2 + prop.Top + prop.Bottom
+		}
+	}
+	return 1 + prop.Top + prop.Bottom
+}
 
 func (p *widthAwareTableProvider) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *props.RichText) float64 {
 	var words int

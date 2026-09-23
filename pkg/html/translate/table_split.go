@@ -112,6 +112,44 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 			}
 		}
 	}
+	for count := len(r.cells) - 2; count > 0; count-- {
+		prefix, err := r.rebuild(r.cells[:count])
+		if err != nil {
+			continue
+		}
+		prefixHeight := prefix.GetHeight(provider, &entity.Cell{Width: width})
+		if prefixHeight >= remainingHeight {
+			continue
+		}
+		partialTable, err := table.New([][]table.Cell{r.cells[count]}, r.opts...)
+		if err != nil {
+			continue
+		}
+		partialRow := newSplittableTableRow(partialTable, r.cells[count], r.opts)
+		partialRow.SetConfig(r.config)
+		// Keep shorter middle rows intact at a page edge. A tall wrapped row
+		// has enough content to leave a useful fragment on both pages.
+		if !tableCellsWrapAtLeastThreeLines(provider, r.cells[count], r.table.ColumnWidths(), width) {
+			continue
+		}
+		if partialRow.GetHeight(provider, &entity.Cell{Width: width}) <= remainingHeight-prefixHeight {
+			continue
+		}
+		first, rest, split := partialRow.SplitAt(provider, remainingHeight-prefixHeight, width)
+		if !split || first == nil || rest == nil {
+			continue
+		}
+		firstCells := append(append([][]table.Cell{}, r.cells[:count]...), first.(*splittableTableRow).cells)
+		firstFragment, err := r.rebuild(firstCells)
+		if err != nil || firstFragment.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
+			continue
+		}
+		restCells := append([][]table.Cell{rest.(*splittableTableRow).cells}, r.cells[count+1:]...)
+		restFragment, err := r.rebuild(restCells)
+		if err == nil {
+			return firstFragment, restFragment, true
+		}
+	}
 	for count := len(r.cells) - 1; count > 0; count-- {
 		first, err := r.rebuild(r.cells[:count])
 		if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight {
@@ -123,6 +161,33 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 		}
 	}
 	return nil, r, true
+}
+
+func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell, columnWidths []float64, width float64) bool {
+	if len(columnWidths) != 0 && len(columnWidths) != len(cells) {
+		return false
+	}
+	for index, cell := range cells {
+		rt, ok := cell.Content.(*richtext.RichText)
+		if !ok {
+			continue
+		}
+		cellWidth := width / float64(len(cells))
+		if len(columnWidths) > 0 {
+			cellWidth = width * columnWidths[index]
+		}
+		if cell.Style != nil {
+			cellWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
+		}
+		if cellWidth <= 0 {
+			continue
+		}
+		lineHeight := rt.GetHeight(provider, &entity.Cell{Width: 10000})
+		if lineHeight > 0 && rt.GetHeight(provider, &entity.Cell{Width: cellWidth}) >= 2.5*lineHeight {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *splittableMultiTableRow) rebuild(cells [][]table.Cell) (*splittableMultiTableRow, error) {
