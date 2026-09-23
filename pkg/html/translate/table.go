@@ -234,13 +234,14 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 	cellProp := tableCellStyle(cellStyle, rowStyle)
 
 	return table.Cell{
-		Content:                content,
-		Colspan:                colspan,
-		Rowspan:                rowspan,
-		Style:                  cellProp,
-		Height:                 height,
-		VerticalAlign:          cellStyle.VerticalAlign,
-		ContinuationPaddingTop: max(0, css.ParseLength(td.Attr("data-continuation-padding-top"), cellStyle.FontSize)),
+		Content:                 content,
+		Colspan:                 colspan,
+		Rowspan:                 rowspan,
+		Style:                   cellProp,
+		Height:                  height,
+		VerticalAlign:           cellStyle.VerticalAlign,
+		ContinuationPaddingTop:  max(0, css.ParseLength(td.Attr("data-continuation-padding-top"), cellStyle.FontSize)),
+		CarryContentNearPageEnd: max(0, css.ParseLength(td.Attr("data-carry-content-near-page-end"), cellStyle.FontSize)),
 	}
 }
 

@@ -92,6 +92,46 @@ func TestPageBuilderKeepsHeadingWhenFollowingRowCanStart(t *testing.T) {
 	assert.Equal(t, continuation.rest, builder.rows[0])
 }
 
+type nearBoundaryTestRow struct {
+	splittingRow
+	threshold float64
+}
+
+func (r *nearBoundaryTestRow) NearBoundaryThreshold() float64 { return r.threshold }
+
+func TestPageBuilderSplitsFittingRowNearPageEnd(t *testing.T) {
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	first, rest := fixedRow(10), fixedRow(4)
+	builder.addRow(fixedRow(85))
+	builder.addRow(&nearBoundaryTestRow{
+		splittingRow: splittingRow{
+			atomicSplittableRow: atomicSplittableRow{height: 14},
+			first:               first, rest: rest,
+		},
+		threshold: 2,
+	})
+	require.Len(t, builder.pages, 1)
+	assert.Equal(t, first, builder.pages[0].GetRows()[1])
+	require.Len(t, builder.rows, 1)
+	assert.Equal(t, rest, builder.rows[0])
+}
+
+func TestPageBuilderMovesHeadingWhenNextRowWouldCarryContent(t *testing.T) {
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	heading := keepWithNextTestRow{fixedRow(5)}
+	following := &nearBoundaryTestRow{
+		splittingRow: splittingRow{atomicSplittableRow: atomicSplittableRow{height: 6}, first: fixedRow(3), rest: fixedRow(3)},
+		threshold: 2,
+	}
+	builder.addRows(fixedRow(88), heading, following)
+	require.Len(t, builder.pages, 1)
+	require.Len(t, builder.rows, 2)
+	assert.Equal(t, core.Row(heading), builder.rows[0])
+	assert.Equal(t, core.Row(following), builder.rows[1])
+}
+
 func TestPageBuilderDiscardsMarginAfterAutomaticBreak(t *testing.T) {
 	t.Parallel()
 

@@ -56,6 +56,14 @@ func (r *horizontalMarginRow) KeepWithNext() bool {
 	return ok && keep.KeepWithNext()
 }
 
+func (r *horizontalMarginRow) NearBoundaryThreshold() float64 {
+	near, ok := r.child.(core.NearBoundarySplitter)
+	if ok {
+		return near.NearBoundaryThreshold()
+	}
+	return 0
+}
+
 func (r *horizontalMarginRow) PageBoundaryAllowance() float64 {
 	if edge, ok := r.child.(core.PageBoundaryAllowance); ok {
 		return edge.PageBoundaryAllowance()

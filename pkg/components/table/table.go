@@ -28,6 +28,9 @@ type Cell struct {
 	VerticalAlign string
 	// ContinuationPaddingTop overrides top padding only after this cell splits.
 	ContinuationPaddingTop float64
+	// CarryContentNearPageEnd moves content to the next page when a fitting
+	// row has less than this much space left at the bottom of the page.
+	CarryContentNearPageEnd float64
 }
 
 // Option configures a Table.

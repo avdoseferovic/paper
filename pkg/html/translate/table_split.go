@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"strings"
 	"unicode"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
@@ -52,8 +53,19 @@ func (r *splittableTableRow) PageBoundaryAllowance() float64 {
 	return allowance
 }
 
+func (r *splittableTableRow) NearBoundaryThreshold() float64 {
+	threshold := 0.0
+	for _, cell := range r.cells {
+		threshold = max(threshold, cell.CarryContentNearPageEnd)
+	}
+	return threshold
+}
+
 func (r *splittableTableRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
-	if r.GetHeight(provider, &entity.Cell{Width: width}) <= remainingHeight {
+	if height := r.GetHeight(provider, &entity.Cell{Width: width}); height <= remainingHeight {
+		if threshold := r.NearBoundaryThreshold(); threshold > 0 && remainingHeight-height < threshold {
+			return r.carryContentToNextPage(provider, remainingHeight, width)
+		}
 		return nil, nil, false
 	}
 	if _, ok := provider.(core.RichTextMeasurer); !ok || remainingHeight <= 0 || len(r.cells) == 0 {
@@ -94,6 +106,73 @@ func (r *splittableTableRow) SplitAt(provider core.Provider, remainingHeight, wi
 	}
 	if first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
 		return nil, r, true
+	}
+	return first, rest, true
+}
+
+func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
+	columnWidths := r.table.ColumnWidths()
+	if len(columnWidths) != 0 && len(columnWidths) != len(r.cells) {
+		return nil, nil, false
+	}
+	firstCells := make([]table.Cell, len(r.cells))
+	restCells := make([]table.Cell, len(r.cells))
+	carried := false
+	retained := false
+	for index, cell := range r.cells {
+		if cell.Colspan > 1 || cell.Rowspan > 1 {
+			return nil, nil, false
+		}
+		if cell.Content != nil {
+			rt, ok := cell.Content.(*richtext.RichText)
+			if !ok {
+				return nil, nil, false
+			}
+			for _, run := range rt.Runs() {
+				if run.ForceBreak || strings.Contains(run.Text, "\n") {
+					return nil, nil, false
+				}
+			}
+			cellWidth := width / float64(len(r.cells))
+			if len(columnWidths) > 0 {
+				cellWidth = width * columnWidths[index]
+			}
+			if cell.Style != nil {
+				cellWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
+			}
+			if cellWidth <= 0 || rt.GetHeight(provider, &entity.Cell{Width: cellWidth}) > rt.GetHeight(provider, &entity.Cell{Width: 10000})+0.001 {
+				return nil, nil, false
+			}
+		}
+		firstCells[index], restCells[index] = cell, cell
+		if cell.CarryContentNearPageEnd > 0 && cell.Content != nil {
+			firstCells[index].Content = nil
+			firstCells[index].Height = 0
+			if cell.ContinuationPaddingTop > 0 && cell.Style != nil {
+				style := *cell.Style
+				style.PaddingTop = cell.ContinuationPaddingTop
+				restCells[index].Style = &style
+			}
+			carried = true
+		} else {
+			restCells[index].Content = nil
+			restCells[index].Height = 0
+			retained = retained || cell.Content != nil
+		}
+	}
+	if !carried || !retained {
+		return nil, nil, false
+	}
+	if remainingHeight-r.GetHeight(provider, &entity.Cell{Width: width}) < r.PageBoundaryAllowance() {
+		return nil, r, true
+	}
+	first, err := r.rebuild(firstCells)
+	if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
+		return nil, nil, false
+	}
+	rest, err := r.rebuild(restCells)
+	if err != nil {
+		return nil, nil, false
 	}
 	return first, rest, true
 }

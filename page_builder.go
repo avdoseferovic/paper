@@ -92,8 +92,19 @@ func (b *pageBuilder) addRows(rows ...core.Row) {
 			next.SetConfig(b.config)
 			pairHeight := row.GetHeight(b.provider, &b.cell) + next.GetHeight(b.provider, &b.cell)
 			maxHeight := b.effectiveCellHeight()
-			moveTogether := b.currentHeight+pairHeight+b.effectiveFooterHeight() > maxHeight && b.headerHeight+pairHeight+b.effectiveFooterHeight() <= maxHeight
-			if moveTogether {
+			pairSlack := maxHeight - b.currentHeight - pairHeight - b.effectiveFooterHeight()
+			moveTogether := pairSlack < 0 && b.headerHeight+pairHeight+b.effectiveFooterHeight() <= maxHeight
+			moveForNear := false
+			if !moveTogether && pairSlack >= 0 && b.headerHeight+pairHeight+b.effectiveFooterHeight() <= maxHeight {
+				if near, ok := next.(core.NearBoundarySplitter); ok && near.NearBoundaryThreshold() > pairSlack {
+					if splittable, ok := next.(core.Splittable); ok {
+						remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - row.GetHeight(b.provider, &b.cell)
+						_, _, moveForNear = splittable.SplitAt(b.provider, remaining, b.cell.Width)
+						moveTogether = moveForNear
+					}
+				}
+			}
+			if moveTogether && !moveForNear {
 				if splittable, ok := next.(core.Splittable); ok {
 					remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - row.GetHeight(b.provider, &b.cell)
 					if edge, ok := next.(core.PageBoundaryAllowance); ok {
@@ -146,6 +157,14 @@ func (b *pageBuilder) addRow(r core.Row) {
 	r.SetConfig(b.config)
 	rowHeight := r.GetHeight(b.provider, &b.cell)
 	sumHeight := rowHeight + b.currentHeight + b.effectiveFooterHeight()
+	if sp, ok := r.(core.Splittable); ok && sumHeight <= maxHeight {
+		if near, ok := r.(core.NearBoundarySplitter); ok {
+			threshold := near.NearBoundaryThreshold()
+			if threshold > 0 && maxHeight-sumHeight < threshold && b.addSplittableRow(r, sp, maxHeight, 0) {
+				return
+			}
+		}
+	}
 	if sp, ok := r.(core.Splittable); ok && sumHeight <= maxHeight {
 		if edge, ok := r.(core.PageBoundaryAllowance); ok {
 			allowance := edge.PageBoundaryAllowance()
