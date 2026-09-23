@@ -53,6 +53,8 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 		row := newSplittableTableRow(tbl, cells[0], opts)
 		row.keepWithNext = tableStyle.PageBreakAfter == "avoid"
 		out = append(out, row)
+	} else if n.Attr("data-split-rows") == "true" {
+		out = append(out, newSplittableMultiTableRow(tbl, cells, opts))
 	} else {
 		c := col.New().Add(tbl)
 		out = append(out, row.New().Add(c))

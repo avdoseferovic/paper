@@ -13,6 +13,112 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
+// splittableMultiTableRow preserves a table's shared column grid while
+// allowing marked rows to continue at a page boundary.
+type splittableMultiTableRow struct {
+	core.Row
+	table  *table.Table
+	cells  [][]table.Cell
+	opts   []table.Option
+	config *entity.Config
+}
+
+func newSplittableMultiTableRow(tbl *table.Table, cells [][]table.Cell, opts []table.Option) *splittableMultiTableRow {
+	return &splittableMultiTableRow{Row: row.New().Add(col.New().Add(tbl)), table: tbl, cells: cells, opts: opts}
+}
+
+func (r *splittableMultiTableRow) SetConfig(config *entity.Config) {
+	r.config = config
+	r.Row.SetConfig(config)
+}
+
+func (r *splittableMultiTableRow) NearBoundaryThreshold() float64 {
+	if len(r.cells) == 0 {
+		return 0
+	}
+	threshold := 0.0
+	for _, cell := range r.cells[len(r.cells)-1] {
+		threshold = max(threshold, cell.CarryContentNearPageEnd)
+	}
+	return threshold
+}
+
+func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
+	if len(r.cells) == 0 {
+		return nil, nil, false
+	}
+	if len(r.cells) == 1 {
+		last := newSplittableTableRow(r.table, r.cells[0], r.opts)
+		last.SetConfig(r.config)
+		return last.SplitAt(provider, remainingHeight, width)
+	}
+	height := r.GetHeight(provider, &entity.Cell{Width: width})
+	for _, cells := range r.cells {
+		for _, cell := range cells {
+			if cell.Rowspan > 1 {
+				if height > remainingHeight {
+					return nil, r, true
+				}
+				return nil, nil, false
+			}
+		}
+	}
+	threshold := r.NearBoundaryThreshold()
+	if height <= remainingHeight && (threshold <= 0 || remainingHeight-height >= threshold) {
+		return nil, nil, false
+	}
+	prefix, err := r.rebuild(r.cells[:len(r.cells)-1])
+	if err != nil {
+		return nil, nil, false
+	}
+	prefixHeight := prefix.GetHeight(provider, &entity.Cell{Width: width})
+	lastTable, err := table.New([][]table.Cell{r.cells[len(r.cells)-1]}, r.opts...)
+	if err != nil {
+		return nil, nil, false
+	}
+	last := newSplittableTableRow(lastTable, r.cells[len(r.cells)-1], r.opts)
+	last.SetConfig(r.config)
+	if height <= remainingHeight {
+		first, rest, split := last.carryWrappedTailToNextPage(provider, remainingHeight-prefixHeight, width, threshold)
+		if !split || first == nil || rest == nil {
+			return nil, nil, false
+		}
+		firstCells := append(append([][]table.Cell{}, r.cells[:len(r.cells)-1]...), first.(*splittableTableRow).cells)
+		firstFragment, err := r.rebuild(firstCells)
+		if err != nil || firstFragment.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
+			return nil, nil, false
+		}
+		restFragment, err := r.rebuild([][]table.Cell{rest.(*splittableTableRow).cells})
+		if err != nil {
+			return nil, nil, false
+		}
+		return firstFragment, restFragment, true
+	}
+	for count := len(r.cells) - 1; count > 0; count-- {
+		first, err := r.rebuild(r.cells[:count])
+		if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight {
+			continue
+		}
+		rest, err := r.rebuild(r.cells[count:])
+		if err == nil {
+			return first, rest, true
+		}
+	}
+	return nil, r, true
+}
+
+func (r *splittableMultiTableRow) rebuild(cells [][]table.Cell) (*splittableMultiTableRow, error) {
+	tbl, err := table.New(cells, r.opts...)
+	if err != nil {
+		return nil, err
+	}
+	fragment := newSplittableMultiTableRow(tbl, cells, r.opts)
+	if r.config != nil {
+		fragment.SetConfig(r.config)
+	}
+	return fragment, nil
+}
+
 // splittableTableRow lets text in a single HTML table row continue on the
 // next page while keeping the cells in their original columns.
 type splittableTableRow struct {
@@ -64,7 +170,10 @@ func (r *splittableTableRow) NearBoundaryThreshold() float64 {
 func (r *splittableTableRow) SplitAt(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
 	if height := r.GetHeight(provider, &entity.Cell{Width: width}); height <= remainingHeight {
 		if threshold := r.NearBoundaryThreshold(); threshold > 0 && remainingHeight-height < threshold {
-			return r.carryContentToNextPage(provider, remainingHeight, width)
+			if first, rest, split := r.carryContentToNextPage(provider, remainingHeight, width); split {
+				return first, rest, true
+			}
+			return r.carryWrappedTailToNextPage(provider, remainingHeight, width, threshold)
 		}
 		return nil, nil, false
 	}
@@ -106,6 +215,72 @@ func (r *splittableTableRow) SplitAt(provider core.Provider, remainingHeight, wi
 	}
 	if first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
 		return nil, r, true
+	}
+	return first, rest, true
+}
+
+// carryWrappedTailToNextPage keeps the final wrapped result line from sitting
+// against the bottom edge when the row otherwise fits with very little slack.
+func (r *splittableTableRow) carryWrappedTailToNextPage(provider core.Provider, remainingHeight, width, threshold float64) (core.Row, core.Row, bool) {
+	if _, ok := provider.(core.RichTextMeasurer); !ok {
+		return nil, nil, false
+	}
+	columnWidths := r.table.ColumnWidths()
+	if len(columnWidths) != 0 && len(columnWidths) != len(r.cells) {
+		return nil, nil, false
+	}
+	firstCells := make([]table.Cell, len(r.cells))
+	restCells := make([]table.Cell, len(r.cells))
+	carried := false
+	retained := false
+	for index, cell := range r.cells {
+		if cell.Colspan > 1 || cell.Rowspan > 1 {
+			return nil, nil, false
+		}
+		firstCells[index], restCells[index] = cell, cell
+		restCells[index].Content = nil
+		restCells[index].Height = 0
+		if cell.CarryContentNearPageEnd <= 0 || cell.Content == nil {
+			retained = retained || cell.Content != nil
+			continue
+		}
+		rt, ok := cell.Content.(*richtext.RichText)
+		if !ok {
+			return nil, nil, false
+		}
+		for _, run := range rt.Runs() {
+			if run.ForceBreak || strings.Contains(run.Text, "\n") {
+				return nil, nil, false
+			}
+		}
+		cellWidth := width / float64(len(r.cells))
+		if len(columnWidths) > 0 {
+			cellWidth = width * columnWidths[index]
+		}
+		innerWidth := cellWidth
+		if cell.Style != nil {
+			innerWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
+		}
+		if innerWidth <= 0 || rt.GetHeight(provider, &entity.Cell{Width: innerWidth}) <= rt.GetHeight(provider, &entity.Cell{Width: 10000})+0.001 {
+			return nil, nil, false
+		}
+		first, rest, split := splitTableCellText(provider, cell, remainingHeight-threshold, cellWidth, r.config)
+		if !split || rest.Content == nil {
+			return nil, nil, false
+		}
+		firstCells[index], restCells[index] = first, rest
+		carried = true
+	}
+	if !carried || !retained {
+		return nil, nil, false
+	}
+	first, err := r.rebuild(firstCells)
+	if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight+0.001 {
+		return nil, nil, false
+	}
+	rest, err := r.rebuild(restCells)
+	if err != nil {
+		return nil, nil, false
 	}
 	return first, rest, true
 }

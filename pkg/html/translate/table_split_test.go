@@ -36,6 +36,57 @@ func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
 	assert.Equal(t, "", tableCellText(rest, 1))
 }
 
+func TestMultiRowTableCarriesWrappedLastResultNearPageBoundary(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>last label</td><td data-carry-content-near-page-end="3.5pt">one two three four five six</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row, ok := rows[0].(core.Splittable)
+	require.True(t, ok)
+	rows[0].SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &widthAwareTableProvider{cursorProvider: &cursorProvider{}}
+	height := rows[0].GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := row.SplitAt(provider, height+css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: 100}) <= height+css.ParseLength("1pt", 0)+0.001)
+}
+
+func TestMultiRowTableSplitsBetweenRows(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td>first</td></tr><tr><td>second</td></tr><tr><td>third</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableMultiTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	one, err := row.rebuild(row.cells[:1])
+	require.NoError(t, err)
+	first, rest, split := row.SplitAt(provider, one.GetHeight(provider, &entity.Cell{Width: 100})+0.001, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 1, len(first.(*splittableMultiTableRow).cells))
+	assert.Equal(t, 2, len(rest.(*splittableMultiTableRow).cells))
+}
+
+func TestMultiRowTableKeepsRowspanTogether(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td rowspan="2">shared</td><td>first</td></tr><tr><td>second</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableMultiTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	first, rest, split := row.SplitAt(&paragraphMeasureProvider{cursorProvider: &cursorProvider{}}, 0.1, 100)
+	require.True(t, split)
+	assert.True(t, first == nil)
+	assert.Equal(t, row, rest)
+}
+
 func TestStyledTableCellContinuesWithStyle(t *testing.T) {
 	doc, err := dom.Parse(`<table><tr><td><strong>one two three four five six</strong></td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
@@ -119,6 +170,23 @@ func TestTableKeepsMultilineCellsTogetherNearBoundary(t *testing.T) {
 	height := row.GetHeight(provider, &entity.Cell{Width: 100})
 	_, _, split := row.SplitAt(provider, height+css.ParseLength("1pt", 0), 100)
 	assert.False(t, split)
+}
+
+func TestTableCarriesWrappedResultTailNearBoundary(t *testing.T) {
+	doc, err := dom.Parse(`<table><tr><td>label</td><td data-carry-content-near-page-end="3.5pt" data-continuation-padding-top="4.6pt">one two three four five six seven</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	row := rows[0].(*splittableTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &widthAwareTableProvider{cursorProvider: &cursorProvider{}}
+	height := row.GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := row.SplitAt(provider, height+css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	assert.Equal(t, "label", tableCellText(first, 0))
+	assert.Equal(t, "", tableCellText(rest, 0))
+	assert.Equal(t, "one two three four five", tableCellText(first, 1))
+	assert.Equal(t, "six seven", tableCellText(rest, 1))
 }
 
 type widthAwareTableProvider struct{ *cursorProvider }
