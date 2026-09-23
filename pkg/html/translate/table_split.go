@@ -17,10 +17,11 @@ import (
 // allowing marked rows to continue at a page boundary.
 type splittableMultiTableRow struct {
 	core.Row
-	table  *table.Table
-	cells  [][]table.Cell
-	opts   []table.Option
-	config *entity.Config
+	table                *table.Table
+	cells                [][]table.Cell
+	opts                 []table.Option
+	config               *entity.Config
+	keepFirstRowWithNext bool
 }
 
 func newSplittableMultiTableRow(tbl *table.Table, cells [][]table.Cell, opts []table.Option) *splittableMultiTableRow {
@@ -151,6 +152,9 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 		}
 	}
 	for count := len(r.cells) - 1; count > 0; count-- {
+		if count == 1 && r.keepFirstRowWithNext {
+			continue
+		}
 		first, err := r.rebuild(r.cells[:count])
 		if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight {
 			continue

@@ -55,7 +55,9 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 		row.pageBreakPreview = n.Attr("data-page-break-preview") == "true"
 		out = append(out, row)
 	} else if n.Attr("data-split-rows") == "true" {
-		out = append(out, newSplittableMultiTableRow(tbl, cells, opts))
+		row := newSplittableMultiTableRow(tbl, cells, opts)
+		row.keepFirstRowWithNext = n.Attr("data-keep-first-row-with-next") == "true"
+		out = append(out, row)
 	} else {
 		c := col.New().Add(tbl)
 		out = append(out, row.New().Add(c))

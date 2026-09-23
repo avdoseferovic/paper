@@ -67,7 +67,7 @@ func TestTableCellWidthsIncludeSpannedColumns(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsLastSpanningAnswer(t *testing.T) {
-	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><th colspan="3">Section</th></tr><tr><td>label</td><td colspan="2">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
+	doc, err := dom.Parse(`<table data-split-rows="true" data-keep-first-row-with-next="true"><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><th colspan="3">Section</th></tr><tr><td>label</td><td colspan="2">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
@@ -88,6 +88,23 @@ func TestMultiRowTableSplitsLastSpanningAnswer(t *testing.T) {
 	require.Len(t, restSection.cells, 1)
 	assert.NotNil(t, firstSection.cells[1][1].Content)
 	assert.NotNil(t, restSection.cells[0][1].Content)
+}
+
+func TestMultiRowTableKeepsFirstHeadingWithAnswer(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true" data-keep-first-row-with-next="true"><tr><th>Heading</th></tr><tr><td>Answer</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	header, err := section.rebuild(section.cells[:1])
+	require.NoError(t, err)
+	first, rest, split := section.SplitAt(provider, header.GetHeight(provider, &entity.Cell{Width: 100})+0.001, 100)
+	require.True(t, split)
+	assert.Nil(t, first)
+	assert.Equal(t, core.Row(section), rest)
 }
 
 func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
