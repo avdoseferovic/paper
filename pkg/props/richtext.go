@@ -108,6 +108,9 @@ type RichText struct {
 	BreakLineStrategy consts.BreakLineStrategy
 	FirstLineIndent   float64
 	WhiteSpace        string
+	// WrapTolerance permits a measured word to extend slightly beyond the
+	// available line width when matching a source layout's font metrics.
+	WrapTolerance float64
 
 	// AnchorResolver, when non-nil, is called with a LocalAnchor name to
 	// obtain the PDF link ID for per-run internal anchor rectangles. It is set

@@ -226,6 +226,7 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	rtProp := richTextPropsFromStyle(cellStyle)
 	rtProp.Top, rtProp.Right, rtProp.Bottom, rtProp.Left = 0, 0, 0, 0
+	rtProp.WrapTolerance = max(0, css.ParseLength(td.Attr("data-wrap-tolerance"), cellStyle.FontSize))
 
 	var content core.Component
 	if len(runs) > 0 {

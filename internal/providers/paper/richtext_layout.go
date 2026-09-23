@@ -7,17 +7,14 @@ import (
 	"github.com/avdoseferovic/paper/pkg/props"
 )
 
-// Font metrics and PDF text positions can differ by a fraction of a point.
-// Keep a word on its line when the measured overflow is below this bound.
-const richTextWrapToleranceMM = 0.08
-
 type richTextMeasureFunc func(run resolvedRun, text string) (translated string, width float64)
 
 type richTextLayoutInput struct {
-	prop       *props.RichText
-	width      float64
-	whiteSpace string
-	measure    richTextMeasureFunc
+	prop          *props.RichText
+	width         float64
+	whiteSpace    string
+	wrapTolerance float64
+	measure       richTextMeasureFunc
 }
 
 func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtToken, map[int]float64) {
@@ -78,7 +75,7 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 		}
 		groupEnd := wrapGroupEnd(tokens, runs, i)
 		groupAdvance := tokenGroupAdvance(tokens, runs, boxStart, boxEnd, runStart, runEnd, i, groupEnd)
-		if !noWrap && curX > lineStart && curX+groupAdvance > input.width+richTextWrapToleranceMM {
+		if !noWrap && curX > lineStart && curX+groupAdvance > input.width+input.wrapTolerance {
 			lineY++
 			curX = firstXForLine(lineY, firstLineIndent)
 			if t.skipAtLineStart {

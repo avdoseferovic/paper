@@ -99,9 +99,10 @@ func (s *Text) AddRichText(runs []props.RichRun, cell *entity.Cell, prop *props.
 	seenMissing := make(map[rune]bool)
 
 	tokens, lineWidths := layoutRichTextTokens(resolved, richTextLayoutInput{
-		prop:       prop,
-		width:      width,
-		whiteSpace: whiteSpace,
+		prop:          prop,
+		width:         width,
+		whiteSpace:    whiteSpace,
+		wrapTolerance: prop.WrapTolerance,
 		measure: func(r resolvedRun, text string) (string, float64) {
 			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
 			translated := s.translateUnicode(text, r.Family)
@@ -143,9 +144,10 @@ func (s *Text) MeasureRichText(runs []props.RichRun, cell *entity.Cell, prop *pr
 	lineHeight, lineMultiplier := s.richTextLineMetrics(resolved, prop)
 	whiteSpace := normalizeRichTextWhiteSpace(prop.WhiteSpace)
 	tokens, _ := layoutRichTextTokens(resolved, richTextLayoutInput{
-		prop:       prop,
-		width:      width,
-		whiteSpace: whiteSpace,
+		prop:          prop,
+		width:         width,
+		whiteSpace:    whiteSpace,
+		wrapTolerance: prop.WrapTolerance,
 		measure: func(r resolvedRun, text string) (string, float64) {
 			s.font.SetFont(r.Family, r.styleWithUnderline(), r.Size)
 			translated := s.translateUnicode(text, r.Family)
