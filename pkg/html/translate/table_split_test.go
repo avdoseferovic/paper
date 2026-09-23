@@ -17,6 +17,7 @@ import (
 )
 
 func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>one two three four five six</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -38,6 +39,7 @@ func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
 }
 
 func TestSingleTableRowSplitsSpanningResultCell(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><td>label</td><td colspan="2" data-continuation-padding-top="4.6pt">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -59,6 +61,7 @@ func TestSingleTableRowSplitsSpanningResultCell(t *testing.T) {
 }
 
 func TestSingleTableRowSplitsNestedResultTable(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>label</td><td><table><tr><td>one<br>two<br>three<br>four</td></tr></table></td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -79,6 +82,7 @@ func TestSingleTableRowSplitsNestedResultTable(t *testing.T) {
 }
 
 func TestSingleTableRowCarriesNestedResultNearPageEnd(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>label</td><td data-carry-content-near-page-end="3.5pt"><table><tr><td>answer</td></tr></table></td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -98,6 +102,7 @@ func TestSingleTableRowCarriesNestedResultNearPageEnd(t *testing.T) {
 }
 
 func TestMultiRowTableCarriesNestedResultNearPageEnd(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1pt"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt"><table><tr><td>answer</td></tr></table></td></tr><tr><td>next</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -122,6 +127,7 @@ func TestMultiRowTableCarriesNestedResultNearPageEnd(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsNestedExplicitResult(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1mm"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td><table><tr><td>one<br>two<br>three<br>four</td></tr></table></td></tr><tr><td>next</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -144,6 +150,7 @@ func TestMultiRowTableSplitsNestedExplicitResult(t *testing.T) {
 }
 
 func TestTableCellWidthsIncludeSpannedColumns(t *testing.T) {
+	t.Parallel()
 	widths, ok := tableCellWidths([]table.Cell{{}, {Colspan: 2}}, []float64{0.5, 0.3, 0.2}, 100)
 	require.True(t, ok)
 	require.Len(t, widths, 2)
@@ -152,6 +159,7 @@ func TestTableCellWidthsIncludeSpannedColumns(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsLastSpanningAnswer(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-keep-first-row-with-next="true"><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><th colspan="3">Section</th></tr><tr><td>label</td><td colspan="2">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -176,6 +184,7 @@ func TestMultiRowTableSplitsLastSpanningAnswer(t *testing.T) {
 }
 
 func TestMultiRowTableKeepsFirstHeadingWithAnswer(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-keep-first-row-with-next="true"><tr><th>Heading</th></tr><tr><td>Answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -193,6 +202,7 @@ func TestMultiRowTableKeepsFirstHeadingWithAnswer(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsExplicitLinesBeforePaintedEdge(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1mm"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td>one<br>two<br>three<br>four<br>five</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -220,6 +230,7 @@ func TestMultiRowTableSplitsExplicitLinesBeforePaintedEdge(t *testing.T) {
 }
 
 func TestMultiRowTableCarriesNearEdgeAnswerFromMiddleRow(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true" data-row-fragment-edge="1pt"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -246,6 +257,7 @@ func TestMultiRowTableCarriesNearEdgeAnswerFromMiddleRow(t *testing.T) {
 }
 
 func TestMultiRowTableLeavesUnmarkedMiddleRowIntact(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><tr><th colspan="2">Section</th></tr><tr><td>label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr><tr><td>next</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -265,6 +277,7 @@ func TestMultiRowTableLeavesUnmarkedMiddleRowIntact(t *testing.T) {
 }
 
 func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td data-continuation-padding-top="30pt">Alpha one<br>Beta two<br>Gamma three</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -283,6 +296,7 @@ func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
 }
 
 func TestMultiRowTableCarriesWrappedLastResultNearPageBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>last label</td><td data-carry-content-near-page-end="3.5pt">one two three four five six</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -301,6 +315,7 @@ func TestMultiRowTableCarriesWrappedLastResultNearPageBoundary(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsBetweenRows(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td>first</td></tr><tr><td>second</td></tr><tr><td>third</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -320,6 +335,7 @@ func TestMultiRowTableSplitsBetweenRows(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsFirstWrappedRow(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first label</td><td>one two three four five six seven</td></tr><tr><td>second</td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -342,6 +358,7 @@ func TestMultiRowTableSplitsFirstWrappedRow(t *testing.T) {
 }
 
 func TestMultiRowTableSplitsMiddleWrappedRow(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>middle label</td><td>one two three four five six seven eight nine ten eleven twelve</td></tr><tr><td>last</td><td>done</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -366,6 +383,7 @@ func TestMultiRowTableSplitsMiddleWrappedRow(t *testing.T) {
 }
 
 func TestMultiRowTableKeepsShortMiddleRowTogether(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>middle label</td><td>one two three four five six seven</td></tr><tr><td>last</td><td>done</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -389,6 +407,7 @@ func TestMultiRowTableKeepsShortMiddleRowTogether(t *testing.T) {
 }
 
 func TestMultiRowTableKeepsRowspanTogether(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td rowspan="2">shared</td><td>first</td></tr><tr><td>second</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -403,6 +422,7 @@ func TestMultiRowTableKeepsRowspanTogether(t *testing.T) {
 }
 
 func TestStyledTableCellContinuesWithStyle(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td><strong>one two three four five six</strong></td><td>yes</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -420,6 +440,7 @@ func TestStyledTableCellContinuesWithStyle(t *testing.T) {
 }
 
 func TestTableCellUsesContinuationPaddingOnlyOnLaterFragment(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>label</td><td data-continuation-padding-top="4.6pt" style="padding-top: 2.2pt">one two three four five six</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -436,6 +457,7 @@ func TestTableCellUsesContinuationPaddingOnlyOnLaterFragment(t *testing.T) {
 }
 
 func TestTableRowKeepsFollowingRowWhenRequested(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table style="break-after: avoid"><tr><th>Heading</th></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -445,6 +467,7 @@ func TestTableRowKeepsFollowingRowWhenRequested(t *testing.T) {
 }
 
 func TestMarkedHeaderProvidesBlankPageBreakPreview(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table data-page-break-preview="true" style="break-after: avoid"><tr><th style="background-color:#005e7d" colspan="2">Next section</th></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -460,6 +483,7 @@ func TestMarkedHeaderProvidesBlankPageBreakPreview(t *testing.T) {
 }
 
 func TestMarginWrappedTablePreservesKeepWithNext(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table style="margin-left: 5pt; break-after: avoid"><tr><th>Heading</th></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -471,6 +495,7 @@ func TestMarginWrappedTablePreservesKeepWithNext(t *testing.T) {
 }
 
 func TestTableCanCarryResultCellAcrossNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>label</td><td data-carry-content-near-page-end="3.5pt" style="padding-top: 2.2pt" data-continuation-padding-top="4.6pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -490,6 +515,7 @@ func TestTableCanCarryResultCellAcrossNearBoundary(t *testing.T) {
 }
 
 func TestTableCanCarrySpanningResultCellAcrossNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><td>label</td><td colspan="2" data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -509,6 +535,7 @@ func TestTableCanCarrySpanningResultCellAcrossNearBoundary(t *testing.T) {
 }
 
 func TestTableKeepsMultilineCellsTogetherNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>long label text that wraps over several lines in the available column</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -522,6 +549,7 @@ func TestTableKeepsMultilineCellsTogetherNearBoundary(t *testing.T) {
 }
 
 func TestTableCarriesWrappedResultTailNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>label</td><td data-carry-content-near-page-end="3.5pt" data-continuation-padding-top="4.6pt">one two three four five six seven</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -570,6 +598,7 @@ func (p *widthAwareTableProvider) MeasureRichText(runs []props.RichRun, cell *en
 }
 
 func TestTablePushesWholeRowWhenPaintedEdgeWillNotFit(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td style="border: 1pt solid black">label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -585,6 +614,7 @@ func TestTablePushesWholeRowWhenPaintedEdgeWillNotFit(t *testing.T) {
 }
 
 func TestTableKeepsForcedBreakCellTogetherNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td>first<br>second</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -598,6 +628,7 @@ func TestTableKeepsForcedBreakCellTogetherNearBoundary(t *testing.T) {
 }
 
 func TestTableDoesNotCarryEveryCellNearBoundary(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td data-carry-content-near-page-end="3.5pt">label</td><td data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -620,9 +651,9 @@ func richTextCellText(cell table.Cell) string {
 	if !ok {
 		return ""
 	}
-	var value string
+	var value strings.Builder
 	for _, run := range rt.Runs() {
-		value += run.Text
+		value.WriteString(run.Text)
 	}
-	return value
+	return value.String()
 }

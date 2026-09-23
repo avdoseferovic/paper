@@ -50,17 +50,18 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 	if err != nil {
 		return out
 	}
-	if len(cells) == 1 {
+	switch {
+	case len(cells) == 1:
 		row := newSplittableTableRow(tbl, cells[0], opts)
 		row.keepWithNext = tableStyle.PageBreakAfter == "avoid"
 		row.pageBreakPreview = n.Attr("data-page-break-preview") == "true"
 		out = append(out, row)
-	} else if n.Attr("data-split-rows") == "true" {
+	case n.Attr("data-split-rows") == "true":
 		row := newSplittableMultiTableRow(tbl, cells, opts)
 		row.keepFirstRowWithNext = n.Attr("data-keep-first-row-with-next") == "true"
 		row.rowFragmentEdge = max(0, css.ParseLength(n.Attr("data-row-fragment-edge"), tableStyle.FontSize))
 		out = append(out, row)
-	} else {
+	default:
 		c := col.New().Add(tbl)
 		out = append(out, row.New().Add(c))
 	}

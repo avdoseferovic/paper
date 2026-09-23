@@ -10,6 +10,7 @@ import (
 )
 
 func TestLayoutRichTextTokensAllowsSubPointMeasurementDrift(t *testing.T) {
+	t.Parallel()
 	runs := []resolvedRun{{RichRun: props.RichRun{Text: "aa bb"}}}
 	for _, check := range []struct {
 		width     float64

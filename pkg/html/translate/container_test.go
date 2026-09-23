@@ -116,6 +116,7 @@ func TestFlexCellContent_RenderRestoresCursorForParentRowAdvance(t *testing.T) {
 }
 
 func TestPlainBlockReservesPageBoundaryAllowance(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<div data-page-boundary-allowance="3pt" style="margin-left:5pt">Heading</div>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -442,6 +443,7 @@ func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
 }
 
 func TestUnbreakableContainerPageBoundaryAllowance(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<div style="break-inside:avoid" data-page-boundary-allowance="15pt"><span>photo</span></div>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -457,10 +459,12 @@ type keepNextTestRow struct{ core.Row }
 func (keepNextTestRow) KeepWithNext() bool { return true }
 
 func TestSplittableContainerKeepsHeadingWithFirstRow(t *testing.T) {
+	t.Parallel()
 	provider := &cursorProvider{}
 	container := newSplittableContainerRow(&blockContainer{rows: []core.Row{
 		buildFixedHeightRow(20), newMarginSpacer(5),
-		keepNextTestRow{buildFixedHeightRow(5)}, buildFixedHeightRow(10),
+		keepNextTestRow{buildFixedHeightRow(5)},
+		buildFixedHeightRow(10),
 	}})
 	container.SetConfig(&entity.Config{MaxGridSize: 12})
 	first, rest, split := container.SplitAt(provider, 30, 100)
@@ -472,6 +476,7 @@ func TestSplittableContainerKeepsHeadingWithFirstRow(t *testing.T) {
 }
 
 func TestSplittableContainerRowSplitsNestedChild(t *testing.T) {
+	t.Parallel()
 	p := &cursorProvider{}
 	cfg := &entity.Config{MaxGridSize: 12}
 	child := newSplittableContainerRow(&blockContainer{rows: []core.Row{

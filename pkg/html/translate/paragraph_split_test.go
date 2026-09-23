@@ -24,6 +24,7 @@ func (p *paragraphMeasureProvider) MeasureRichText(runs []props.RichRun, _ *enti
 }
 
 func TestParagraphRowSplitsAtMeasuredLineBoundary(t *testing.T) {
+	t.Parallel()
 	p := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	row := newSplittableParagraphRow([]props.RichRun{{Text: "one two three four five six"}}, props.RichText{}, nil)
 	row.SetConfig(&entity.Config{MaxGridSize: 12})
@@ -37,6 +38,7 @@ func TestParagraphRowSplitsAtMeasuredLineBoundary(t *testing.T) {
 }
 
 func TestNestedParagraphCanContinueOnNextPage(t *testing.T) {
+	t.Parallel()
 	p := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	paragraph := newSplittableParagraphRow([]props.RichRun{{Text: "one two three four five six"}}, props.RichText{}, nil)
 	parent := newSplittableContainerRow(&blockContainer{rows: []core.Row{paragraph}})
@@ -51,6 +53,7 @@ func TestNestedParagraphCanContinueOnNextPage(t *testing.T) {
 }
 
 func TestStyledParagraphPreservesRunsAcrossSplit(t *testing.T) {
+	t.Parallel()
 	p := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	paragraph := newSplittableParagraphRow([]props.RichRun{
 		{Text: "one two three ", Size: 12},
@@ -74,6 +77,7 @@ func TestStyledParagraphPreservesRunsAcrossSplit(t *testing.T) {
 }
 
 func TestParagraphSplitPreservesTrailingWhitespace(t *testing.T) {
+	t.Parallel()
 	p := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	paragraph := newSplittableParagraphRow([]props.RichRun{{Text: "one two three four five six   "}}, props.RichText{}, nil)
 	paragraph.SetConfig(&entity.Config{MaxGridSize: 12})

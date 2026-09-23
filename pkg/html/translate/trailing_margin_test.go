@@ -9,6 +9,7 @@ import (
 )
 
 func TestMarkedTrailingMarginSurvivesAutomaticPageBreak(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<html><body><p style="margin-top:0; margin-bottom:20pt" data-preserve-overflow-margin="true">Last content</p></body></html>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -24,6 +25,7 @@ func TestMarkedTrailingMarginSurvivesAutomaticPageBreak(t *testing.T) {
 }
 
 func TestCollapsedTrailingMarginKeepsOverflowMarker(t *testing.T) {
+	t.Parallel()
 	marked := newMarginSpacer(20)
 	marked.preserveAtAutomaticPageTop = true
 	rows := collapseMarginSpacers([]core.Row{marked, newMarginSpacer(30)})

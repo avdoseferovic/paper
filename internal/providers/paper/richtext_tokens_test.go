@@ -85,6 +85,7 @@ func TestTokeniseRuns_InterRunCollapsedSpaceKeepsSourceRun(t *testing.T) {
 }
 
 func TestTokeniseRuns_AllowsWrapAfterWordSlash(t *testing.T) {
+	t.Parallel()
 	tokens := tokeniseRuns([]resolvedRun{{RichRun: props.RichRun{Text: "Erkrankung/Behandlung"}}}, "normal")
 	require.Len(t, tokens, 2)
 	assert.Equal(t, "Erkrankung/", tokens[0].text)

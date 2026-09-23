@@ -488,61 +488,7 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	available := remainingHeight - padding
 	available = max(available, 0)
 
-	var firstRows, restRows []core.Row
-	cumHeight := 0.0
-	splitDone := false
-	for i, r := range s.container.rows {
-		rh := r.GetHeight(provider, dummyCell)
-		if !splitDone && cumHeight+rh <= available+0.001 {
-			if keep, ok := r.(interface{ KeepWithNext() bool }); ok && keep.KeepWithNext() && i+1 < len(s.container.rows) {
-				nextHeight := s.container.rows[i+1].GetHeight(provider, dummyCell)
-				if cumHeight+rh+nextHeight > available+0.001 {
-					if splittable, ok := s.container.rows[i+1].(core.Splittable); ok {
-						first, _, split := splittable.SplitAt(provider, available-cumHeight-rh, childWidth)
-						if split && first != nil {
-							firstRows = append(firstRows, r)
-							cumHeight += rh
-							continue
-						}
-					}
-					cutoff := len(firstRows)
-					for cutoff > 0 {
-						if _, margin := firstRows[cutoff-1].(marginSpacerRow); !margin {
-							break
-						}
-						cutoff--
-					}
-					if cutoff > 0 {
-						restRows = append(restRows, firstRows[cutoff:]...)
-						firstRows = firstRows[:cutoff]
-						restRows = append(restRows, s.container.rows[i:]...)
-						break
-					}
-				}
-			}
-			firstRows = append(firstRows, r)
-			cumHeight += rh
-			continue
-		}
-		if !splitDone && available-cumHeight > 0 {
-			if child, ok := r.(core.Splittable); ok {
-				first, rest, didSplit := child.SplitAt(provider, available-cumHeight, childWidth)
-				if didSplit && first != nil {
-					firstRows = append(firstRows, first)
-					if rest != nil {
-						restRows = append(restRows, rest)
-					}
-					restRows = append(restRows, s.container.rows[i+1:]...)
-					break
-				}
-				if didSplit && rest != nil {
-					r = rest
-				}
-			}
-		}
-		restRows = append(restRows, r)
-		splitDone = true
-	}
+	firstRows, restRows := splitContainerRows(provider, s.container.rows, dummyCell, available, childWidth)
 
 	if len(firstRows) == 0 {
 		// Nothing fits on the current page — push the whole container to next page.
@@ -578,4 +524,83 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	}
 
 	return newSplittableContainerRow(firstContainer), restRow, true
+}
+
+func splitContainerRows(provider core.Provider, rows []core.Row, cell *entity.Cell, available, childWidth float64) ([]core.Row, []core.Row) {
+	var firstRows, restRows []core.Row
+	cumHeight := 0.0
+	splitDone := false
+	for index, childRow := range rows {
+		rowHeight := childRow.GetHeight(provider, cell)
+		if !splitDone && cumHeight+rowHeight <= available+0.001 {
+			if followingRowMustMove(provider, rows, index, cell, available-cumHeight-rowHeight, childWidth) {
+				if kept, moved, ok := moveContainerRowWithTrailingMargins(firstRows, rows[index:]); ok {
+					firstRows, restRows = kept, moved
+					break
+				}
+			}
+			firstRows = append(firstRows, childRow)
+			cumHeight += rowHeight
+			continue
+		}
+		if !splitDone && available-cumHeight > 0 {
+			first, rest, didSplit := splitContainerChild(provider, childRow, available-cumHeight, childWidth)
+			if didSplit && first != nil {
+				firstRows = append(firstRows, first)
+				if rest != nil {
+					restRows = append(restRows, rest)
+				}
+				restRows = append(restRows, rows[index+1:]...)
+				break
+			}
+			if didSplit && rest != nil {
+				childRow = rest
+			}
+		}
+		restRows = append(restRows, childRow)
+		splitDone = true
+	}
+	return firstRows, restRows
+}
+
+func moveContainerRowWithTrailingMargins(firstRows, pendingRows []core.Row) ([]core.Row, []core.Row, bool) {
+	cutoff := len(firstRows)
+	for cutoff > 0 {
+		if _, margin := firstRows[cutoff-1].(marginSpacerRow); !margin {
+			break
+		}
+		cutoff--
+	}
+	if cutoff == 0 {
+		return nil, nil, false
+	}
+	restRows := append([]core.Row{}, firstRows[cutoff:]...)
+	restRows = append(restRows, pendingRows...)
+	return firstRows[:cutoff], restRows, true
+}
+
+func splitContainerChild(provider core.Provider, childRow core.Row, remaining, width float64) (core.Row, core.Row, bool) {
+	splittable, ok := childRow.(core.Splittable)
+	if !ok {
+		return nil, nil, false
+	}
+	return splittable.SplitAt(provider, remaining, width)
+}
+
+func followingRowMustMove(provider core.Provider, rows []core.Row, index int, cell *entity.Cell, remaining, childWidth float64) bool {
+	keep, ok := rows[index].(interface{ KeepWithNext() bool })
+	if !ok || !keep.KeepWithNext() || index+1 >= len(rows) {
+		return false
+	}
+	next := rows[index+1]
+	if next.GetHeight(provider, cell) <= remaining+0.001 {
+		return false
+	}
+	if splittable, ok := next.(core.Splittable); ok {
+		first, _, split := splittable.SplitAt(provider, remaining, childWidth)
+		if split && first != nil {
+			return false
+		}
+	}
+	return true
 }

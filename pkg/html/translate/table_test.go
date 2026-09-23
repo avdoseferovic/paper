@@ -13,6 +13,7 @@ import (
 )
 
 func TestTableCellRetainsSoleNestedTable(t *testing.T) {
+	t.Parallel()
 	doc, err := dom.Parse(`<table><tr><td><table><colgroup><col width="60pt"><col width="15pt"></colgroup><tr><td>answer</td><td>icon</td></tr></table></td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
@@ -21,7 +22,7 @@ func TestTableCellRetainsSoleNestedTable(t *testing.T) {
 	outer := rows[0].(*splittableTableRow)
 	inner, ok := outer.cells[0].Content.(*nestedTableComponent)
 	require.True(t, ok)
-	assert.Equal(t, 2, inner.Table.ColCount())
+	assert.Equal(t, 2, inner.ColCount())
 	outer.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
 	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
 	assert.True(t, outer.GetHeight(provider, &entity.Cell{Width: 100}) > 0)

@@ -200,6 +200,7 @@ func TestPrepareSVGImage_PreservesIntrinsicAspectForObjectFit(t *testing.T) {
 	tr := &translator{}
 	for _, fit := range []string{"contain", "cover", "none", "scale-down"} {
 		t.Run(fit, func(t *testing.T) {
+			t.Parallel()
 			pngBytes, ext, _, _, ok := tr.prepareImageData([]byte(vector), imageExtSVG, imageDimensionStyle{width: 40, height: 20, objectFit: fit}, "img")
 			require.True(t, ok)
 			assert.Equal(t, imageExtPNG, ext)

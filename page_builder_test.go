@@ -44,6 +44,7 @@ func TestPageBuilderPlacesAtomicSplittableRowOnFreshPage(t *testing.T) {
 }
 
 func TestPageBuilderReservesPaintedTableEdgeBeforeSplit(t *testing.T) {
+	t.Parallel()
 	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
 	builder := newPageBuilder(cfg, nil)
 	first := fixedRow(10)
@@ -67,6 +68,7 @@ type keepWithNextTestRow struct{ core.Row }
 func (keepWithNextTestRow) KeepWithNext() bool { return true }
 
 func TestPageBuilderKeepsRequestedRowWithNext(t *testing.T) {
+	t.Parallel()
 	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
 	builder := newPageBuilder(cfg, nil)
 	heading := keepWithNextTestRow{fixedRow(10)}
@@ -79,6 +81,7 @@ func TestPageBuilderKeepsRequestedRowWithNext(t *testing.T) {
 }
 
 func TestPageBuilderKeepsHeadingWhenFollowingRowCanStart(t *testing.T) {
+	t.Parallel()
 	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
 	builder := newPageBuilder(cfg, nil)
 	heading := keepWithNextTestRow{fixedRow(10)}
@@ -100,6 +103,7 @@ type nearBoundaryTestRow struct {
 func (r *nearBoundaryTestRow) NearBoundaryThreshold() float64 { return r.threshold }
 
 func TestPageBuilderSplitsFittingRowNearPageEnd(t *testing.T) {
+	t.Parallel()
 	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
 	builder := newPageBuilder(cfg, nil)
 	first, rest := fixedRow(10), fixedRow(4)
@@ -118,12 +122,13 @@ func TestPageBuilderSplitsFittingRowNearPageEnd(t *testing.T) {
 }
 
 func TestPageBuilderMovesHeadingWhenNextRowWouldCarryContent(t *testing.T) {
+	t.Parallel()
 	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
 	builder := newPageBuilder(cfg, nil)
 	heading := keepWithNextTestRow{fixedRow(5)}
 	following := &nearBoundaryTestRow{
 		splittingRow: splittingRow{atomicSplittableRow: atomicSplittableRow{height: 6}, first: fixedRow(3), rest: fixedRow(3)},
-		threshold: 2,
+		threshold:    2,
 	}
 	builder.addRows(fixedRow(88), heading, following)
 	require.Len(t, builder.pages, 1)
