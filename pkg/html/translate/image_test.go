@@ -194,6 +194,27 @@ func TestRasteriseSVG_ProducesPNGAtRequestedSize(t *testing.T) {
 	assert.Equal(t, pxH, img.Bounds().Dy())
 }
 
+func TestPrepareSVGImage_PreservesIntrinsicAspectForObjectFit(t *testing.T) {
+	t.Parallel()
+	const vector = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="70" viewBox="0 0 100 70"><rect width="100" height="70" fill="red"/></svg>`
+	tr := &translator{}
+	for _, fit := range []string{"contain", "cover", "none", "scale-down"} {
+		t.Run(fit, func(t *testing.T) {
+			t.Parallel()
+			pngBytes, ext, _, _, ok := tr.prepareImageData([]byte(vector), imageExtSVG, imageDimensionStyle{width: 40, height: 20, objectFit: fit}, "img")
+			require.True(t, ok)
+			assert.Equal(t, imageExtPNG, ext)
+			img, err := png.Decode(bytes.NewReader(pngBytes))
+			require.NoError(t, err)
+			assert.InDelta(t, 10.0/7.0, float64(img.Bounds().Dx())/float64(img.Bounds().Dy()), 0.01)
+			if fit == "none" || fit == "scale-down" {
+				assert.Equal(t, 100, img.Bounds().Dx())
+				assert.Equal(t, 70, img.Bounds().Dy())
+			}
+		})
+	}
+}
+
 func TestImageRow_DefaultResolverRefusesLocalPath_FallsBackToAlt(t *testing.T) {
 	t.Parallel()
 	doc, err := dom.Parse(`<html><body><img src="local.png" alt="fallback text"></body></html>`)
@@ -441,6 +462,43 @@ func TestImageRow_ObjectFitAndPositionMappedFromCSS(t *testing.T) {
 	require.NotNil(t, details)
 	assert.Equal(t, "cover", details["prop_object_fit"])
 	assert.Equal(t, "right bottom", details["prop_object_position"])
+}
+
+func TestImageRow_PreservesExactContentBox(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><head><style>.mark { width: 86.6mm; height: 86.6mm; object-fit: contain; object-position: left top }</style></head><body><img class="mark" src="mark.png"></body></html>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc, WithImageResolver(func(string) ([]byte, string, error) {
+		return minimalPNG(t), "png", nil
+	}))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	var details map[string]any
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			details = s.Details
+		}
+	})
+	require.NotNil(t, details)
+	assert.InDelta(t, 86.6, details["prop_box_width"], 0.001)
+	assert.InDelta(t, 86.6, details["prop_box_height"], 0.001)
+}
+
+func TestImageRow_WithoutPositionKeepsGridSizing(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<html><head><style>.mark { width: 86.6mm; height: 86.6mm; object-fit: contain; margin: auto }</style></head><body><img class="mark" src="mark.png"></body></html>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc, WithImageResolver(func(string) ([]byte, string, error) {
+		return minimalPNG(t), "png", nil
+	}))
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	walkStructure(rows[0].GetStructure(), func(s core.Structure) {
+		if s.Type == "bytesImage" {
+			_, hasWidth := s.Details["prop_box_width"]
+			assert.Equal(t, false, hasWidth)
+		}
+	})
 }
 
 func TestSVGElement_BlockRendersAsImageRow(t *testing.T) {

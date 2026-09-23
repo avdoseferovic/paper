@@ -35,13 +35,17 @@ func (tr *translator) paragraphRowStyled(n *dom.Node, style *css.ComputedStyle) 
 			rtProp.Outline = &props.Outline{Level: level}
 		}
 	}
+	cellStyle := tr.blockCellStyle(style)
+	if cellStyle == nil && len(runs) > 0 {
+		return newSplittableParagraphRow(runs, rtProp, tr.anchorReg)
+	}
 	rt := richtext.New(runs, rtProp)
 	if tr.anchorReg != nil {
 		rt.WithAnchorRegistry(tr.anchorReg)
 	}
 	c := col.New().Add(rt)
 	r := row.New().Add(c)
-	if cellStyle := tr.blockCellStyle(style); cellStyle != nil {
+	if cellStyle != nil {
 		r = r.WithStyle(cellStyle)
 	}
 	return r

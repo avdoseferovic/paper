@@ -10,6 +10,7 @@ import (
 	"github.com/avdoseferovic/paper/pkg/consts/extension"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
+	"github.com/avdoseferovic/paper/pkg/html/css"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
 	"github.com/avdoseferovic/paper/pkg/props"
 	"github.com/avdoseferovic/paper/pkg/tree/node"
@@ -112,6 +113,26 @@ func TestFlexCellContent_RenderRestoresCursorForParentRowAdvance(t *testing.T) {
 
 	assert.Equal(t, 10.0, provider.x)
 	assert.Equal(t, 20.0, provider.y)
+}
+
+func TestPlainBlockReservesPageBoundaryAllowance(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<div data-page-boundary-allowance="3pt" style="margin-left:5pt">Heading</div>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	allowance, ok := rows[0].(core.PageBoundaryAllowance)
+	require.True(t, ok)
+	assert.InDelta(t, css.ParseLength("3pt", 0), allowance.PageBoundaryAllowance(), 0.001)
+
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	rows[0].SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	height := rows[0].GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := rows[0].(core.Splittable).SplitAt(provider, height-css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	assert.True(t, first == nil)
+	assert.True(t, rest != nil)
 }
 
 func TestCSSCascade_ClassAndInline(t *testing.T) {
@@ -419,6 +440,59 @@ func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
 	// When it fits, no split regardless of break-inside.
 	_, _, didSplit = newContainer(true).SplitAt(p, 100, 0)
 	assert.False(t, didSplit, "container that fits should not split")
+}
+
+func TestUnbreakableContainerPageBoundaryAllowance(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<div style="break-inside:avoid" data-page-boundary-allowance="15pt"><span>photo</span></div>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	allowance, ok := rows[0].(core.PageBoundaryAllowance)
+	require.True(t, ok)
+	assert.InDelta(t, 15*25.4/72, allowance.PageBoundaryAllowance(), 0.001)
+}
+
+type keepNextTestRow struct{ core.Row }
+
+func (keepNextTestRow) KeepWithNext() bool { return true }
+
+func TestSplittableContainerKeepsHeadingWithFirstRow(t *testing.T) {
+	t.Parallel()
+	provider := &cursorProvider{}
+	container := newSplittableContainerRow(&blockContainer{rows: []core.Row{
+		buildFixedHeightRow(20), newMarginSpacer(5),
+		keepNextTestRow{buildFixedHeightRow(5)},
+		buildFixedHeightRow(10),
+	}})
+	container.SetConfig(&entity.Config{MaxGridSize: 12})
+	first, rest, split := container.SplitAt(provider, 30, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 1, len(first.(*splittableContainerRow).container.rows))
+	assert.Equal(t, 3, len(rest.(*splittableContainerRow).container.rows))
+}
+
+func TestSplittableContainerRowSplitsNestedChild(t *testing.T) {
+	t.Parallel()
+	p := &cursorProvider{}
+	cfg := &entity.Config{MaxGridSize: 12}
+	child := newSplittableContainerRow(&blockContainer{rows: []core.Row{
+		buildFixedHeightRow(10), buildFixedHeightRow(10),
+	}})
+	parent := newSplittableContainerRow(&blockContainer{rows: []core.Row{child}})
+	parent.SetConfig(cfg)
+
+	first, rest, didSplit := parent.SplitAt(p, 15, 100)
+	require.True(t, didSplit)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	first.SetConfig(cfg)
+	rest.SetConfig(cfg)
+	assert.InDelta(t, 10.0, first.GetHeight(p, &entity.Cell{Width: 100}), 0.01)
+	assert.InDelta(t, 10.0, rest.GetHeight(p, &entity.Cell{Width: 100}), 0.01)
 }
 
 // buildFixedHeightRow creates a Row with a fixed pixel height for test purposes.

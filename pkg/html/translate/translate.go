@@ -341,6 +341,14 @@ func (tr *translator) decorateBlockRows(
 	if id := n.Attr("id"); id != "" && len(rows) > 0 && tr.anchorReg != nil {
 		rows[0] = wrapRowAnchorTarget(rows[0], id, tr.anchorReg)
 	}
+	if style != nil && len(rows) > 0 {
+		if allowance := css.ParseLength(n.Attr("data-page-boundary-allowance"), style.FontSize); allowance > 0 {
+			last := len(rows) - 1
+			if _, handled := rows[last].(core.PageBoundaryAllowance); !handled {
+				rows[last] = &boundaryAllowanceRow{Row: rows[last], allowance: allowance}
+			}
+		}
+	}
 	rows = applyBlockMargins(n, style, rows)
 	if hasControl {
 		rows = append([]core.Row{NewPageControlRow(control)}, rows...)
@@ -437,7 +445,13 @@ func (tr *translator) containerRows(ctx context.Context, n *dom.Node, style *css
 	}
 	rows := tr.containerChildRows(ctx, n, style)
 	if shouldUseContainer(style) && len(rows) > 0 {
-		return []core.Row{tr.buildContainerRow(style, rows)}
+		container := tr.buildContainerRow(style, rows)
+		if sized, ok := container.(*splittableContainerRow); ok {
+			// Reserve a trailing flow margin for the fit decision without adding
+			// that space to the container's painted height.
+			sized.pageBoundaryAllowance = max(0, css.ParseLength(n.Attr("data-page-boundary-allowance"), style.FontSize))
+		}
+		return []core.Row{container}
 	}
 	return rows
 }

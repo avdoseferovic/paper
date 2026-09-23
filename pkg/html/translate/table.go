@@ -3,6 +3,7 @@ package translate
 import (
 	"cmp"
 	"strconv"
+	"strings"
 
 	"github.com/avdoseferovic/paper/pkg/components/col"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
@@ -49,8 +50,21 @@ func (tr *translator) tableRowsWithStyle(n *dom.Node, tableStyle *css.ComputedSt
 	if err != nil {
 		return out
 	}
-	c := col.New().Add(tbl)
-	out = append(out, row.New().Add(c))
+	switch {
+	case len(cells) == 1:
+		row := newSplittableTableRow(tbl, cells[0], opts)
+		row.keepWithNext = tableStyle.PageBreakAfter == "avoid"
+		row.pageBreakPreview = n.Attr("data-page-break-preview") == "true"
+		out = append(out, row)
+	case n.Attr("data-split-rows") == "true":
+		row := newSplittableMultiTableRow(tbl, cells, opts)
+		row.keepFirstRowWithNext = n.Attr("data-keep-first-row-with-next") == "true"
+		row.rowFragmentEdge = max(0, css.ParseLength(n.Attr("data-row-fragment-edge"), tableStyle.FontSize))
+		out = append(out, row)
+	default:
+		c := col.New().Add(tbl)
+		out = append(out, row.New().Add(c))
+	}
 	return out
 }
 
@@ -201,7 +215,20 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	cellStyle := computeNodeStyle(tr.sheet, td, rowStyle)
 
-	runs := tr.inlineRunsStyled(td, blockInlineStyle(cellStyle))
+	var nestedContent core.Component
+	if nested := soleNestedTable(td); nested != nil {
+		nestedStyle := computeNodeStyle(tr.sheet, nested, cellStyle)
+		rows := tr.tableRowsWithStyle(nested, nestedStyle)
+		if len(rows) == 1 {
+			if inner, ok := rows[0].(*splittableTableRow); ok {
+				nestedContent = &nestedTableComponent{Table: inner.table, row: inner}
+			}
+		}
+	}
+	var runs []props.RichRun
+	if nestedContent == nil {
+		runs = tr.inlineRunsStyled(td, blockInlineStyle(cellStyle))
+	}
 	height := explicitTableCellHeight(cellStyle, rowStyle)
 
 	// Propagate row-level color to runs that have no own color.
@@ -217,24 +244,41 @@ func (tr *translator) buildCell(td *dom.Node, rowStyle *css.ComputedStyle) table
 
 	rtProp := richTextPropsFromStyle(cellStyle)
 	rtProp.Top, rtProp.Right, rtProp.Bottom, rtProp.Left = 0, 0, 0, 0
+	rtProp.WrapTolerance = max(0, css.ParseLength(td.Attr("data-wrap-tolerance"), cellStyle.FontSize))
 
-	var content core.Component
+	content := nestedContent
 	if len(runs) > 0 {
 		content = richtext.New(runs, rtProp)
-	} else if height <= 0 {
+	} else if content == nil && height <= 0 {
 		content = richtext.New([]props.RichRun{{Text: ""}}, rtProp)
 	}
 
 	cellProp := tableCellStyle(cellStyle, rowStyle)
 
 	return table.Cell{
-		Content:       content,
-		Colspan:       colspan,
-		Rowspan:       rowspan,
-		Style:         cellProp,
-		Height:        height,
-		VerticalAlign: cellStyle.VerticalAlign,
+		Content:                 content,
+		Colspan:                 colspan,
+		Rowspan:                 rowspan,
+		Style:                   cellProp,
+		Height:                  height,
+		VerticalAlign:           cellStyle.VerticalAlign,
+		ContinuationPaddingTop:  max(0, css.ParseLength(td.Attr("data-continuation-padding-top"), cellStyle.FontSize)),
+		CarryContentNearPageEnd: max(0, css.ParseLength(td.Attr("data-carry-content-near-page-end"), cellStyle.FontSize)),
 	}
+}
+
+func soleNestedTable(cell *dom.Node) *dom.Node {
+	var nested *dom.Node
+	for _, child := range cell.Children() {
+		if child.Tag() == "" && strings.TrimSpace(child.TextContent()) == "" {
+			continue
+		}
+		if child.Tag() != "table" || nested != nil {
+			return nil
+		}
+		nested = child
+	}
+	return nested
 }
 
 func explicitTableCellHeight(cellStyle, rowStyle *css.ComputedStyle) float64 {

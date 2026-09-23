@@ -45,6 +45,20 @@ func New(runs []props.RichRun, ps ...props.RichText) *RichText {
 	return &RichText{runs: props.CloneRichRuns(runs), prop: prop}
 }
 
+// Runs returns a copy of the styled text runs for layout continuations.
+func (r *RichText) Runs() []props.RichRun { return props.CloneRichRuns(r.runs) }
+
+// CloneWithRuns preserves the paragraph styling and local-link resolver when
+// a layout component divides its text across pages.
+func (r *RichText) CloneWithRuns(runs []props.RichRun) *RichText {
+	clone := New(runs, r.prop)
+	clone.anchorReg = r.anchorReg
+	if r.config != nil {
+		clone.SetConfig(r.config)
+	}
+	return clone
+}
+
 // WithAnchorRegistry attaches an anchor registry so that runs with LocalAnchor
 // produce precise per-run PDF link rectangles at render time.
 func (r *RichText) WithAnchorRegistry(reg anchorResolverIface) *RichText {

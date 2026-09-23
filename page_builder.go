@@ -27,6 +27,7 @@ type pageBuilder struct {
 	footerHeight      float64
 	currentHeight     float64
 	currentControl    core.PageControl
+	automaticPageTop  bool
 }
 
 func newPageBuilder(config *entity.Config, provider core.Provider) *pageBuilder {
@@ -84,8 +85,71 @@ func (b *pageBuilder) addPages(pages ...core.Page) {
 }
 
 func (b *pageBuilder) addRows(rows ...core.Row) {
-	for _, row := range rows {
+	for index, row := range rows {
+		if index+1 < len(rows) {
+			if keep, ok := row.(core.KeepWithNext); ok && keep.KeepWithNext() && !b.isAtTopOfUsablePage() {
+				b.moveKeptRowToNextPage(row, rows[index+1])
+			}
+		}
 		b.addRow(row)
+	}
+}
+
+func (b *pageBuilder) moveKeptRowToNextPage(row, next core.Row) {
+	row.SetConfig(b.config)
+	next.SetConfig(b.config)
+	rowHeight := row.GetHeight(b.provider, &b.cell)
+	pairHeight := rowHeight + next.GetHeight(b.provider, &b.cell)
+	maxHeight := b.effectiveCellHeight()
+	pairSlack := maxHeight - b.currentHeight - pairHeight - b.effectiveFooterHeight()
+	if b.headerHeight+pairHeight+b.effectiveFooterHeight() > maxHeight {
+		return
+	}
+	moveTogether := pairSlack < 0
+	moveForNear := false
+	remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - rowHeight
+	if !moveTogether && pairSlack >= 0 {
+		if near, ok := next.(core.NearBoundarySplitter); ok && near.NearBoundaryThreshold() > pairSlack {
+			if splittable, ok := next.(core.Splittable); ok {
+				_, _, moveForNear = splittable.SplitAt(b.provider, remaining, b.cell.Width)
+				moveTogether = moveForNear
+			}
+		}
+	}
+	if moveTogether && !moveForNear {
+		if splittable, ok := next.(core.Splittable); ok {
+			if edge, ok := next.(core.PageBoundaryAllowance); ok {
+				remaining -= edge.PageBoundaryAllowance()
+			}
+			first, _, split := splittable.SplitAt(b.provider, remaining, b.cell.Width)
+			moveTogether = !split || first == nil
+		}
+	}
+	if !moveTogether {
+		return
+	}
+	if !moveForNear {
+		b.addPageBreakPreview(row, maxHeight)
+	}
+	b.fillPageToAddNew()
+	b.addHeader()
+	b.automaticPageTop = true
+}
+
+func (b *pageBuilder) addPageBreakPreview(row core.Row, maxHeight float64) {
+	previewer, ok := row.(core.PageBreakPreview)
+	if !ok {
+		return
+	}
+	preview := previewer.PageBreakPreview(b.provider, b.cell.Width)
+	if preview == nil {
+		return
+	}
+	preview.SetConfig(b.config)
+	previewHeight := preview.GetHeight(b.provider, &b.cell)
+	if b.currentHeight+previewHeight+b.effectiveFooterHeight() <= maxHeight+0.001 {
+		b.rows = append(b.rows, preview)
+		b.currentHeight += previewHeight
 	}
 }
 
@@ -103,7 +167,14 @@ func (b *pageBuilder) addRow(r core.Row) {
 			b.fillPageToAddNew()
 			b.addHeader()
 		}
+		b.automaticPageTop = false
 		return
+	}
+	if b.automaticPageTop {
+		if spacer, ok := r.(core.AutomaticPageTopDiscarder); ok && spacer.DiscardAtAutomaticPageTop() {
+			return
+		}
+		b.automaticPageTop = false
 	}
 
 	if len(r.GetColumns()) == 0 {
@@ -115,6 +186,9 @@ func (b *pageBuilder) addRow(r core.Row) {
 	r.SetConfig(b.config)
 	rowHeight := r.GetHeight(b.provider, &b.cell)
 	sumHeight := rowHeight + b.currentHeight + b.effectiveFooterHeight()
+	if sumHeight <= maxHeight && b.splitFittingRowNearPageEnd(r, sumHeight, maxHeight) {
+		return
+	}
 
 	// Row smaller than the remaining space on page.
 	if sumHeight <= maxHeight {
@@ -124,7 +198,7 @@ func (b *pageBuilder) addRow(r core.Row) {
 	}
 
 	// Row is too tall. Check if it implements Splittable for cross-page splitting.
-	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(r, sp, maxHeight) {
+	if sp, ok := r.(core.Splittable); ok && b.addSplittableRow(r, sp, maxHeight, 0) {
 		return
 	}
 
@@ -132,17 +206,42 @@ func (b *pageBuilder) addRow(r core.Row) {
 	b.fillPageToAddNew()
 
 	b.addHeader()
+	b.automaticPageTop = true
+	if spacer, ok := r.(core.AutomaticPageTopDiscarder); ok && spacer.DiscardAtAutomaticPageTop() {
+		return
+	}
+	b.automaticPageTop = false
 
 	// AddRows row on the new page.
 	b.currentHeight += rowHeight
 	b.rows = append(b.rows, r)
 }
 
+func (b *pageBuilder) splitFittingRowNearPageEnd(r core.Row, sumHeight, maxHeight float64) bool {
+	sp, ok := r.(core.Splittable)
+	if !ok {
+		return false
+	}
+	if near, ok := r.(core.NearBoundarySplitter); ok {
+		threshold := near.NearBoundaryThreshold()
+		if threshold > 0 && maxHeight-sumHeight < threshold && b.addSplittableRow(r, sp, maxHeight, 0) {
+			return true
+		}
+	}
+	if edge, ok := r.(core.PageBoundaryAllowance); ok {
+		allowance := edge.PageBoundaryAllowance()
+		if allowance > 0 && sumHeight+allowance > maxHeight && b.addSplittableRow(r, sp, maxHeight, allowance) {
+			return true
+		}
+	}
+	return false
+}
+
 // addSplittableRow handles cross-page splitting for a row that implements
 // core.Splittable. Returns true when the split was performed (caller should return).
-func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeight float64) bool {
+func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeight, allowance float64) bool {
 	splitControl := clonePageControl(b.currentControl)
-	remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight()
+	remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - allowance
 	first, rest, didSplit := sp.SplitAt(b.provider, remaining, b.cell.Width)
 	if !didSplit {
 		return false
@@ -156,6 +255,7 @@ func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeig
 		b.fillPageToAddNew()
 		b.currentControl = continuationPageControl(splitControl)
 		b.addHeader()
+		b.automaticPageTop = true
 		b.addRow(rest)
 		return true
 	}
@@ -165,6 +265,7 @@ func (b *pageBuilder) addSplittableRow(row core.Row, sp core.Splittable, maxHeig
 	b.fillPageToAddNew()
 	b.currentControl = continuationPageControl(splitControl)
 	b.addHeader()
+	b.automaticPageTop = true
 	if rest != nil {
 		b.addRow(rest)
 	}

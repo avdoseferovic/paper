@@ -19,6 +19,10 @@ type Rect struct {
 	ObjectFit string
 	// ObjectPosition defines the image alignment inside its content box.
 	ObjectPosition string
+	// BoxWidth and BoxHeight preserve an image's resolved content box dimensions.
+	// Zero uses the enclosing cell dimension.
+	BoxWidth  float64
+	BoxHeight float64
 }
 
 // ToMap from Rect will return a map representation from Rect.
@@ -50,6 +54,12 @@ func (r *Rect) ToMap() map[string]any {
 	if r.ObjectPosition != "" {
 		m["prop_object_position"] = r.ObjectPosition
 	}
+	if r.BoxWidth > 0 {
+		m["prop_box_width"] = r.BoxWidth
+	}
+	if r.BoxHeight > 0 {
+		m["prop_box_height"] = r.BoxHeight
+	}
 	return m
 }
 
@@ -77,6 +87,8 @@ func NormalizeRect(r Rect) Rect {
 	r.Left = max(r.Left, minValue)
 
 	r.Top = max(r.Top, minValue)
+	r.BoxWidth = max(r.BoxWidth, minValue)
+	r.BoxHeight = max(r.BoxHeight, minValue)
 
 	return r
 }

@@ -10,10 +10,11 @@ import (
 type richTextMeasureFunc func(run resolvedRun, text string) (translated string, width float64)
 
 type richTextLayoutInput struct {
-	prop       *props.RichText
-	width      float64
-	whiteSpace string
-	measure    richTextMeasureFunc
+	prop          *props.RichText
+	width         float64
+	whiteSpace    string
+	wrapTolerance float64
+	measure       richTextMeasureFunc
 }
 
 func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtToken, map[int]float64) {
@@ -74,7 +75,7 @@ func layoutRichTextTokens(runs []resolvedRun, input richTextLayoutInput) ([]rtTo
 		}
 		groupEnd := wrapGroupEnd(tokens, runs, i)
 		groupAdvance := tokenGroupAdvance(tokens, runs, boxStart, boxEnd, runStart, runEnd, i, groupEnd)
-		if !noWrap && curX > lineStart && curX+groupAdvance > input.width {
+		if !noWrap && curX > lineStart && curX+groupAdvance > input.width+input.wrapTolerance {
 			lineY++
 			curX = firstXForLine(lineY, firstLineIndent)
 			if t.skipAtLineStart {

@@ -7,8 +7,26 @@ import (
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/consts"
 	"github.com/avdoseferovic/paper/pkg/core"
+	"github.com/avdoseferovic/paper/pkg/core/entity"
 	"github.com/avdoseferovic/paper/pkg/html/dom"
+	"github.com/avdoseferovic/paper/pkg/props"
 )
+
+func TestTableCellRetainsSoleNestedTable(t *testing.T) {
+	t.Parallel()
+	doc, err := dom.Parse(`<table><tr><td><table><colgroup><col width="60pt"><col width="15pt"></colgroup><tr><td>answer</td><td>icon</td></tr></table></td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	outer := rows[0].(*splittableTableRow)
+	inner, ok := outer.cells[0].Content.(*nestedTableComponent)
+	require.True(t, ok)
+	assert.Equal(t, 2, inner.ColCount())
+	outer.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	assert.True(t, outer.GetHeight(provider, &entity.Cell{Width: 100}) > 0)
+}
 
 // parseTranslator is a test helper that builds a *translator from a full HTML string.
 func parseTranslator(t *testing.T, htmlSrc string) (*translator, *dom.Document) {

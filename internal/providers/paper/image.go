@@ -161,7 +161,7 @@ func (s *Image) addImageToPdf(imageLabel string, info *gofpdf.ImageInfoType, cel
 }
 
 func usesObjectBox(prop *props.Rect) bool {
-	return prop != nil && (strings.TrimSpace(prop.ObjectFit) != "" || strings.TrimSpace(prop.ObjectPosition) != "")
+	return prop != nil && (prop.BoxWidth > 0 || prop.BoxHeight > 0 || strings.TrimSpace(prop.ObjectFit) != "" || strings.TrimSpace(prop.ObjectPosition) != "")
 }
 
 func (s *Image) addObjectImageToPdf(imageLabel string, info *gofpdf.ImageInfoType, cell *entity.Cell, margins *entity.Margins,
@@ -171,6 +171,12 @@ func (s *Image) addObjectImageToPdf(imageLabel string, info *gofpdf.ImageInfoTyp
 	boxY := cell.Y + prop.Top + margins.Top
 	boxWidth := cell.Width - prop.Left
 	boxHeight := cell.Height - prop.Top
+	if prop.BoxWidth > 0 {
+		boxWidth = prop.BoxWidth
+	}
+	if prop.BoxHeight > 0 {
+		boxHeight = prop.BoxHeight
+	}
 	if boxWidth <= 0 || boxHeight <= 0 {
 		return
 	}
