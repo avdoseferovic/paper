@@ -36,6 +36,21 @@ func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
 	assert.Equal(t, "", tableCellText(rest, 1))
 }
 
+func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
+	doc, err := dom.Parse(`<table><tr><td>Alpha one<br>Beta two<br>Gamma three</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	first, rest, split := row.SplitAt(provider, 2, 100)
+	require.True(t, split)
+	assert.Equal(t, "Alpha one\nBeta two", tableCellText(first, 0))
+	assert.Equal(t, "Gamma three", tableCellText(rest, 0))
+}
+
 func TestMultiRowTableCarriesWrappedLastResultNearPageBoundary(t *testing.T) {
 	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first</td><td>yes</td></tr><tr><td>last label</td><td data-carry-content-near-page-end="3.5pt">one two three four five six</td></tr></table>`)
 	require.NoError(t, err)

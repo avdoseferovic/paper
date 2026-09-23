@@ -414,32 +414,57 @@ func splitTableCellText(provider core.Provider, cell table.Cell, available, widt
 	if measured(runs) <= innerHeight {
 		return first, rest, false
 	}
-	type boundary struct{ run, offset int }
-	var cuts []boundary
+	type boundary struct {
+		run, offset int
+		explicit    bool
+	}
+	var explicitCuts, wordCuts []boundary
 	for i, run := range runs {
-		if run.Image != nil || run.ForceBreak {
+		if run.ForceBreak {
+			if i > 0 && i+1 < len(runs) {
+				explicitCuts = append(explicitCuts, boundary{run: i, explicit: true})
+			}
+			continue
+		}
+		if run.Image != nil {
 			continue
 		}
 		for offset, char := range run.Text {
 			if unicode.IsSpace(char) {
-				cuts = append(cuts, boundary{i, offset})
+				wordCuts = append(wordCuts, boundary{run: i, offset: offset})
 			}
 		}
 	}
-	low, high := 0, len(cuts)
-	for low < high {
-		middle := (low + high) / 2
-		firstRuns, restRuns := splitParagraphRuns(runs, cuts[middle].run, cuts[middle].offset)
-		if len(firstRuns) > 0 && len(restRuns) > 0 && measured(firstRuns) <= innerHeight {
-			low = middle + 1
-		} else {
-			high = middle
+	splitAt := func(cut boundary) ([]props.RichRun, []props.RichRun) {
+		if cut.explicit {
+			return props.CloneRichRuns(runs[:cut.run]), props.CloneRichRuns(runs[cut.run+1:])
 		}
+		return splitParagraphRuns(runs, cut.run, cut.offset)
 	}
-	if low == 0 {
+	latestFitting := func(cuts []boundary) (boundary, bool) {
+		low, high := 0, len(cuts)
+		for low < high {
+			middle := (low + high) / 2
+			firstRuns, restRuns := splitAt(cuts[middle])
+			if len(firstRuns) > 0 && len(restRuns) > 0 && measured(firstRuns) <= innerHeight {
+				low = middle + 1
+			} else {
+				high = middle
+			}
+		}
+		if low == 0 {
+			return boundary{}, false
+		}
+		return cuts[low-1], true
+	}
+	cut, ok := latestFitting(explicitCuts)
+	if !ok {
+		cut, ok = latestFitting(wordCuts)
+	}
+	if !ok {
 		return first, cell, false
 	}
-	firstRuns, restRuns := splitParagraphRuns(runs, cuts[low-1].run, cuts[low-1].offset)
+	firstRuns, restRuns := splitAt(cut)
 	first.Content = rt.CloneWithRuns(firstRuns)
 	rest.Content = rt.CloneWithRuns(restRuns)
 	if cell.ContinuationPaddingTop > 0 && rest.Style != nil {
