@@ -68,6 +68,26 @@ func TestTableCellUsesContinuationPaddingOnlyOnLaterFragment(t *testing.T) {
 	assert.InDelta(t, css.ParseLength("4.6pt", 0), rest.(*splittableTableRow).cells[1].Style.PaddingTop, 0.001)
 }
 
+func TestTableRowKeepsFollowingRowWhenRequested(t *testing.T) {
+	doc, err := dom.Parse(`<table style="break-after: avoid"><tr><th>Heading</th></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.True(t, rows[0].(*splittableTableRow).KeepWithNext())
+}
+
+func TestMarginWrappedTablePreservesKeepWithNext(t *testing.T) {
+	doc, err := dom.Parse(`<table style="margin-left: 5pt; break-after: avoid"><tr><th>Heading</th></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	keep, ok := rows[0].(core.KeepWithNext)
+	require.True(t, ok)
+	assert.True(t, keep.KeepWithNext())
+}
+
 func tableCellText(r core.Row, index int) string {
 	fragment := r.(*splittableTableRow)
 	rt, ok := fragment.cells[index].Content.(*richtext.RichText)

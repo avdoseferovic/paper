@@ -421,6 +421,25 @@ func TestSplittableContainerRow_BreakInsideAvoid(t *testing.T) {
 	assert.False(t, didSplit, "container that fits should not split")
 }
 
+type keepNextTestRow struct{ core.Row }
+
+func (keepNextTestRow) KeepWithNext() bool { return true }
+
+func TestSplittableContainerKeepsHeadingWithFirstRow(t *testing.T) {
+	provider := &cursorProvider{}
+	container := newSplittableContainerRow(&blockContainer{rows: []core.Row{
+		buildFixedHeightRow(20), newMarginSpacer(5),
+		keepNextTestRow{buildFixedHeightRow(5)}, buildFixedHeightRow(10),
+	}})
+	container.SetConfig(&entity.Config{MaxGridSize: 12})
+	first, rest, split := container.SplitAt(provider, 30, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 1, len(first.(*splittableContainerRow).container.rows))
+	assert.Equal(t, 3, len(rest.(*splittableContainerRow).container.rows))
+}
+
 func TestSplittableContainerRowSplitsNestedChild(t *testing.T) {
 	p := &cursorProvider{}
 	cfg := &entity.Config{MaxGridSize: 12}

@@ -51,6 +51,11 @@ type horizontalMarginRow struct {
 	marginRight float64
 }
 
+func (r *horizontalMarginRow) KeepWithNext() bool {
+	keep, ok := r.child.(core.KeepWithNext)
+	return ok && keep.KeepWithNext()
+}
+
 func (r *horizontalMarginRow) PageBoundaryAllowance() float64 {
 	if edge, ok := r.child.(core.PageBoundaryAllowance); ok {
 		return edge.PageBoundaryAllowance()
@@ -435,6 +440,32 @@ func (s *splittableContainerRow) SplitAt(provider core.Provider, remainingHeight
 	for i, r := range s.container.rows {
 		rh := r.GetHeight(provider, dummyCell)
 		if !splitDone && cumHeight+rh <= available+0.001 {
+			if keep, ok := r.(interface{ KeepWithNext() bool }); ok && keep.KeepWithNext() && i+1 < len(s.container.rows) {
+				nextHeight := s.container.rows[i+1].GetHeight(provider, dummyCell)
+				if cumHeight+rh+nextHeight > available+0.001 {
+					if splittable, ok := s.container.rows[i+1].(core.Splittable); ok {
+						first, _, split := splittable.SplitAt(provider, available-cumHeight-rh, childWidth)
+						if split && first != nil {
+							firstRows = append(firstRows, r)
+							cumHeight += rh
+							continue
+						}
+					}
+					cutoff := len(firstRows)
+					for cutoff > 0 {
+						if _, margin := firstRows[cutoff-1].(marginSpacerRow); !margin {
+							break
+						}
+						cutoff--
+					}
+					if cutoff > 0 {
+						restRows = append(restRows, firstRows[cutoff:]...)
+						firstRows = firstRows[:cutoff]
+						restRows = append(restRows, s.container.rows[i:]...)
+						break
+					}
+				}
+			}
 			firstRows = append(firstRows, r)
 			cumHeight += rh
 			continue

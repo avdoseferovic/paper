@@ -62,6 +62,36 @@ func TestPageBuilderReservesPaintedTableEdgeBeforeSplit(t *testing.T) {
 	assert.Equal(t, rest, builder.rows[0])
 }
 
+type keepWithNextTestRow struct{ core.Row }
+
+func (keepWithNextTestRow) KeepWithNext() bool { return true }
+
+func TestPageBuilderKeepsRequestedRowWithNext(t *testing.T) {
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	heading := keepWithNextTestRow{fixedRow(10)}
+	following := fixedRow(10)
+	builder.addRows(fixedRow(85), heading, following)
+	require.Len(t, builder.pages, 1)
+	require.Len(t, builder.rows, 2)
+	assert.Equal(t, core.Row(heading), builder.rows[0])
+	assert.Equal(t, following, builder.rows[1])
+}
+
+func TestPageBuilderKeepsHeadingWhenFollowingRowCanStart(t *testing.T) {
+	cfg := config.NewBuilder().WithDimensions(50, 100).WithTopMargin(0).WithBottomMargin(0).Build()
+	builder := newPageBuilder(cfg, nil)
+	heading := keepWithNextTestRow{fixedRow(10)}
+	continuation := &splittingRow{
+		atomicSplittableRow: atomicSplittableRow{height: 20},
+		first:               fixedRow(5), rest: fixedRow(15),
+	}
+	builder.addRows(fixedRow(80), heading, continuation)
+	require.Len(t, builder.pages, 1)
+	assert.Equal(t, core.Row(heading), builder.pages[0].GetRows()[1])
+	assert.Equal(t, continuation.rest, builder.rows[0])
+}
+
 func TestPageBuilderDiscardsMarginAfterAutomaticBreak(t *testing.T) {
 	t.Parallel()
 

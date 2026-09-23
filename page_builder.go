@@ -85,7 +85,30 @@ func (b *pageBuilder) addPages(pages ...core.Page) {
 }
 
 func (b *pageBuilder) addRows(rows ...core.Row) {
-	for _, row := range rows {
+	for index, row := range rows {
+		if keep, ok := row.(core.KeepWithNext); ok && keep.KeepWithNext() && index+1 < len(rows) && !b.isAtTopOfUsablePage() {
+			next := rows[index+1]
+			row.SetConfig(b.config)
+			next.SetConfig(b.config)
+			pairHeight := row.GetHeight(b.provider, &b.cell) + next.GetHeight(b.provider, &b.cell)
+			maxHeight := b.effectiveCellHeight()
+			moveTogether := b.currentHeight+pairHeight+b.effectiveFooterHeight() > maxHeight && b.headerHeight+pairHeight+b.effectiveFooterHeight() <= maxHeight
+			if moveTogether {
+				if splittable, ok := next.(core.Splittable); ok {
+					remaining := maxHeight - b.currentHeight - b.effectiveFooterHeight() - row.GetHeight(b.provider, &b.cell)
+					if edge, ok := next.(core.PageBoundaryAllowance); ok {
+						remaining -= edge.PageBoundaryAllowance()
+					}
+					first, _, split := splittable.SplitAt(b.provider, remaining, b.cell.Width)
+					moveTogether = !split || first == nil
+				}
+			}
+			if moveTogether {
+				b.fillPageToAddNew()
+				b.addHeader()
+				b.automaticPageTop = true
+			}
+		}
 		b.addRow(row)
 	}
 }

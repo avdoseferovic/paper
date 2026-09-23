@@ -16,11 +16,14 @@ import (
 // next page while keeping the cells in their original columns.
 type splittableTableRow struct {
 	core.Row
-	table  *table.Table
-	cells  []table.Cell
-	opts   []table.Option
-	config *entity.Config
+	table        *table.Table
+	cells        []table.Cell
+	opts         []table.Option
+	config       *entity.Config
+	keepWithNext bool
 }
+
+func (r *splittableTableRow) KeepWithNext() bool { return r.keepWithNext }
 
 func newSplittableTableRow(tbl *table.Table, cells []table.Cell, opts []table.Option) *splittableTableRow {
 	return &splittableTableRow{
@@ -101,6 +104,7 @@ func (r *splittableTableRow) rebuild(cells []table.Cell) (*splittableTableRow, e
 		return nil, err
 	}
 	fragment := newSplittableTableRow(tbl, cells, r.opts)
+	fragment.keepWithNext = r.keepWithNext
 	if r.config != nil {
 		fragment.SetConfig(r.config)
 	}
