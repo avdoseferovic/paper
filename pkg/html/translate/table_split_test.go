@@ -37,7 +37,7 @@ func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
 }
 
 func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
-	doc, err := dom.Parse(`<table><tr><td>Alpha one<br>Beta two<br>Gamma three</td></tr></table>`)
+	doc, err := dom.Parse(`<table><tr><td data-continuation-padding-top="30pt">Alpha one<br>Beta two<br>Gamma three</td></tr></table>`)
 	require.NoError(t, err)
 	rows, err := Translate(t.Context(), doc)
 	require.NoError(t, err)
@@ -49,6 +49,9 @@ func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
 	require.True(t, split)
 	assert.Equal(t, "Alpha one\nBeta two", tableCellText(first, 0))
 	assert.Equal(t, "Gamma three", tableCellText(rest, 0))
+	restCell := rest.(*splittableTableRow).cells[0]
+	require.NotNil(t, restCell.Style)
+	assert.InDelta(t, css.ParseLength("30pt", 0), restCell.Style.PaddingTop, 0.001)
 }
 
 func TestMultiRowTableCarriesWrappedLastResultNearPageBoundary(t *testing.T) {

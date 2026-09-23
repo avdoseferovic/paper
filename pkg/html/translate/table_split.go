@@ -343,11 +343,7 @@ func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, rema
 		if cell.CarryContentNearPageEnd > 0 && cell.Content != nil {
 			firstCells[index].Content = nil
 			firstCells[index].Height = 0
-			if cell.ContinuationPaddingTop > 0 && cell.Style != nil {
-				style := *cell.Style
-				style.PaddingTop = cell.ContinuationPaddingTop
-				restCells[index].Style = &style
-			}
+			setContinuationPadding(&restCells[index], cell.ContinuationPaddingTop)
 			carried = true
 		} else {
 			restCells[index].Content = nil
@@ -467,10 +463,19 @@ func splitTableCellText(provider core.Provider, cell table.Cell, available, widt
 	firstRuns, restRuns := splitAt(cut)
 	first.Content = rt.CloneWithRuns(firstRuns)
 	rest.Content = rt.CloneWithRuns(restRuns)
-	if cell.ContinuationPaddingTop > 0 && rest.Style != nil {
-		style := *rest.Style
-		style.PaddingTop = cell.ContinuationPaddingTop
-		rest.Style = &style
-	}
+	setContinuationPadding(&rest, cell.ContinuationPaddingTop)
 	return first, rest, true
+}
+
+func setContinuationPadding(cell *table.Cell, padding float64) {
+	if padding <= 0 {
+		return
+	}
+	style := &props.Cell{}
+	if cell.Style != nil {
+		copy := *cell.Style
+		style = &copy
+	}
+	style.PaddingTop = padding
+	cell.Style = style
 }
