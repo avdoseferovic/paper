@@ -7,6 +7,7 @@ import (
 	"github.com/avdoseferovic/paper/internal/assert"
 	"github.com/avdoseferovic/paper/internal/require"
 	"github.com/avdoseferovic/paper/pkg/components/richtext"
+	"github.com/avdoseferovic/paper/pkg/components/table"
 	"github.com/avdoseferovic/paper/pkg/consts/fontstyle"
 	"github.com/avdoseferovic/paper/pkg/core"
 	"github.com/avdoseferovic/paper/pkg/core/entity"
@@ -34,6 +35,59 @@ func TestSingleTableRowSplitsTextAtPageBoundary(t *testing.T) {
 	assert.Equal(t, "yes", tableCellText(first, 1))
 	assert.Equal(t, "five six", tableCellText(rest, 0))
 	assert.Equal(t, "", tableCellText(rest, 1))
+}
+
+func TestSingleTableRowSplitsSpanningResultCell(t *testing.T) {
+	doc, err := dom.Parse(`<table><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><td>label</td><td colspan="2" data-continuation-padding-top="4.6pt">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &threeLineTableProvider{cursorProvider: &cursorProvider{}}
+	first, rest, split := row.SplitAt(provider, 2, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 2, first.(*splittableTableRow).cells[1].Colspan)
+	assert.Equal(t, 2, rest.(*splittableTableRow).cells[1].Colspan)
+	assert.Equal(t, "label", tableCellText(first, 0))
+	assert.NotEqual(t, "", tableCellText(first, 1))
+	assert.NotEqual(t, "", tableCellText(rest, 1))
+	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: 100}) <= 2.001)
+}
+
+func TestTableCellWidthsIncludeSpannedColumns(t *testing.T) {
+	widths, ok := tableCellWidths([]table.Cell{{}, {Colspan: 2}}, []float64{0.5, 0.3, 0.2}, 100)
+	require.True(t, ok)
+	require.Len(t, widths, 2)
+	assert.InDelta(t, 50, widths[0], 0.001)
+	assert.InDelta(t, 50, widths[1], 0.001)
+}
+
+func TestMultiRowTableSplitsLastSpanningAnswer(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><th colspan="3">Section</th></tr><tr><td>label</td><td colspan="2">one two three four five six seven eight nine ten eleven twelve</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	section := rows[0].(*splittableMultiTableRow)
+	section.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &threeLineTableProvider{cursorProvider: &cursorProvider{}}
+	header, err := section.rebuild(section.cells[:1])
+	require.NoError(t, err)
+	available := header.GetHeight(provider, &entity.Cell{Width: 100}) + 2
+	first, rest, split := section.SplitAt(provider, available, 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	firstSection := first.(*splittableMultiTableRow)
+	restSection := rest.(*splittableMultiTableRow)
+	require.Len(t, firstSection.cells, 2)
+	require.Len(t, restSection.cells, 1)
+	assert.NotNil(t, firstSection.cells[1][1].Content)
+	assert.NotNil(t, restSection.cells[0][1].Content)
 }
 
 func TestSingleTableRowSplitsAtExplicitLineBreak(t *testing.T) {
@@ -259,6 +313,25 @@ func TestTableCanCarryResultCellAcrossNearBoundary(t *testing.T) {
 	assert.Equal(t, "", tableCellText(rest, 0))
 	assert.Equal(t, "answer", tableCellText(rest, 1))
 	assert.InDelta(t, css.ParseLength("4.6pt", 0), rest.(*splittableTableRow).cells[1].Style.PaddingTop, 0.001)
+}
+
+func TestTableCanCarrySpanningResultCellAcrossNearBoundary(t *testing.T) {
+	doc, err := dom.Parse(`<table><colgroup><col width="50pt"><col width="30pt"><col width="20pt"></colgroup><tr><td>label</td><td colspan="2" data-carry-content-near-page-end="3.5pt">answer</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	row := rows[0].(*splittableTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &paragraphMeasureProvider{cursorProvider: &cursorProvider{}}
+	height := row.GetHeight(provider, &entity.Cell{Width: 100})
+	first, rest, split := row.SplitAt(provider, height+css.ParseLength("1pt", 0), 100)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, "label", tableCellText(first, 0))
+	assert.Equal(t, "", tableCellText(first, 1))
+	assert.Equal(t, "", tableCellText(rest, 0))
+	assert.Equal(t, "answer", tableCellText(rest, 1))
 }
 
 func TestTableKeepsMultilineCellsTogetherNearBoundary(t *testing.T) {

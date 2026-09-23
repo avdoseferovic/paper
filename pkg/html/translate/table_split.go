@@ -112,7 +112,7 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 			}
 		}
 	}
-	for count := len(r.cells) - 2; count > 0; count-- {
+	for count := len(r.cells) - 1; count > 0; count-- {
 		prefix, err := r.rebuild(r.cells[:count])
 		if err != nil {
 			continue
@@ -127,7 +127,7 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 		}
 		partialRow := newSplittableTableRow(partialTable, r.cells[count], r.opts)
 		partialRow.SetConfig(r.config)
-		// Keep shorter middle rows intact at a page edge. A tall wrapped row
+		// Keep shorter rows intact at a page edge. A tall wrapped row
 		// has enough content to leave a useful fragment on both pages.
 		if !tableCellsWrapAtLeastThreeLines(provider, r.cells[count], r.table.ColumnWidths(), width) {
 			continue
@@ -164,7 +164,8 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 }
 
 func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell, columnWidths []float64, width float64) bool {
-	if len(columnWidths) != 0 && len(columnWidths) != len(cells) {
+	cellWidths, ok := tableCellWidths(cells, columnWidths, width)
+	if !ok {
 		return false
 	}
 	for index, cell := range cells {
@@ -172,10 +173,7 @@ func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell,
 		if !ok {
 			continue
 		}
-		cellWidth := width / float64(len(cells))
-		if len(columnWidths) > 0 {
-			cellWidth = width * columnWidths[index]
-		}
+		cellWidth := cellWidths[index]
 		if cell.Style != nil {
 			cellWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
 		}
@@ -188,6 +186,32 @@ func tableCellsWrapAtLeastThreeLines(provider core.Provider, cells []table.Cell,
 		}
 	}
 	return false
+}
+
+func tableCellWidths(cells []table.Cell, columnWidths []float64, width float64) ([]float64, bool) {
+	columnCount := 0
+	for _, cell := range cells {
+		if cell.Rowspan > 1 {
+			return nil, false
+		}
+		columnCount += max(1, cell.Colspan)
+	}
+	if columnCount == 0 || len(columnWidths) != 0 && len(columnWidths) != columnCount {
+		return nil, false
+	}
+	widths := make([]float64, len(cells))
+	column := 0
+	for index, cell := range cells {
+		for range max(1, cell.Colspan) {
+			if len(columnWidths) == 0 {
+				widths[index] += width / float64(columnCount)
+			} else {
+				widths[index] += width * columnWidths[column]
+			}
+			column++
+		}
+	}
+	return widths, true
 }
 
 func (r *splittableMultiTableRow) rebuild(cells [][]table.Cell) (*splittableMultiTableRow, error) {
@@ -283,22 +307,15 @@ func (r *splittableTableRow) SplitAt(provider core.Provider, remainingHeight, wi
 	if _, ok := provider.(core.RichTextMeasurer); !ok || remainingHeight <= 0 || len(r.cells) == 0 {
 		return nil, r, true
 	}
-	columnWidths := r.table.ColumnWidths()
-	if len(columnWidths) != 0 && len(columnWidths) != len(r.cells) {
+	cellWidths, ok := tableCellWidths(r.cells, r.table.ColumnWidths(), width)
+	if !ok {
 		return nil, r, true
 	}
 	firstCells := make([]table.Cell, len(r.cells))
 	restCells := make([]table.Cell, len(r.cells))
 	anyContinuation := false
 	for index, cell := range r.cells {
-		if cell.Colspan > 1 || cell.Rowspan > 1 {
-			return nil, r, true
-		}
-		cellWidth := width / float64(len(r.cells))
-		if len(columnWidths) > 0 {
-			cellWidth = width * columnWidths[index]
-		}
-		first, rest, split := splitTableCellText(provider, cell, remainingHeight, cellWidth, r.config)
+		first, rest, split := splitTableCellText(provider, cell, remainingHeight, cellWidths[index], r.config)
 		if !split && rest.Content != nil {
 			return nil, r, true
 		}
@@ -328,8 +345,8 @@ func (r *splittableTableRow) carryWrappedTailToNextPage(provider core.Provider, 
 	if _, ok := provider.(core.RichTextMeasurer); !ok {
 		return nil, nil, false
 	}
-	columnWidths := r.table.ColumnWidths()
-	if len(columnWidths) != 0 && len(columnWidths) != len(r.cells) {
+	cellWidths, ok := tableCellWidths(r.cells, r.table.ColumnWidths(), width)
+	if !ok {
 		return nil, nil, false
 	}
 	firstCells := make([]table.Cell, len(r.cells))
@@ -337,9 +354,6 @@ func (r *splittableTableRow) carryWrappedTailToNextPage(provider core.Provider, 
 	carried := false
 	retained := false
 	for index, cell := range r.cells {
-		if cell.Colspan > 1 || cell.Rowspan > 1 {
-			return nil, nil, false
-		}
 		firstCells[index], restCells[index] = cell, cell
 		restCells[index].Content = nil
 		restCells[index].Height = 0
@@ -356,18 +370,14 @@ func (r *splittableTableRow) carryWrappedTailToNextPage(provider core.Provider, 
 				return nil, nil, false
 			}
 		}
-		cellWidth := width / float64(len(r.cells))
-		if len(columnWidths) > 0 {
-			cellWidth = width * columnWidths[index]
-		}
-		innerWidth := cellWidth
+		innerWidth := cellWidths[index]
 		if cell.Style != nil {
 			innerWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
 		}
 		if innerWidth <= 0 || rt.GetHeight(provider, &entity.Cell{Width: innerWidth}) <= rt.GetHeight(provider, &entity.Cell{Width: 10000})+0.001 {
 			return nil, nil, false
 		}
-		first, rest, split := splitTableCellText(provider, cell, remainingHeight-threshold, cellWidth, r.config)
+		first, rest, split := splitTableCellText(provider, cell, remainingHeight-threshold, cellWidths[index], r.config)
 		if !split || rest.Content == nil {
 			return nil, nil, false
 		}
@@ -389,8 +399,8 @@ func (r *splittableTableRow) carryWrappedTailToNextPage(provider core.Provider, 
 }
 
 func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, remainingHeight, width float64) (core.Row, core.Row, bool) {
-	columnWidths := r.table.ColumnWidths()
-	if len(columnWidths) != 0 && len(columnWidths) != len(r.cells) {
+	cellWidths, ok := tableCellWidths(r.cells, r.table.ColumnWidths(), width)
+	if !ok {
 		return nil, nil, false
 	}
 	firstCells := make([]table.Cell, len(r.cells))
@@ -398,9 +408,6 @@ func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, rema
 	carried := false
 	retained := false
 	for index, cell := range r.cells {
-		if cell.Colspan > 1 || cell.Rowspan > 1 {
-			return nil, nil, false
-		}
 		if cell.Content != nil {
 			rt, ok := cell.Content.(*richtext.RichText)
 			if !ok {
@@ -411,10 +418,7 @@ func (r *splittableTableRow) carryContentToNextPage(provider core.Provider, rema
 					return nil, nil, false
 				}
 			}
-			cellWidth := width / float64(len(r.cells))
-			if len(columnWidths) > 0 {
-				cellWidth = width * columnWidths[index]
-			}
+			cellWidth := cellWidths[index]
 			if cell.Style != nil {
 				cellWidth -= cell.Style.PaddingLeft + cell.Style.PaddingRight
 			}
