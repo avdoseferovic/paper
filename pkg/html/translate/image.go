@@ -752,6 +752,7 @@ func (tr *translator) availableContentWidth() float64 {
 type imageDimensionStyle struct {
 	width     float64
 	height    float64
+	objectFit string
 	minWidth  float64
 	maxWidth  float64
 	minHeight float64
@@ -777,10 +778,22 @@ func (tr *translator) prepareImageData(
 	unsupportedPrefix string,
 ) ([]byte, string, float64, float64, bool) {
 	if ext == imageExtSVG {
+		rasterWidth, rasterHeight := dimensions.width, dimensions.height
+		switch dimensions.objectFit {
+		case "contain", "cover":
+			// Preserve the SVG's intrinsic aspect before fitting it into the
+			// resolved content box. Both CSS dimensions would stretch it first.
+			if rasterWidth > 0 {
+				rasterHeight = 0
+			}
+		case "none", "scale-down":
+			// These modes compare the natural image size to the content box.
+			rasterWidth, rasterHeight = 0, 0
+		}
 		pngBytes, w, h, err := svgraster.RasterizeWithLimit(
 			data,
-			dimensions.width,
-			dimensions.height,
+			rasterWidth,
+			rasterHeight,
 			tr.limits.MaxSVGPixels,
 		)
 		if err != nil {
@@ -815,6 +828,7 @@ func applyImageDimensionStyle(dimensions imageDimensionStyle, style *css.Compute
 		if style.Height > 0 {
 			dimensions.height = style.Height
 		}
+		dimensions.objectFit = style.ObjectFit
 		dimensions.minWidth = style.MinWidth
 		dimensions.maxWidth = style.MaxWidth
 		dimensions.minHeight = style.MinHeight

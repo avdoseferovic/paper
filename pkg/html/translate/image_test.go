@@ -194,6 +194,26 @@ func TestRasteriseSVG_ProducesPNGAtRequestedSize(t *testing.T) {
 	assert.Equal(t, pxH, img.Bounds().Dy())
 }
 
+func TestPrepareSVGImage_PreservesIntrinsicAspectForObjectFit(t *testing.T) {
+	t.Parallel()
+	const vector = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="70" viewBox="0 0 100 70"><rect width="100" height="70" fill="red"/></svg>`
+	tr := &translator{}
+	for _, fit := range []string{"contain", "cover", "none", "scale-down"} {
+		t.Run(fit, func(t *testing.T) {
+			pngBytes, ext, _, _, ok := tr.prepareImageData([]byte(vector), imageExtSVG, imageDimensionStyle{width: 40, height: 20, objectFit: fit}, "img")
+			require.True(t, ok)
+			assert.Equal(t, imageExtPNG, ext)
+			img, err := png.Decode(bytes.NewReader(pngBytes))
+			require.NoError(t, err)
+			assert.InDelta(t, 10.0/7.0, float64(img.Bounds().Dx())/float64(img.Bounds().Dy()), 0.01)
+			if fit == "none" || fit == "scale-down" {
+				assert.Equal(t, 100, img.Bounds().Dx())
+				assert.Equal(t, 70, img.Bounds().Dy())
+			}
+		})
+	}
+}
+
 func TestImageRow_DefaultResolverRefusesLocalPath_FallsBackToAlt(t *testing.T) {
 	t.Parallel()
 	doc, err := dom.Parse(`<html><body><img src="local.png" alt="fallback text"></body></html>`)
