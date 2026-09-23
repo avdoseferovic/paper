@@ -94,6 +94,24 @@ func (r *splittableMultiTableRow) SplitAt(provider core.Provider, remainingHeigh
 		}
 		return firstFragment, restFragment, true
 	}
+	// If even the first row cannot fit, keep its later text and the remaining
+	// rows together on the next page instead of moving the whole table.
+	firstTable, err := table.New([][]table.Cell{r.cells[0]}, r.opts...)
+	if err == nil {
+		firstRow := newSplittableTableRow(firstTable, r.cells[0], r.opts)
+		firstRow.SetConfig(r.config)
+		first, rest, split := firstRow.SplitAt(provider, remainingHeight, width)
+		if split && first != nil && rest != nil {
+			firstFragment, err := r.rebuild([][]table.Cell{first.(*splittableTableRow).cells})
+			if err == nil && firstFragment.GetHeight(provider, &entity.Cell{Width: width}) <= remainingHeight+0.001 {
+				restCells := append([][]table.Cell{rest.(*splittableTableRow).cells}, r.cells[1:]...)
+				restFragment, err := r.rebuild(restCells)
+				if err == nil {
+					return firstFragment, restFragment, true
+				}
+			}
+		}
+	}
 	for count := len(r.cells) - 1; count > 0; count-- {
 		first, err := r.rebuild(r.cells[:count])
 		if err != nil || first.GetHeight(provider, &entity.Cell{Width: width}) > remainingHeight {

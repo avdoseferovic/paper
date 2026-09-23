@@ -91,6 +91,28 @@ func TestMultiRowTableSplitsBetweenRows(t *testing.T) {
 	assert.Equal(t, 2, len(rest.(*splittableMultiTableRow).cells))
 }
 
+func TestMultiRowTableSplitsFirstWrappedRow(t *testing.T) {
+	doc, err := dom.Parse(`<table data-split-rows="true"><colgroup><col width="50pt"><col width="50pt"></colgroup><tr><td>first label</td><td>one two three four five six seven</td></tr><tr><td>second</td><td>yes</td></tr></table>`)
+	require.NoError(t, err)
+	rows, err := Translate(t.Context(), doc)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	row := rows[0].(*splittableMultiTableRow)
+	row.SetConfig(&entity.Config{MaxGridSize: 12, DefaultFont: &props.Font{}})
+	provider := &widthAwareTableProvider{cursorProvider: &cursorProvider{}}
+	firstRow, err := row.rebuild(row.cells[:1])
+	require.NoError(t, err)
+	width := 100.0
+	available := firstRow.GetHeight(provider, &entity.Cell{Width: width}) * 0.6
+	first, rest, split := row.SplitAt(provider, available, width)
+	require.True(t, split)
+	require.NotNil(t, first)
+	require.NotNil(t, rest)
+	assert.Equal(t, 1, len(first.(*splittableMultiTableRow).cells))
+	assert.Equal(t, 2, len(rest.(*splittableMultiTableRow).cells))
+	assert.True(t, first.GetHeight(provider, &entity.Cell{Width: width}) <= available+0.001)
+}
+
 func TestMultiRowTableKeepsRowspanTogether(t *testing.T) {
 	doc, err := dom.Parse(`<table data-split-rows="true"><tr><td rowspan="2">shared</td><td>first</td></tr><tr><td>second</td></tr></table>`)
 	require.NoError(t, err)
