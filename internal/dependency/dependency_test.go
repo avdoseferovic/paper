@@ -98,6 +98,7 @@ func TestAllowedPackageModule(t *testing.T) {
 		{name: "retained net", module: "golang.org/x/net", want: true},
 		{name: "retained image", module: "golang.org/x/image", want: true},
 		{name: "image text closure", module: "golang.org/x/text", want: true},
+		{name: "image system closure", module: "golang.org/x/sys", want: true},
 		{name: "unresolved nonstandard package", want: false},
 		{name: "lookalike module", module: "golang.org/x/net/http2", want: false},
 		{name: "removed selector library", module: "github.com/andybalholm/cascadia", want: false},
@@ -197,7 +198,7 @@ func allowedPackageModule(standard bool, path string) bool {
 		return true
 	}
 	switch path {
-	case paperModule, paperModule + "/docs", paperModule + "/examples", "golang.org/x/net", "golang.org/x/image", "golang.org/x/text":
+	case paperModule, paperModule + "/docs", paperModule + "/examples", "golang.org/x/net", "golang.org/x/image", "golang.org/x/text", "golang.org/x/sys":
 		return true
 	default:
 		return false
