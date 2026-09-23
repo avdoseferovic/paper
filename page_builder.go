@@ -87,17 +87,15 @@ func (b *pageBuilder) addPages(pages ...core.Page) {
 func (b *pageBuilder) addRows(rows ...core.Row) {
 	for index, row := range rows {
 		if index+1 < len(rows) {
-			b.moveKeptRowToNextPage(row, rows[index+1])
+			if keep, ok := row.(core.KeepWithNext); ok && keep.KeepWithNext() && !b.isAtTopOfUsablePage() {
+				b.moveKeptRowToNextPage(row, rows[index+1])
+			}
 		}
 		b.addRow(row)
 	}
 }
 
 func (b *pageBuilder) moveKeptRowToNextPage(row, next core.Row) {
-	keep, ok := row.(core.KeepWithNext)
-	if !ok || !keep.KeepWithNext() || b.isAtTopOfUsablePage() {
-		return
-	}
 	row.SetConfig(b.config)
 	next.SetConfig(b.config)
 	rowHeight := row.GetHeight(b.provider, &b.cell)
